@@ -1,33 +1,43 @@
-pub type TemplateDescriptor = String;
-pub type ScriptDescriptor = String;
-pub type StyleDescriptor = String;
+use smallvec::SmallVec;
+
+pub struct SFCBlock {
+}
+
+pub struct SFCTemplateBlock {
+
+}
+
+pub struct SFCScriptBlock {
+
+}
+
+pub struct SFCStyleBlock {
+
+}
 
 pub struct SFCDescriptor<'a> {
     filename: String,
     source: &'a str,
-    template: TemplateDescriptor,
-    script: ScriptDescriptor,
-    style: StyleDescriptor,
+    template: Option<SFCTemplateBlock>,
+    scripts: SmallVec<[SFCScriptBlock; 1]>,
+    styles: SmallVec<[SFCStyleBlock; 1]>,
+    custom_blocks: Vec<SFCBlock>,
+    css_vars: Vec<&'a str>,
+    /// whether the SFC uses :slotted() modifier.
+    /// this is used as a compiler optimization hint.
+    slotted: bool,
 }
 
-/*
-  template: SFCTemplateBlock | null
-  script: SFCScriptBlock | null
-  scriptSetup: SFCScriptBlock | null
-  styles: SFCStyleBlock[]
-  customBlocks: SFCBlock[]
-  cssVars: string[]
-  // whether the SFC uses :slotted() modifier.
-  // this is used as a compiler optimization hint.
-  slotted: boolean
+enum SFCError {
+    CompilerError,
+    SyntaxError,
 }
 
-export interface SFCParseResult {
-  descriptor: SFCDescriptor
-  errors: (CompilerError | SyntaxError)[]
+pub struct SFCParseResult<'a> {
+    descriptor: SFCDescriptor<'a>,
+    errors: Vec<SFCError>,
 }
- * */
 
-pub fn parse_sfc(source: String) -> SFCDescriptor {
+pub fn parse_sfc(source: &str) -> SFCParseResult<'_> {
     unimplemented!("TODO")
 }

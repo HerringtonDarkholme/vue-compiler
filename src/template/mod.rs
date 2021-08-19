@@ -1,5 +1,4 @@
-use super::sfc::TemplateDescriptor;
-
-pub fn compile_template(template: TemplateDescriptor) -> String {
-    unimplemented!();
-}
+mod ast;
+mod codegen;
+mod runtime_helper;
+mod parse_template;

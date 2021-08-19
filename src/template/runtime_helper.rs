@@ -1,3 +1,4 @@
+use crate::core::PreambleHelper;
 use bitflags::bitflags;
 
 bitflags! {
@@ -43,4 +44,7 @@ bitflags! {
     const WITH_MEMO                 = 1 << 38;
     const IS_MEMO_SAME              = 1 << 39;
   }
+}
+
+impl PreambleHelper for RuntimeHelper {
 }

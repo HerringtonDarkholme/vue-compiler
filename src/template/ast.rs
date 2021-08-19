@@ -11,6 +11,18 @@ pub struct SourceLocation {
     end: Position,
 }
 
+enum ParentNode<'a> {
+    Root(RootNode<'a>),
+    Element(ElementNode),
+    IfBranch(IfBranchNode),
+    For(ForNode),
+}
+
+enum ExpressionNode {
+    Simple(SimpleExpressionNode),
+    Compound(CompoundExpressionNode),
+}
+
 enum TemplateChildNode {
     Element(),
     Interpolation(),

@@ -1,5 +1,6 @@
-mod template_element;
+mod element_node;
 mod js_expression;
+mod template_codegen;
 
 pub struct Position {
     offset: usize,
@@ -12,11 +13,8 @@ pub struct SourceLocation {
     end: Position,
 }
 
-pub enum CodegenNode<'a> {
-    TemplateChild(template_element::TemplateChildNode<'a>),
-    JsChild(js_expression::JsChildNode),
-    JsBlock(js_expression::BlockStatement),
+pub struct ForParseResult {
 }
 
-pub struct ForParseResult {
+pub enum PatchFlag {
 }

@@ -1,6 +1,4 @@
-use crate::core::TemplateCompiler;
 use std::path::PathBuf;
-use std::borrow::Cow;
 
 pub enum PadOption {
     Line,
@@ -8,7 +6,7 @@ pub enum PadOption {
     NoPad,
 }
 
-pub struct SFCParseOptions {
+pub struct SfcParseOptions {
     pub filename: String,
     pub source_map: bool,
     pub source_root: PathBuf,
@@ -16,7 +14,7 @@ pub struct SFCParseOptions {
     pub ignore_empty: bool,
 }
 
-impl Default for SFCParseOptions {
+impl Default for SfcParseOptions {
     fn default() -> Self {
         Self {
             filename: "anonymous.vue".into(),

@@ -5,7 +5,7 @@ mod descriptors;
 
 pub use parse_sfc::{
     parse_sfc,
-    SFCDescriptor,
+    SfcDescriptor,
 };
 
 pub enum PadOption {
@@ -14,7 +14,7 @@ pub enum PadOption {
     NoPad,
 }
 
-pub struct SFCParseOptions {
+pub struct SfcParseOptions {
     pub filename: String,
     pub source_map: bool,
     pub source_root: PathBuf,
@@ -22,7 +22,7 @@ pub struct SFCParseOptions {
     pub ignore_empty: bool,
 }
 
-impl Default for SFCParseOptions {
+impl Default for SfcParseOptions {
     fn default() -> Self {
         Self {
             filename: "anonymous.vue".into(),

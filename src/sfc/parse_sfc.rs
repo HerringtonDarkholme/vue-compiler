@@ -1,43 +1,43 @@
 use smallvec::SmallVec;
 
-pub struct SFCBlock {
+pub struct SfcBlock {
 }
 
-pub struct SFCTemplateBlock {
-
-}
-
-pub struct SFCScriptBlock {
+pub struct SfcTemplateBlock {
 
 }
 
-pub struct SFCStyleBlock {
+pub struct SfcScriptBlock {
 
 }
 
-pub struct SFCDescriptor<'a> {
+pub struct SfcStyleBlock {
+
+}
+
+pub struct SfcDescriptor<'a> {
     pub filename: String,
     pub source: &'a str,
-    pub template: Option<SFCTemplateBlock>,
-    pub scripts: SmallVec<[SFCScriptBlock; 1]>,
-    pub styles: SmallVec<[SFCStyleBlock; 1]>,
-    pub custom_blocks: Vec<SFCBlock>,
+    pub template: Option<SfcTemplateBlock>,
+    pub scripts: SmallVec<[SfcScriptBlock; 1]>,
+    pub styles: SmallVec<[SfcStyleBlock; 1]>,
+    pub custom_blocks: Vec<SfcBlock>,
     pub css_vars: Vec<&'a str>,
     /// whether the SFC uses :slotted() modifier.
     /// this is used as a compiler optimization hint.
     pub slotted: bool,
 }
 
-pub enum SFCError {
+pub enum SfcError {
     CompilerError,
     SyntaxError,
 }
 
-pub struct SFCParseResult<'a> {
-    pub descriptor: SFCDescriptor<'a>,
-    pub errors: Vec<SFCError>,
+pub struct SfcParseResult<'a> {
+    pub descriptor: SfcDescriptor<'a>,
+    pub errors: Vec<SfcError>,
 }
 
-pub fn parse_sfc(source: &str) -> SFCParseResult<'_> {
+pub fn parse_sfc(source: &str) -> SfcParseResult<'_> {
     unimplemented!("TODO")
 }

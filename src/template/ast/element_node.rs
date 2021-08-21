@@ -73,9 +73,9 @@ pub enum PropNode<'a> {
     Directive(DirectiveNode<'a>),
 }
 
-pub type PlainElementNode<'a> = BaseElement<'a, PlainElementCodegen<'a>, TemplateLiteral>;
-pub type ComponentNode<'a> = BaseElement<'a, ComponentCodegen, CallExpression>;
-pub type SlotOutletNode<'a> = BaseElement<'a, SlotOutletCodegen, CallExpression>;
+pub type PlainElementNode<'a> = BaseElement<'a, PlainElementCodegen<'a>, TemplateLiteral<'a>>;
+pub type ComponentNode<'a> = BaseElement<'a, ComponentCodegen<'a>, CallExpression<'a>>;
+pub type SlotOutletNode<'a> = BaseElement<'a, SlotOutletCodegen<'a>, CallExpression<'a>>;
 pub type TemplateNode<'a> = BaseElement<'a, ()>;
 
 pub struct TextNode<'a> {
@@ -155,7 +155,7 @@ pub enum TemplateTextChildNode<'a> {
 
 pub enum VNodeCallTag<'a> {
     Str(&'a str),
-    Call(CallExpression),
+    Call(CallExpression<'a>),
 }
 
 pub enum VNodeCallChildren<'a> {

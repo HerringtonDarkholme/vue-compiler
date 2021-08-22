@@ -1,3 +1,6 @@
 mod sfc;
-mod template;
+mod dom;
+mod ssr;
 mod core;
+
+pub use crate::core::compile;

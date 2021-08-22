@@ -46,5 +46,11 @@ bitflags! {
   }
 }
 
-impl PreambleHelper for RuntimeHelper {
+impl PreambleHelper<RuntimeHelper> for RuntimeHelper {
+    fn collect_helper(&mut self, helper: RuntimeHelper) {
+       *self |= helper;
+    }
+    fn generate_imports(&self) -> String {
+        unimplemented!("TODO")
+    }
 }

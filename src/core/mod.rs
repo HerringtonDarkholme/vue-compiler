@@ -8,11 +8,16 @@ use codegen::CodeGenerator;
 use tokenizer::Tokenizer;
 use parser::Parser;
 
+// use plain &str here for now
+// may change to tendril
 pub type Name<'a> = &'a str;
 
 pub struct Position {
+    /// the 0-indexed offset in the source str modulo newline
     pub offset: usize,
+    /// the line number in the source code
     pub line: usize,
+    /// the column number in the source code
     pub column: usize,
 }
 
@@ -37,7 +42,7 @@ pub fn compile<C: CodeGenerator>(source: &str, gen: C) -> C::Output {
     let tokenizer = Tokenizer::new(source);
     let mut parser = Parser::new(tokenizer);
     let ast = parser.parse();
-    let mut ir = gen.get_ir(ast);
+    let mut ir = gen.convert_ir(ast);
     gen.transform(&mut ir);
     gen.genrate(ir)
 }

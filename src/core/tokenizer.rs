@@ -1,5 +1,3 @@
-// use plain &str here for now
-// may change to tendril
 use super::Name;
 
 #[derive(PartialEq, Eq, Debug)]
@@ -20,15 +18,13 @@ pub enum Token<'a> {
 }
 
 pub struct TokenizerOption {
-    left_delimiter: String,
-    right_delimiter: String,
+    delimiters: (String, String),
 }
 
 impl Default for TokenizerOption {
     fn default() -> Self {
         Self {
-            left_delimiter: String::from("{{"),
-            right_delimiter: String::from("}}"),
+            delimiters: ("{{".into(), "}}".into())
         }
     }
 }

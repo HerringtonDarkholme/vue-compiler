@@ -17,14 +17,21 @@ pub enum Token<'a> {
     RightInterpolation(&'a str),
 }
 
+pub enum WhitespaceStrategy {
+    Preserve,
+    Condense,
+}
+
 pub struct TokenizerOption {
     delimiters: (String, String),
+    whitespace: WhitespaceStrategy,
 }
 
 impl Default for TokenizerOption {
     fn default() -> Self {
         Self {
-            delimiters: ("{{".into(), "}}".into())
+            delimiters: ("{{".into(), "}}".into()),
+            whitespace: WhitespaceStrategy::Condense,
         }
     }
 }

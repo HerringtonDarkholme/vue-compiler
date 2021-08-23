@@ -4,10 +4,12 @@ mod runtime_helper;
 mod ir_converter;
 mod codegen;
 mod transformer;
+mod error;
 
 pub use codegen::CodeGenerator;
 pub use ir_converter::IRConverter;
 pub use transformer::Transformer;
+pub use error::CompilationError;
 use tokenizer::Tokenizer;
 use parser::Parser;
 
@@ -43,15 +45,15 @@ pub trait PreambleHelper<Helper> {
 
 pub fn base_compile<IR, O, Conv, Trans, Gen>(
     source: &str, conv: Conv, trans: Trans, gen: Gen
-) -> O where
+) -> Result<O, CompilationError> where
     Conv: IRConverter<IRNode=IR>,
     Trans: Transformer<IRNode=IR>,
     Gen: CodeGenerator<IRNode=IR, Output=O>,
 {
     let tokenizer = Tokenizer::new(source);
     let mut parser = Parser::new(tokenizer);
-    let ast = parser.parse();
+    let ast = parser.parse()?;
     let mut ir = conv.convert_ir(ast);
     trans.transform(&mut ir);
-    gen.genrate(ir)
+    Ok(gen.genrate(ir))
 }

@@ -48,6 +48,9 @@ pub struct AstRoot<'a> {
     loc: SourceLocation,
 }
 
+pub enum ParseError {
+}
+
 trait ParseOption {
     fn decode_entities(s: &str) -> Cow<String>;
 }
@@ -56,13 +59,19 @@ pub struct Parser<'a> {
     tokenizer: Tokenizer<'a>
 }
 
+pub type ParseResult<'a> = Result<AstRoot<'a>, ParseError>;
+
 impl<'a> Parser<'a> {
     pub fn new(tokenizer: Tokenizer<'a>) -> Self {
         Self {
             tokenizer,
         }
     }
-    pub fn parse(&mut self) -> AstRoot<'a> {
-        unimplemented!("TODO")
+    pub fn parse(&mut self) -> ParseResult<'a> {
+        parse(&mut self.tokenizer)
     }
+}
+
+fn parse<'a>(tokenizer: &mut Tokenizer<'a>) -> ParseResult<'a> {
+    unimplemented!("TODO")
 }

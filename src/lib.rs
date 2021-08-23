@@ -3,4 +3,4 @@ mod dom;
 mod ssr;
 mod core;
 
-pub use crate::core::compile;
+pub use crate::core::base_compile;

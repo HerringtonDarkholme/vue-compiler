@@ -1,38 +1,11 @@
-use super::parser::AstRoot;
-use super::ir_gen::{
-    IRNode, convert_ast_to_ir
-};
+use super::ir_converter::IRNode;
 
 pub trait CodeGenerator {
     type IRNode;
     type Output;
-    /// convert template ast node to intermediate representation
-    /// the IR format is implementation specific
-    /// e.g SSR Codegen and DOM Codegen can have different IR
-    fn convert_ir(&self, ast: AstRoot) -> Self::IRNode;
-    /// transform will change ir node inplace
-    /// usually transform will have multiple passes
-    fn transform(&self, node: &mut Self::IRNode);
     /// generate will take optimized ir node and output
     /// desired code format, either String or Binary code
     fn genrate(&self, node: Self::IRNode) -> Self::Output;
-}
-
-pub struct CodeGeneratorImpl {
-}
-
-impl CodeGenerator for CodeGeneratorImpl {
-    type IRNode = IRNode;
-    type Output = String;
-    fn convert_ir(&self, ast: AstRoot) -> Self::IRNode {
-        convert_ast_to_ir(ast)
-    }
-    fn transform(&self, node: &mut Self::IRNode) {
-    }
-    fn genrate(&self, node: Self::IRNode) -> Self::Output {
-        generate(node);
-        unimplemented!("TODO")
-    }
 }
 
 fn generate(node: IRNode) {

@@ -1,6 +1,6 @@
 use std::str::Chars;
 use super::{
-    Name, SourceLocation,
+    Name, SourceLocation, Position,
     error::{CompilationError, CompilationErrorKind},
 };
 
@@ -69,11 +69,9 @@ enum TokenizerState {
 
 pub struct Tokenizer<'a> {
     source: &'a str,
-    offset: usize,
-    line: usize,
-    column: usize,
-    option: TokenizerOption,
+    position: Position,
     state: TokenizerState,
+    option: TokenizerOption,
     errors: Vec<CompilationError>,
 }
 
@@ -82,11 +80,9 @@ impl<'a> Tokenizer<'a> {
     pub fn new(source: &'a str) -> Self {
         Self {
             source,
-            offset: 0,
-            line: 1,
-            column: 1,
-            option: Default::default(),
+            position: Default::default(),
             state: TokenizerState::RawText,
+            option: Default::default(),
             errors: Vec::new(),
         }
     }
@@ -145,6 +141,7 @@ impl<'a> Tokenizer<'a> {
     fn scan_in_tag(&mut self) -> Token<'a> {
         debug_assert!(self.state == TokenizerState::InTag);
         self.skip_whitespace();
+
         todo!()
     }
     fn scan_in_attr(&mut self) -> Token<'a> {
@@ -240,10 +237,11 @@ impl<'a> Tokenizer<'a> {
         }
         let old_source = self.source;
         self.source = &self.source[size..];
-        self.offset += size;
-        self.line += lines;
-        self.column = if last_new_line_pos == -1 {
-            self.column + size
+        let pos = &mut self.position;
+        pos.offset += size;
+        pos.line += lines;
+        pos.column = if last_new_line_pos == -1 {
+            pos.column + size
         } else {
             size - last_new_line_pos as usize
         };
@@ -281,7 +279,7 @@ fn scan_tag_name_length(mut chars: Chars<'_>) -> usize {
 impl<'a> Iterator for Tokenizer<'a> {
     type Item = Token<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.offset >= self.source.len() {
+        if self.source.is_empty() {
             return None
         }
         use TokenizerState as S;

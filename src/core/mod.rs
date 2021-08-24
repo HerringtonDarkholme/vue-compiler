@@ -17,7 +17,7 @@ use parser::Parser;
 // may change to tendril
 pub type Name<'a> = &'a str;
 
-#[derive(Default, Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Position {
     /// the 0-indexed offset in the source str modulo newline
     pub offset: usize,
@@ -25,6 +25,16 @@ pub struct Position {
     pub line: usize,
     /// the column number in the source code
     pub column: usize,
+}
+
+impl Default for Position {
+    fn default() -> Self {
+        Self {
+            offset: 0,
+            line: 1,
+            column: 1,
+        }
+    }
 }
 
 #[derive(Default, Debug)]

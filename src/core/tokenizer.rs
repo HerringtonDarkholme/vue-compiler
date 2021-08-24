@@ -1,4 +1,3 @@
-use std::ops::Range;
 use std::str::Chars;
 use super::{
     Name, SourceLocation,
@@ -102,36 +101,36 @@ impl<'a> Tokenizer<'a> {
     fn scan_rawtext(&mut self) -> Token<'a> {
         debug_assert!(self.state == TokenizerState::RawText);
         let d = self.option.delimiter_first_char();
-        let index = self.current_str()
+        let index = self.source
             .find(|c| c == '<' || c == d);
         // no tag or interpolation found
         if index.is_none() {
-            let range = self.move_to(self.source.len());
-            return Token::Text(&self.source[range])
+            let src = self.move_by(self.source.len());
+            return Token::Text(src)
         }
         let i = index.unwrap();
-        if i != self.offset {
-            let range = self.move_to(i);
-            return Token::Text(&self.source[range])
+        if i != 0 {
+            let src = self.move_by(i);
+            return Token::Text(src)
         }
-        let next_source = &self.source[i..];
-        if next_source.starts_with(&self.option.delimiters.0) {
+        let source = self.source;
+        if source.starts_with(&self.option.delimiters.0) {
             return self.scan_interpolation()
         }
-        if next_source.starts_with("</") {
+        if source.starts_with("</") {
             return Token::LeftBracketSlash
         }
-        if next_source.starts_with("<!") {
+        if source.starts_with("<!") {
             return self.scan_comment_and_like()
         }
         self.state = TokenizerState::OpenTag;
-        self.move_to(i + 1);
+        self.move_by(1);
         Token::LeftBracket
     }
 
     fn scan_open_tag(&mut self) -> Token<'a> {
         debug_assert!(self.state == TokenizerState::OpenTag);
-        let chars = self.current_str().chars();
+        let chars = self.source.chars();
         let l = scan_tag_name_length(chars);
         if l == 0 {
             self.emit_error(CompilationErrorKind::InvalidFirstCharacterOfTagName);
@@ -139,12 +138,13 @@ impl<'a> Tokenizer<'a> {
             return self.scan_rawtext()
         }
         self.state = TokenizerState::InTag;
-        let range = self.move_to(self.offset + l);
-        Token::TagName(&self.source[range])
+        let src = self.move_by(l);
+        Token::TagName(src)
     }
 
     fn scan_in_tag(&mut self) -> Token<'a> {
         debug_assert!(self.state == TokenizerState::InTag);
+        self.skip_whitespace();
         todo!()
     }
     fn scan_in_attr(&mut self) -> Token<'a> {
@@ -158,20 +158,20 @@ impl<'a> Tokenizer<'a> {
 
     fn scan_interpolation(&mut self) -> Token<'a> {
         let delimiters = &self.option.delimiters;
-        debug_assert!(self.current_str().starts_with(&delimiters.0));
-        let index =  self.current_str().find(&delimiters.1);
+        debug_assert!(self.source.starts_with(&delimiters.0));
+        let index =  self.source.find(&delimiters.1);
         if index.is_none() {
             self.emit_error(CompilationErrorKind::MissingInterpolationEnd);
-            let range = self.move_to(self.source.len());
-            return Token::Interpolation(&self.source[range])
+            let src = self.move_by(self.source.len());
+            return Token::Interpolation(src)
         }
         let index = index.unwrap();
-        let range = self.move_to(index + 1);
-        Token::Interpolation(&self.source[range])
+        let src = self.move_by(index + delimiters.1.len());
+        Token::Interpolation(src)
     }
 
     fn scan_comment_and_like(&mut self) -> Token<'a> {
-        let s = self.current_str();
+        let s = self.source;
         if s.starts_with("<!--") {
             self.scan_comment()
         } else if s.starts_with("<!DOCTYPE") {
@@ -184,8 +184,8 @@ impl<'a> Tokenizer<'a> {
         }
     }
     fn scan_comment(&mut self) -> Token<'a> {
-        debug_assert!(self.current_str().starts_with("<!--"));
-        while let Some(end) = self.current_str().find("--") {
+        debug_assert!(self.source.starts_with("<!--"));
+        while let Some(end) = self.source.find("--") {
             let s = &self.source[end..];
             let offset = if s.starts_with("!>") {
                 2
@@ -195,12 +195,12 @@ impl<'a> Tokenizer<'a> {
                 0
             };
             if offset > 0 {
-                let range = self.move_to(end + offset + 1);
-                return Token::Comment(&self.source[range])
+                let src = self.move_by(end + offset + 2);
+                return Token::Comment(src)
             }
         }
         self.emit_error(CompilationErrorKind::EofInComment);
-        Token::Comment(self.current_str())
+        Token::Comment(self.source)
     }
     #[cold]
     fn scan_bogus_comment(&mut self) -> Token<'a> {
@@ -220,9 +220,6 @@ impl<'a> Tokenizer<'a> {
         self.errors.push(err);
     }
 
-    fn current_str(&self) -> &'a str {
-        &self.source[self.offset..]
-    }
     fn current_location(&self) -> SourceLocation {
         todo!()
     }
@@ -231,36 +228,34 @@ impl<'a> Tokenizer<'a> {
     /// tokenizer's line/column are also updated in the method
     /// note it only moves forward, not backward
     /// `advance_to` is a better name but it collides with iter
-    fn move_to(&mut self, index: usize) -> Range<usize> {
-        debug_assert!(index > self.offset, "tokenizer cannot move back");
-        let start = self.offset;
-        self.offset = index;
-        self.update_line_col(&self.source[start..self.offset]);
-        start..self.offset
-    }
-    fn update_line_col(&mut self, s: &str) {
+    fn move_by(&mut self, size: usize) -> &'a str {
+        debug_assert!(size > 0, "tokenizer must move forward");
         let mut lines = 0;
         let mut last_new_line_pos = -1;
-        for (i, c) in s.chars().enumerate() {
+        for (i, c) in self.source[..size].chars().enumerate() {
             if c == '\n' {
                 lines += 1;
                 last_new_line_pos = i as i32;
             }
         }
+        let old_source = self.source;
+        self.source = &self.source[size..];
+        self.offset += size;
         self.line += lines;
         self.column = if last_new_line_pos == -1 {
-            self.column + s.len()
+            self.column + size
         } else {
-            s.len() - last_new_line_pos as usize
+            size - last_new_line_pos as usize
         };
+        &old_source[..size]
     }
 
     fn skip_whitespace(&mut self) {
-        let idx = self.current_str().find(|c: char| !c.is_ascii_whitespace());
+        let idx = self.source.find(|c: char| !c.is_ascii_whitespace());
         if let Some(i) = idx {
-            self.move_to(i);
+            self.move_by(i);
         } else {
-            self.move_to(self.source.len());
+            self.move_by(self.source.len());
         }
     }
 }

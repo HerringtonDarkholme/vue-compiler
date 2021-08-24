@@ -70,7 +70,7 @@ enum TokenizerState {
 
 pub struct Tokenizer<'a> {
     source: &'a str,
-    current: usize,
+    offset: usize,
     line: usize,
     column: usize,
     option: TokenizerOption,
@@ -78,11 +78,12 @@ pub struct Tokenizer<'a> {
     errors: Vec<CompilationError>,
 }
 
+// builder methods
 impl<'a> Tokenizer<'a> {
     pub fn new(source: &'a str) -> Self {
         Self {
             source,
-            current: 0,
+            offset: 0,
             line: 1,
             column: 1,
             option: Default::default(),
@@ -94,7 +95,10 @@ impl<'a> Tokenizer<'a> {
         self.option = option;
         self
     }
+}
 
+// scanning methods
+impl<'a> Tokenizer<'a> {
     fn scan_rawtext(&mut self) -> Token<'a> {
         debug_assert!(self.state == TokenizerState::RawText);
         let d = self.option.delimiter_first_char();
@@ -106,7 +110,7 @@ impl<'a> Tokenizer<'a> {
             return Token::Text(&self.source[range])
         }
         let i = index.unwrap();
-        if i != self.current {
+        if i != self.offset {
             let range = self.move_to(i);
             return Token::Text(&self.source[range])
         }
@@ -135,7 +139,7 @@ impl<'a> Tokenizer<'a> {
             return self.scan_rawtext()
         }
         self.state = TokenizerState::InTag;
-        let range = self.move_to(self.current + l);
+        let range = self.move_to(self.offset + l);
         Token::TagName(&self.source[range])
     }
 
@@ -206,7 +210,10 @@ impl<'a> Tokenizer<'a> {
     fn scan_cdata(&mut self) -> Token<'a> {
         todo!()
     }
+}
 
+// util mtehods
+impl<'a> Tokenizer<'a> {
     fn emit_error(&mut self, error_kind: CompilationErrorKind) {
         let loc = self.current_location();
         let err = CompilationError::new(error_kind).with_location(loc);
@@ -214,7 +221,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn current_str(&self) -> &'a str {
-        &self.source[self.current..]
+        &self.source[self.offset..]
     }
     fn current_location(&self) -> SourceLocation {
         todo!()
@@ -225,15 +232,37 @@ impl<'a> Tokenizer<'a> {
     /// note it only moves forward, not backward
     /// `advance_to` is a better name but it collides with iter
     fn move_to(&mut self, index: usize) -> Range<usize> {
-        debug_assert!(index > self.current, "tokenizer cannot move back");
-        let start = self.current;
-        self.current = index;
-        start..self.current
+        debug_assert!(index > self.offset, "tokenizer cannot move back");
+        let start = self.offset;
+        self.offset = index;
+        self.update_line_col(&self.source[start..self.offset]);
+        start..self.offset
     }
-}
+    fn update_line_col(&mut self, s: &str) {
+        let mut lines = 0;
+        let mut last_new_line_pos = -1;
+        for (i, c) in s.chars().enumerate() {
+            if c == '\n' {
+                lines += 1;
+                last_new_line_pos = i as i32;
+            }
+        }
+        self.line += lines;
+        self.column = if last_new_line_pos == -1 {
+            self.column + s.len()
+        } else {
+            s.len() - last_new_line_pos as usize
+        };
+    }
 
-fn get_line_count(s: &str) -> usize {
-    s.lines().count()
+    fn skip_whitespace(&mut self) {
+        let idx = self.current_str().find(|c: char| !c.is_ascii_whitespace());
+        if let Some(i) = idx {
+            self.move_to(i);
+        } else {
+            self.move_to(self.source.len());
+        }
+    }
 }
 
 fn is_valid_tag_name_char(&c: &char) -> bool {
@@ -257,7 +286,7 @@ fn scan_tag_name_length(mut chars: Chars<'_>) -> usize {
 impl<'a> Iterator for Tokenizer<'a> {
     type Item = Token<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current >= self.source.len() {
+        if self.offset >= self.source.len() {
             return None
         }
         use TokenizerState as S;

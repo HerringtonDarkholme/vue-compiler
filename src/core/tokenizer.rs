@@ -1,3 +1,5 @@
+use std::ops::Range;
+use std::str::Chars;
 use super::{
     Name, SourceLocation,
     error::{CompilationError, CompilationErrorKind},
@@ -27,7 +29,7 @@ pub enum Token<'a> {
 // due to cached_first_char is shared
 pub struct TokenizerOption {
     pub delimiters: (String, String),
-    /// for search optimization: only compare delimiters' first char
+    // for search optimization: only compare delimiters' first char
     cached_first_char: Option<char>,
 }
 
@@ -36,7 +38,8 @@ impl TokenizerOption {
         if let Some(c) =  self.cached_first_char {
             return c
         }
-        let c = self.delimiters.0.chars().next().expect("empty delimiter is invalid");
+        let c = self.delimiters.0.chars().next()
+            .expect("interpolation delimiter cannot be empty");
         self.cached_first_char.replace(c);
         c
     }
@@ -46,11 +49,12 @@ impl Default for TokenizerOption {
     fn default() -> Self {
         Self {
             delimiters: ("{{".into(), "}}".into()),
-            cached_first_char: None,
+            cached_first_char: Some('{'),
         }
     }
 }
 
+#[derive(PartialEq, Eq)]
 enum TokenizerState {
     /// match text between <tag> and </tag>
     RawText,
@@ -67,6 +71,8 @@ enum TokenizerState {
 pub struct Tokenizer<'a> {
     source: &'a str,
     current: usize,
+    line: usize,
+    column: usize,
     option: TokenizerOption,
     state: TokenizerState,
     errors: Vec<CompilationError>,
@@ -77,6 +83,8 @@ impl<'a> Tokenizer<'a> {
         Self {
             source,
             current: 0,
+            line: 1,
+            column: 1,
             option: Default::default(),
             state: TokenizerState::RawText,
             errors: Vec::new(),
@@ -87,24 +95,20 @@ impl<'a> Tokenizer<'a> {
         self
     }
 
-    fn scan_open_tag(&mut self) -> Token<'a> {
-        todo!()
-    }
-
     fn scan_rawtext(&mut self) -> Token<'a> {
-        let start = self.current;
+        debug_assert!(self.state == TokenizerState::RawText);
         let d = self.option.delimiter_first_char();
-        let index = self.source[start..]
+        let index = self.current_str()
             .find(|c| c == '<' || c == d);
         // no tag or interpolation found
         if index.is_none() {
-            self.current = self.source.len();
-            return Token::Text(&self.source[start..])
+            let range = self.move_to(self.source.len());
+            return Token::Text(&self.source[range])
         }
         let i = index.unwrap();
-        if i != start {
-            self.current = i;
-            return Token::Text(&self.source[start..i])
+        if i != self.current {
+            let range = self.move_to(i);
+            return Token::Text(&self.source[range])
         }
         let next_source = &self.source[i..];
         if next_source.starts_with(&self.option.delimiters.0) {
@@ -117,22 +121,49 @@ impl<'a> Tokenizer<'a> {
             return self.scan_comment_and_like()
         }
         self.state = TokenizerState::OpenTag;
+        self.move_to(i + 1);
         Token::LeftBracket
+    }
+
+    fn scan_open_tag(&mut self) -> Token<'a> {
+        debug_assert!(self.state == TokenizerState::OpenTag);
+        let chars = self.current_str().chars();
+        let l = scan_tag_name_length(chars);
+        if l == 0 {
+            self.emit_error(CompilationErrorKind::InvalidFirstCharacterOfTagName);
+            self.state = TokenizerState::RawText;
+            return self.scan_rawtext()
+        }
+        self.state = TokenizerState::InTag;
+        let range = self.move_to(self.current + l);
+        Token::TagName(&self.source[range])
+    }
+
+    fn scan_in_tag(&mut self) -> Token<'a> {
+        debug_assert!(self.state == TokenizerState::InTag);
+        todo!()
+    }
+    fn scan_in_attr(&mut self) -> Token<'a> {
+        debug_assert!(self.state == TokenizerState::InAttr);
+        todo!()
+    }
+    fn scan_attr_equal(&mut self) -> Token<'a> {
+        debug_assert!(self.state == TokenizerState::AttrEqual);
+        todo!()
     }
 
     fn scan_interpolation(&mut self) -> Token<'a> {
         let delimiters = &self.option.delimiters;
         debug_assert!(self.current_str().starts_with(&delimiters.0));
-        let start = self.current;
         let index =  self.current_str().find(&delimiters.1);
         if index.is_none() {
             self.emit_error(CompilationErrorKind::MissingInterpolationEnd);
-            self.current = self.source.len();
-            return Token::Interpolation(&self.source[start..])
+            let range = self.move_to(self.source.len());
+            return Token::Interpolation(&self.source[range])
         }
         let index = index.unwrap();
-        self.current = index + 1;
-        Token::Interpolation(&self.source[start..=index])
+        let range = self.move_to(index + 1);
+        Token::Interpolation(&self.source[range])
     }
 
     fn scan_comment_and_like(&mut self) -> Token<'a> {
@@ -150,7 +181,6 @@ impl<'a> Tokenizer<'a> {
     }
     fn scan_comment(&mut self) -> Token<'a> {
         debug_assert!(self.current_str().starts_with("<!--"));
-        let start = self.current;
         while let Some(end) = self.current_str().find("--") {
             let s = &self.source[end..];
             let offset = if s.starts_with("!>") {
@@ -161,8 +191,8 @@ impl<'a> Tokenizer<'a> {
                 0
             };
             if offset > 0 {
-                self.current = end + offset + 1;
-                return Token::Comment(&self.source[start..self.current])
+                let range = self.move_to(end + offset + 1);
+                return Token::Comment(&self.source[range])
             }
         }
         self.emit_error(CompilationErrorKind::EofInComment);
@@ -174,15 +204,6 @@ impl<'a> Tokenizer<'a> {
     }
     #[cold]
     fn scan_cdata(&mut self) -> Token<'a> {
-        todo!()
-    }
-    fn scan_in_tag(&mut self) -> Token<'a> {
-        todo!()
-    }
-    fn scan_in_attr(&mut self) -> Token<'a> {
-        todo!()
-    }
-    fn scan_attr_equal(&mut self) -> Token<'a> {
         todo!()
     }
 
@@ -198,10 +219,39 @@ impl<'a> Tokenizer<'a> {
     fn current_location(&self) -> SourceLocation {
         todo!()
     }
+
+    /// move tokenizer's interal position forward and return the range of movement
+    /// tokenizer's line/column are also updated in the method
+    /// note it only moves forward, not backward
+    /// `advance_to` is a better name but it collides with iter
+    fn move_to(&mut self, index: usize) -> Range<usize> {
+        debug_assert!(index > self.current, "tokenizer cannot move back");
+        let start = self.current;
+        self.current = index;
+        start..self.current
+    }
 }
 
 fn get_line_count(s: &str) -> usize {
     s.lines().count()
+}
+
+fn is_valid_tag_name_char(&c: &char) -> bool {
+    !c.is_ascii_whitespace() && c != '/' && c != '>'
+}
+
+// tag name should begin with [a-zA-Z]
+// followed by chars except whitespace, / or >
+fn scan_tag_name_length(mut chars: Chars<'_>) -> usize {
+    let first_char = chars.next();
+    debug_assert!(first_char.is_some());
+    if !first_char.unwrap().is_ascii_alphabetic() {
+        return 0
+    }
+    let l = chars
+        .take_while(is_valid_tag_name_char)
+        .count();
+    l + 1
 }
 
 impl<'a> Iterator for Tokenizer<'a> {

@@ -1,3 +1,5 @@
+//! See README.md
+
 mod sfc;
 mod dom;
 mod ssr;

@@ -9,7 +9,7 @@ mod error;
 pub use codegen::CodeGenerator;
 pub use ir_converter::IRConverter;
 pub use transformer::Transformer;
-pub use error::CompilationError;
+use error::CompilationError;
 use tokenizer::Tokenizer;
 use parser::Parser;
 
@@ -17,6 +17,7 @@ use parser::Parser;
 // may change to tendril
 pub type Name<'a> = &'a str;
 
+#[derive(Default, Debug)]
 pub struct Position {
     /// the 0-indexed offset in the source str modulo newline
     pub offset: usize,
@@ -26,6 +27,7 @@ pub struct Position {
     pub column: usize,
 }
 
+#[derive(Default, Debug)]
 pub struct SourceLocation {
     pub start: Position,
     pub end: Position,

@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use super::{
     tokenizer::Tokenizer,
     Name, SourceLocation,
+    error::CompilationError,
 };
 
 pub enum AstNode<'a> {
@@ -9,7 +10,7 @@ pub enum AstNode<'a> {
     Template(Element<'a>),
     Component(Element<'a>),
     Slot(Element<'a>),
-    Interpolation(),
+    Interpolation(&'a str),
     Text(&'a str),
 }
 
@@ -48,18 +49,20 @@ pub struct AstRoot<'a> {
     loc: SourceLocation,
 }
 
-pub enum ParseError {
+pub enum WhitespaceStrategy {
+    Preserve,
+    Condense,
 }
-
 trait ParseOption {
     fn decode_entities(s: &str) -> Cow<String>;
+    fn whitespace_strategy() -> WhitespaceStrategy;
 }
 
 pub struct Parser<'a> {
     tokenizer: Tokenizer<'a>
 }
 
-pub type ParseResult<'a> = Result<AstRoot<'a>, ParseError>;
+pub type ParseResult<'a> = Result<AstRoot<'a>, CompilationError>;
 
 impl<'a> Parser<'a> {
     pub fn new(tokenizer: Tokenizer<'a>) -> Self {

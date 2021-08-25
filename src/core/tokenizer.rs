@@ -58,13 +58,15 @@ enum TokenizerState {
     /// match text between <tag> and </tag>
     RawText,
     /// matched left bracket <, expect TagName
-    OpenTag,
-    /// matched <tag, expect attr or right bracket >
+    StartTag,
+    /// matched <tag or attr, expect next attr or tag close
     InTag,
     /// matched attribute name, expect = or right bracket >
     InAttr,
     /// matched attr=, expect attribute value
     AttrEqual,
+    /// matched </, expect TagName
+    EndTag,
 }
 
 pub struct Tokenizer<'a> {
@@ -119,13 +121,13 @@ impl<'a> Tokenizer<'a> {
         if source.starts_with("<!") {
             return self.scan_comment_and_like()
         }
-        self.state = TokenizerState::OpenTag;
+        self.state = TokenizerState::StartTag;
         self.move_by(1);
         Token::LeftBracket
     }
 
-    fn scan_open_tag(&mut self) -> Token<'a> {
-        debug_assert!(self.state == TokenizerState::OpenTag);
+    fn scan_start_tag(&mut self) -> Token<'a> {
+        debug_assert!(self.state == TokenizerState::StartTag);
         let chars = self.source.chars();
         let l = scan_tag_name_length(chars);
         if l == 0 {
@@ -141,12 +143,10 @@ impl<'a> Tokenizer<'a> {
     fn scan_in_tag(&mut self) -> Token<'a> {
         debug_assert!(self.state == TokenizerState::InTag);
         self.skip_whitespace();
-        if self.source.starts_with("/>") {
-            return Token::SlashRightBracket
+        if let Some(tag_close) = self.may_scan_tag_close() {
+            return tag_close
         }
-        if self.source.starts_with('>') {
-            return Token::RightBracket
-        }
+        debug_assert!(!self.source.is_empty());
         self.scan_attr_name()
     }
     fn scan_attr_name(&mut self) -> Token<'a> {
@@ -154,6 +154,7 @@ impl<'a> Tokenizer<'a> {
         debug_assert!(self.source.starts_with(is_valid_name_char));
         // state must transit to InAttr even if any error occurs
         self.state = TokenizerState::InAttr;
+        // case like <tag ="value"/>
         if self.source.starts_with('=') {
             self.emit_error(CompilationErrorKind::MissingAttributeName);
             return Token::AttrName("")
@@ -169,11 +170,46 @@ impl<'a> Tokenizer<'a> {
     }
     fn scan_in_attr(&mut self) -> Token<'a> {
         debug_assert!(self.state == TokenizerState::InAttr);
-        todo!()
+        self.skip_whitespace();
+        if let Some(tag_close) = self.may_scan_tag_close() {
+            return tag_close
+        }
+        debug_assert!(!self.source.is_empty());
+        if self.source.starts_with('=') {
+            self.state = TokenizerState::AttrEqual;
+            Token::Equal
+        } else {
+            self.state = TokenizerState::InTag;
+            // just call scan_attr_name since tag_close is None
+            self.scan_attr_name()
+        }
     }
     fn scan_attr_equal(&mut self) -> Token<'a> {
         debug_assert!(self.state == TokenizerState::AttrEqual);
         todo!()
+    }
+    fn may_scan_tag_close(&mut self) -> Option<Token<'a>> {
+        use TokenizerState as st;
+        debug_assert!(matches!(self.state, st::InTag | st::InAttr | st::AttrEqual));
+        while !self.source.is_empty() {
+            if self.source.starts_with('>') {
+                self.move_by(1);
+                return Some(Token::RightBracket)
+            } else if !self.source.starts_with('/') {
+                return None
+            }
+            // handle slash /
+            if self.source.starts_with("/>") {
+                self.move_by(2);
+                return Some(Token::SlashRightBracket)
+            }
+            self.emit_error(CompilationErrorKind::UnexpectedSolidusInTag);
+            self.move_by(1);
+            self.skip_whitespace();
+        }
+        self.emit_error(CompilationErrorKind::EofInTag);
+        // use > as fallback if neither close tag nor attr is met
+        Some(Token::RightBracket)
     }
 
     fn scan_interpolation(&mut self) -> Token<'a> {
@@ -271,12 +307,15 @@ impl<'a> Tokenizer<'a> {
         &old_source[..size]
     }
 
-    fn skip_whitespace(&mut self) {
+    fn skip_whitespace(&mut self) -> usize {
         let idx = self.source.find(|c: char| !c.is_ascii_whitespace());
         if let Some(i) = idx {
             self.move_by(i);
+            i
         } else {
-            self.move_by(self.source.len());
+            let len = self.source.len();
+            self.move_by(len);
+            len
         }
     }
 }
@@ -315,7 +354,7 @@ impl<'a> Iterator for Tokenizer<'a> {
         }
         use TokenizerState as S;
         Some(match self.state {
-            S::OpenTag => self.scan_open_tag(),
+            S::StartTag => self.scan_start_tag(),
             S::RawText => self.scan_rawtext(),
             S::InTag => self.scan_in_tag(),
             S::InAttr => self.scan_in_attr(),
@@ -329,6 +368,8 @@ mod test {
     fn test() {
         let cases = [
             r#"<a v-bind:['foo' + bar]="value">...</a>"#,
+            r#"<tag =value />"#,
+            r#"<a wrong-attr>=123 />"#,
         ];
     }
 }

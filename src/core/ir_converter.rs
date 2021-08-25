@@ -26,5 +26,5 @@ pub trait IRConverter {
 }
 
 pub fn convert_ast_to_ir(ast: AstRoot) -> IRNode {
-    unimplemented!("TODO")
+    todo!()
 }

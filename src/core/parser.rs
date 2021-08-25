@@ -76,5 +76,5 @@ impl<'a> Parser<'a> {
 }
 
 fn parse<'a>(tokenizer: &mut Tokenizer<'a>) -> ParseResult<'a> {
-    unimplemented!("TODO")
+    todo!()
 }

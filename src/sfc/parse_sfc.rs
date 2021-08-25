@@ -39,5 +39,5 @@ pub struct SfcParseResult<'a> {
 }
 
 pub fn parse_sfc(source: &str) -> SfcParseResult<'_> {
-    unimplemented!("TODO")
+    todo!()
 }

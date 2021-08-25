@@ -141,8 +141,31 @@ impl<'a> Tokenizer<'a> {
     fn scan_in_tag(&mut self) -> Token<'a> {
         debug_assert!(self.state == TokenizerState::InTag);
         self.skip_whitespace();
-
-        todo!()
+        if self.source.starts_with("/>") {
+            return Token::SlashRightBracket
+        }
+        if self.source.starts_with('>') {
+            return Token::RightBracket
+        }
+        self.scan_attr_name()
+    }
+    fn scan_attr_name(&mut self) -> Token<'a> {
+        debug_assert!(self.state == TokenizerState::InTag);
+        debug_assert!(self.source.starts_with(is_valid_name_char));
+        // state must transit to InAttr even if any error occurs
+        self.state = TokenizerState::InAttr;
+        if self.source.starts_with('=') {
+            self.emit_error(CompilationErrorKind::MissingAttributeName);
+            return Token::AttrName("")
+        }
+        let count = self.source.chars()
+            .take_while(|&c| semi_valid_attr_name(c))
+            .count();
+        let src = self.move_by(count);
+        if src.contains(|c| matches!(c, '<' | '"' | '\'')) {
+            self.emit_error(CompilationErrorKind::UnexpectedCharacterInAttributeName);
+        }
+        Token::AttrName(src)
     }
     fn scan_in_attr(&mut self) -> Token<'a> {
         debug_assert!(self.state == TokenizerState::InAttr);
@@ -162,8 +185,8 @@ impl<'a> Tokenizer<'a> {
             let src = self.move_by(self.source.len());
             return Token::Interpolation(src)
         }
-        let index = index.unwrap();
-        let src = self.move_by(index + delimiters.1.len());
+        let step = index.unwrap() + delimiters.1.len();
+        let src = self.move_by(step);
         Token::Interpolation(src)
     }
 
@@ -258,7 +281,15 @@ impl<'a> Tokenizer<'a> {
     }
 }
 
-fn is_valid_tag_name_char(&c: &char) -> bool {
+// `< ' "` are not valid but counted as semi valid
+// to leniently recover from a parsing error
+#[inline]
+fn semi_valid_attr_name(c: char) -> bool {
+    is_valid_name_char(c) && c != '='
+}
+
+#[inline]
+fn is_valid_name_char(c: char) -> bool {
     !c.is_ascii_whitespace() && c != '/' && c != '>'
 }
 
@@ -271,7 +302,7 @@ fn scan_tag_name_length(mut chars: Chars<'_>) -> usize {
         return 0
     }
     let l = chars
-        .take_while(is_valid_tag_name_char)
+        .take_while(|&c| is_valid_name_char(c))
         .count();
     l + 1
 }
@@ -290,5 +321,14 @@ impl<'a> Iterator for Tokenizer<'a> {
             S::InAttr => self.scan_in_attr(),
             S::AttrEqual => self.scan_attr_equal(),
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    fn test() {
+        let cases = [
+            r#"<a v-bind:['foo' + bar]="value">...</a>"#,
+        ];
     }
 }

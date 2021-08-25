@@ -22,7 +22,7 @@ pub enum CompilationErrorKind {
     NestedComment,
     UnexpectedCharacterInAttributeName,
     UnexpectedCharacterInUnquotedAttributeValue,
-    UnexpectedEqualsSignBeforeAttributeName,
+    MissingAttributeName,
     UnexpectedNullCharacter,
     UnexpectedQuestionMarkInsteadOfTagName,
     UnexpectedSolidusInTag,
@@ -88,15 +88,80 @@ impl CompilationError {
         self
     }
 
-    #[cold]
-    #[inline(never)]
     fn msg(&self) -> &'static str {
-        use CompilationErrorKind as kind;
-        match self.kind {
-            kind::AbruptClosingOfEmptyComment => "Illegal comment.",
-            kind::MissingInterpolationEnd => "Interpolation end sign was not found.",
-            _ => todo!(),
-        }
+        msg(&self.kind)
+    }
+}
+
+#[cold]
+#[inline(never)]
+fn msg(kind: &CompilationErrorKind) -> &'static str {
+    use CompilationErrorKind as k;
+    match *kind {
+        k::AbruptClosingOfEmptyComment => "Illegal comment.",
+        k::CDataInHtmlContent => "CDATA section is allowed only in XML context.",
+        k::DuplicateAttribute => "Duplicate attribute.",
+        k::EndTagWithAttributes => "End tag cannot have attributes.",
+        k::EndTagWithTrailingSolidus => r#"Illegal "/" in tags."#,
+        k::EofBeforeTagName => "Unexpected EOF in tag.",
+        k::EofInCdata => "Unexpected EOF in CDATA section.",
+        k::EofInComment => "Unexpected EOF in comment.",
+        k::EofInScriptHtmlCommentLikeText => "Unexpected EOF in script.",
+        k::EofInTag => "Unexpected EOF in tag.",
+        k::IncorrectlyClosedComment => "Incorrectly closed comment.",
+        k::IncorrectlyOpenedComment => "Incorrectly opened comment.",
+        k::InvalidFirstCharacterOfTagName => "Illegal tag name. Use '&lt;' to print '<'.",
+        k::MissingAttributeName => "Attribute name was expected before '='.",
+        k::MissingAttributeValue => "Attribute value was expected.",
+        k::MissingEndTagName => "End tag name was expected.",
+        k::MissingWhitespaceBetweenAttributes => "Whitespace was expected.",
+        k::NestedComment => "Unexpected '<!--' in comment.",
+        k::UnexpectedCharacterInAttributeName =>
+            "Attribute name cannot contain U+0022 (\"), U+0027 ('), and U+003C (<).",
+        k::UnexpectedCharacterInUnquotedAttributeValue =>
+            "Unquoted attribute value cannot contain U+0022 (\"), U+0027 (\'), U+003C (<), U+003D (=), and U+0060 (`).",
+        k::UnexpectedQuestionMarkInsteadOfTagName => "'<?' is allowed only in XML context.",
+        k::UnexpectedNullCharacter => "Unexpected null character.",
+        k::UnexpectedSolidusInTag => "Illegal '/' in tags.",
+
+        // Vue-specific parse errors
+        k::InvalidEndTag => "Invalid end tag.",
+        k::MissingEndTag => "Element is missing end tag.",
+        k::MissingInterpolationEnd => "Interpolation end sign was not found.",
+        k::MissingDynamicDirectiveArgumentEnd =>
+            "End bracket for dynamic directive argument was not found. Note that dynamic directive argument cannot contain spaces.",
+
+        // transform errors
+        k::VIfNoExpression => "v-if/v-else-if is missing expression.",
+        k::VIfSameKey => "v-if/else branches must use unique keys.",
+        k::VElseNoAdjacentIf => "v-else/v-else-if has no adjacent v-if.",
+        k::VForNoExpression => "v-for is missing expression.",
+        k::VForMalformedExpression => "v-for has invalid expression.",
+        k::VForTemplateKeyPlacement => "<template v-for> key should be placed on the <template> tag.",
+        k::VBindNoExpression => "v-bind is missing expression.",
+        k::VOnNoExpression => "v-on is missing expression.",
+        k::VSlotUnexpectedDirectiveOnSlotOutlet => "Unexpected custom directive on <slot> outlet.",
+        k::VSlotMixedSlotUsage =>
+            "Mixed v-slot usage on both the component and nested <template>. When there are multiple named slots, all slots should use <template> syntax to avoid scope ambiguity.",
+        k::VSlotDuplicateSlotNames => "Duplicate slot names found. ",
+        k::VSlotExtraneousDefaultSlotChildren =>
+            r#"Extraneous children found when component already has explicitly named "default slot. These children will be ignored."#,
+        k::VSlotMisplaced => "v-slot can only be used on components or <template> tags.",
+        k::VModelNoExpression => "v-model is missing expression.",
+        k::VModelMalformedExpression => "v-model value must be a valid JavaScript member expression.",
+        k::VModelOnScopeVariable =>
+            "v-model cannot be used on v-for or v-slot scope variables because they are not writable.",
+        k::InvalidExpression => "Error parsing JavaScript expression: ",
+        k::KeepAliveInvalidChildren => "<KeepAlive> expects exactly one child component.",
+
+        // generic errors
+        k::PrefixIdNotSupported =>
+            r#""prefixIdentifiers" option is not supported in this build of compiler."#,
+        k::ModuleModeNotSupported => "ES module mode is not supported in this build of compiler.",
+        k::CacheHandlerNotSupported =>
+            r#""cacheHandlers" option is only supported when the "prefixIdentifiers" option is enabled."#,
+        k::ScopeIdNotSupported => r#""scopeId" option is only supported in module mode."#,
+        k::ExtendPoint => "",
     }
 }
 

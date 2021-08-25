@@ -21,3 +21,17 @@ The compilation has several phases:
 * intermediate representation
 * transformation/optimization pass
 * output generation
+
+## Intended Usage
+
+* Rust library
+* CLI binary
+* napi based nodejs library
+* wasm based npm package
+
+## Implementation Detail
+
+* The library seeks minimal allocation by using `&str`, `Cow<'_, str>` and `smallvec`.
+* `Fxhash` is preferred over default hasher since hash collision is not a concern.
+* The `bitflags` crate is used to represent runtime helper and vnode patch flags.
+* Possibly a SIMD library for string pattern matching might help performance, like [hyperscan](http://intel.github.io/hyperscan).

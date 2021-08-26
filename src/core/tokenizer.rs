@@ -9,10 +9,21 @@ use super::{
 };
 use smallvec::{smallvec, SmallVec};
 
+/// DecodedStr represents text after decoding html entities.
+/// SmallVec and Cow are used internally for less allocation.
+#[derive(Debug)]
+pub struct DecodedStr<'a>(SmallVec<[Cow<'a, str>; 1]>);
+
+impl<'a> From<&'a str> for DecodedStr<'a> {
+    fn from(s: &'a str) -> Self {
+        Self(smallvec![Cow::Borrowed(s)])
+    }
+}
+
 #[derive(Debug)]
 pub struct Attribute<'a> {
     pub name: Name<'a>,
-    pub value: &'a str,
+    pub value: DecodedStr<'a>,
 }
 
 /// Tag is used only for start tag since end tag is bare
@@ -29,25 +40,23 @@ pub struct Tag<'a> {
 pub enum Token<'a> {
     StartTag(Tag<'a>),
     EndTag(Name<'a>), // with no attrs or self_closing flag
-    // Text merges characters to str and decode html entities.
-    // SmallVec and Cow are used internally for less allocation.
-    Text(SmallVec<[Cow<'a, str>; 1]>),
+    Text(DecodedStr<'a>), // merges chars to str and decodes entities.
     Comment(&'a str),
     Interpolation(&'a str), // Vue specific token
 }
 
+// NB: Token::from only takes decoded str
 impl<'a> From<&'a str> for Token<'a> {
-    fn from(s: &'a str) -> Self {
-        Token::Text(smallvec![Cow::Borrowed(s)])
+    fn from(decoded: &'a str) -> Self {
+        Token::Text(DecodedStr::from(decoded))
     }
 }
 
 
 // equivalent HRTB form is
-// for<'a> fn(&'a str, bool) -> SmallVec<[Cow<'a, str>; 1]>
+// for<'a> fn(&'a str, bool) -> DecodedStr<'a>
 /// source: &str, is_attr: bool
-pub type EntityDecoder =
-    fn(&str, bool) -> SmallVec<[Cow<'_, str>; 1]>;
+pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
 
 /// Note: TokenizerOption is not thread safe.
 /// due to `cached_first_char` is shared.
@@ -121,7 +130,7 @@ impl<'a> Tokenizer<'a> {
 // scanning methods
 impl<'a> Tokenizer<'a> {
     // https://html.spec.whatwg.org/multipage/parsing.html#data-state
-    // note & is not handled here but instead in `decode_entities`
+    // NB: & is not handled here but instead in `decode_entities`
     fn scan_data(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::DATA);
         let d = self.option.delimiter_first_char();
@@ -273,12 +282,12 @@ impl<'a> Tokenizer<'a> {
         src
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-value-state
-    fn scan_attr_value(&mut self) -> &'a str {
+    fn scan_attr_value(&mut self) -> DecodedStr<'a> {
         self.skip_whitespace();
         let source = self.source;
         if source.starts_with('>') {
             self.emit_error(ErrorKind::MissingAttributeValue);
-            return ""
+            return DecodedStr::from("")
         }
         for &c in ['"', '\''].iter() {
             if self.source.starts_with(c) {
@@ -289,18 +298,19 @@ impl<'a> Tokenizer<'a> {
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(double-quoted)-state
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(single-quoted)-state
-    fn scan_quoted_attr_value(&mut self, quote: char) -> &'a str {
+    fn scan_quoted_attr_value(&mut self, quote: char) -> DecodedStr<'a> {
         debug_assert!(self.source.starts_with(quote));
         self.move_by(1);
-        if let Some(i) = self.source.find(quote) {
+        let src = if let Some(i) = self.source.find(quote) {
             let val = self.move_by(i);
             self.move_by(1); // consume quote char
             val
         } else {
             self.move_by(self.source.len())
-        }
+        };
+        self.decode_text(src, /*is_attr*/ true)
     }
-    fn scan_unquoted_attr_value(&mut self) -> &'a str {
+    fn scan_unquoted_attr_value(&mut self) -> DecodedStr<'a> {
         todo!()
     }
 
@@ -369,7 +379,7 @@ impl<'a> Tokenizer<'a> {
         todo!()
     }
 
-    fn decode_text(&self, src: &'a str, is_attr: bool) -> SmallVec<[Cow<'a, str>; 1]> {
+    fn decode_text(&self, src: &'a str, is_attr: bool) -> DecodedStr<'a> {
         let decode = self.option.decode_entities;
         let decoded = decode(src, is_attr);
         decoded
@@ -377,7 +387,7 @@ impl<'a> Tokenizer<'a> {
 
     /// move tokenizer's internal position forward and return &str
     /// tokenizer's line/column are also updated in the method
-    /// note it only moves forward, not backward
+    /// NB: it only moves forward, not backward
     /// `advance_to` is a better name but it collides with iter
     fn move_by(&mut self, size: usize) -> &'a str {
         debug_assert!(size > 0, "tokenizer must move forward");

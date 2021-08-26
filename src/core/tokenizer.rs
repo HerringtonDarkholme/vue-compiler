@@ -2,7 +2,7 @@
 //! The canonical parsing strategy should adhere to the spec below.
 //! https://html.spec.whatwg.org/multipage/parsing.html#tokenization
 
-use std::{borrow::Cow, str::Chars, fmt::Error};
+use std::{borrow::Cow, str::Chars};
 use super::{
     Name, SourceLocation, Position,
     error::{CompilationError, CompilationErrorKind as ErrorKind},
@@ -132,6 +132,10 @@ impl<'a> Tokenizer<'a> {
 }
 
 // scanning methods
+// NB: When storing self.source to a name, prefer using a ref.
+// because Rust ownership can help us to prevent invalid state.
+// e.g. `let src = self.source` causes a stale src after `move_by`.
+// while `let src= &self.source` forbids any src usage after a mut call.
 impl<'a> Tokenizer<'a> {
     // https://html.spec.whatwg.org/multipage/parsing.html#data-state
     // NB: & is not handled here but instead in `decode_entities`
@@ -176,15 +180,17 @@ impl<'a> Tokenizer<'a> {
 
     // https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
     fn scan_tag_open(&mut self) -> Token<'a> {
-        let source = self.source;
+        // use a ref to &str to ensure source is always valid
+        // that is, source cannot be used after move_by
+        let source = &self.source;
         if source.starts_with("</") {
-            self.scan_end_tag()
+            self.scan_end_tag_open()
         } else if source.starts_with("<!") {
             self.scan_comment_and_like()
         } else if source.starts_with("<?") {
             self.emit_error(ErrorKind::UnexpectedQuestionMarkInsteadOfTagName);
             self.scan_bogus_comment()
-        } else if self.source.len() == 1 {
+        } else if source.len() == 1 {
             self.emit_error(ErrorKind::EofBeforeTagName);
             self.move_by(1);
             Token::from("<")
@@ -203,6 +209,11 @@ impl<'a> Tokenizer<'a> {
     fn scan_start_tag(&mut self) -> Token<'a> {
         debug_assert!(self.source.starts_with('<'));
         self.move_by(1);
+        let tag = self.scan_tag_name();
+        Token::StartTag(tag)
+    }
+    fn scan_tag_name(&mut self) -> Tag<'a> {
+        debug_assert!(self.source.starts_with(ascii_alpha));
         let chars = self.source.chars();
         let l = scan_tag_name_length(chars);
         debug_assert!(l > 0);
@@ -214,9 +225,9 @@ impl<'a> Tokenizer<'a> {
         } else {
             self.scan_close_start_tag()
         };
-        Token::StartTag(Tag{
+        Tag{
             name, attributes, self_closing,
-        })
+        }
     }
     // return attributes and if the tag is self closing
     // https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-name-state
@@ -254,7 +265,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
     fn is_about_to_close_tag(&self) -> bool {
-        let source = self.source; // must get fresh source
+        let source = &self.source; // must get fresh source
         source.is_empty() || source.starts_with("/>") || source.starts_with('>')
     }
     fn did_skip_slash_in_tag(&mut self) -> bool {
@@ -288,7 +299,7 @@ impl<'a> Tokenizer<'a> {
     // https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-value-state
     fn scan_attr_value(&mut self) -> Option<DecodedStr<'a>> {
         self.skip_whitespace();
-        let source = self.source;
+        let source = &self.source;
         if source.starts_with('>') {
             self.emit_error(ErrorKind::MissingAttributeValue);
             return None
@@ -335,16 +346,55 @@ impl<'a> Tokenizer<'a> {
 
     fn scan_close_start_tag(&mut self) -> bool {
         debug_assert!(!self.source.is_empty());
-        todo!()
+        if self.source.starts_with("/>") {
+            self.move_by(2);
+            true
+        } else {
+            debug_assert!(self.source.starts_with(">"));
+            self.move_by(1);
+            false
+        }
     }
+    // https://html.spec.whatwg.org/multipage/parsing.html#end-tag-open-state
+    fn scan_end_tag_open(&mut self) -> Token<'a> {
+        debug_assert!(self.source.starts_with("</"));
+        let source = &self.source;
+        if source.len() == 2{
+            self.emit_error(ErrorKind::EofBeforeTagName);
+            Token::from(self.move_by(2))
+        } else if source.starts_with("</>") {
+            self.emit_error(ErrorKind::MissingEndTagName);
+            self.move_by(3);
+            Token::from("")
+        } else if !self.source[2..].starts_with(ascii_alpha) {
+            self.emit_error(ErrorKind::InvalidFirstCharacterOfTagName);
+            self.scan_bogus_comment()
+        } else {
+            self.scan_end_tag()
+        }
+    }
+    // errors emit here is defined at the top of the tokenization spec
     fn scan_end_tag(&mut self) -> Token<'a> {
-        todo!()
+        debug_assert!(self.source.starts_with("</"));
+        self.move_by(2);
+        // indeed in end tag collecting attributes is useless
+        // but, no, I don't want to opt for ill-formed input
+        let tag = self.scan_tag_name();
+        // When an end tag token is emitted with attributes
+        if !tag.attributes.is_empty() {
+            self.emit_error(ErrorKind::EndTagWithAttributes);
+        }
+        // When an end tag token is emitted with its self-closing flag set
+        if tag.self_closing {
+            self.emit_error(ErrorKind::EndTagWithTrailingSolidus);
+        }
+        Token::EndTag(tag.name)
     }
 
     fn scan_comment_and_like(&mut self) -> Token<'a> {
         // TODO: investigate https://github.com/jneem/teddy
         // for simd string pattern matching
-        let s = self.source;
+        let s = &self.source;
         if s.starts_with("<!--") {
             self.scan_comment()
         } else if s.starts_with("<!DOCTYPE") {
@@ -381,6 +431,14 @@ impl<'a> Tokenizer<'a> {
     }
     #[cold]
     fn scan_cdata(&mut self) -> Token<'a> {
+        todo!()
+    }
+
+    fn scan_rawtext(&mut self) -> Token<'a> {
+        todo!()
+    }
+
+    fn scan_rcdata(&mut self) -> Token<'a> {
         todo!()
     }
 
@@ -490,11 +548,17 @@ fn scan_tag_name_length(mut chars: Chars<'_>) -> usize {
 
 impl<'a> Iterator for Tokenizer<'a> {
     type Item = Token<'a>;
+    // https://html.spec.whatwg.org/multipage/parsing.html#concept-frag-parse-context
     fn next(&mut self) -> Option<Self::Item> {
         if self.source.is_empty() {
             return None
         }
-        Some(self.scan_data())
+        Some(match self.mode {
+            TextMode::DATA => self.scan_data(),
+            TextMode::RCDATA => self.scan_rcdata(),
+            TextMode::RAWTEXT => self.scan_rawtext(),
+            TextMode::CDATA => self.scan_cdata(),
+        })
     }
 }
 

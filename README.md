@@ -34,4 +34,4 @@ The compilation has several phases:
 * The library seeks minimal allocation by using `&str`, `Cow<'_, str>` and `smallvec`.
 * `Fxhash` is preferred over default hasher since hash collision is not a concern.
 * The `bitflags` crate is used to represent runtime helper and vnode patch flags.
-* Possibly a SIMD library for string pattern matching might help performance, like [hyperscan](http://intel.github.io/hyperscan).
+* ~~Possibly a SIMD library for string pattern matching might help performance, like [hyperscan](http://intel.github.io/hyperscan).~~

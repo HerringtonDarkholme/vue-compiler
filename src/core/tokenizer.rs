@@ -42,12 +42,19 @@ impl<'a> From<&'a str> for Token<'a> {
     }
 }
 
+
+// equivalent HRTB form is
+// for<'a> fn(&'a str, bool) -> SmallVec<[Cow<'a, str>; 1]>
+/// source: &str, is_attr: bool
+pub type EntityDecoder =
+    fn(&str, bool) -> SmallVec<[Cow<'_, str>; 1]>;
+
 /// Note: TokenizerOption is not thread safe.
 /// due to `cached_first_char` is shared.
 pub struct TokenizerOption {
     pub delimiters: (String, String),
     pub get_text_mode: fn(&str) -> TextMode,
-    pub decode_entities: fn(&str) -> SmallVec<[Cow<'_, str>; 1]>,
+    pub decode_entities: EntityDecoder,
     // for search optimization: only compare delimiters' first char
     cached_first_char: Option<char>,
 }
@@ -70,7 +77,7 @@ impl Default for TokenizerOption {
             delimiters: ("{{".into(), "}}".into()),
             cached_first_char: Some('{'),
             get_text_mode: |_| TextMode::DATA,
-            decode_entities: |s| smallvec![Cow::Borrowed(s)],
+            decode_entities: |s, _| smallvec![Cow::Borrowed(s)],
         }
     }
 }
@@ -123,18 +130,35 @@ impl<'a> Tokenizer<'a> {
             .find(|c| c == '<' || c == d);
         // no tag or interpolation found
         if index.is_none() {
-            let src = self.move_by(self.source.len());
-            return self.process_text_token(src)
+            return self.scan_text(self.source.len())
         }
         let i = index.unwrap();
         if i != 0 {
-            let src = self.move_by(i);
-            return self.process_text_token(src)
+            return self.scan_text(i)
         }
         if self.source.starts_with(&self.option.delimiters.0) {
             return self.scan_interpolation()
         }
         self.scan_tag_open()
+    }
+
+    fn scan_text(&mut self, size: usize) -> Token<'a> {
+        let src = self.move_by(size);
+        Token::Text(self.decode_text(src, false))
+    }
+
+    fn scan_interpolation(&mut self) -> Token<'a> {
+        let delimiters = &self.option.delimiters;
+        debug_assert!(self.source.starts_with(&delimiters.0));
+        let index =  self.source.find(&delimiters.1);
+        if index.is_none() {
+            self.emit_error(ErrorKind::MissingInterpolationEnd);
+            let src = self.move_by(self.source.len());
+            return Token::Interpolation(src)
+        }
+        let step = index.unwrap() + delimiters.1.len();
+        let src = self.move_by(step);
+        Token::Interpolation(src)
     }
 
     // https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
@@ -147,27 +171,28 @@ impl<'a> Tokenizer<'a> {
         } else if source.starts_with("<?") {
             self.emit_error(ErrorKind::UnexpectedQuestionMarkInsteadOfTagName);
             self.scan_bogus_comment()
+        } else if self.source.len() == 1 {
+            self.emit_error(ErrorKind::EofBeforeTagName);
+            self.move_by(1);
+            Token::from("<")
+        } else if !source[1..].starts_with(ascii_alpha) {
+            // we can indeed merge this standalone < char into surrounding text
+            // but optimization for error is not worth the candle
+            self.emit_error(ErrorKind::InvalidFirstCharacterOfTagName);
+            self.move_by(1);
+            Token::from("<")
         } else {
             self.scan_start_tag()
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
+    // https://html.spec.whatwg.org/multipage/parsing.html#tag-name-state
     fn scan_start_tag(&mut self) -> Token<'a> {
         debug_assert!(self.source.starts_with('<'));
         self.move_by(1);
-        if self.source.is_empty() {
-            self.emit_error(ErrorKind::EofBeforeTagName);
-            return Token::from("<")
-        }
         let chars = self.source.chars();
         let l = scan_tag_name_length(chars);
-        if l == 0 {
-            // we can indeed merge this standalone < char into surrounding text
-            // but optimization for error is not worth the candle
-            self.emit_error(ErrorKind::InvalidFirstCharacterOfTagName);
-            return Token::from("<")
-        }
+        debug_assert!(l > 0);
         let name = self.move_by(l);
         let attributes = self.scan_attributes();
         let self_closing = if self.source.is_empty() {
@@ -228,15 +253,6 @@ impl<'a> Tokenizer<'a> {
             false
         }
     }
-
-    fn scan_close_start_tag(&mut self) -> bool {
-        debug_assert!(!self.source.is_empty());
-        todo!()
-    }
-    fn scan_end_tag(&mut self) -> Token<'a> {
-        todo!()
-    }
-
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-name-state
     fn scan_attr_name(&mut self) -> &'a str {
         debug_assert!(self.source.starts_with(is_valid_name_char));
@@ -259,25 +275,41 @@ impl<'a> Tokenizer<'a> {
     // https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-value-state
     fn scan_attr_value(&mut self) -> &'a str {
         self.skip_whitespace();
-        if self.source.starts_with('>') {
+        let source = self.source;
+        if source.starts_with('>') {
             self.emit_error(ErrorKind::MissingAttributeValue);
             return ""
         }
+        for &c in ['"', '\''].iter() {
+            if self.source.starts_with(c) {
+                return self.scan_quoted_attr_value(c)
+            }
+        }
+        self.scan_unquoted_attr_value()
+    }
+    // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(double-quoted)-state
+    // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(single-quoted)-state
+    fn scan_quoted_attr_value(&mut self, quote: char) -> &'a str {
+        debug_assert!(self.source.starts_with(quote));
+        self.move_by(1);
+        if let Some(i) = self.source.find(quote) {
+            let val = self.move_by(i);
+            self.move_by(1); // consume quote char
+            val
+        } else {
+            self.move_by(self.source.len())
+        }
+    }
+    fn scan_unquoted_attr_value(&mut self) -> &'a str {
         todo!()
     }
 
-    fn scan_interpolation(&mut self) -> Token<'a> {
-        let delimiters = &self.option.delimiters;
-        debug_assert!(self.source.starts_with(&delimiters.0));
-        let index =  self.source.find(&delimiters.1);
-        if index.is_none() {
-            self.emit_error(ErrorKind::MissingInterpolationEnd);
-            let src = self.move_by(self.source.len());
-            return Token::Interpolation(src)
-        }
-        let step = index.unwrap() + delimiters.1.len();
-        let src = self.move_by(step);
-        Token::Interpolation(src)
+    fn scan_close_start_tag(&mut self) -> bool {
+        debug_assert!(!self.source.is_empty());
+        todo!()
+    }
+    fn scan_end_tag(&mut self) -> Token<'a> {
+        todo!()
     }
 
     fn scan_comment_and_like(&mut self) -> Token<'a> {
@@ -337,10 +369,10 @@ impl<'a> Tokenizer<'a> {
         todo!()
     }
 
-    fn process_text_token(&self, src: &'a str) -> Token<'a> {
+    fn decode_text(&self, src: &'a str, is_attr: bool) -> SmallVec<[Cow<'a, str>; 1]> {
         let decode = self.option.decode_entities;
-        let decoded = decode(src);
-        Token::Text(decoded)
+        let decoded = decode(src, is_attr);
+        decoded
     }
 
     /// move tokenizer's internal position forward and return &str
@@ -385,6 +417,11 @@ impl<'a> Tokenizer<'a> {
     }
 }
 
+#[inline]
+fn ascii_alpha(c: char) -> bool {
+    c.is_ascii_alphabetic()
+}
+
 // `< ' "` are not valid but counted as semi valid
 // to leniently recover from a parsing error
 #[inline]
@@ -399,10 +436,6 @@ fn is_valid_name_char(c: char) -> bool {
 
 fn non_whitespace(c: char) -> bool {
     c.is_whitespace()
-}
-
-fn decode_entities(s: &str) -> Cow<'_, str> {
-    todo!()
 }
 
 // tag name should begin with [a-zA-Z]

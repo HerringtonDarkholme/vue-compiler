@@ -23,7 +23,7 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
 #[derive(Debug)]
 pub struct Attribute<'a> {
     pub name: Name<'a>,
-    pub value: DecodedStr<'a>,
+    pub value: Option<DecodedStr<'a>>,
 }
 
 /// Tag is used only for start tag since end tag is bare
@@ -243,7 +243,7 @@ impl<'a> Tokenizer<'a> {
         self.skip_whitespace();
         if self.is_about_to_close_tag() || self.did_skip_slash_in_tag() {
             return Attribute {
-                name, value: "".into(),
+                name, value: None,
             }
         }
         debug_assert!(self.source.starts_with('='));
@@ -286,16 +286,16 @@ impl<'a> Tokenizer<'a> {
         src
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-value-state
-    fn scan_attr_value(&mut self) -> DecodedStr<'a> {
+    fn scan_attr_value(&mut self) -> Option<DecodedStr<'a>> {
         self.skip_whitespace();
         let source = self.source;
         if source.starts_with('>') {
             self.emit_error(ErrorKind::MissingAttributeValue);
-            return DecodedStr::from("")
+            return None
         }
         for &c in ['"', '\''].iter() {
             if self.source.starts_with(c) {
-                return self.scan_quoted_attr_value(c)
+                return Some(self.scan_quoted_attr_value(c))
             }
         }
         self.scan_unquoted_attr_value()
@@ -314,8 +314,23 @@ impl<'a> Tokenizer<'a> {
         };
         self.decode_text(src, /*is_attr*/ true)
     }
-    fn scan_unquoted_attr_value(&mut self) -> DecodedStr<'a> {
-        todo!()
+    // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(unquoted)-state
+    fn scan_unquoted_attr_value(&mut self) -> Option<DecodedStr<'a>> {
+        let val_len = self.source.chars()
+            .take_while(semi_valid_unquoted_attr_value)
+            .count();
+        // unexpected EOF: <tag attr=
+        if val_len == 0 {
+            // whitespace or > are precluded in scan_attribute
+            // so empty value must implies EOF
+            debug_assert!(self.source.len() == 0);
+            return None
+        }
+        let src = self.move_by(val_len);
+        if src.contains(|c| matches!(c, '"' | '\'' | '<' | '=' | '`')) {
+            self.emit_error(ErrorKind::UnexpectedCharacterInUnquotedAttributeValue);
+        }
+        Some(self.decode_text(src, /* is_attr */ true))
     }
 
     fn scan_close_start_tag(&mut self) -> bool {
@@ -441,6 +456,13 @@ fn ascii_alpha(c: char) -> bool {
 #[inline]
 fn semi_valid_attr_name(c: char) -> bool {
     is_valid_name_char(c) && c != '='
+}
+
+// only whitespace and > terminates unquoted attr value
+// other special char only emits error
+#[inline]
+fn semi_valid_unquoted_attr_value(&c: &char) -> bool {
+    !c.is_ascii_whitespace() && c != '>'
 }
 
 #[inline]

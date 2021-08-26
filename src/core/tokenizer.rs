@@ -40,7 +40,11 @@ pub struct Tag<'a> {
 pub enum Token<'a> {
     StartTag(Tag<'a>),
     EndTag(Name<'a>), // with no attrs or self_closing flag
-    Text(DecodedStr<'a>), // merges chars to str and decodes entities.
+    // TODO: investigate if we can postpone decoding to codegen
+    // 1. in SSR we don't need to output decoded entities
+    // 2. in DOM we can output decoded text during transform
+    // 3. parser/IRConverter does not read text content
+    Text(DecodedStr<'a>), // merges chars to one str
     Comment(&'a str),
     Interpolation(&'a str), // Vue specific token
 }
@@ -86,7 +90,7 @@ impl Default for TokenizerOption {
             delimiters: ("{{".into(), "}}".into()),
             cached_first_char: Some('{'),
             get_text_mode: |_| TextMode::DATA,
-            decode_entities: |s, _| smallvec![Cow::Borrowed(s)],
+            decode_entities: |s, _| DecodedStr::from(s),
         }
     }
 }
@@ -239,7 +243,7 @@ impl<'a> Tokenizer<'a> {
         self.skip_whitespace();
         if self.is_about_to_close_tag() || self.did_skip_slash_in_tag() {
             return Attribute {
-                name, value: "",
+                name, value: "".into(),
             }
         }
         debug_assert!(self.source.starts_with('='));

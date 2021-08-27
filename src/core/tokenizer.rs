@@ -464,7 +464,35 @@ impl<'a> Tokenizer<'a> {
     }
     #[cold]
     fn scan_bogus_comment(&mut self) -> Token<'a> {
-        todo!()
+        /* /^<(?:[\!\?]|\/[^a-z>])/i from Vue's parseBogusComment
+        ^            // starts with
+        <            // a < followed by
+        (?:          // a non-capturing group of
+         [\!\?]      // a char of ! or ?
+         |           // or
+         \/[^a-z>]   // a slash and non alpha or >
+        )
+        */
+        let s = &self.source;
+        debug_assert!{
+            s.starts_with("<!") || s.starts_with("<?") ||
+            (
+                s.starts_with("</") &&
+                s[2..].starts_with(|c| {
+                    !matches!(c, 'a'..='z'|'A'..='Z'|'>')
+                })
+            )
+        };
+        let start = if s.starts_with("<?") { 1 } else { 2 };
+        let text = if let Some(end) = s.find('>') {
+            let t = &s[start..end];
+            self.move_by(end + 1);
+            t
+        } else {
+            let len = s.len();
+            &self.move_by(len)[start..]
+        };
+        Token::Comment(text)
     }
     #[cold]
     fn scan_cdata(&mut self) -> Token<'a> {

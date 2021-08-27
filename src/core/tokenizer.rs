@@ -134,7 +134,7 @@ impl<'a> Tokenizer<'a> {
 // scanning methods
 // NB: When storing self.source to a name, prefer using a ref.
 // because Rust ownership can help us to prevent invalid state.
-// e.g. `let src = self.source` causes a stale src after `move_by`.
+// e.g. `let src = self.source` causes a stale src after [`move_by`].
 // while `let src= &self.source` forbids any src usage after a mut call.
 impl<'a> Tokenizer<'a> {
     // https://html.spec.whatwg.org/multipage/parsing.html#data-state
@@ -426,6 +426,7 @@ impl<'a> Tokenizer<'a> {
         debug_assert!(self.source.starts_with("<!--"));
         let comment_end = self.source.find("--!>")
             .or_else(|| self.source.find("-->"));
+        // NB: we take &str here since we will call move_by later
         let text = if let Some(end) = comment_end {
             debug_assert!(end >= 2, "first two chars must be <!");
             // <!---> or <!-->
@@ -440,13 +441,22 @@ impl<'a> Tokenizer<'a> {
             // no closing comment
             self.move_by(4)
         };
-        // TODO: report nested comment
-        // let mut last_index = 0;
-        // for (i, matched) in text.match_indices("<!--") {
-        //     self.move_by(i - last_index);
-        //     last_index = i;
-        // }
-        // self.move_by(text.len() - last_index);
+
+        // report nested comment error
+        let mut s = text;
+        while let Some(i) = s.find("<!--") {
+            self.move_by(i + 4);
+            // spec does not emit the NestedComment error when EOF is met
+            // #13.2.5.49 Comment less-than sign bang dash dash state
+            if !self.source.is_empty() {
+                self.emit_error(ErrorKind::NestedComment);
+            }
+            s = &s[i+4..];
+        }
+        // consume remaining comment
+        if s.len() > 0 {
+            self.move_by(s.len());
+        }
         text
     }
     #[cold]

@@ -1,6 +1,5 @@
-use std::borrow::Cow;
 use super::{
-    tokenizer::Tokenizer,
+    tokenizer::{Tokenizer, TokenizerOption},
     Name, SourceLocation,
     error::CompilationError,
 };
@@ -53,28 +52,25 @@ pub enum WhitespaceStrategy {
     Preserve,
     Condense,
 }
-trait ParseOption {
-    fn decode_entities(s: &str) -> Cow<String>;
+pub trait ParseOption: TokenizerOption {
     fn whitespace_strategy() -> WhitespaceStrategy;
 }
 
-pub struct Parser<'a> {
-    tokenizer: Tokenizer<'a>
+pub struct Parser<P: ParseOption> {
+    tokenizer: Tokenizer<P>
 }
 
 pub type ParseResult<'a> = Result<AstRoot<'a>, CompilationError>;
 
-impl<'a> Parser<'a> {
-    pub fn new(tokenizer: Tokenizer<'a>) -> Self {
+impl<P: ParseOption> Parser<P> {
+    pub fn new(option: P) -> Self {
         Self {
-            tokenizer,
+            tokenizer: Tokenizer::new(option),
         }
     }
-    pub fn parse(&mut self) -> ParseResult<'a> {
-        parse(&mut self.tokenizer)
+    pub fn parse<'a>(&self, source: &'a str) -> ParseResult<'a> {
+        for token in self.tokenizer.scan(source) {
+        }
+        todo!()
     }
-}
-
-fn parse<'a>(tokenizer: &mut Tokenizer<'a>) -> ParseResult<'a> {
-    todo!()
 }

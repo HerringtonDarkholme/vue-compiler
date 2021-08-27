@@ -15,8 +15,8 @@ use smallvec::{smallvec, SmallVec};
 pub struct DecodedStr<'a>(SmallVec<[Cow<'a, str>; 1]>);
 
 impl<'a> From<&'a str> for DecodedStr<'a> {
-    fn from(s: &'a str) -> Self {
-        Self(smallvec![Cow::Borrowed(s)])
+    fn from(decoded: &'a str) -> Self {
+        Self(smallvec![Cow::Borrowed(decoded)])
     }
 }
 
@@ -56,44 +56,21 @@ impl<'a> From<&'a str> for Token<'a> {
     }
 }
 
-
-// equivalent HRTB form is
-// for<'a> fn(&'a str, bool) -> DecodedStr<'a>
-/// source: &str, is_attr: bool
-pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
-
-/// Note: TokenizerOption is not thread safe.
-/// due to `cached_first_char` is shared.
-pub struct TokenizerOption {
-    pub delimiters: (String, String),
-    pub get_text_mode: fn(&str) -> TextMode,
-    pub decode_entities: EntityDecoder,
-    pub on_error: Box<dyn FnMut(CompilationError)>,
-    // for search optimization: only compare delimiters' first char
-    cached_first_char: Option<char>,
-}
-
-impl TokenizerOption {
-    fn delimiter_first_char(&mut self) -> char {
-        if let Some(c) =  self.cached_first_char {
-            return c
-        }
-        let c = self.delimiters.0.chars().next()
-            .expect("interpolation delimiter cannot be empty");
-        self.cached_first_char.replace(c);
-        c
+/// TokenizerOption defined a list of methods used in scanning
+pub trait TokenizerOption: Clone {
+    fn get_delimiters() -> (String, String) {
+        ("{{".into(), "}}".into())
     }
-}
-
-impl Default for TokenizerOption {
-    fn default() -> Self {
-        Self {
-            delimiters: ("{{".into(), "}}".into()),
-            get_text_mode: |_| TextMode::Data,
-            decode_entities: |s, _| DecodedStr::from(s),
-            on_error: Box::new(|_| ()),
-            cached_first_char: Some('{'),
-        }
+    fn get_text_mode(tag_name: &str) -> TextMode {
+        TextMode::Data
+    }
+    fn decode_entities(text: &str, is_attr: bool) -> DecodedStr<'_> {
+        DecodedStr::from(text)
+    }
+    fn on_error(&mut self, err: CompilationError) {
+    }
+    fn get_namespace(tag_name: &str) -> Namespace {
+        Namespace::Html
     }
 }
 
@@ -118,27 +95,37 @@ pub enum TextMode {
   RawText,
 }
 
-pub struct Tokenizer<'a> {
-    source: &'a str,
-    position: Position,
-    mode: TextMode,
-    option: TokenizerOption,
+pub struct Tokenizer<T: TokenizerOption> {
+    option: T,
 }
 
 // builder methods
-impl<'a> Tokenizer<'a> {
-    pub fn new(source: &'a str) -> Self {
-        Self {
+impl<T: TokenizerOption> Tokenizer<T> {
+    pub fn new(option: T) -> Self {
+        Self { option }
+    }
+    pub fn scan<'a>(&self, source: &'a str) -> TokenSink<'a, T> {
+        let delimiters = T::get_delimiters();
+        let delimiter_first_char = delimiters.0.chars().next()
+            .expect("interpolation delimiter cannot be empty");
+        TokenSink {
             source,
             position: Default::default(),
             mode: TextMode::Data,
-            option: Default::default(),
+            option: self.option.clone(),
+            delimiters,
+            delimiter_first_char,
         }
     }
-    pub fn with_option<'b>(&'b mut self, option: TokenizerOption) -> &'b mut Tokenizer<'a> {
-        self.option = option;
-        self
-    }
+}
+
+pub struct TokenSink<'a, T: TokenizerOption> {
+    source: &'a str,
+    position: Position,
+    mode: TextMode,
+    option: T,
+    delimiters: (String, String),
+    delimiter_first_char: char,
 }
 
 // scanning methods
@@ -146,12 +133,12 @@ impl<'a> Tokenizer<'a> {
 // because Rust ownership can help us to prevent invalid state.
 // e.g. `let src = self.source` causes a stale src after [`move_by`].
 // while `let src= &self.source` forbids any src usage after a mut call.
-impl<'a> Tokenizer<'a> {
+impl<'a, T: TokenizerOption> TokenSink<'a, T> {
     // https://html.spec.whatwg.org/multipage/parsing.html#data-state
     // NB: & is not handled here but instead in `decode_entities`
     fn scan_data(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::Data);
-        let d = self.option.delimiter_first_char();
+        let d = self.delimiter_first_char;
         // process html entity & later
         let index = self.source
             .find(|c| c == '<' || c == d);
@@ -163,7 +150,7 @@ impl<'a> Tokenizer<'a> {
         if i != 0 {
             return self.scan_text(i)
         }
-        if self.source.starts_with(&self.option.delimiters.0) {
+        if self.source.starts_with(&self.delimiters.0) {
             return self.scan_interpolation()
         }
         self.scan_tag_open()
@@ -175,7 +162,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn scan_interpolation(&mut self) -> Token<'a> {
-        let delimiters = &self.option.delimiters;
+        let delimiters = &self.delimiters;
         debug_assert!(self.source.starts_with(&delimiters.0));
         let index =  self.source.find(&delimiters.1);
         if index.is_none() {
@@ -536,12 +523,11 @@ impl<'a> Tokenizer<'a> {
 }
 
 // utility methods
-impl<'a> Tokenizer<'a> {
+impl<'a, T: TokenizerOption> TokenSink<'a, T> {
     fn emit_error(&mut self, error_kind: ErrorKind) {
         let loc = self.current_location();
         let err = CompilationError::new(error_kind).with_location(loc);
-        let on_error = &mut self.option.on_error;
-        on_error(err);
+        self.option.on_error(err);
     }
 
     fn get_namespace(&self) -> Namespace {
@@ -556,8 +542,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn decode_text(&self, src: &'a str, is_attr: bool) -> DecodedStr<'a> {
-        let decode = self.option.decode_entities;
-        decode(src, is_attr)
+        T::decode_entities(src, is_attr)
     }
 
     /// move tokenizer's internal position forward and return &str
@@ -644,7 +629,7 @@ fn scan_tag_name_length(mut chars: Chars<'_>) -> usize {
     l + 1
 }
 
-impl<'a> Iterator for Tokenizer<'a> {
+impl<'a, T: TokenizerOption> Iterator for TokenSink<'a, T> {
     type Item = Token<'a>;
     // https://html.spec.whatwg.org/multipage/parsing.html#concept-frag-parse-context
     fn next(&mut self) -> Option<Self::Item> {

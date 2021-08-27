@@ -11,7 +11,7 @@ pub use ir_converter::IRConverter;
 pub use transformer::Transformer;
 use error::CompilationError;
 use tokenizer::Tokenizer;
-use parser::Parser;
+use parser::{Parser, ParseOption};
 
 // use plain &str here for now
 // may change to tendril
@@ -55,16 +55,16 @@ pub trait PreambleHelper<Helper> {
     fn generate_imports(&self) -> String;
 }
 
-pub fn base_compile<IR, O, Conv, Trans, Gen>(
-    source: &str, conv: Conv, trans: Trans, gen: Gen
+pub fn base_compile<Opt, IR, O, Conv, Trans, Gen>(
+    source: &str, option: Opt, conv: Conv, trans: Trans, gen: Gen
 ) -> Result<O, CompilationError> where
+    Opt: ParseOption,
     Conv: IRConverter<IRNode=IR>,
     Trans: Transformer<IRNode=IR>,
     Gen: CodeGenerator<IRNode=IR, Output=O>,
 {
-    let tokenizer = Tokenizer::new(source);
-    let mut parser = Parser::new(tokenizer);
-    let ast = parser.parse()?;
+    let parser = Parser::new(option);
+    let ast = parser.parse(source)?;
     let mut ir = conv.convert_ir(ast);
     trans.transform(&mut ir);
     Ok(gen.genrate(ir))

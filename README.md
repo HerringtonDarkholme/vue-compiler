@@ -36,3 +36,4 @@ The compilation has several phases:
 * The `bitflags` crate is used to represent runtime helper and vnode patch flags.
 * Possibly a SIMD library for string pattern matching might help performance, like [hyperscan](http://intel.github.io/hyperscan).
 * Use `codespan` for beautiful diagnostic reporting [codespan](https://github.com/brendanzab/codespan).
+* use `insta` for snapshot testing [insta](https://github.com/mitsuhiko/insta)

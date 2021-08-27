@@ -5,7 +5,7 @@ pub trait CodeGenerator {
     type Output;
     /// generate will take optimized ir node and output
     /// desired code format, either String or Binary code
-    fn genrate(&self, node: Self::IRNode) -> Self::Output;
+    fn generate(&self, node: Self::IRNode) -> Self::Output;
 }
 
 fn generate(node: IRNode) {
@@ -20,7 +20,7 @@ fn generate(node: IRNode) {
         IR::Call => generate_call(),
         IR::Object => generate_object(),
         IR::Array => generate_array(),
-        IR::Function => genrate_function(),
+        IR::Function => generate_function(),
         IR::Conditional => generate_conditional(),
         IR::Cache => generate_cache(),
         IR::Block => generate_block(),
@@ -37,7 +37,7 @@ fn generate_vnode() {}
 fn generate_call() {}
 fn generate_object() {}
 fn generate_array() {}
-fn genrate_function() {}
+fn generate_function() {}
 fn generate_conditional() {}
 fn generate_cache() {}
 fn generate_block() {}

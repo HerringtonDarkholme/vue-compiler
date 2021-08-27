@@ -67,5 +67,5 @@ pub fn base_compile<IR, O, Conv, Trans, Gen>(
     let ast = parser.parse()?;
     let mut ir = conv.convert_ir(ast);
     trans.transform(&mut ir);
-    Ok(gen.genrate(ir))
+    Ok(gen.generate(ir))
 }

@@ -101,10 +101,13 @@ impl Default for TokenizerOption {
 /// e.g. Scannings in script/textarea/div are different.
 #[derive(PartialEq, Eq)]
 pub enum TextMode {
-  //          | Elements | Entities | End sign              | Inside of
-  DATA, //    | ✔        | ✔        | End tags of ancestors |
-  RCDATA, //  | ✘        | ✔        | End tag of the parent | <textarea>
-  RAWTEXT, // | ✘        | ✘        | End tag of the parent | <style>,<script>
+  //         | Elements | Entities | End sign              | Inside of
+  // DATA    | ✔        | ✔        | End tags of ancestors |
+  // RCDATA  | ✘        | ✔        | End tag of the parent | <textarea>
+  // RAWTEXT | ✘        | ✘        | End tag of the parent | <style>,<script>
+  DATA,
+  RCDATA,
+  RAWTEXT,
   CDATA,
 }
 

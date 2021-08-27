@@ -97,6 +97,14 @@ impl Default for TokenizerOption {
     }
 }
 
+#[non_exhaustive]
+pub enum Namespace {
+    Html,
+    Svg,
+    MathML,
+    UserDefined(&'static str),
+}
+
 /// TextMode represents different text scanning strategy.
 /// e.g. Scannings in script/textarea/div are different.
 #[derive(PartialEq, Eq)]
@@ -403,7 +411,13 @@ impl<'a> Tokenizer<'a> {
         } else if s.starts_with("<!DOCTYPE") {
             self.scan_bogus_comment()
         } else if s.starts_with("<![CDATA[") {
-            self.scan_cdata()
+            let ns = self.get_namespace();
+            if matches!(ns, Namespace::Html) {
+                self.emit_error(ErrorKind::CDataInHtmlContent);
+                self.scan_bogus_comment()
+            } else {
+                self.scan_cdata()
+            }
         } else {
             self.emit_error(ErrorKind::IncorrectlyOpenedComment);
             self.scan_bogus_comment()
@@ -528,6 +542,10 @@ impl<'a> Tokenizer<'a> {
         let err = CompilationError::new(error_kind).with_location(loc);
         let on_error = &mut self.option.on_error;
         on_error(err);
+    }
+
+    fn get_namespace(&self) -> Namespace {
+        todo!()
     }
 
     fn current_location(&self) -> SourceLocation {

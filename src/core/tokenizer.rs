@@ -463,6 +463,7 @@ impl<'a> Tokenizer<'a> {
         text
     }
     #[cold]
+    #[inline(never)]
     fn scan_bogus_comment(&mut self) -> Token<'a> {
         /* /^<(?:[\!\?]|\/[^a-z>])/i from Vue's parseBogusComment
         ^            // starts with
@@ -495,8 +496,20 @@ impl<'a> Tokenizer<'a> {
         Token::Comment(text)
     }
     #[cold]
+    #[inline(never)]
     fn scan_cdata(&mut self) -> Token<'a> {
-        todo!()
+        debug_assert!(self.source.starts_with("<![CDATA["));
+        self.move_by(9);
+        let i = self.source.find("]]>")
+            .unwrap_or(self.source.len());
+        let text = if i > 0 { self.move_by(i) } else { "" };
+        if self.source.is_empty() {
+            self.emit_error(ErrorKind::EofInCdata) ;
+        } else {
+            debug_assert!(self.source.starts_with("]]>"));
+            self.move_by(3);
+        }
+        Token::from(text)
     }
 
     fn scan_rawtext(&mut self) -> Token<'a> {

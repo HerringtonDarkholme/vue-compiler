@@ -108,7 +108,6 @@ pub enum TextMode {
   Data,
   RcData,
   RawText,
-  Cdata,
 }
 
 pub struct Tokenizer<'a> {
@@ -638,7 +637,6 @@ impl<'a> Iterator for Tokenizer<'a> {
             TextMode::Data => self.scan_data(),
             TextMode::RcData => self.scan_rcdata(),
             TextMode::RawText => self.scan_rawtext(),
-            TextMode::Cdata => self.scan_cdata(),
         })
     }
 }

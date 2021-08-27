@@ -89,7 +89,7 @@ impl Default for TokenizerOption {
     fn default() -> Self {
         Self {
             delimiters: ("{{".into(), "}}".into()),
-            get_text_mode: |_| TextMode::DATA,
+            get_text_mode: |_| TextMode::Data,
             decode_entities: |s, _| DecodedStr::from(s),
             on_error: Box::new(|_| ()),
             cached_first_char: Some('{'),
@@ -105,10 +105,10 @@ pub enum TextMode {
   // DATA    | ✔        | ✔        | End tags of ancestors |
   // RCDATA  | ✘        | ✔        | End tag of the parent | <textarea>
   // RAWTEXT | ✘        | ✘        | End tag of the parent | <style>,<script>
-  DATA,
-  RCDATA,
-  RAWTEXT,
-  CDATA,
+  Data,
+  RcData,
+  RawText,
+  Cdata,
 }
 
 pub struct Tokenizer<'a> {
@@ -124,7 +124,7 @@ impl<'a> Tokenizer<'a> {
         Self {
             source,
             position: Default::default(),
-            mode: TextMode::DATA,
+            mode: TextMode::Data,
             option: Default::default(),
         }
     }
@@ -143,7 +143,7 @@ impl<'a> Tokenizer<'a> {
     // https://html.spec.whatwg.org/multipage/parsing.html#data-state
     // NB: & is not handled here but instead in `decode_entities`
     fn scan_data(&mut self) -> Token<'a> {
-        debug_assert!(self.mode == TextMode::DATA);
+        debug_assert!(self.mode == TextMode::Data);
         let d = self.option.delimiter_first_char();
         // process html entity & later
         let index = self.source
@@ -335,9 +335,9 @@ impl<'a> Tokenizer<'a> {
             .count();
         // unexpected EOF: <tag attr=
         if val_len == 0 {
-            // whitespace or > are precluded in scan_attribute
+            // whitespace or > is precluded in scan_attribute
             // so empty value must implies EOF
-            debug_assert!(self.source.len() == 0);
+            debug_assert!(self.source.is_empty());
             return None
         }
         let src = self.move_by(val_len);
@@ -353,7 +353,7 @@ impl<'a> Tokenizer<'a> {
             self.move_by(2);
             true
         } else {
-            debug_assert!(self.source.starts_with(">"));
+            debug_assert!(self.source.starts_with('>'));
             self.move_by(1);
             false
         }
@@ -457,7 +457,7 @@ impl<'a> Tokenizer<'a> {
             s = &s[i+4..];
         }
         // consume remaining comment
-        if s.len() > 0 {
+        if !s.is_empty() {
             self.move_by(s.len());
         }
         text
@@ -499,8 +499,7 @@ impl<'a> Tokenizer<'a> {
 
     fn decode_text(&self, src: &'a str, is_attr: bool) -> DecodedStr<'a> {
         let decode = self.option.decode_entities;
-        let decoded = decode(src, is_attr);
-        decoded
+        decode(src, is_attr)
     }
 
     /// move tokenizer's internal position forward and return &str
@@ -595,10 +594,10 @@ impl<'a> Iterator for Tokenizer<'a> {
             return None
         }
         Some(match self.mode {
-            TextMode::DATA => self.scan_data(),
-            TextMode::RCDATA => self.scan_rcdata(),
-            TextMode::RAWTEXT => self.scan_rawtext(),
-            TextMode::CDATA => self.scan_cdata(),
+            TextMode::Data => self.scan_data(),
+            TextMode::RcData => self.scan_rcdata(),
+            TextMode::RawText => self.scan_rawtext(),
+            TextMode::Cdata => self.scan_cdata(),
         })
     }
 }

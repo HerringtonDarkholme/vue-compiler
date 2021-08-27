@@ -26,7 +26,6 @@ pub struct Position {
     /// the column number in the source code
     pub column: usize,
 }
-impl Copy for Position {}
 
 impl Default for Position {
     fn default() -> Self {

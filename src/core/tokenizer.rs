@@ -68,6 +68,7 @@ pub struct TokenizerOption {
     pub delimiters: (String, String),
     pub get_text_mode: fn(&str) -> TextMode,
     pub decode_entities: EntityDecoder,
+    pub on_error: Box<dyn FnMut(CompilationError)>,
     // for search optimization: only compare delimiters' first char
     cached_first_char: Option<char>,
 }
@@ -88,9 +89,10 @@ impl Default for TokenizerOption {
     fn default() -> Self {
         Self {
             delimiters: ("{{".into(), "}}".into()),
-            cached_first_char: Some('{'),
             get_text_mode: |_| TextMode::DATA,
             decode_entities: |s, _| DecodedStr::from(s),
+            on_error: Box::new(|_| ()),
+            cached_first_char: Some('{'),
         }
     }
 }
@@ -111,7 +113,6 @@ pub struct Tokenizer<'a> {
     position: Position,
     mode: TextMode,
     option: TokenizerOption,
-    errors: Vec<CompilationError>,
 }
 
 // builder methods
@@ -122,7 +123,6 @@ impl<'a> Tokenizer<'a> {
             position: Default::default(),
             mode: TextMode::DATA,
             option: Default::default(),
-            errors: Vec::new(),
         }
     }
     pub fn with_option<'b>(&'b mut self, option: TokenizerOption) -> &'b mut Tokenizer<'a> {
@@ -391,6 +391,7 @@ impl<'a> Tokenizer<'a> {
         Token::EndTag(tag.name)
     }
 
+    // https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state
     fn scan_comment_and_like(&mut self) -> Token<'a> {
         // TODO: investigate https://github.com/jneem/teddy
         // for simd string pattern matching
@@ -399,31 +400,54 @@ impl<'a> Tokenizer<'a> {
             self.scan_comment()
         } else if s.starts_with("<!DOCTYPE") {
             self.scan_bogus_comment()
-        } else if s.starts_with("<!CDATA[") {
+        } else if s.starts_with("<![CDATA[") {
             self.scan_cdata()
         } else {
             self.emit_error(ErrorKind::IncorrectlyOpenedComment);
             self.scan_bogus_comment()
         }
     }
+    // https://html.spec.whatwg.org/multipage/parsing.html#comment-start-state
     fn scan_comment(&mut self) -> Token<'a> {
         debug_assert!(self.source.starts_with("<!--"));
-        while let Some(end) = self.source.find("--") {
-            let s = &self.source[end..];
-            let offset = if s.starts_with("!>") {
-                2
-            } else if s.starts_with('>') {
-                1
-            } else {
-                0
-            };
-            if offset > 0 {
-                let src = self.move_by(end + offset + 2);
-                return Token::Comment(src)
+        let comment_text = self.scan_comment_text();
+        if self.source.is_empty() {
+            self.emit_error(ErrorKind::EofInComment);
+        } else if self.source.starts_with("--!>") {
+            self.emit_error(ErrorKind::IncorrectlyClosedComment);
+            self.move_by(4);
+        } else {
+            debug_assert!(self.source.starts_with("-->"));
+            self.move_by(3);
+        };
+        Token::Comment(comment_text)
+    }
+    fn scan_comment_text(&mut self) -> &'a str {
+        debug_assert!(self.source.starts_with("<!--"));
+        let comment_end = self.source.find("--!>")
+            .or_else(|| self.source.find("-->"));
+        let text = if let Some(end) = comment_end {
+            debug_assert!(end >= 2, "first two chars must be <!");
+            // <!---> or <!-->
+            if end <= 3 {
+                self.emit_error(ErrorKind::AbruptClosingOfEmptyComment);
+                self.move_by(end);
+                return ""
             }
-        }
-        self.emit_error(ErrorKind::EofInComment);
-        Token::Comment(self.source)
+            let s = self.move_by(4); // skip <!--
+            &s[..end-4] // must be exclusive
+        } else {
+            // no closing comment
+            self.move_by(4)
+        };
+        // TODO: report nested comment
+        // let mut last_index = 0;
+        // for (i, matched) in text.match_indices("<!--") {
+        //     self.move_by(i - last_index);
+        //     last_index = i;
+        // }
+        // self.move_by(text.len() - last_index);
+        text
     }
     #[cold]
     fn scan_bogus_comment(&mut self) -> Token<'a> {
@@ -449,11 +473,15 @@ impl<'a> Tokenizer<'a> {
     fn emit_error(&mut self, error_kind: ErrorKind) {
         let loc = self.current_location();
         let err = CompilationError::new(error_kind).with_location(loc);
-        self.errors.push(err);
+        let on_error = &mut self.option.on_error;
+        on_error(err);
     }
 
     fn current_location(&self) -> SourceLocation {
-        todo!()
+        SourceLocation {
+            start: self.position.clone(),
+            end: self.position.clone(),
+        }
     }
 
     fn decode_text(&self, src: &'a str, is_attr: bool) -> DecodedStr<'a> {
@@ -571,6 +599,10 @@ mod test {
             r#"<tag =value />"#,
             r#"<a wrong-attr>=123 />"#,
             r#"<a></a < / attr attr=">" >"#,
+            r#"<!-->"#, // abrupt closing
+            r#"<!--->"#, // abrupt closing
+            r#"<!---->"#, // ok
+            r#"<!-- nested <!--> text -->"#, // ok
         ];
     }
 }

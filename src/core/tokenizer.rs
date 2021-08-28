@@ -536,15 +536,21 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         let tag_name = self.last_start_tag_name
             .expect("RAWTEXT mode must appear inside a tag");
         let len = tag_name.len();
-        let mut end = self.source.len();
+        let source = &self.source;
+        let mut end = source.len();
         // find first </{last_start_tag_name}
-        for (i, _) in self.source.match_indices("</") {
+        for (i, _) in source.match_indices("</") {
+            //  match point     non letter separator
+            //      ￬   </  style ￬
+            let e = i + 2 + len + 1;
             // emit text without error per spec
-            if i + 2 + len > self.source.len() {
+            if e > source.len() {
                 break;
             }
-            let s = &self.source[i+2..][..len];
-            if s.eq_ignore_ascii_case(tag_name) {
+            // https://html.spec.whatwg.org/multipage/parsing.html#rawtext-end-tag-name-state
+            let is_appropriate_end = source[i+2..e].eq_ignore_ascii_case(tag_name);
+            let terminated = !source[e..].starts_with(is_valid_name_char);
+            if is_appropriate_end && terminated {
                 // found!
                 end = i;
                 break;
@@ -695,6 +701,12 @@ mod test {
             r#"<!--->"#, // abrupt closing
             r#"<!---->"#, // ok
             r#"<!-- nested <!--> text -->"#, // ok
+            r#"<textarea><div/></textareas>"#,
+            r#"<textarea>{{test}}</textarea>"#,
+            r#"<style></style"#,
+            r#"<style></styl"#,
+            r#"<style></styles"#,
+            r#"<style></style "#,
         ];
     }
 }

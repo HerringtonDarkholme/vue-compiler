@@ -267,12 +267,13 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         debug_assert!(!self.source.is_empty());
         let name = self.scan_attr_name();
         self.skip_whitespace();
-        if self.is_about_to_close_tag() || self.did_skip_slash_in_tag() {
+        if self.is_about_to_close_tag() ||
+           self.did_skip_slash_in_tag() ||
+           !self.source.starts_with("=") {
             return Attribute {
                 name, value: None,
             }
         }
-        debug_assert!(self.source.starts_with('='));
         self.move_by(1); // equal sign
         let value = self.scan_attr_value();
         Attribute {

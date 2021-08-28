@@ -8,9 +8,9 @@ mod error;
 
 pub use codegen::CodeGenerator;
 pub use ir_converter::IRConverter;
-use tokenizer::TokenizerOption;
 pub use transformer::Transformer;
 use error::CompilationError;
+use tokenizer::{Tokenizer, TokenizeOption};
 use parser::{Parser, ParseOption};
 
 // use plain &str here for now
@@ -64,14 +64,20 @@ pub trait PreambleHelper<Helper> {
     fn generate_imports(&self) -> String;
 }
 
+pub struct CompileOption {
+    tokenization: TokenizeOption,
+    parsing: ParseOption,
+}
+
 pub fn base_compile<IR, O, Conv, Trans, Gen>(
-    source: &str, option: TokenizerOption, conv: Conv, trans: Trans, gen: Gen
+    source: &str, opt: CompileOption, conv: Conv, trans: Trans, gen: Gen
 ) -> Result<O, CompilationError> where
     Conv: IRConverter<IRNode=IR>,
     Trans: Transformer<IRNode=IR>,
     Gen: CodeGenerator<IRNode=IR, Output=O>,
 {
-    let mut parser = Parser::new(option);
+    let tokenizer = Tokenizer::new(opt.tokenization);
+    let parser = Parser::new(tokenizer).with_option(opt.parsing);
     let ast = parser.parse(source)?;
     let mut ir = conv.convert_ir(ast);
     trans.transform(&mut ir);

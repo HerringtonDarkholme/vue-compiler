@@ -58,23 +58,23 @@ impl<'a> From<&'a str> for Token<'a> {
 
 pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
 
-/// TokenizerOption defined a list of methods used in scanning
+/// TokenizeOption defined a list of methods used in scanning
 #[derive(Clone)]
-pub struct TokenizerOption {
+pub struct TokenizeOption {
     delimiters: (String, String),
     get_text_mode: fn(&str) -> TextMode,
     decode_entities: EntityDecoder,
 }
 
 pub trait ParseContext {
-    fn on_error(&mut self, err: CompilationError) {
+    fn on_error(&self, err: CompilationError) {
     }
     fn get_namespace(&self) -> Namespace {
         Namespace::Html
     }
 }
 
-impl Default for TokenizerOption {
+impl Default for TokenizeOption {
     fn default() -> Self {
         Self {
             delimiters: ("{{".into(), "}}".into()),
@@ -98,20 +98,20 @@ pub enum TextMode {
 }
 
 pub struct Tokenizer {
-    option: TokenizerOption,
+    option: TokenizeOption,
     delimiter_first_char: char,
 }
 
 // builder methods
 impl Tokenizer {
-    pub fn new(option: TokenizerOption) -> Self {
+    pub fn new(option: TokenizeOption) -> Self {
         let delimiters = &option.delimiters;
         let delimiter_first_char = delimiters.0.chars().next()
             .expect("interpolation delimiter cannot be empty");
         Self { option, delimiter_first_char }
     }
     pub fn scan<'a, C>(
-        &self, source: &'a str, ctx: &'a mut C
+        &self, source: &'a str, ctx: &'a C
     ) -> Tokens<'a, C>
     where C: ParseContext {
         Tokens {
@@ -127,10 +127,10 @@ impl Tokenizer {
 
 pub struct Tokens<'a, C: ParseContext> {
     source: &'a str,
-    ctx: &'a mut C,
+    ctx: &'a C,
     position: Position,
     mode: TextMode,
-    pub option: TokenizerOption,
+    pub option: TokenizeOption,
     delimiter_first_char: char,
 }
 

@@ -1,5 +1,6 @@
+use std::cell::RefCell;
 use super::{
-    tokenizer::{Tokenizer, TokenizerOption, ParseContext},
+    tokenizer::{Tokenizer, TokenizeOption, ParseContext},
     Name, SourceLocation, Namespace,
     error::CompilationError,
 };
@@ -48,28 +49,83 @@ pub struct AstRoot<'a> {
     loc: SourceLocation,
 }
 
+#[derive(Debug)]
 pub enum WhitespaceStrategy {
     Preserve,
     Condense,
 }
-pub trait ParseOption {
-    fn whitespace_strategy() -> WhitespaceStrategy;
+impl Default for WhitespaceStrategy {
+    fn default() -> Self {
+        WhitespaceStrategy::Condense
+    }
+}
+
+pub struct ParseOption {
+    whitespace: WhitespaceStrategy,
+    get_namespace: fn(&Vec<Element<'_>>) -> Namespace,
+    tokenize_option: TokenizeOption
+}
+impl Default for ParseOption {
+    fn default() -> Self {
+        Self {
+            get_namespace: |_| Namespace::Html,
+            whitespace: WhitespaceStrategy::default(),
+            tokenize_option: TokenizeOption::default(),
+        }
+    }
+}
+
+
+// We need a RefCell because Rust cannot prove vec at compile time
+// minimal case https://play.rust-lang.org/?gist=c5cb2658afbebceacdfc6d387c72e1ab
+// Alternatively we can inject a method like `process_token` to the tokenizer
+// but this inversion makes logic convoluted, reference in Servo's parser:
+// https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tokenizer/interface.rs#L98
+#[derive(Default)]
+struct ParseCtxImpl<'a> {
+    option: ParseOption,
+    // if RefCell is too slow, UnsafeCell can be used.
+    // prefer safety since borrow_mut is called only once.
+    open_elems: RefCell<Vec<Element<'a>>>,
+}
+
+impl<'a> ParseCtxImpl<'a> {
+    fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<'a> ParseContext for ParseCtxImpl<'a> {
+    fn get_namespace(&self) -> Namespace {
+        let elems = self.open_elems.borrow();
+        let get_namespace = self.option.get_namespace;
+        get_namespace(&elems)
+    }
 }
 
 pub struct Parser {
+    option: ParseOption,
     tokenizer: Tokenizer,
 }
 
 pub type ParseResult<'a> = Result<AstRoot<'a>, CompilationError>;
 
 impl Parser {
-    pub fn new(option: TokenizerOption) -> Self {
+    pub fn new(tokenizer: Tokenizer) -> Self {
         Self {
-            tokenizer: Tokenizer::new(option),
+            tokenizer,
+            option: ParseOption::default(),
         }
     }
-    pub fn parse<'a>(&mut self, source: &'a str) -> ParseResult<'a> {
-        let mut tokens = self.tokenizer.scan(source, self);
+    pub fn with_option(mut self, option: ParseOption) -> Self {
+        self.option = option;
+        self
+    }
+
+    pub fn parse<'a>(&self, source: &'a str) -> ParseResult<'a> {
+        let ctx = ParseCtxImpl::new();
+        let open_elems = ctx.open_elems.borrow_mut();
+        let tokens = self.tokenizer.scan(source, &ctx);
         for token in tokens {
         }
         todo!()

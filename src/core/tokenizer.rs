@@ -150,8 +150,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         debug_assert!(self.mode == TextMode::Data);
         let d = self.delimiter_first_char;
         // process html entity & later
-        let index = self.source
-            .find(|c| c == '<' || c == d);
+        let index = self.source.find(&['<', d][..]);
         // no tag or interpolation found
         if index.is_none() {
             return self.scan_text(self.source.len())
@@ -307,7 +306,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
             .take_while(|&c| semi_valid_attr_name(c))
             .count();
         let src = self.move_by(count);
-        if src.contains(|c| matches!(c, '<' | '"' | '\'')) {
+        if src.contains(&['<', '"', '\''][..]) {
             self.emit_error(ErrorKind::UnexpectedCharacterInAttributeName);
         }
         src
@@ -320,10 +319,9 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
             self.emit_error(ErrorKind::MissingAttributeValue);
             return None
         }
-        for &c in ['"', '\''].iter() {
-            if self.source.starts_with(c) {
-                return Some(self.scan_quoted_attr_value(c))
-            }
+        if self.source.starts_with(&['"', '\''][..]) {
+            let c = self.source.chars().next().unwrap();
+            return Some(self.scan_quoted_attr_value(c))
         }
         self.scan_unquoted_attr_value()
     }
@@ -354,7 +352,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
             return None
         }
         let src = self.move_by(val_len);
-        if src.contains(|c| matches!(c, '"' | '\'' | '<' | '=' | '`')) {
+        if src.contains(&['"', '\'', '<', '=', '`'][..]) {
             self.emit_error(ErrorKind::UnexpectedCharacterInUnquotedAttributeValue);
         }
         Some(self.decode_text(src, /* is_attr */ true))
@@ -726,5 +724,7 @@ mod test {
             r#"<style></styles"#,
             r#"<style></style "#,
         ];
+        for case in cases {
+        }
     }
 }

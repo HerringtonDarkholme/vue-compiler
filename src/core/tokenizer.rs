@@ -248,10 +248,9 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     // https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-name-state
     fn scan_attributes(&mut self) -> Vec<Attribute<'a>> {
         let mut attrs = vec![]; // TODO: size hint?
-        self.skip_whitespace();
         // TODO: forbid infinite loop
         loop {
-            debug_assert!(self.source.starts_with(non_whitespace));
+            self.skip_whitespace();
             if self.is_about_to_close_tag() {
                 return attrs
             }
@@ -266,6 +265,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     fn scan_attribute(&mut self) -> Attribute<'a> {
         debug_assert!(!self.source.is_empty());
         let name = self.scan_attr_name();
+        // 13.2.5.34 After attribute name state, ignore whitespaces
         self.skip_whitespace();
         if self.is_about_to_close_tag() ||
            self.did_skip_slash_in_tag() ||
@@ -338,6 +338,12 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         } else {
             self.move_by(self.source.len())
         };
+        // https://html.spec.whatwg.org/multipage/parsing.html#after-attribute-value-(quoted)-state
+        if !self.is_about_to_close_tag() &&
+           !self.did_skip_slash_in_tag() &&
+            self.skip_whitespace() == 0 {
+            self.emit_error(ErrorKind::MissingWhitespaceBetweenAttributes);
+        }
         self.decode_text(src, /*is_attr*/ true)
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(unquoted)-state
@@ -735,6 +741,5 @@ mod test {
                 println!("{:?}", t);
             }
         }
-        panic!("test");
     }
 }

@@ -285,6 +285,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         source.is_empty() || source.starts_with("/>") || source.starts_with('>')
     }
     fn did_skip_slash_in_tag(&mut self) -> bool {
+        debug_assert!(!self.source.is_empty());
         if self.source.starts_with('/') {
             self.emit_error(ErrorKind::UnexpectedSolidusInTag);
             self.move_by(1);
@@ -640,16 +641,11 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
 
     fn skip_whitespace(&mut self) -> usize {
         let idx = self.source.find(non_whitespace);
-        if let Some(i) = idx {
-            if i != 0 {
-                self.move_by(i);
-            }
-            i
-        } else {
-            let len = self.source.len();
+        let len = idx.unwrap_or_else(|| self.source.len());
+        if len != 0 {
             self.move_by(len);
-            len
         }
+        len
     }
 }
 
@@ -718,6 +714,7 @@ mod test {
     #[test]
     fn test() {
         let cases = [
+            r#"{{test}}"#,
             r#"<a test="value">...</a>"#,
             r#"<a v-bind:['foo' + bar]="value">...</a>"#,
             r#"<tag =value />"#,

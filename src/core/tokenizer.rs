@@ -213,6 +213,10 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         debug_assert!(self.source.starts_with('<'));
         self.move_by(1);
         let tag = self.scan_tag_name();
+        // https://html.spec.whatwg.org/multipage/parsing.html#parsing-elements-that-contain-only-text
+        // Parsing algorithms are always invoked in response to a start tag token.
+        let parsing_algorithm = self.option.get_text_mode;
+        self.mode = parsing_algorithm(tag.name);
         Token::StartTag(tag)
     }
     fn scan_tag_name(&mut self) -> Tag<'a> {

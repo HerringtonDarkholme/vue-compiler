@@ -529,13 +529,35 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         Token::from(text)
     }
 
+    // https://html.spec.whatwg.org/multipage/parsing.html#rawtext-state
     fn scan_rawtext(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::RawText);
-        todo!()
+        debug_assert!(self.last_start_tag_name.is_some());
+        let tag_name = self.last_start_tag_name
+            .expect("RAWTEXT mode must appear inside a tag");
+        let len = tag_name.len();
+        let mut end = self.source.len();
+        // find first </{last_start_tag_name}
+        for (i, _) in self.source.match_indices("</") {
+            // emit text without error per spec
+            if i + 2 + len > self.source.len() {
+                break;
+            }
+            let s = &self.source[i+2..][..len];
+            if s.eq_ignore_ascii_case(tag_name) {
+                // found!
+                end = i;
+                break;
+            }
+        }
+        let src = self.move_by(end);
+        self.mode = TextMode::Data;
+        Token::from(src)
     }
 
     fn scan_rcdata(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::RcData);
+        // handle {{ and </
         todo!()
     }
 

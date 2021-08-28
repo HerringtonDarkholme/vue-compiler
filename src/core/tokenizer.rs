@@ -532,13 +532,24 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     // https://html.spec.whatwg.org/multipage/parsing.html#rawtext-state
     fn scan_rawtext(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::RawText);
+        let end = self.find_appropriate_end();
+        let src = self.move_by(end);
+        self.mode = TextMode::Data;
+        Token::from(src)
+    }
+
+    fn scan_rcdata(&mut self) -> Token<'a> {
+        debug_assert!(self.mode == TextMode::RcData);
+        todo!()
+    }
+
+    /// find first </{last_start_tag_name}
+    fn find_appropriate_end(&self) -> usize {
         debug_assert!(self.last_start_tag_name.is_some());
         let tag_name = self.last_start_tag_name
-            .expect("RAWTEXT mode must appear inside a tag");
+            .expect("RAWTEXT/RCDATA must appear inside a tag");
         let len = tag_name.len();
-        let source = &self.source;
-        let mut end = source.len();
-        // find first </{last_start_tag_name}
+        let source = self.source; // no mut self, need no &&str
         for (i, _) in source.match_indices("</") {
             //  match point     non letter separator
             //      ￬   </  style ￬
@@ -552,19 +563,10 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
             let terminated = !source[e..].starts_with(is_valid_name_char);
             if is_appropriate_end && terminated {
                 // found!
-                end = i;
-                break;
+                return i;
             }
         }
-        let src = self.move_by(end);
-        self.mode = TextMode::Data;
-        Token::from(src)
-    }
-
-    fn scan_rcdata(&mut self) -> Token<'a> {
-        debug_assert!(self.mode == TextMode::RcData);
-        // handle {{ and </
-        todo!()
+        source.len()
     }
 
 }
@@ -703,6 +705,7 @@ mod test {
             r#"<!-- nested <!--> text -->"#, // ok
             r#"<textarea><div/></textareas>"#,
             r#"<textarea>{{test}}</textarea>"#,
+            r#"<textarea>{{'</textarea>'}}</textarea>"#,
             r#"<style></style"#,
             r#"<style></styl"#,
             r#"<style></styles"#,

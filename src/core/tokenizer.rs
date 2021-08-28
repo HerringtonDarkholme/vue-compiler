@@ -119,6 +119,7 @@ impl Tokenizer {
             ctx,
             position: Default::default(),
             mode: TextMode::Data,
+            last_start_tag_name: None,
             option: self.option.clone(),
             delimiter_first_char: self.delimiter_first_char,
         }
@@ -130,6 +131,9 @@ pub struct Tokens<'a, C: ParseContext> {
     ctx: &'a C,
     position: Position,
     mode: TextMode,
+    //  appropriate end tag token needs last start tag, if any
+    // https://html.spec.whatwg.org/multipage/parsing.html#appropriate-end-tag-token
+    last_start_tag_name: Option<&'a str>,
     pub option: TokenizeOption,
     delimiter_first_char: char,
 }
@@ -217,6 +221,9 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         // Parsing algorithms are always invoked in response to a start tag token.
         let parsing_algorithm = self.option.get_text_mode;
         self.mode = parsing_algorithm(tag.name);
+        if self.mode != TextMode::Data {
+            self.last_start_tag_name.replace(tag.name);
+        }
         Token::StartTag(tag)
     }
     fn scan_tag_name(&mut self) -> Tag<'a> {
@@ -523,10 +530,12 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     }
 
     fn scan_rawtext(&mut self) -> Token<'a> {
+        debug_assert!(self.mode == TextMode::RawText);
         todo!()
     }
 
     fn scan_rcdata(&mut self) -> Token<'a> {
+        debug_assert!(self.mode == TextMode::RcData);
         todo!()
     }
 

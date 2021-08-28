@@ -462,11 +462,12 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
                 self.move_by(end);
                 return ""
             }
-            let s = self.move_by(4); // skip <!--
-            &s[..end-4] // must be exclusive
+            self.move_by(4); // skip <!--
+            &self.source[..end-4] // must be exclusive
         } else {
             // no closing comment
-            self.move_by(4)
+            self.move_by(4);
+            self.source
         };
 
         // report nested comment error

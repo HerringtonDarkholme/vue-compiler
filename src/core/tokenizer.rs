@@ -581,7 +581,6 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         }
         source.len()
     }
-
 }
 
 // utility methods
@@ -671,7 +670,7 @@ fn is_valid_name_char(c: char) -> bool {
 }
 
 fn non_whitespace(c: char) -> bool {
-    c.is_whitespace()
+    !c.is_whitespace()
 }
 
 // tag name should begin with [a-zA-Z]
@@ -705,9 +704,13 @@ impl<'a, C: ParseContext> Iterator for Tokens<'a, C> {
 
 #[cfg(test)]
 mod test {
+    use super::*;
+    struct TestCtx;
+    impl ParseContext for TestCtx {}
     #[test]
     fn test() {
         let cases = [
+            r#"<a test="value">...</a>"#,
             r#"<a v-bind:['foo' + bar]="value">...</a>"#,
             r#"<tag =value />"#,
             r#"<a wrong-attr>=123 />"#,
@@ -724,7 +727,13 @@ mod test {
             r#"<style></styles"#,
             r#"<style></style "#,
         ];
-        for case in cases {
+        let tokenizer = Tokenizer::new(TokenizeOption::default());
+        for &case in cases.iter() {
+            let tokens = tokenizer.scan(case, &TestCtx);
+            for t in tokens {
+                println!("{:?}", t);
+            }
         }
+        panic!("test");
     }
 }

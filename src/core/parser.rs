@@ -1,5 +1,5 @@
 use super::{
-    tokenizer::{Tokenizer, TokenizerOption},
+    tokenizer::{Tokenizer, TokenizerOption, ParseContext},
     Name, SourceLocation,
     error::CompilationError,
 };
@@ -52,25 +52,32 @@ pub enum WhitespaceStrategy {
     Preserve,
     Condense,
 }
-pub trait ParseOption: TokenizerOption {
+pub trait ParseOption {
     fn whitespace_strategy() -> WhitespaceStrategy;
 }
 
-pub struct Parser<P: ParseOption> {
-    tokenizer: Tokenizer<P>
+pub struct Parser<'a> {
+    source: &'a str,
+    tokenizer: Tokenizer,
 }
 
 pub type ParseResult<'a> = Result<AstRoot<'a>, CompilationError>;
 
-impl<P: ParseOption> Parser<P> {
-    pub fn new(option: P) -> Self {
+impl<'a> Parser<'a> {
+    pub fn new(source: &'a str, option: TokenizerOption) -> Self {
         Self {
+            source,
             tokenizer: Tokenizer::new(option),
         }
     }
-    pub fn parse<'a>(&self, source: &'a str) -> ParseResult<'a> {
-        for token in self.tokenizer.scan(source) {
+    pub fn parse(&mut self, source: &'a str) -> ParseResult<'a> {
+        let mut tokens = self.tokenizer.scan(source, self);
+        let opt = &mut tokens.option;
+        for token in tokens {
+            self.on_error(todo!())
         }
         todo!()
     }
+}
+impl<'a> ParseContext for Parser<'a> {
 }

@@ -56,21 +56,31 @@ impl<'a> From<&'a str> for Token<'a> {
     }
 }
 
+pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
+
 /// TokenizerOption defined a list of methods used in scanning
-pub trait TokenizerOption: Clone {
-    fn get_delimiters() -> (String, String) {
-        ("{{".into(), "}}".into())
-    }
-    fn get_text_mode(tag_name: &str) -> TextMode {
-        TextMode::Data
-    }
-    fn decode_entities(text: &str, is_attr: bool) -> DecodedStr<'_> {
-        DecodedStr::from(text)
-    }
+#[derive(Clone)]
+pub struct TokenizerOption {
+    delimiters: (String, String),
+    get_text_mode: fn(&str) -> TextMode,
+    decode_entities: EntityDecoder,
+}
+
+pub trait ParseContext {
     fn on_error(&mut self, err: CompilationError) {
     }
-    fn get_namespace(tag_name: &str) -> Namespace {
+    fn get_namespace(&self) -> Namespace {
         Namespace::Html
+    }
+}
+
+impl Default for TokenizerOption {
+    fn default() -> Self {
+        Self {
+            delimiters: ("{{".into(), "}}".into()),
+            get_text_mode: |_| TextMode::Data,
+            decode_entities: |t, _| DecodedStr::from(t),
+        }
     }
 }
 
@@ -95,35 +105,42 @@ pub enum TextMode {
   RawText,
 }
 
-pub struct Tokenizer<T: TokenizerOption> {
-    option: T,
+pub struct Tokenizer {
+    option: TokenizerOption,
+    delimiters: (String, String),
+    delimiter_first_char: char,
 }
 
 // builder methods
-impl<T: TokenizerOption> Tokenizer<T> {
-    pub fn new(option: T) -> Self {
-        Self { option }
-    }
-    pub fn scan<'a>(&self, source: &'a str) -> TokenSink<'a, T> {
-        let delimiters = T::get_delimiters();
+impl Tokenizer {
+    pub fn new(option: TokenizerOption) -> Self {
+        let delimiters = option.delimiters;
         let delimiter_first_char = delimiters.0.chars().next()
             .expect("interpolation delimiter cannot be empty");
-        TokenSink {
+        Self { option, delimiters, delimiter_first_char }
+    }
+    pub fn scan<'a, C>(
+        &self, source: &'a str, ctx: &'a mut C
+    ) -> Tokens<'a, C>
+    where C: ParseContext {
+        Tokens {
             source,
+            ctx,
             position: Default::default(),
             mode: TextMode::Data,
             option: self.option.clone(),
-            delimiters,
-            delimiter_first_char,
+            delimiters: self.delimiters,
+            delimiter_first_char: self.delimiter_first_char,
         }
     }
 }
 
-pub struct TokenSink<'a, T: TokenizerOption> {
+pub struct Tokens<'a, C: ParseContext> {
     source: &'a str,
+    ctx: &'a mut C,
     position: Position,
     mode: TextMode,
-    option: T,
+    pub option: TokenizerOption,
     delimiters: (String, String),
     delimiter_first_char: char,
 }
@@ -133,7 +150,7 @@ pub struct TokenSink<'a, T: TokenizerOption> {
 // because Rust ownership can help us to prevent invalid state.
 // e.g. `let src = self.source` causes a stale src after [`move_by`].
 // while `let src= &self.source` forbids any src usage after a mut call.
-impl<'a, T: TokenizerOption> TokenSink<'a, T> {
+impl<'a, C: ParseContext> Tokens<'a, C> {
     // https://html.spec.whatwg.org/multipage/parsing.html#data-state
     // NB: & is not handled here but instead in `decode_entities`
     fn scan_data(&mut self) -> Token<'a> {
@@ -398,7 +415,7 @@ impl<'a, T: TokenizerOption> TokenSink<'a, T> {
         } else if s.starts_with("<!DOCTYPE") {
             self.scan_bogus_comment()
         } else if s.starts_with("<![CDATA[") {
-            let ns = self.get_namespace();
+            let ns = self.option.get_namespace();
             if matches!(ns, Namespace::Html) {
                 self.emit_error(ErrorKind::CDataInHtmlContent);
                 self.scan_bogus_comment()
@@ -523,15 +540,11 @@ impl<'a, T: TokenizerOption> TokenSink<'a, T> {
 }
 
 // utility methods
-impl<'a, T: TokenizerOption> TokenSink<'a, T> {
+impl<'a, C: ParseContext> Tokens<'a, C> {
     fn emit_error(&mut self, error_kind: ErrorKind) {
         let loc = self.current_location();
         let err = CompilationError::new(error_kind).with_location(loc);
         self.option.on_error(err);
-    }
-
-    fn get_namespace(&self) -> Namespace {
-        todo!()
     }
 
     fn current_location(&self) -> SourceLocation {
@@ -542,7 +555,8 @@ impl<'a, T: TokenizerOption> TokenSink<'a, T> {
     }
 
     fn decode_text(&self, src: &'a str, is_attr: bool) -> DecodedStr<'a> {
-        T::decode_entities(src, is_attr)
+        let decode = self.option.decode_entities;
+        decode(src, is_attr)
     }
 
     /// move tokenizer's internal position forward and return &str
@@ -629,7 +643,7 @@ fn scan_tag_name_length(mut chars: Chars<'_>) -> usize {
     l + 1
 }
 
-impl<'a, T: TokenizerOption> Iterator for TokenSink<'a, T> {
+impl<'a, C: ParseContext> Iterator for Tokens<'a, C> {
     type Item = Token<'a>;
     // https://html.spec.whatwg.org/multipage/parsing.html#concept-frag-parse-context
     fn next(&mut self) -> Option<Self::Item> {

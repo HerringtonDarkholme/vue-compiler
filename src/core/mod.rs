@@ -8,9 +8,9 @@ mod error;
 
 pub use codegen::CodeGenerator;
 pub use ir_converter::IRConverter;
+use tokenizer::TokenizerOption;
 pub use transformer::Transformer;
 use error::CompilationError;
-use tokenizer::Tokenizer;
 use parser::{Parser, ParseOption};
 
 // use plain &str here for now
@@ -43,6 +43,15 @@ pub struct SourceLocation {
     pub end: Position,
 }
 
+/// namespace for HTML/SVG/MathML tag
+#[non_exhaustive]
+pub enum Namespace {
+    Html,
+    Svg,
+    MathMl,
+    UserDefined(&'static str),
+}
+
 pub trait TemplateCompiler {
 }
 
@@ -55,15 +64,14 @@ pub trait PreambleHelper<Helper> {
     fn generate_imports(&self) -> String;
 }
 
-pub fn base_compile<Opt, IR, O, Conv, Trans, Gen>(
-    source: &str, option: Opt, conv: Conv, trans: Trans, gen: Gen
+pub fn base_compile<IR, O, Conv, Trans, Gen>(
+    source: &str, option: TokenizerOption, conv: Conv, trans: Trans, gen: Gen
 ) -> Result<O, CompilationError> where
-    Opt: ParseOption,
     Conv: IRConverter<IRNode=IR>,
     Trans: Transformer<IRNode=IR>,
     Gen: CodeGenerator<IRNode=IR, Output=O>,
 {
-    let parser = Parser::new(option);
+    let mut parser = Parser::new(option);
     let ast = parser.parse(source)?;
     let mut ir = conv.convert_ir(ast);
     trans.transform(&mut ir);

@@ -4,7 +4,7 @@
 
 use std::{borrow::Cow, str::Chars};
 use super::{
-    Name, SourceLocation, Position,
+    Name, SourceLocation, Position, Namespace,
     error::{CompilationError, CompilationErrorKind as ErrorKind},
 };
 use smallvec::{smallvec, SmallVec};
@@ -84,14 +84,6 @@ impl Default for TokenizerOption {
     }
 }
 
-#[non_exhaustive]
-pub enum Namespace {
-    Html,
-    Svg,
-    MathML,
-    UserDefined(&'static str),
-}
-
 /// TextMode represents different text scanning strategy.
 /// e.g. Scannings in script/textarea/div are different.
 #[derive(PartialEq, Eq)]
@@ -107,17 +99,16 @@ pub enum TextMode {
 
 pub struct Tokenizer {
     option: TokenizerOption,
-    delimiters: (String, String),
     delimiter_first_char: char,
 }
 
 // builder methods
 impl Tokenizer {
     pub fn new(option: TokenizerOption) -> Self {
-        let delimiters = option.delimiters;
+        let delimiters = &option.delimiters;
         let delimiter_first_char = delimiters.0.chars().next()
             .expect("interpolation delimiter cannot be empty");
-        Self { option, delimiters, delimiter_first_char }
+        Self { option, delimiter_first_char }
     }
     pub fn scan<'a, C>(
         &self, source: &'a str, ctx: &'a mut C
@@ -129,7 +120,6 @@ impl Tokenizer {
             position: Default::default(),
             mode: TextMode::Data,
             option: self.option.clone(),
-            delimiters: self.delimiters,
             delimiter_first_char: self.delimiter_first_char,
         }
     }
@@ -141,7 +131,6 @@ pub struct Tokens<'a, C: ParseContext> {
     position: Position,
     mode: TextMode,
     pub option: TokenizerOption,
-    delimiters: (String, String),
     delimiter_first_char: char,
 }
 
@@ -167,7 +156,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         if i != 0 {
             return self.scan_text(i)
         }
-        if self.source.starts_with(&self.delimiters.0) {
+        if self.source.starts_with(&self.option.delimiters.0) {
             return self.scan_interpolation()
         }
         self.scan_tag_open()
@@ -179,7 +168,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     }
 
     fn scan_interpolation(&mut self) -> Token<'a> {
-        let delimiters = &self.delimiters;
+        let delimiters = &self.option.delimiters;
         debug_assert!(self.source.starts_with(&delimiters.0));
         let index =  self.source.find(&delimiters.1);
         if index.is_none() {
@@ -415,7 +404,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         } else if s.starts_with("<!DOCTYPE") {
             self.scan_bogus_comment()
         } else if s.starts_with("<![CDATA[") {
-            let ns = self.option.get_namespace();
+            let ns = self.ctx.get_namespace();
             if matches!(ns, Namespace::Html) {
                 self.emit_error(ErrorKind::CDataInHtmlContent);
                 self.scan_bogus_comment()
@@ -544,7 +533,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     fn emit_error(&mut self, error_kind: ErrorKind) {
         let loc = self.current_location();
         let err = CompilationError::new(error_kind).with_location(loc);
-        self.option.on_error(err);
+        self.ctx.on_error(err);
     }
 
     fn current_location(&self) -> SourceLocation {

@@ -166,7 +166,9 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         self.scan_tag_open()
     }
 
+    // produces an entity_decoded Text token.
     fn scan_text(&mut self, size: usize) -> Token<'a> {
+        debug_assert!(matches!(self.mode, TextMode::Data | TextMode::RcData));
         let src = self.move_by(size);
         Token::Text(self.decode_text(src, false))
     }
@@ -526,6 +528,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
             debug_assert!(self.source.starts_with("]]>"));
             self.move_by(3);
         }
+        // don't call scan_text since CDATA decodes nothing
         Token::from(text)
     }
 
@@ -533,6 +536,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     fn scan_rawtext(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::RawText);
         let end = self.find_appropriate_end();
+        // NOTE: rawtext decodes no entity. Don't call scan_text
         let src = self.move_by(end);
         self.mode = TextMode::Data;
         Token::from(src)
@@ -540,7 +544,18 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
 
     fn scan_rcdata(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::RcData);
-        todo!()
+        let delimiter = &self.option.delimiters.0;
+        if self.source.starts_with(delimiter) {
+            return self.scan_interpolation()
+        }
+        let end = self.find_appropriate_end();
+        let interpolation_start = self.source.find(delimiter).unwrap_or(end);
+        if interpolation_start < end {
+            return self.scan_text(interpolation_start)
+        }
+        let ret = self.scan_text(end);
+        self.mode = TextMode::Data;
+        ret
     }
 
     /// find first </{last_start_tag_name}

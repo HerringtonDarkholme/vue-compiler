@@ -36,7 +36,7 @@ enum DirectiveArg<'a> {
 }
 
 /// Directive has
-/// v-name:arg.modifer="expr"
+/// v-name:arg.modifier="expr"
 pub struct Directive<'a> {
     name: Name<'a>,
     arg: DirectiveArg<'a>,

@@ -1,6 +1,3 @@
-pub struct TransfromContext {
-}
-
 pub trait Transformer {
     type IRNode;
     /// transform will change ir node inplace

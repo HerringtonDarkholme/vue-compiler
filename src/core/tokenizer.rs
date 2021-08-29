@@ -85,7 +85,7 @@ impl Default for TokenizeOption {
 }
 
 /// TextMode represents different text scanning strategy.
-/// e.g. Scannings in script/textarea/div are different.
+/// e.g. Scanning in script/textarea/div are different.
 #[derive(PartialEq, Eq)]
 pub enum TextMode {
   //         | Elements | Entities | End sign              | Inside of
@@ -265,7 +265,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     fn scan_attribute(&mut self) -> Attribute<'a> {
         debug_assert!(!self.source.is_empty());
         let name = self.scan_attr_name();
-        // 13.2.5.34 After attribute name state, ignore whitespaces
+        // 13.2.5.34 After attribute name state, ignore white spaces
         self.skip_whitespace();
         if self.is_about_to_close_tag() ||
            self.did_skip_slash_in_tag() ||

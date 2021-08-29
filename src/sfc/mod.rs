@@ -1,12 +1,9 @@
 use std::path::PathBuf;
 
-mod parse_sfc;
 mod descriptors;
+mod parse_sfc;
 
-pub use parse_sfc::{
-    parse_sfc,
-    SfcDescriptor,
-};
+pub use parse_sfc::{parse_sfc, SfcDescriptor};
 
 pub enum PadOption {
     Line,

@@ -1,17 +1,17 @@
-mod tokenizer;
+mod codegen;
+mod error;
+mod ir_converter;
 mod parser;
 mod runtime_helper;
-mod ir_converter;
-mod codegen;
+mod tokenizer;
 mod transformer;
-mod error;
 
 pub use codegen::CodeGenerator;
-pub use ir_converter::IRConverter;
-pub use transformer::Transformer;
 use error::CompilationError;
-use tokenizer::{Tokenizer, TokenizeOption};
-use parser::{Parser, ParseOption};
+pub use ir_converter::IRConverter;
+use parser::{ParseOption, Parser};
+use tokenizer::{TokenizeOption, Tokenizer};
+pub use transformer::Transformer;
 
 // use plain &str here for now
 // may change to tendril
@@ -52,8 +52,7 @@ pub enum Namespace {
     UserDefined(&'static str),
 }
 
-pub trait TemplateCompiler {
-}
+pub trait TemplateCompiler {}
 
 /// PreambleHelper is a collection of JavaScript imports at the head of output
 /// e.g. v-for needs a list looping helper to make vdom
@@ -70,11 +69,16 @@ pub struct CompileOption {
 }
 
 pub fn base_compile<IR, O, Conv, Trans, Gen>(
-    source: &str, opt: CompileOption, conv: Conv, trans: Trans, gen: Gen
-) -> Result<O, CompilationError> where
-    Conv: IRConverter<IRNode=IR>,
-    Trans: Transformer<IRNode=IR>,
-    Gen: CodeGenerator<IRNode=IR, Output=O>,
+    source: &str,
+    opt: CompileOption,
+    conv: Conv,
+    trans: Trans,
+    gen: Gen,
+) -> Result<O, CompilationError>
+where
+    Conv: IRConverter<IRNode = IR>,
+    Trans: Transformer<IRNode = IR>,
+    Gen: CodeGenerator<IRNode = IR, Output = O>,
 {
     let tokenizer = Tokenizer::new(opt.tokenization);
     let parser = Parser::new(tokenizer).with_option(opt.parsing);

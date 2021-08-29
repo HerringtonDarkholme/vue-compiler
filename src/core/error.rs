@@ -61,7 +61,7 @@ pub enum CompilationErrorKind {
 
     // Special value for higher-order compilers to pick up the last code
     // to avoid collision of error codes. This should always be kept as the last item.
-    ExtendPoint
+    ExtendPoint,
 }
 
 #[derive(Debug)]

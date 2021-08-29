@@ -1,9 +1,9 @@
-use std::cell::RefCell;
 use super::{
-    tokenizer::{Tokenizer, TokenizeOption, ParseContext},
-    Name, SourceLocation, Namespace,
     error::CompilationError,
+    tokenizer::{ParseContext, TokenizeOption, Tokenizer},
+    Name, Namespace, SourceLocation,
 };
+use std::cell::RefCell;
 
 pub enum AstNode<'a> {
     Plain(Element<'a>),
@@ -63,7 +63,7 @@ impl Default for WhitespaceStrategy {
 pub struct ParseOption {
     whitespace: WhitespaceStrategy,
     get_namespace: fn(&Vec<Element<'_>>) -> Namespace,
-    tokenize_option: TokenizeOption
+    tokenize_option: TokenizeOption,
 }
 impl Default for ParseOption {
     fn default() -> Self {
@@ -74,7 +74,6 @@ impl Default for ParseOption {
         }
     }
 }
-
 
 // We need a RefCell because Rust cannot prove vec at compile time
 // minimal case https://play.rust-lang.org/?gist=c5cb2658afbebceacdfc6d387c72e1ab
@@ -126,8 +125,7 @@ impl Parser {
         let ctx = ParseCtxImpl::new();
         let open_elems = ctx.open_elems.borrow_mut();
         let tokens = self.tokenizer.scan(source, &ctx);
-        for token in tokens {
-        }
+        for token in tokens {}
         todo!()
     }
 }

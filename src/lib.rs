@@ -1,8 +1,8 @@
 //! See README.md
 
-mod sfc;
-mod dom;
-mod ssr;
 mod core;
+mod dom;
+mod sfc;
+mod ssr;
 
 pub use crate::core::base_compile;

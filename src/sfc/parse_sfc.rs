@@ -1,19 +1,12 @@
 use smallvec::SmallVec;
 
-pub struct SfcBlock {
-}
+pub struct SfcBlock {}
 
-pub struct SfcTemplateBlock {
+pub struct SfcTemplateBlock {}
 
-}
+pub struct SfcScriptBlock {}
 
-pub struct SfcScriptBlock {
-
-}
-
-pub struct SfcStyleBlock {
-
-}
+pub struct SfcStyleBlock {}
 
 pub struct SfcDescriptor<'a> {
     pub filename: String,

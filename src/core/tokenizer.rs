@@ -2,12 +2,12 @@
 //! The canonical parsing strategy should adhere to the spec below.
 //! https://html.spec.whatwg.org/multipage/parsing.html#tokenization
 
-use std::{borrow::Cow, str::Chars};
 use super::{
-    Name, SourceLocation, Position, Namespace,
     error::{CompilationError, CompilationErrorKind as ErrorKind},
+    Name, Namespace, Position, SourceLocation,
 };
 use smallvec::{smallvec, SmallVec};
+use std::{borrow::Cow, str::Chars};
 
 /// DecodedStr represents text after decoding html entities.
 /// SmallVec and Cow are used internally for less allocation.
@@ -67,8 +67,7 @@ pub struct TokenizeOption {
 }
 
 pub trait ParseContext {
-    fn on_error(&self, err: CompilationError) {
-    }
+    fn on_error(&self, err: CompilationError) {}
     fn get_namespace(&self) -> Namespace {
         Namespace::Html
     }
@@ -88,13 +87,13 @@ impl Default for TokenizeOption {
 /// e.g. Scanning in script/textarea/div are different.
 #[derive(PartialEq, Eq)]
 pub enum TextMode {
-  //         | Elements | Entities | End sign              | Inside of
-  // DATA    | ✔        | ✔        | End tags of ancestors |
-  // RCDATA  | ✘        | ✔        | End tag of the parent | <textarea>
-  // RAWTEXT | ✘        | ✘        | End tag of the parent | <style>,<script>
-  Data,
-  RcData,
-  RawText,
+    //         | Elements | Entities | End sign              | Inside of
+    // DATA    | ✔        | ✔        | End tags of ancestors |
+    // RCDATA  | ✘        | ✔        | End tag of the parent | <textarea>
+    // RAWTEXT | ✘        | ✘        | End tag of the parent | <style>,<script>
+    Data,
+    RcData,
+    RawText,
 }
 
 pub struct Tokenizer {
@@ -106,14 +105,20 @@ pub struct Tokenizer {
 impl Tokenizer {
     pub fn new(option: TokenizeOption) -> Self {
         let delimiters = &option.delimiters;
-        let delimiter_first_char = delimiters.0.chars().next()
+        let delimiter_first_char = delimiters
+            .0
+            .chars()
+            .next()
             .expect("interpolation delimiter cannot be empty");
-        Self { option, delimiter_first_char }
+        Self {
+            option,
+            delimiter_first_char,
+        }
     }
-    pub fn scan<'a, C>(
-        &self, source: &'a str, ctx: &'a C
-    ) -> Tokens<'a, C>
-    where C: ParseContext {
+    pub fn scan<'a, C>(&self, source: &'a str, ctx: &'a C) -> Tokens<'a, C>
+    where
+        C: ParseContext,
+    {
         Tokens {
             source,
             ctx,
@@ -153,14 +158,14 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         let index = self.source.find(&['<', d][..]);
         // no tag or interpolation found
         if index.is_none() {
-            return self.scan_text(self.source.len())
+            return self.scan_text(self.source.len());
         }
         let i = index.unwrap();
         if i != 0 {
-            return self.scan_text(i)
+            return self.scan_text(i);
         }
         if self.source.starts_with(&self.option.delimiters.0) {
-            return self.scan_interpolation()
+            return self.scan_interpolation();
         }
         self.scan_tag_open()
     }
@@ -175,11 +180,11 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     fn scan_interpolation(&mut self) -> Token<'a> {
         let delimiters = &self.option.delimiters;
         debug_assert!(self.source.starts_with(&delimiters.0));
-        let index =  self.source.find(&delimiters.1);
+        let index = self.source.find(&delimiters.1);
         if index.is_none() {
             self.emit_error(ErrorKind::MissingInterpolationEnd);
             let src = self.move_by(self.source.len());
-            return Token::Interpolation(src)
+            return Token::Interpolation(src);
         }
         let step = index.unwrap() + delimiters.1.len();
         let src = self.move_by(step);
@@ -240,19 +245,21 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         } else {
             self.scan_close_start_tag()
         };
-        Tag{
-            name, attributes, self_closing,
+        Tag {
+            name,
+            attributes,
+            self_closing,
         }
     }
     // return attributes and if the tag is self closing
     // https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-name-state
     fn scan_attributes(&mut self) -> Vec<Attribute<'a>> {
         let mut attrs = vec![]; // TODO: size hint?
-        // TODO: forbid infinite loop
+                                // TODO: forbid infinite loop
         loop {
             self.skip_whitespace();
             if self.is_about_to_close_tag() {
-                return attrs
+                return attrs;
             }
             if self.did_skip_slash_in_tag() {
                 continue;
@@ -267,18 +274,15 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         let name = self.scan_attr_name();
         // 13.2.5.34 After attribute name state, ignore white spaces
         self.skip_whitespace();
-        if self.is_about_to_close_tag() ||
-           self.did_skip_slash_in_tag() ||
-           !self.source.starts_with("=") {
-            return Attribute {
-                name, value: None,
-            }
+        if self.is_about_to_close_tag()
+            || self.did_skip_slash_in_tag()
+            || !self.source.starts_with("=")
+        {
+            return Attribute { name, value: None };
         }
         self.move_by(1); // equal sign
         let value = self.scan_attr_value();
-        Attribute {
-            name, value
-        }
+        Attribute { name, value }
     }
     fn is_about_to_close_tag(&self) -> bool {
         let source = &self.source; // must get fresh source
@@ -302,9 +306,11 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
             self.emit_error(ErrorKind::UnexpectedEqualsSignBeforeAttributeName);
             let s = self.move_by(1);
             debug_assert!(s == "=");
-            return s
+            return s;
         }
-        let count = self.source.chars()
+        let count = self
+            .source
+            .chars()
             .take_while(|&c| semi_valid_attr_name(c))
             .count();
         let src = self.move_by(count);
@@ -319,11 +325,11 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         let source = &self.source;
         if source.starts_with('>') {
             self.emit_error(ErrorKind::MissingAttributeValue);
-            return None
+            return None;
         }
         if self.source.starts_with(&['"', '\''][..]) {
             let c = self.source.chars().next().unwrap();
-            return Some(self.scan_quoted_attr_value(c))
+            return Some(self.scan_quoted_attr_value(c));
         }
         self.scan_unquoted_attr_value()
     }
@@ -340,16 +346,19 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
             self.move_by(self.source.len())
         };
         // https://html.spec.whatwg.org/multipage/parsing.html#after-attribute-value-(quoted)-state
-        if !self.is_about_to_close_tag() &&
-           !self.did_skip_slash_in_tag() &&
-            self.skip_whitespace() == 0 {
+        if !self.is_about_to_close_tag()
+            && !self.did_skip_slash_in_tag()
+            && self.skip_whitespace() == 0
+        {
             self.emit_error(ErrorKind::MissingWhitespaceBetweenAttributes);
         }
         self.decode_text(src, /*is_attr*/ true)
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(unquoted)-state
     fn scan_unquoted_attr_value(&mut self) -> Option<DecodedStr<'a>> {
-        let val_len = self.source.chars()
+        let val_len = self
+            .source
+            .chars()
             .take_while(semi_valid_unquoted_attr_value)
             .count();
         // unexpected EOF: <tag attr=
@@ -357,7 +366,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
             // whitespace or > is precluded in scan_attribute
             // so empty value must implies EOF
             debug_assert!(self.source.is_empty());
-            return None
+            return None;
         }
         let src = self.move_by(val_len);
         if src.contains(&['"', '\'', '<', '=', '`'][..]) {
@@ -381,7 +390,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     fn scan_end_tag_open(&mut self) -> Token<'a> {
         debug_assert!(self.source.starts_with("</"));
         let source = &self.source;
-        if source.len() == 2{
+        if source.len() == 2 {
             self.emit_error(ErrorKind::EofBeforeTagName);
             Token::from(self.move_by(2))
         } else if source.starts_with("</>") {
@@ -452,8 +461,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     }
     fn scan_comment_text(&mut self) -> &'a str {
         debug_assert!(self.source.starts_with("<!--"));
-        let comment_end = self.source.find("--!>")
-            .or_else(|| self.source.find("-->"));
+        let comment_end = self.source.find("--!>").or_else(|| self.source.find("-->"));
         // NB: we take &str here since we will call move_by later
         let text = if let Some(end) = comment_end {
             debug_assert!(end >= 2, "first two chars must be <!");
@@ -461,10 +469,10 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
             if end <= 3 {
                 self.emit_error(ErrorKind::AbruptClosingOfEmptyComment);
                 self.move_by(end);
-                return ""
+                return "";
             }
             self.move_by(4); // skip <!--
-            &self.source[..end-4] // must be exclusive
+            &self.source[..end - 4] // must be exclusive
         } else {
             // no closing comment
             self.move_by(4);
@@ -480,7 +488,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
             if !self.source.is_empty() {
                 self.emit_error(ErrorKind::NestedComment);
             }
-            s = &s[i+4..];
+            s = &s[i + 4..];
         }
         // consume remaining comment
         if !s.is_empty() {
@@ -501,7 +509,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         )
         */
         let s = &self.source;
-        debug_assert!{
+        debug_assert! {
             s.starts_with("<!") || s.starts_with("<?") ||
             (
                 s.starts_with("</") &&
@@ -526,11 +534,10 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     fn scan_cdata(&mut self) -> Token<'a> {
         debug_assert!(self.source.starts_with("<![CDATA["));
         self.move_by(9);
-        let i = self.source.find("]]>")
-            .unwrap_or(self.source.len());
+        let i = self.source.find("]]>").unwrap_or(self.source.len());
         let text = if i > 0 { self.move_by(i) } else { "" };
         if self.source.is_empty() {
-            self.emit_error(ErrorKind::EofInCdata) ;
+            self.emit_error(ErrorKind::EofInCdata);
         } else {
             debug_assert!(self.source.starts_with("]]>"));
             self.move_by(3);
@@ -553,12 +560,12 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         debug_assert!(self.mode == TextMode::RcData);
         let delimiter = &self.option.delimiters.0;
         if self.source.starts_with(delimiter) {
-            return self.scan_interpolation()
+            return self.scan_interpolation();
         }
         let end = self.find_appropriate_end();
         let interpolation_start = self.source.find(delimiter).unwrap_or(end);
         if interpolation_start < end {
-            return self.scan_text(interpolation_start)
+            return self.scan_text(interpolation_start);
         }
         let ret = self.scan_text(end);
         self.mode = TextMode::Data;
@@ -568,7 +575,8 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
     /// find first </{last_start_tag_name}
     fn find_appropriate_end(&self) -> usize {
         debug_assert!(self.last_start_tag_name.is_some());
-        let tag_name = self.last_start_tag_name
+        let tag_name = self
+            .last_start_tag_name
             .expect("RAWTEXT/RCDATA must appear inside a tag");
         let len = tag_name.len();
         let source = self.source; // no mut self, need no &&str
@@ -581,7 +589,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
                 break;
             }
             // https://html.spec.whatwg.org/multipage/parsing.html#rawtext-end-tag-name-state
-            let is_appropriate_end = source[i+2..e].eq_ignore_ascii_case(tag_name);
+            let is_appropriate_end = source[i + 2..e].eq_ignore_ascii_case(tag_name);
             let terminated = !source[e..].starts_with(is_valid_name_char);
             if is_appropriate_end && terminated {
                 // found!
@@ -683,11 +691,9 @@ fn scan_tag_name_length(mut chars: Chars<'_>) -> usize {
     let first_char = chars.next();
     debug_assert!(first_char.is_some());
     if !first_char.unwrap().is_ascii_alphabetic() {
-        return 0
+        return 0;
     }
-    let l = chars
-        .take_while(|&c| is_valid_name_char(c))
-        .count();
+    let l = chars.take_while(|&c| is_valid_name_char(c)).count();
     l + 1
 }
 
@@ -696,7 +702,7 @@ impl<'a, C: ParseContext> Iterator for Tokens<'a, C> {
     // https://html.spec.whatwg.org/multipage/parsing.html#concept-frag-parse-context
     fn next(&mut self) -> Option<Self::Item> {
         if self.source.is_empty() {
-            return None
+            return None;
         }
         Some(match self.mode {
             TextMode::Data => self.scan_data(),
@@ -720,9 +726,9 @@ mod test {
             r#"<tag =value />"#,
             r#"<a wrong-attr>=123 />"#,
             r#"<a></a < / attr attr=">" >"#,
-            r#"<!-->"#, // abrupt closing
-            r#"<!--->"#, // abrupt closing
-            r#"<!---->"#, // ok
+            r#"<!-->"#,                      // abrupt closing
+            r#"<!--->"#,                     // abrupt closing
+            r#"<!---->"#,                    // ok
             r#"<!-- nested <!--> text -->"#, // ok
             r#"<textarea><div/></textareas>"#,
             r#"<textarea>{{test}}</textarea>"#,

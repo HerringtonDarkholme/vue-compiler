@@ -1,7 +1,7 @@
 use super::{
     Name, Namespace, SourceLocation,
     error::{ErrorHandler, CompilationError},
-    tokenizer::{Attribute, Tokenizer, Token, FlagCDataNs}
+    tokenizer::{Attribute, Token, FlagCDataNs}
 };
 use std::rc::Rc;
 
@@ -56,64 +56,57 @@ impl Default for WhitespaceStrategy {
     }
 }
 
-pub trait ParseOption: ErrorHandler {
-    fn whitespace_strategy()->  WhitespaceStrategy {
-        WhitespaceStrategy::default()
-    }
-    fn get_namespace(_: &Vec<Element<'_>>) -> Namespace {
-        Namespace::Html
-    }
+#[derive(Clone)]
+pub struct ParseOption {
+    whitespace: WhitespaceStrategy,
+    get_namespace: fn(_: &Vec<Element<'_>>) -> Namespace,
 }
 
 pub struct Parser {
-    tokenizer: Tokenizer,
+    option: ParseOption,
 }
 
 impl Parser {
-    pub fn new(tokenizer: Tokenizer) -> Self {
-        Self {
-            tokenizer,
-        }
+    pub fn new(option: ParseOption) -> Self {
+        Self { option }
     }
 
-    pub fn parse<'a, O>(
-        &self, source: &'a str, option: O
+    pub fn parse<'a, Ts, E>(
+        &self, tokens: Ts, err_handle: E
     ) -> AstRoot<'a>
-    where O: ParseOption + 'a
+    where
+        Ts: Iterator<Item=Token<'a>> + FlagCDataNs,
+        E: ErrorHandler
     {
-        let ctx = Rc::new(option);
-        let tokens = self.tokenizer.scan(source, ctx.clone());
-        AstBuilder::new(ctx, tokens).build_ast()
+        AstBuilder {
+            tokens,
+            err_handle,
+            option: self.option.clone(),
+            open_elems: vec![],
+            in_pre: false,
+            in_v_pre: false,
+        }.build_ast()
     }
 }
 
-struct AstBuilder<'a, E, Ts>
+struct AstBuilder<'a, Ts, Eh>
 where
-    E: ErrorHandler,
     Ts: Iterator<Item=Token<'a>> + FlagCDataNs,
+    Eh: ErrorHandler,
 {
-    ctx: Rc<E>,
     tokens: Ts,
+    err_handle: Eh,
+    option: ParseOption,
     open_elems: Vec<Element<'a>>,
     in_pre: bool,
     in_v_pre: bool,
 }
 
-impl<'a, E, Ts> AstBuilder<'a, E, Ts>
+impl<'a, Ts, Eh> AstBuilder<'a, Ts, Eh>
 where
-    E: ErrorHandler,
     Ts: Iterator<Item=Token<'a>> + FlagCDataNs,
+    Eh: ErrorHandler,
 {
-    fn new(ctx: Rc<E>, tokens: Ts) -> Self {
-        Self {
-            ctx,
-            tokens,
-            open_elems: vec![],
-            in_pre: false,
-            in_v_pre: false
-        }
-    }
-
     fn build_ast(mut self) -> AstRoot<'a> {
         todo!()
     }

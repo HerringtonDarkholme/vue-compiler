@@ -84,7 +84,7 @@ impl Default for TokenizeOption {
 // Because parsing CDATA requires tokenizer to know the parser's state.
 // The trait decouples parser state from tokenizer state.
 // The logic is somewhat convoluted in that the parser must handle logic belonging to
-// tokenizer. A parser can skip flagging namespace at its discretion for performance.
+// tokenizer. A parser can skip flagging namespace if need_flag_hint returns false.
 // Alternative is wrap Parser in a RefCell to appease Rust borrow check
 // minimal case https://play.rust-lang.org/?gist=c5cb2658afbebceacdfc6d387c72e1ab
 // but it is either too hard to bypass brrwchk or using too many Rc/RefCell
@@ -129,13 +129,13 @@ impl Tokenizer {
             delimiter_first_char,
         }
     }
-    pub fn scan<'a, C>(&self, source: &'a str, ctx: Rc<C>) -> Tokens<'a, C>
+    pub fn scan<'a, E>(&self, source: &'a str, err_handle: E) -> Tokens<'a, E>
     where
-        C: ErrorHandler,
+        E: ErrorHandler,
     {
         Tokens {
             source,
-            ctx,
+            err_handle,
             position: Default::default(),
             mode: TextMode::Data,
             option: self.option.clone(),
@@ -146,9 +146,9 @@ impl Tokenizer {
     }
 }
 
-pub struct Tokens<'a, C: ErrorHandler> {
+pub struct Tokens<'a, E: ErrorHandler> {
     source: &'a str,
-    ctx: Rc<C>,
+    err_handle: E,
     position: Position,
     mode: TextMode,
     pub option: TokenizeOption,
@@ -623,7 +623,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     fn emit_error(&mut self, error_kind: ErrorKind) {
         let loc = self.current_location();
         let err = CompilationError::new(error_kind).with_location(loc);
-        self.ctx.on_error(err);
+        self.err_handle.on_error(err);
     }
 
     fn current_location(&self) -> SourceLocation {

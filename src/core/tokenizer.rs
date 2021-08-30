@@ -68,9 +68,6 @@ pub struct TokenizeOption {
 
 pub trait ParseContext {
     fn on_error(&self, err: CompilationError) {}
-    fn is_in_html_namespace(&self) -> bool {
-        true
-    }
 }
 
 impl Default for TokenizeOption {
@@ -124,8 +121,9 @@ impl Tokenizer {
             ctx,
             position: Default::default(),
             mode: TextMode::Data,
-            last_start_tag_name: None,
             option: self.option.clone(),
+            last_start_tag_name: None,
+            is_in_html_namespace: true,
             delimiter_first_char: self.delimiter_first_char,
         }
     }
@@ -136,11 +134,30 @@ pub struct Tokens<'a, C: ParseContext> {
     ctx: Rc<C>,
     position: Position,
     mode: TextMode,
+    pub option: TokenizeOption,
+    // following fields are implementation details
+
     //  appropriate end tag token needs last start tag, if any
     // https://html.spec.whatwg.org/multipage/parsing.html#appropriate-end-tag-token
     last_start_tag_name: Option<&'a str>,
-    pub option: TokenizeOption,
+    // this flag is for handling CDATA in non HTML namespace.
+    // The logic is somewhat convoluted in that the parser must handle logic belonging to
+    // tokenizer. A parser can skip setting the flag at its discretion for performance.
+    // Alternative is wrap Parser in a RefCell to appease Rust borrow check
+    // minimal case https://play.rust-lang.org/?gist=c5cb2658afbebceacdfc6d387c72e1ab
+    // but it is either too hard to pass brrwchk or using too many Rc/RefCell
+    // Another alternative in Servo's parser:
+    // https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tokenizer/interface.rs#L98
+    is_in_html_namespace: bool,
     delimiter_first_char: char,
+}
+impl<'a, C: ParseContext> Tokens<'a, C> {
+    /// Sets the tokenizer's is_in_html_namespace flag for CDATA.
+    /// NB: Parser should call this method if necessary. See field comment for details.
+    /// https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state
+    pub fn set_is_in_html(&mut self, in_html: bool) {
+        self.is_in_html_namespace = in_html;
+    }
 }
 
 // scanning methods
@@ -432,7 +449,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         } else if s.starts_with("<!DOCTYPE") {
             self.scan_bogus_comment()
         } else if s.starts_with("<![CDATA[") {
-            if self.ctx.is_in_html_namespace() {
+            if self.is_in_html_namespace {
                 self.emit_error(ErrorKind::CDataInHtmlContent);
                 self.scan_bogus_comment()
             } else {

@@ -71,11 +71,6 @@ pub trait ParseOption: ErrorHandleOption {
     }
 }
 
-// We need a RefCell because Rust cannot prove vec at compile time
-// minimal case https://play.rust-lang.org/?gist=c5cb2658afbebceacdfc6d387c72e1ab
-// Alternatively we can inject a method like `process_token` to the tokenizer
-// but this inversion makes logic convoluted, reference in Servo's parser:
-// https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tokenizer/interface.rs#L98
 struct ParseCtxImpl<'a, O: ParseOption> {
     // if RefCell is too slow, UnsafeCell can be used.
     // prefer safety for now.
@@ -97,11 +92,6 @@ where O: ParseOption
 impl<'a, O> ParseContext for ParseCtxImpl<'a, O>
 where O: ParseOption
 {
-    fn is_in_html_namespace(&self) -> bool {
-        let elems = self.open_elems.borrow();
-        let ns = O::get_namespace(&elems);
-        matches!(ns, Namespace::Html)
-    }
     fn on_error(&self, err: CompilationError) {
         self.option.on_error(err);
     }

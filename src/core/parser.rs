@@ -1,12 +1,7 @@
 use super::{
     Name, Namespace, SourceLocation,
-    error::{
-        ErrorHandleOption, CompilationError,
-    },
-    tokenizer::{
-        ParseContext, Attribute,
-        Tokenizer, Tokens,
-    },
+    error::{ErrorHandler, CompilationError},
+    tokenizer::{Attribute, Tokenizer, Token, FlagCDataNs}
 };
 use std::rc::Rc;
 
@@ -61,34 +56,12 @@ impl Default for WhitespaceStrategy {
     }
 }
 
-pub trait ParseOption: ErrorHandleOption {
+pub trait ParseOption: ErrorHandler {
     fn whitespace_strategy()->  WhitespaceStrategy {
         WhitespaceStrategy::default()
     }
     fn get_namespace(_: &Vec<Element<'_>>) -> Namespace {
         Namespace::Html
-    }
-}
-
-struct ParseCtxImpl<O: ParseOption> {
-    option: O,
-}
-
-impl<O> ParseCtxImpl<O>
-where O: ParseOption
-{
-    fn new(option: O) -> Self {
-        Self {
-            option,
-        }
-    }
-}
-
-impl<O> ParseContext for ParseCtxImpl<O>
-where O: ParseOption
-{
-    fn on_error(&self, err: CompilationError) {
-        self.option.on_error(err);
     }
 }
 
@@ -108,28 +81,30 @@ impl Parser {
     ) -> AstRoot<'a>
     where O: ParseOption + 'a
     {
-        let ctx = Rc::new(ParseCtxImpl::new(option));
+        let ctx = Rc::new(option);
         let tokens = self.tokenizer.scan(source, ctx.clone());
         AstBuilder::new(ctx, tokens).build_ast()
     }
 }
 
-struct AstBuilder<'a, Ctx>
+struct AstBuilder<'a, E, Ts>
 where
-    Ctx: ParseContext,
+    E: ErrorHandler,
+    Ts: Iterator<Item=Token<'a>> + FlagCDataNs,
 {
-    ctx: Rc<Ctx>,
-    tokens: Tokens<'a, Ctx>,
+    ctx: Rc<E>,
+    tokens: Ts,
     open_elems: Vec<Element<'a>>,
     in_pre: bool,
     in_v_pre: bool,
 }
 
-impl<'a, Ctx> AstBuilder<'a, Ctx>
+impl<'a, E, Ts> AstBuilder<'a, E, Ts>
 where
-    Ctx: ParseContext,
+    E: ErrorHandler,
+    Ts: Iterator<Item=Token<'a>> + FlagCDataNs,
 {
-    fn new(ctx: Rc<Ctx>, tokens: Tokens<'a, Ctx>) -> Self {
+    fn new(ctx: Rc<E>, tokens: Ts) -> Self {
         Self {
             ctx,
             tokens,

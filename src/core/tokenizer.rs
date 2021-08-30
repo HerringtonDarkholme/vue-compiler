@@ -3,7 +3,10 @@
 //! https://html.spec.whatwg.org/multipage/parsing.html#tokenization
 
 use super::{
-    error::{CompilationError, CompilationErrorKind as ErrorKind},
+    error::{
+        CompilationError, ErrorHandler,
+        CompilationErrorKind as ErrorKind,
+    },
     Name, Position, SourceLocation,
 };
 use smallvec::{smallvec, SmallVec};
@@ -66,10 +69,6 @@ pub struct TokenizeOption {
     decode_entities: EntityDecoder,
 }
 
-pub trait ParseContext {
-    fn on_error(&self, err: CompilationError) {}
-}
-
 impl Default for TokenizeOption {
     fn default() -> Self {
         Self {
@@ -78,6 +77,24 @@ impl Default for TokenizeOption {
             decode_entities: |t, _| DecodedStr::from(t),
         }
     }
+}
+
+/// A tokenizer needs to implement this trait to know if it is_in_html_namespace.
+/// A parser tells tokenizer the current namespace through the trait's method.
+// Because parsing CDATA requires tokenizer to know the parser's state.
+// The trait decouples parser state from tokenizer state.
+// The logic is somewhat convoluted in that the parser must handle logic belonging to
+// tokenizer. A parser can skip flagging namespace at its discretion for performance.
+// Alternative is wrap Parser in a RefCell to appease Rust borrow check
+// minimal case https://play.rust-lang.org/?gist=c5cb2658afbebceacdfc6d387c72e1ab
+// but it is either too hard to bypass brrwchk or using too many Rc/RefCell
+// Another alternative in Servo's parser:
+// https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tokenizer/interface.rs#L98
+pub trait FlagCDataNs {
+    /// Sets the tokenizer's is_in_html_namespace flag for CDATA.
+    /// NB: Parser should call this method if necessary. See trait comment for details.
+    /// https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state
+    fn set_is_in_html(&mut self, flag: bool);
 }
 
 /// TextMode represents different text scanning strategy.
@@ -114,7 +131,7 @@ impl Tokenizer {
     }
     pub fn scan<'a, C>(&self, source: &'a str, ctx: Rc<C>) -> Tokens<'a, C>
     where
-        C: ParseContext,
+        C: ErrorHandler,
     {
         Tokens {
             source,
@@ -129,7 +146,7 @@ impl Tokenizer {
     }
 }
 
-pub struct Tokens<'a, C: ParseContext> {
+pub struct Tokens<'a, C: ErrorHandler> {
     source: &'a str,
     ctx: Rc<C>,
     position: Position,
@@ -141,23 +158,8 @@ pub struct Tokens<'a, C: ParseContext> {
     // https://html.spec.whatwg.org/multipage/parsing.html#appropriate-end-tag-token
     last_start_tag_name: Option<&'a str>,
     // this flag is for handling CDATA in non HTML namespace.
-    // The logic is somewhat convoluted in that the parser must handle logic belonging to
-    // tokenizer. A parser can skip setting the flag at its discretion for performance.
-    // Alternative is wrap Parser in a RefCell to appease Rust borrow check
-    // minimal case https://play.rust-lang.org/?gist=c5cb2658afbebceacdfc6d387c72e1ab
-    // but it is either too hard to pass brrwchk or using too many Rc/RefCell
-    // Another alternative in Servo's parser:
-    // https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tokenizer/interface.rs#L98
     is_in_html_namespace: bool,
     delimiter_first_char: char,
-}
-impl<'a, C: ParseContext> Tokens<'a, C> {
-    /// Sets the tokenizer's is_in_html_namespace flag for CDATA.
-    /// NB: Parser should call this method if necessary. See field comment for details.
-    /// https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state
-    pub fn set_is_in_html(&mut self, in_html: bool) {
-        self.is_in_html_namespace = in_html;
-    }
 }
 
 // scanning methods
@@ -165,7 +167,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
 // because Rust ownership can help us to prevent invalid state.
 // e.g. `let src = self.source` causes a stale src after [`move_by`].
 // while `let src= &self.source` forbids any src usage after a mut call.
-impl<'a, C: ParseContext> Tokens<'a, C> {
+impl<'a, C: ErrorHandler> Tokens<'a, C> {
     // https://html.spec.whatwg.org/multipage/parsing.html#data-state
     // NB: & is not handled here but instead in `decode_entities`
     fn scan_data(&mut self) -> Token<'a> {
@@ -617,7 +619,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
 }
 
 // utility methods
-impl<'a, C: ParseContext> Tokens<'a, C> {
+impl<'a, C: ErrorHandler> Tokens<'a, C> {
     fn emit_error(&mut self, error_kind: ErrorKind) {
         let loc = self.current_location();
         let err = CompilationError::new(error_kind).with_location(loc);
@@ -713,7 +715,7 @@ fn scan_tag_name_length(mut chars: Chars<'_>) -> usize {
     l + 1
 }
 
-impl<'a, C: ParseContext> Iterator for Tokens<'a, C> {
+impl<'a, C: ErrorHandler> Iterator for Tokens<'a, C> {
     type Item = Token<'a>;
     // https://html.spec.whatwg.org/multipage/parsing.html#concept-frag-parse-context
     fn next(&mut self) -> Option<Self::Item> {
@@ -728,11 +730,17 @@ impl<'a, C: ParseContext> Iterator for Tokens<'a, C> {
     }
 }
 
+impl<'a, C: ErrorHandler> FlagCDataNs for Tokens<'a, C> {
+    fn set_is_in_html(&mut self, in_html: bool) {
+        self.is_in_html_namespace = in_html;
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     struct TestCtx;
-    impl ParseContext for TestCtx {}
+    impl ErrorHandler for TestCtx {}
     #[test]
     fn test() {
         let cases = [
@@ -755,8 +763,9 @@ mod test {
             r#"<style></style "#,
         ];
         let tokenizer = Tokenizer::new(TokenizeOption::default());
+        let ctx = Rc::new(TestCtx);
         for &case in cases.iter() {
-            let tokens = tokenizer.scan(case, &TestCtx);
+            let tokens = tokenizer.scan(case, ctx.clone());
             for t in tokens {
                 println!("{:?}", t);
             }

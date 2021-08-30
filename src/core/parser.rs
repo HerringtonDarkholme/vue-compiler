@@ -4,12 +4,11 @@ use super::{
         ErrorHandleOption, CompilationError,
     },
     tokenizer::{
-        ParseContext,
-        Tokenizer, Token, Attribute
+        ParseContext, Attribute,
+        Tokenizer, Tokens,
     },
 };
 use std::rc::Rc;
-use std::cell::RefCell;
 
 pub enum AstNode<'a> {
     Plain(Element<'a>),
@@ -71,25 +70,21 @@ pub trait ParseOption: ErrorHandleOption {
     }
 }
 
-struct ParseCtxImpl<'a, O: ParseOption> {
-    // if RefCell is too slow, UnsafeCell can be used.
-    // prefer safety for now.
-    open_elems: RefCell<Vec<Element<'a>>>,
+struct ParseCtxImpl<O: ParseOption> {
     option: O,
 }
 
-impl<'a, O> ParseCtxImpl<'a, O>
+impl<O> ParseCtxImpl<O>
 where O: ParseOption
 {
     fn new(option: O) -> Self {
         Self {
-            open_elems: RefCell::new(vec![]),
             option,
         }
     }
 }
 
-impl<'a, O> ParseContext for ParseCtxImpl<'a, O>
+impl<O> ParseContext for ParseCtxImpl<O>
 where O: ParseOption
 {
     fn on_error(&self, err: CompilationError) {
@@ -119,26 +114,26 @@ impl Parser {
     }
 }
 
-struct AstBuilder<'a, Ctx, Ts>
+struct AstBuilder<'a, Ctx>
 where
     Ctx: ParseContext,
-    Ts: Iterator<Item=Token<'a>>,
 {
     ctx: Rc<Ctx>,
-    tokens: Ts,
+    tokens: Tokens<'a, Ctx>,
+    open_elems: Vec<Element<'a>>,
     in_pre: bool,
     in_v_pre: bool,
 }
 
-impl<'a, Ctx, Ts> AstBuilder<'a, Ctx, Ts>
+impl<'a, Ctx> AstBuilder<'a, Ctx>
 where
     Ctx: ParseContext,
-    Ts: Iterator<Item=Token<'a>>,
 {
-    fn new(ctx: Rc<Ctx>, tokens: Ts) -> Self {
+    fn new(ctx: Rc<Ctx>, tokens: Tokens<'a, Ctx>) -> Self {
         Self {
             ctx,
             tokens,
+            open_elems: vec![],
             in_pre: false,
             in_v_pre: false
         }
@@ -146,5 +141,10 @@ where
 
     fn build_ast(mut self) -> AstRoot<'a> {
         todo!()
+    }
+
+    // must call this when handle CDATA
+    fn set_tokenizer_flag(&mut self) {
+        self.tokens.set_is_in_html(todo!())
     }
 }

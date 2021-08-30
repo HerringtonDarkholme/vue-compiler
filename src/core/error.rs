@@ -175,7 +175,12 @@ impl fmt::Display for CompilationError {
     }
 }
 
-pub trait ErrorHandler {
+/// This trait handles error occured in the compilation.
+/// NB: clone bound is needed since scan/parse/ir/code gen
+/// all requires ownership of a error report.
+/// Rc/RefCell is a good way to implement ErrorHandler if
+/// collecting errors in compilation pass is desired.
+pub trait ErrorHandler: Clone {
     // cannot use mut ref due to borrow semantics
     // use RefCell as implementation
     fn on_error(&self, _: CompilationError) {}

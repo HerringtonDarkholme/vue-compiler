@@ -739,6 +739,7 @@ impl<'a, C: ErrorHandler> FlagCDataNs for Tokens<'a, C> {
 #[cfg(test)]
 mod test {
     use super::*;
+    #[derive(Clone)]
     struct TestCtx;
     impl ErrorHandler for TestCtx {}
     #[test]

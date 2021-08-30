@@ -10,7 +10,7 @@ use super::{
     Name, Position, SourceLocation,
 };
 use smallvec::{smallvec, SmallVec};
-use std::{borrow::Cow, str::Chars, rc::Rc};
+use std::{borrow::Cow, str::Chars};
 
 /// DecodedStr represents text after decoding html entities.
 /// SmallVec and Cow are used internally for less allocation.
@@ -98,6 +98,14 @@ pub trait FlagCDataNs {
     /// hint the parser if flagging is needed. Hint must be conservative.
     /// False alarm is acceptable but miss detection is not.
     fn need_flag_hint(&self) -> bool;
+}
+
+/// This trait produces a compiler's current position and selects a range.
+pub trait Locatable {
+    /// Returns the tokenizer's current position in the source.
+    fn current_position(&self) -> Position;
+    /// Returns the tokenizer's source location from the start position.
+    fn get_location_from(&self, start: Position) -> SourceLocation;
 }
 
 /// TextMode represents different text scanning strategy.
@@ -204,8 +212,8 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         debug_assert!(self.source.starts_with(&delimiters.0));
         let index = self.source.find(&delimiters.1);
         if index.is_none() {
-            self.emit_error(ErrorKind::MissingInterpolationEnd);
             let src = self.move_by(self.source.len());
+            self.emit_error(ErrorKind::MissingInterpolationEnd);
             return Token::Interpolation(src);
         }
         let step = index.unwrap() + delimiters.1.len();
@@ -226,14 +234,14 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
             self.emit_error(ErrorKind::UnexpectedQuestionMarkInsteadOfTagName);
             self.scan_bogus_comment()
         } else if source.len() == 1 {
-            self.emit_error(ErrorKind::EofBeforeTagName);
             self.move_by(1);
+            self.emit_error(ErrorKind::EofBeforeTagName);
             Token::from("<")
         } else if !source[1..].starts_with(ascii_alpha) {
             // we can indeed merge this standalone < char into surrounding text
             // but optimization for error is not worth the candle
-            self.emit_error(ErrorKind::InvalidFirstCharacterOfTagName);
             self.move_by(1);
+            self.emit_error(ErrorKind::InvalidFirstCharacterOfTagName);
             Token::from("<")
         } else {
             self.scan_start_tag()
@@ -313,8 +321,8 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     fn did_skip_slash_in_tag(&mut self) -> bool {
         debug_assert!(!self.source.is_empty());
         if self.source.starts_with('/') {
-            self.emit_error(ErrorKind::UnexpectedSolidusInTag);
             self.move_by(1);
+            self.emit_error(ErrorKind::UnexpectedSolidusInTag);
             true
         } else {
             false
@@ -325,8 +333,8 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         debug_assert!(self.source.starts_with(is_valid_name_char));
         // case like <tag =="value"/>
         if self.source.starts_with('=') {
-            self.emit_error(ErrorKind::UnexpectedEqualsSignBeforeAttributeName);
             let s = self.move_by(1);
+            self.emit_error(ErrorKind::UnexpectedEqualsSignBeforeAttributeName);
             debug_assert!(s == "=");
             return s;
         }
@@ -623,17 +631,11 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
 
 // utility methods
 impl<'a, C: ErrorHandler> Tokens<'a, C> {
-    fn emit_error(&mut self, error_kind: ErrorKind) {
-        let loc = self.current_location();
+    fn emit_error(&self, error_kind: ErrorKind) {
+        let start = self.current_position();
+        let loc = self.get_location_from(start);
         let err = CompilationError::new(error_kind).with_location(loc);
         self.err_handle.on_error(err);
-    }
-
-    fn current_location(&self) -> SourceLocation {
-        SourceLocation {
-            start: self.position.clone(),
-            end: self.position.clone(),
-        }
     }
 
     fn decode_text(&self, src: &'a str, is_attr: bool) -> DecodedStr<'a> {
@@ -742,6 +744,16 @@ impl<'a, C: ErrorHandler> FlagCDataNs for Tokens<'a, C> {
     }
 }
 
+impl <'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
+    fn current_position(&self) -> Position {
+        self.position.clone()
+    }
+    fn get_location_from(&self, start: Position) -> SourceLocation {
+        let end = self.current_position();
+        SourceLocation{start, end}
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -770,7 +782,7 @@ mod test {
             r#"<style></style "#,
         ];
         let tokenizer = Tokenizer::new(TokenizeOption::default());
-        let ctx = Rc::new(TestCtx);
+        let ctx = TestCtx;
         for &case in cases.iter() {
             let tokens = tokenizer.scan(case, ctx.clone());
             for t in tokens {

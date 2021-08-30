@@ -95,6 +95,9 @@ pub trait FlagCDataNs {
     /// NB: Parser should call this method if necessary. See trait comment for details.
     /// https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state
     fn set_is_in_html(&mut self, flag: bool);
+    /// hint the parser if flagging is needed. Hint must be conservative.
+    /// False alarm is acceptable but miss detection is not.
+    fn need_flag_hint(&self) -> bool;
 }
 
 /// TextMode represents different text scanning strategy.
@@ -733,6 +736,9 @@ impl<'a, C: ErrorHandler> Iterator for Tokens<'a, C> {
 impl<'a, C: ErrorHandler> FlagCDataNs for Tokens<'a, C> {
     fn set_is_in_html(&mut self, in_html: bool) {
         self.is_in_html_namespace = in_html;
+    }
+    fn need_flag_hint(&self) -> bool {
+        self.source.contains("<![CDATA[")
     }
 }
 

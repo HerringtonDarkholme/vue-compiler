@@ -174,3 +174,9 @@ impl fmt::Display for CompilationError {
         }
     }
 }
+
+pub trait ErrorHandleOption {
+    // cannot use mut ref due to borrow semantics
+    // use RefCell as implementation
+    fn on_error(&self, _: CompilationError) {}
+}

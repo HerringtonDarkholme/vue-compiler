@@ -63,26 +63,27 @@ pub trait PreambleHelper<Helper> {
     fn generate_imports(&self) -> String;
 }
 
-pub struct CompileOption {
+pub struct CompileOption<P: ParseOption> {
     tokenization: TokenizeOption,
-    parsing: ParseOption,
+    parsing: P,
 }
 
-pub fn base_compile<IR, O, Conv, Trans, Gen>(
+pub fn base_compile<IR, O, P, Conv, Trans, Gen>(
     source: &str,
-    opt: CompileOption,
+    opt: CompileOption<P>,
     conv: Conv,
     trans: Trans,
     gen: Gen,
 ) -> Result<O, CompilationError>
 where
+    P: ParseOption,
     Conv: IRConverter<IRNode = IR>,
     Trans: Transformer<IRNode = IR>,
     Gen: CodeGenerator<IRNode = IR, Output = O>,
 {
     let tokenizer = Tokenizer::new(opt.tokenization);
-    let parser = Parser::new(tokenizer).with_option(opt.parsing);
-    let ast = parser.parse(source)?;
+    let parser = Parser::new(tokenizer);
+    let ast = parser.parse(source, opt.parsing);
     let mut ir = conv.convert_ir(ast);
     trans.transform(&mut ir);
     Ok(gen.generate(ir))

@@ -1,8 +1,14 @@
 use super::{
-    error::CompilationError,
-    tokenizer::{ParseContext, TokenizeOption, Tokenizer},
     Name, Namespace, SourceLocation,
+    error::{
+        ErrorHandleOption, CompilationError,
+    },
+    tokenizer::{
+        ParseContext,
+        Tokenizer, Token, Attribute
+    },
 };
+use std::rc::Rc;
 use std::cell::RefCell;
 
 pub enum AstNode<'a> {
@@ -16,15 +22,11 @@ pub enum AstNode<'a> {
 
 pub struct Element<'a> {
     pub tag_name: Name<'a>,
+    pub namespace: Namespace,
     pub attributes: Vec<Attribute<'a>>,
     pub directives: Vec<Directive<'a>>,
     pub children: Vec<AstNode<'a>>,
     pub loc: SourceLocation,
-}
-
-pub struct Attribute<'a> {
-    name: Name<'a>,
-    value: &'a str,
 }
 
 /// Directive supports two forms
@@ -49,7 +51,7 @@ pub struct AstRoot<'a> {
     loc: SourceLocation,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum WhitespaceStrategy {
     Preserve,
     Condense,
@@ -60,18 +62,12 @@ impl Default for WhitespaceStrategy {
     }
 }
 
-pub struct ParseOption {
-    whitespace: WhitespaceStrategy,
-    get_namespace: fn(&Vec<Element<'_>>) -> Namespace,
-    tokenize_option: TokenizeOption,
-}
-impl Default for ParseOption {
-    fn default() -> Self {
-        Self {
-            get_namespace: |_| Namespace::Html,
-            whitespace: WhitespaceStrategy::default(),
-            tokenize_option: TokenizeOption::default(),
-        }
+pub trait ParseOption: ErrorHandleOption {
+    fn whitespace_strategy()->  WhitespaceStrategy {
+        WhitespaceStrategy::default()
+    }
+    fn get_namespace(_: &Vec<Element<'_>>) -> Namespace {
+        Namespace::Html
     }
 }
 
@@ -80,52 +76,85 @@ impl Default for ParseOption {
 // Alternatively we can inject a method like `process_token` to the tokenizer
 // but this inversion makes logic convoluted, reference in Servo's parser:
 // https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tokenizer/interface.rs#L98
-#[derive(Default)]
-struct ParseCtxImpl<'a> {
-    option: ParseOption,
+struct ParseCtxImpl<'a, O: ParseOption> {
     // if RefCell is too slow, UnsafeCell can be used.
-    // prefer safety since borrow_mut is called only once.
+    // prefer safety for now.
     open_elems: RefCell<Vec<Element<'a>>>,
+    option: O,
 }
 
-impl<'a> ParseCtxImpl<'a> {
-    fn new() -> Self {
-        Self::default()
+impl<'a, O> ParseCtxImpl<'a, O>
+where O: ParseOption
+{
+    fn new(option: O) -> Self {
+        Self {
+            open_elems: RefCell::new(vec![]),
+            option,
+        }
     }
 }
 
-impl<'a> ParseContext for ParseCtxImpl<'a> {
-    fn get_namespace(&self) -> Namespace {
+impl<'a, O> ParseContext for ParseCtxImpl<'a, O>
+where O: ParseOption
+{
+    fn is_in_html_namespace(&self) -> bool {
         let elems = self.open_elems.borrow();
-        let get_namespace = self.option.get_namespace;
-        get_namespace(&elems)
+        let ns = O::get_namespace(&elems);
+        matches!(ns, Namespace::Html)
+    }
+    fn on_error(&self, err: CompilationError) {
+        self.option.on_error(err);
     }
 }
 
 pub struct Parser {
-    option: ParseOption,
     tokenizer: Tokenizer,
 }
-
-pub type ParseResult<'a> = Result<AstRoot<'a>, CompilationError>;
 
 impl Parser {
     pub fn new(tokenizer: Tokenizer) -> Self {
         Self {
             tokenizer,
-            option: ParseOption::default(),
         }
     }
-    pub fn with_option(mut self, option: ParseOption) -> Self {
-        self.option = option;
-        self
+
+    pub fn parse<'a, O>(
+        &self, source: &'a str, option: O
+    ) -> AstRoot<'a>
+    where O: ParseOption + 'a
+    {
+        let ctx = Rc::new(ParseCtxImpl::new(option));
+        let tokens = self.tokenizer.scan(source, ctx.clone());
+        AstBuilder::new(ctx, tokens).build_ast()
+    }
+}
+
+struct AstBuilder<'a, Ctx, Ts>
+where
+    Ctx: ParseContext,
+    Ts: Iterator<Item=Token<'a>>,
+{
+    ctx: Rc<Ctx>,
+    tokens: Ts,
+    in_pre: bool,
+    in_v_pre: bool,
+}
+
+impl<'a, Ctx, Ts> AstBuilder<'a, Ctx, Ts>
+where
+    Ctx: ParseContext,
+    Ts: Iterator<Item=Token<'a>>,
+{
+    fn new(ctx: Rc<Ctx>, tokens: Ts) -> Self {
+        Self {
+            ctx,
+            tokens,
+            in_pre: false,
+            in_v_pre: false
+        }
     }
 
-    pub fn parse<'a>(&self, source: &'a str) -> ParseResult<'a> {
-        let ctx = ParseCtxImpl::new();
-        let open_elems = ctx.open_elems.borrow_mut();
-        let tokens = self.tokenizer.scan(source, &ctx);
-        for token in tokens {}
+    fn build_ast(mut self) -> AstRoot<'a> {
         todo!()
     }
 }

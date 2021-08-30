@@ -4,10 +4,10 @@
 
 use super::{
     error::{CompilationError, CompilationErrorKind as ErrorKind},
-    Name, Namespace, Position, SourceLocation,
+    Name, Position, SourceLocation,
 };
 use smallvec::{smallvec, SmallVec};
-use std::{borrow::Cow, str::Chars};
+use std::{borrow::Cow, str::Chars, rc::Rc};
 
 /// DecodedStr represents text after decoding html entities.
 /// SmallVec and Cow are used internally for less allocation.
@@ -68,8 +68,8 @@ pub struct TokenizeOption {
 
 pub trait ParseContext {
     fn on_error(&self, err: CompilationError) {}
-    fn get_namespace(&self) -> Namespace {
-        Namespace::Html
+    fn is_in_html_namespace(&self) -> bool {
+        true
     }
 }
 
@@ -115,7 +115,7 @@ impl Tokenizer {
             delimiter_first_char,
         }
     }
-    pub fn scan<'a, C>(&self, source: &'a str, ctx: &'a C) -> Tokens<'a, C>
+    pub fn scan<'a, C>(&self, source: &'a str, ctx: Rc<C>) -> Tokens<'a, C>
     where
         C: ParseContext,
     {
@@ -133,7 +133,7 @@ impl Tokenizer {
 
 pub struct Tokens<'a, C: ParseContext> {
     source: &'a str,
-    ctx: &'a C,
+    ctx: Rc<C>,
     position: Position,
     mode: TextMode,
     //  appropriate end tag token needs last start tag, if any
@@ -432,8 +432,7 @@ impl<'a, C: ParseContext> Tokens<'a, C> {
         } else if s.starts_with("<!DOCTYPE") {
             self.scan_bogus_comment()
         } else if s.starts_with("<![CDATA[") {
-            let ns = self.ctx.get_namespace();
-            if matches!(ns, Namespace::Html) {
+            if self.ctx.is_in_html_namespace() {
                 self.emit_error(ErrorKind::CDataInHtmlContent);
                 self.scan_bogus_comment()
             } else {

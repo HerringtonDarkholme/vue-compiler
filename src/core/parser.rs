@@ -17,7 +17,7 @@
 use super::{
     Name, Namespace, Position, SourceLocation,
     error::{ErrorHandler, CompilationError},
-    tokenizer::{Attribute, Token, DecodedStr, TokenSource}
+    tokenizer::{Attribute, Token, Tag, DecodedStr, TokenSource},
 };
 
 pub enum AstNode<'a> {
@@ -110,6 +110,8 @@ impl Parser {
             err_handle,
             option: self.option.clone(),
             open_elems: vec![],
+            buffer_nodes: vec![],
+            root_nodes: vec![],
             in_pre: false,
             in_v_pre: false,
             need_flag_namespace,
@@ -126,6 +128,8 @@ where
     err_handle: Eh,
     option: ParseOption,
     open_elems: Vec<Element<'a>>,
+    root_nodes: Vec<AstNode<'a>>,
+    buffer_nodes: Vec<AstNode<'a>>,
     in_pre: bool,
     in_v_pre: bool,
     need_flag_namespace: bool,
@@ -138,40 +142,66 @@ where
 {
     fn build_ast(mut self) -> AstRoot<'a> {
         let start = self.tokens.current_position();
-        let children = self.parse_children();
+        self.parse_to_end();
         let location = self.tokens.get_location_from(start);
-        AstRoot{ children, location }
+        AstRoot{ children: self.root_nodes, location }
     }
 
-    fn parse_children(&mut self) -> Vec<AstNode<'a>> {
-        let mut children = vec![];
+    fn parse_to_end(&mut self) {
         loop {
             let start = self.tokens.current_position();
             let token = self.tokens.next();
             if token.is_none() {
-                break;
+                break
             }
             let token = token.unwrap();
-            // https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inbody:current-node-26
-            if matches!(token, Token::EndTag(s)) {
-                todo!()
-            }
-            let child = self.parse_token(token, start);
-            children.push(child);
+            self.parse_token(token, start);
         }
-        children
     }
-    fn parse_token(&mut self, token: Token<'a>, start: Position) -> AstNode<'a> {
+    fn parse_token(&mut self, token: Token<'a>, pos: Position) {
+        // https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inbody:current-node-26
+        match token {
+            Token::EndTag(s) => self.parse_end_tag(s, pos),
+            Token::Text(text) => self.parse_text(text),
+            Token::StartTag(tag) => self.parse_open_tag(tag, pos),
+            Token::Comment(c) => self.parse_comment(c, pos),
+            Token::Interpolation(i) => self.parse_interpolation(i, pos),
+        };
+    }
+    fn parse_open_tag(&mut self, tag: Tag<'a>, pos: Position) {
         todo!()
     }
-    fn parse_element(&mut self) -> AstNode<'a> {
+    fn parse_end_tag(&mut self, s: &'a str, pos: Position) {
         todo!()
     }
-    fn parse_text(&mut self) -> AstNode<'a> {
-        todo!()
+    fn parse_text(&mut self, mut text: DecodedStr<'a>) {
+        while let Some(token) = self.tokens.next() {
+            if matches!(&token, Token::Text(ref s)) {
+                todo!("merge text node here")
+            } else {
+                self.parse_token(token, todo!("get the start"));
+                return
+            }
+        }
     }
-    fn parse_comment(&mut self) -> AstNode<'a> {
-        todo!()
+    fn parse_comment(&mut self, c: &'a str, pos: Position) {
+        let source_node = SourceNode{
+            source: c,
+            location: self.tokens.get_location_from(pos)
+        };
+        self.buffer_nodes.push(AstNode::Comment(source_node));
+    }
+    fn parse_interpolation(&mut self, src: &'a str, pos: Position) {
+        let source_node = SourceNode{
+            source: src,
+            location: self.tokens.get_location_from(pos)
+        };
+        self.buffer_nodes.push(AstNode::Interpolation(source_node));
+    }
+
+    // drain is for reduce allocation
+    fn get_children(&mut self) -> Vec<AstNode<'a>> {
+        self.buffer_nodes.drain(..).collect()
     }
 
     // must call this when handle CDATA

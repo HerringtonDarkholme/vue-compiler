@@ -15,7 +15,7 @@ use std::{borrow::Cow, str::Chars};
 /// DecodedStr represents text after decoding html entities.
 /// SmallVec and Cow are used internally for less allocation.
 #[derive(Debug)]
-pub struct DecodedStr<'a>(SmallVec<[Cow<'a, str>; 1]>);
+pub struct DecodedStr<'a>(pub SmallVec<[Cow<'a, str>; 1]>);
 
 impl<'a> From<&'a str> for DecodedStr<'a> {
     fn from(decoded: &'a str) -> Self {

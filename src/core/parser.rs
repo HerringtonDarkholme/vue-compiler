@@ -274,7 +274,15 @@ where
 }
 
 fn is_special_template_directive(dir: &Directive) -> bool {
-    todo!()
+    let n = dir.name;
+    // we only have 5 elements to compare. == takes 2ns while phf takes 26ns
+    match n.len() {
+        2 => n == "if",
+        3 => n == "for",
+        4 => n == "else" || n == "slot",
+        7 => n == "else-if",
+        _ => false,
+    }
 }
 
 fn is_template_element(e: &Element) -> bool {

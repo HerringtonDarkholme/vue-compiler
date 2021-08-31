@@ -54,6 +54,14 @@ impl<'a> Element<'a> {
     fn match_end_tag(&self, s: &str) -> bool {
         self.tag_name.eq_ignore_ascii_case(s)
     }
+    fn is_template(&self) -> bool {
+        self.tag_name == "template" &&
+        self.directives.iter().any(is_special_template_directive)
+    }
+}
+
+fn is_special_template_directive(dir: &Directive) -> bool {
+    todo!()
 }
 
 /// Directive supports two forms
@@ -93,6 +101,7 @@ impl Default for WhitespaceStrategy {
 pub struct ParseOption {
     whitespace: WhitespaceStrategy,
     get_namespace: fn(_: &Vec<Element<'_>>) -> Namespace,
+    is_component: fn(_: &Element<'_>) -> bool,
 }
 
 pub struct Parser {
@@ -199,25 +208,34 @@ where
             .rfind(|p| { p.1.match_end_tag(s) })
             .map(|p| p.0);
         if let Some(i) = index {
-            self.close_elements(i);
-            return;
-        }
-        let start = self.tokens.last_position();
-        let loc = self.tokens.get_location_from(start);
-        self.emit_error(ErrorKind::InvalidEndTag, loc);
-    }
-    fn close_elements(&mut self, index: usize) {
-        debug_assert!(self.open_elems.len() > index);
-        while self.open_elems.len() > index {
-            let mut elem = self.open_elems.pop().unwrap();
-            let start = elem.location.start;
-            let location = self.tokens.get_location_from(start);
-            elem.location = location;
-            self.insert_node(Self::parse_element(elem));
+            while self.open_elems.len() > i {
+                self.close_element();
+            }
+        } else {
+            let start = self.tokens.last_position();
+            let loc = self.tokens.get_location_from(start);
+            self.emit_error(ErrorKind::InvalidEndTag, loc);
         }
     }
-    fn parse_element(e: Element<'a>) -> AstNode<'a> {
-        todo!()
+    fn close_element(&mut self) {
+        let mut elem = self.open_elems.pop().unwrap();
+        let start = elem.location.start;
+        let location = self.tokens.get_location_from(start);
+        elem.location = location;
+        self.insert_node(self.parse_element(elem));
+    }
+    fn parse_element(&self, e: Element<'a>) -> AstNode<'a> {
+        if self.in_v_pre {
+            AstNode::Plain(e)
+        } else if e.tag_name == "slot" {
+            AstNode::Slot(e)
+        } else if e.is_template() {
+            AstNode::Template(e)
+        } else if (self.option.is_component)(&e) {
+            AstNode::Component(e)
+        } else {
+            AstNode::Plain(e)
+        }
     }
     fn parse_text(&mut self, mut text: DecodedStr<'a>) {
         while let Some(token) = self.tokens.next() {

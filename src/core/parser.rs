@@ -49,21 +49,6 @@ pub struct Element<'a> {
     pub location: SourceLocation,
 }
 
-impl<'a> Element<'a> {
-    #[inline]
-    fn match_end_tag(&self, s: &str) -> bool {
-        self.tag_name.eq_ignore_ascii_case(s)
-    }
-    fn is_template(&self) -> bool {
-        self.tag_name == "template" &&
-        self.directives.iter().any(is_special_template_directive)
-    }
-}
-
-fn is_special_template_directive(dir: &Directive) -> bool {
-    todo!()
-}
-
 /// Directive supports two forms
 /// static and dynamic
 enum DirectiveArg<'a> {
@@ -101,7 +86,6 @@ impl Default for WhitespaceStrategy {
 pub struct ParseOption {
     whitespace: WhitespaceStrategy,
     get_namespace: fn(_: &Vec<Element<'_>>) -> Namespace,
-    is_component: fn(_: &Element<'_>) -> bool,
 }
 
 pub struct Parser {
@@ -205,7 +189,7 @@ where
         let index = self.open_elems
             .iter()
             .enumerate()
-            .rfind(|p| { p.1.match_end_tag(s) })
+            .rfind(|p| { element_matches_end_tag(p.1, s) })
             .map(|p| p.0);
         if let Some(i) = index {
             while self.open_elems.len() > i {
@@ -224,17 +208,17 @@ where
         elem.location = location;
         self.insert_node(self.parse_element(elem));
     }
-    fn parse_element(&self, e: Element<'a>) -> AstNode<'a> {
+    fn parse_element(&self, elem: Element<'a>) -> AstNode<'a> {
         if self.in_v_pre {
-            AstNode::Plain(e)
-        } else if e.tag_name == "slot" {
-            AstNode::Slot(e)
-        } else if e.is_template() {
-            AstNode::Template(e)
-        } else if (self.option.is_component)(&e) {
-            AstNode::Component(e)
+            AstNode::Plain(elem)
+        } else if elem.tag_name == "slot" {
+            AstNode::Slot(elem)
+        } else if is_template_element(&elem) {
+            AstNode::Template(elem)
+        } else if self.is_component(&elem) {
+            AstNode::Component(elem)
         } else {
-            AstNode::Plain(e)
+            AstNode::Plain(elem)
         }
     }
     fn parse_text(&mut self, mut text: DecodedStr<'a>) {
@@ -268,4 +252,20 @@ where
     fn set_tokenizer_flag(&mut self) {
         self.tokens.set_is_in_html(todo!())
     }
+
+    fn is_component(&self, e: &Element) -> bool {
+        todo!()
+    }
+}
+
+fn is_special_template_directive(dir: &Directive) -> bool {
+    todo!()
+}
+
+fn is_template_element(e: &Element) -> bool {
+    e.tag_name == "template" && e.directives.iter().any(is_special_template_directive)
+}
+
+fn element_matches_end_tag(e: &Element, tag: &str) -> bool {
+    e.tag_name.eq_ignore_ascii_case(tag)
 }

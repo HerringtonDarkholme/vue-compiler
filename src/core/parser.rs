@@ -86,6 +86,7 @@ impl Default for WhitespaceStrategy {
 pub struct ParseOption {
     whitespace: WhitespaceStrategy,
     get_namespace: fn(_: &Vec<Element<'_>>) -> Namespace,
+    preserve_comment: bool,
 }
 
 pub struct Parser {
@@ -223,15 +224,29 @@ where
     }
     fn parse_text(&mut self, mut text: DecodedStr<'a>) {
         while let Some(token) = self.tokens.next() {
-            if matches!(&token, Token::Text(ref s)) {
-                todo!("merge text node here")
+            if let Token::Text(ds) = token {
+                text = text + ds;
             } else {
                 // NB: token must not be dropped
                 self.parse_token(token);
             }
         }
+        let start = self.tokens.last_position();
+        let location = self.tokens.get_location_from(start);
+        let text_node = TextNode { text, location, };
+        self.insert_node(AstNode::Text(text_node))
+    }
+    fn merge_text() -> DecodedStr<'a> {
+        // Remove if:
+        // - the whitespace is the first or last node, or:
+        // - (condense mode) the whitespace is adjacent to a comment, or:
+        // - (condense mode) the whitespace is between two elements AND contains newline
     }
     fn parse_comment(&mut self, c: &'a str) {
+        // Remove comments if desired by configuration.
+        if !self.option.preserve_comment {
+            return;
+        }
         let pos = self.tokens.last_position();
         let source_node = SourceNode{
             source: c,

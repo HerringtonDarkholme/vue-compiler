@@ -10,12 +10,20 @@ use super::{
     Name, Position, SourceLocation,
 };
 use smallvec::{smallvec, SmallVec};
-use std::{borrow::Cow, str::Chars};
+use std::{borrow::Cow, str::Chars, ops::Add};
 
 /// DecodedStr represents text after decoding html entities.
 /// SmallVec and Cow are used internally for less allocation.
 #[derive(Debug)]
-pub struct DecodedStr<'a>(pub SmallVec<[Cow<'a, str>; 1]>);
+pub struct DecodedStr<'a>(SmallVec<[Cow<'a, str>; 1]>);
+
+impl<'a> Add for DecodedStr<'a> {
+    type Output = Self;
+    fn add(mut self, rhs: Self) -> Self {
+        self.0.extend(rhs.0.into_iter());
+        self
+    }
+}
 
 impl<'a> From<&'a str> for DecodedStr<'a> {
     fn from(decoded: &'a str) -> Self {

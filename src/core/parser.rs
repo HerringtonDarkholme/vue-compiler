@@ -193,16 +193,30 @@ where
     }
     fn parse_end_tag(&mut self, s: &'a str) {
         // rfind is good since only mismatch will traverse stack
-        let pair = self.open_elems
+        let index = self.open_elems
             .iter()
             .enumerate()
-            .rfind(|p| { p.1.match_end_tag(s) });
-        if pair.is_none() {
-            let start = self.tokens.last_position();
-            let loc = self.tokens.get_location_from(start);
-            self.emit_error(ErrorKind::InvalidEndTag, loc);
+            .rfind(|p| { p.1.match_end_tag(s) })
+            .map(|p| p.0);
+        if let Some(i) = index {
+            self.close_elements(i);
             return;
         }
+        let start = self.tokens.last_position();
+        let loc = self.tokens.get_location_from(start);
+        self.emit_error(ErrorKind::InvalidEndTag, loc);
+    }
+    fn close_elements(&mut self, index: usize) {
+        debug_assert!(self.open_elems.len() > index);
+        while self.open_elems.len() > index {
+            let mut elem = self.open_elems.pop().unwrap();
+            let start = elem.location.start;
+            let location = self.tokens.get_location_from(start);
+            elem.location = location;
+            self.insert_node(Self::parse_element(elem));
+        }
+    }
+    fn parse_element(e: Element<'a>) -> AstNode<'a> {
         todo!()
     }
     fn parse_text(&mut self, mut text: DecodedStr<'a>) {
@@ -210,6 +224,7 @@ where
             if matches!(&token, Token::Text(ref s)) {
                 todo!("merge text node here")
             } else {
+                // NB: token must not be dropped
                 self.parse_token(token);
             }
         }

@@ -104,6 +104,7 @@ pub trait FlagCDataNs {
 pub trait Locatable {
     /// Returns the tokenizer's current position in the source.
     fn current_position(&self) -> Position;
+    fn last_position(&self) -> Position;
     /// Returns the tokenizer's source location from the start position.
     fn get_location_from(&self, start: Position) -> SourceLocation;
 }
@@ -148,6 +149,7 @@ impl Tokenizer {
             source,
             err_handle,
             position: Default::default(),
+            last_pos: Default::default(),
             mode: TextMode::Data,
             option: self.option.clone(),
             last_start_tag_name: None,
@@ -161,6 +163,7 @@ pub struct Tokens<'a, E: ErrorHandler> {
     source: &'a str,
     err_handle: E,
     position: Position,
+    last_pos: Position,
     mode: TextMode,
     pub option: TokenizeOption,
     // following fields are implementation details
@@ -727,6 +730,7 @@ impl<'a, C: ErrorHandler> Iterator for Tokens<'a, C> {
         if self.source.is_empty() {
             return None;
         }
+        self.last_pos = self.current_position();
         Some(match self.mode {
             TextMode::Data => self.scan_data(),
             TextMode::RcData => self.scan_rcdata(),
@@ -747,6 +751,13 @@ impl<'a, C: ErrorHandler> FlagCDataNs for Tokens<'a, C> {
 impl <'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
     fn current_position(&self) -> Position {
         self.position.clone()
+    }
+    fn last_position(&self) -> Position {
+        debug_assert! {
+            self.position.offset == 0 ||
+            self.last_pos.offset < self.position.offset
+        };
+        self.last_pos.clone()
     }
     fn get_location_from(&self, start: Position) -> SourceLocation {
         let end = self.current_position();

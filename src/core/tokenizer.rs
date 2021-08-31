@@ -754,6 +754,11 @@ impl <'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
     }
 }
 
+pub trait TokenSource<'a>:
+Iterator<Item=Token<'a>> + FlagCDataNs + Locatable {}
+impl<'a, C> TokenSource<'a> for Tokens<'a, C>
+where C: ErrorHandler {}
+
 #[cfg(test)]
 mod test {
     use super::*;

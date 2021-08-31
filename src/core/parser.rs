@@ -1,4 +1,24 @@
-use super::{Name, Namespace, Position, SourceLocation, error::{ErrorHandler, CompilationError}, tokenizer::{Attribute, Token, FlagCDataNs, DecodedStr, Locatable}};
+// Vue Template Parser does not adhere to HTML spec.
+// https://html.spec.whatwg.org/multipage/parsing.html#tree-construction
+// According to the spec: tree construction has several points:
+// 1. Tree Construction Dispatcher: N/A. We don't consider foreign content.
+// 2. appropriate place for inserting a node: For table/template elements.
+//    N/A.  We can't know the global tree in a component.
+// 3. create an element for a token: For custom component
+//    N/A. We don't handle JS execution for custom component.
+// 4. adjust MathML/SVG attributes:
+//    ?? Should we handle this? The original Vue compiler does not.
+// 5. Inserting Text/Comment: N/A. We don't handle script/insertion location.
+// 6. Parsing elements that contain only text: Already handled in tokenizer.
+// 7. Closing elements that have implied end tags:
+//    N/A: Rule is too complicated and requires non-local context.
+// Instead, we use a simple stack to construct AST.
+
+use super::{
+    Name, Namespace, Position, SourceLocation,
+    error::{ErrorHandler, CompilationError},
+    tokenizer::{Attribute, Token, DecodedStr, TokenSource}
+};
 
 pub enum AstNode<'a> {
     Plain(Element<'a>),
@@ -81,7 +101,7 @@ impl Parser {
         &self, tokens: Ts, err_handle: E
     ) -> AstRoot<'a>
     where
-        Ts: Iterator<Item=Token<'a>> + FlagCDataNs + Locatable,
+        Ts: TokenSource<'a>,
         E: ErrorHandler
     {
         let need_flag_namespace = tokens.need_flag_hint();
@@ -99,7 +119,7 @@ impl Parser {
 
 struct AstBuilder<'a, Ts, Eh>
 where
-    Ts: Iterator<Item=Token<'a>> + FlagCDataNs + Locatable,
+    Ts: TokenSource<'a>,
     Eh: ErrorHandler,
 {
     tokens: Ts,
@@ -113,7 +133,7 @@ where
 
 impl<'a, Ts, Eh> AstBuilder<'a, Ts, Eh>
 where
-    Ts: Iterator<Item=Token<'a>> + FlagCDataNs + Locatable,
+    Ts: TokenSource<'a>,
     Eh: ErrorHandler,
 {
     fn build_ast(mut self) -> AstRoot<'a> {
@@ -125,12 +145,32 @@ where
 
     fn parse_children(&mut self) -> Vec<AstNode<'a>> {
         let mut children = vec![];
+        loop {
+            let start = self.tokens.current_position();
+            let token = self.tokens.next();
+            if token.is_none() {
+                break;
+            }
+            let token = token.unwrap();
+            // https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inbody:current-node-26
+            if matches!(token, Token::EndTag(s)) {
+                todo!()
+            }
+            let child = self.parse_token(token, start);
+            children.push(child);
+        }
         children
+    }
+    fn parse_token(&mut self, token: Token<'a>, start: Position) -> AstNode<'a> {
+        todo!()
     }
     fn parse_element(&mut self) -> AstNode<'a> {
         todo!()
     }
     fn parse_text(&mut self) -> AstNode<'a> {
+        todo!()
+    }
+    fn parse_comment(&mut self) -> AstNode<'a> {
         todo!()
     }
 

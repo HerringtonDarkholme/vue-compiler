@@ -15,7 +15,7 @@
 // Instead, we use a simple stack to construct AST.
 
 use super::{
-    Name, Namespace, Position, SourceLocation,
+    Name, Namespace, SourceLocation,
     error::{ErrorHandler, CompilationError},
     tokenizer::{Attribute, Token, Tag, DecodedStr, TokenSource},
 };
@@ -149,29 +149,28 @@ where
 
     fn parse_to_end(&mut self) {
         loop {
-            let start = self.tokens.current_position();
             let token = self.tokens.next();
             if token.is_none() {
                 break
             }
             let token = token.unwrap();
-            self.parse_token(token, start);
+            self.parse_token(token);
         }
     }
-    fn parse_token(&mut self, token: Token<'a>, pos: Position) {
+    fn parse_token(&mut self, token: Token<'a>) {
         // https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inbody:current-node-26
         match token {
-            Token::EndTag(s) => self.parse_end_tag(s, pos),
+            Token::EndTag(s) => self.parse_end_tag(s),
             Token::Text(text) => self.parse_text(text),
-            Token::StartTag(tag) => self.parse_open_tag(tag, pos),
-            Token::Comment(c) => self.parse_comment(c, pos),
-            Token::Interpolation(i) => self.parse_interpolation(i, pos),
+            Token::StartTag(tag) => self.parse_open_tag(tag),
+            Token::Comment(c) => self.parse_comment(c),
+            Token::Interpolation(i) => self.parse_interpolation(i),
         };
     }
-    fn parse_open_tag(&mut self, tag: Tag<'a>, pos: Position) {
+    fn parse_open_tag(&mut self, tag: Tag<'a>) {
         todo!()
     }
-    fn parse_end_tag(&mut self, s: &'a str, pos: Position) {
+    fn parse_end_tag(&mut self, s: &'a str) {
         todo!()
     }
     fn parse_text(&mut self, mut text: DecodedStr<'a>) {
@@ -179,19 +178,21 @@ where
             if matches!(&token, Token::Text(ref s)) {
                 todo!("merge text node here")
             } else {
-                self.parse_token(token, todo!("get the start"));
+                self.parse_token(token);
                 return
             }
         }
     }
-    fn parse_comment(&mut self, c: &'a str, pos: Position) {
+    fn parse_comment(&mut self, c: &'a str) {
+        let pos = self.tokens.last_position();
         let source_node = SourceNode{
             source: c,
             location: self.tokens.get_location_from(pos)
         };
         self.buffer_nodes.push(AstNode::Comment(source_node));
     }
-    fn parse_interpolation(&mut self, src: &'a str, pos: Position) {
+    fn parse_interpolation(&mut self, src: &'a str) {
+        let pos = self.tokens.last_position();
         let source_node = SourceNode{
             source: src,
             location: self.tokens.get_location_from(pos)

@@ -16,7 +16,7 @@
 
 use super::{
     Name, Namespace, SourceLocation,
-    error::{ErrorHandler, CompilationError},
+    error::{ErrorHandler, CompilationError, CompilationErrorKind as ErrorKind},
     tokenizer::{Attribute, Token, Tag, DecodedStr, TokenSource},
 };
 
@@ -47,6 +47,13 @@ pub struct Element<'a> {
     pub directives: Vec<Directive<'a>>,
     pub children: Vec<AstNode<'a>>,
     pub location: SourceLocation,
+}
+
+impl<'a> Element<'a> {
+    #[inline]
+    fn match_end_tag(&self, s: &str) -> bool {
+        self.tag_name.eq_ignore_ascii_case(s)
+    }
 }
 
 /// Directive supports two forms
@@ -110,7 +117,6 @@ impl Parser {
             err_handle,
             option: self.option.clone(),
             open_elems: vec![],
-            buffer_nodes: vec![],
             root_nodes: vec![],
             in_pre: false,
             in_v_pre: false,
@@ -129,12 +135,35 @@ where
     option: ParseOption,
     open_elems: Vec<Element<'a>>,
     root_nodes: Vec<AstNode<'a>>,
-    buffer_nodes: Vec<AstNode<'a>>,
     in_pre: bool,
     in_v_pre: bool,
     need_flag_namespace: bool,
 }
 
+// utility method
+impl<'a, Ts, Eh> AstBuilder<'a, Ts, Eh>
+where
+    Ts: TokenSource<'a>,
+    Eh: ErrorHandler,
+{
+    // Insert node into current insertion point.
+    // It's the last open element's children if open_elems is not empty.
+    // Otherwise it is root_nodes.
+    fn insert_node(&mut self, node: AstNode<'a>) {
+        if let Some(elem) = self.open_elems.last_mut() {
+            elem.children.push(node);
+        } else {
+            self.root_nodes.push(node);
+        }
+    }
+
+    fn emit_error(&self, kind: ErrorKind, loc: SourceLocation) {
+        let error = CompilationError::new(kind).with_location(loc);
+        self.err_handle.on_error(error)
+    }
+}
+
+// parse logic
 impl<'a, Ts, Eh> AstBuilder<'a, Ts, Eh>
 where
     Ts: TokenSource<'a>,
@@ -142,21 +171,13 @@ where
 {
     fn build_ast(mut self) -> AstRoot<'a> {
         let start = self.tokens.current_position();
-        self.parse_to_end();
+        while let Some(token) = self.tokens.next() {
+            self.parse_token(token);
+        }
         let location = self.tokens.get_location_from(start);
         AstRoot{ children: self.root_nodes, location }
     }
 
-    fn parse_to_end(&mut self) {
-        loop {
-            let token = self.tokens.next();
-            if token.is_none() {
-                break
-            }
-            let token = token.unwrap();
-            self.parse_token(token);
-        }
-    }
     fn parse_token(&mut self, token: Token<'a>) {
         // https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inbody:current-node-26
         match token {
@@ -171,6 +192,17 @@ where
         todo!()
     }
     fn parse_end_tag(&mut self, s: &'a str) {
+        // rfind is good since only mismatch will traverse stack
+        let pair = self.open_elems
+            .iter()
+            .enumerate()
+            .rfind(|p| { p.1.match_end_tag(s) });
+        if pair.is_none() {
+            let start = self.tokens.last_position();
+            let loc = self.tokens.get_location_from(start);
+            self.emit_error(ErrorKind::InvalidEndTag, loc);
+            return;
+        }
         todo!()
     }
     fn parse_text(&mut self, mut text: DecodedStr<'a>) {
@@ -179,7 +211,6 @@ where
                 todo!("merge text node here")
             } else {
                 self.parse_token(token);
-                return
             }
         }
     }
@@ -189,7 +220,7 @@ where
             source: c,
             location: self.tokens.get_location_from(pos)
         };
-        self.buffer_nodes.push(AstNode::Comment(source_node));
+        self.insert_node(AstNode::Comment(source_node));
     }
     fn parse_interpolation(&mut self, src: &'a str) {
         let pos = self.tokens.last_position();
@@ -197,12 +228,7 @@ where
             source: src,
             location: self.tokens.get_location_from(pos)
         };
-        self.buffer_nodes.push(AstNode::Interpolation(source_node));
-    }
-
-    // drain is for reduce allocation
-    fn get_children(&mut self) -> Vec<AstNode<'a>> {
-        self.buffer_nodes.drain(..).collect()
+        self.insert_node(AstNode::Interpolation(source_node));
     }
 
     // must call this when handle CDATA

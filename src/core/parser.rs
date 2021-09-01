@@ -208,7 +208,11 @@ where
         let location = self.tokens.get_location_from(start);
         elem.location = location;
         if !self.in_pre {
-            compress_whitespaces(&mut elem.children, todo!());
+            let should_condense = match self.option.whitespace {
+                WhitespaceStrategy::Condense => true,
+                _ => false,
+            };
+            compress_whitespaces(&mut elem.children, should_condense);
         }
         self.insert_node(self.parse_element(elem));
     }

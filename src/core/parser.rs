@@ -287,12 +287,12 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, should_condense: bool) {
     });
     let mut i = 0;
     while i < nodes.len() {
-        if let AstNode::Text(child) = &mut nodes[i] {
+        let should_remove = if let AstNode::Text(child) = &nodes[i] {
             use AstNode as A;
-            let should_remove = if !child.text.is_all_whitespace() {
+            if !child.text.is_all_whitespace() {
                 // non empty text node
                 if should_condense {
-                    compress_text_node(child);
+                    compress_text_node(&mut nodes[i]);
                 }
                 false
             } else if  i == nodes.len() - 1 || i == 0 {
@@ -303,7 +303,7 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, should_condense: bool) {
             } else {
                 // Condense mode remove whitespaces between comment and
                 // whitespaces with contains newline between two elements
-                let prev = &nodes[i - 1];
+               let prev = &nodes[i - 1];
                 let next = &nodes[i + 1];
                 match (prev, next) {
                     (A::Comment(_), A::Comment(_)) => true,
@@ -312,13 +312,15 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, should_condense: bool) {
                     },
                     _ => false,
                 }
-            };
-            if should_remove {
-                nodes.remove(i);
-                continue;
             }
+        } else {
+            false
+        };
+        if should_remove {
+            nodes.remove(i);
+        } else {
+            i += 1;
         }
-        i += 1;
     }
 }
 
@@ -330,8 +332,12 @@ fn is_element(n: &AstNode) -> bool {
     }
 }
 
-fn compress_text_node(n: &mut TextNode) {
-    todo!("remove whitespace without allocation")
+fn compress_text_node(n: &mut AstNode) {
+    if let AstNode::Text(_) = n {
+        todo!("remove whitespace without allocation")
+    } else {
+        debug_assert!(false, "impossible");
+    }
 }
 
 fn is_special_template_directive(dir: &Directive) -> bool {

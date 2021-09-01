@@ -85,9 +85,10 @@ impl Default for WhitespaceStrategy {
 #[derive(Clone)]
 pub struct ParseOption {
     whitespace: WhitespaceStrategy,
-    get_namespace: fn(_: &Vec<Element<'_>>) -> Namespace,
-    get_text_mode: fn(&str) -> TextMode,
     preserve_comment: bool,
+    get_namespace: fn(&str, &Vec<Element<'_>>) -> Namespace,
+    get_text_mode: fn(&str) -> TextMode,
+    is_void_tag: fn(&str) -> bool,
     // probably we don't need configure pre tag?
     // in original Vue this is only used for parsing SFC.
     is_pre_tag: fn(&str) -> bool,
@@ -175,6 +176,7 @@ where
         while let Some(token) = self.tokens.next() {
             self.parse_token(token);
         }
+        // TODO: emit EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT error
         // process unclosed elements
         for _ in 0..self.open_elems.len() {
             self.close_element(/*has_matched_end*/ false);
@@ -198,7 +200,41 @@ where
         };
     }
     fn parse_open_tag(&mut self, tag: Tag<'a>) {
-        todo!()
+        let Tag{name, self_closing, attributes} = tag;
+        let (dirs, attrs) = self.parse_attributes(attributes);
+        self.handle_pre_like(&dirs);
+        if self.need_flag_namespace {
+            self.set_tokenizer_flag();
+        }
+        let ns = (self.option.get_namespace)(name, &self.open_elems);
+        let elem = Element {
+            tag_name: name,
+            namespace: ns,
+            attributes: attrs,
+            directives: dirs,
+            children: vec![],
+            location: SourceLocation{
+                start: self.tokens.last_position(),
+                end: self.tokens.current_position(),
+            },
+        };
+        if self_closing || (self.option.is_void_tag)(name) {
+            let node = self.parse_element(elem);
+            self.insert_node(node);
+        } else {
+            self.open_elems.push(elem);
+        }
+    }
+    fn parse_attributes(&mut self, attrs: Vec<Attribute<'a>>) -> (Vec<Directive<'a>>, Vec<Attribute<'a>>) {
+        todo!("parse attributes to directive");
+    }
+    fn handle_pre_like(&mut self, dirs: &[Directive]) {
+        if todo!("check pre") {
+            self.pre_count += 1;
+        }
+        if todo!("check v pre") {
+            debug_assert!(self.v_pre_index.is_none());
+        }
     }
     fn parse_end_tag(&mut self, end_tag: &'a str) {
         // rfind is good since only mismatch will traverse stack
@@ -234,7 +270,7 @@ where
         let location = self.tokens.get_location_from(start);
         elem.location = location;
         if self.pre_count > 0 {
-            self.handle_pre(&mut elem)
+            self.decrement_pre(&mut elem)
         } else if (self.option.get_text_mode)(elem.tag_name) == TextMode::Data {
             // skip compress in pre or RAWTEXT/RCDATA
             compress_whitespaces(&mut elem.children, self.need_condense());
@@ -242,7 +278,7 @@ where
         let node = self.parse_element(elem);
         self.insert_node(node);
     }
-    fn handle_pre(&mut self, elem: &mut Element) {
+    fn decrement_pre(&mut self, elem: &mut Element) {
         debug_assert!(self.pre_count > 0);
         let pre_boundary = (self.option.is_pre_tag)(elem.tag_name);
         // trim pre tag's leading new line
@@ -255,7 +291,7 @@ where
         }
         self.pre_count -= 1;
     }
-    fn handle_v_pre(&mut self) {
+    fn try_close_v_pre(&mut self) {
         let idx = self.v_pre_index.unwrap();
         debug_assert!(idx <= self.open_elems.len());
         // met v-pre boundary, switch back
@@ -265,7 +301,7 @@ where
     }
     fn parse_element(&mut self, elem: Element<'a>) -> AstNode<'a> {
         if self.v_pre_index.is_some() {
-            self.handle_v_pre();
+            self.try_close_v_pre();
             AstNode::Plain(elem)
         } else if elem.tag_name == "slot" {
             AstNode::Slot(elem)

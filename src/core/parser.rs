@@ -88,6 +88,9 @@ pub struct ParseOption {
     get_namespace: fn(_: &Vec<Element<'_>>) -> Namespace,
     get_text_mode: fn(&str) -> TextMode,
     preserve_comment: bool,
+    // probably we don't need configure pre tag?
+    // in original Vue this is only used for parsing SFC.
+    is_pre_tag: fn(&str) -> bool,
 }
 
 pub struct Parser {
@@ -113,8 +116,8 @@ impl Parser {
             option: self.option.clone(),
             open_elems: vec![],
             root_nodes: vec![],
-            in_pre: false,
-            in_v_pre: false,
+            pre_count: 0,
+            v_pre_index: None,
             need_flag_namespace,
         }.build_ast()
     }
@@ -130,8 +133,11 @@ where
     option: ParseOption,
     open_elems: Vec<Element<'a>>,
     root_nodes: Vec<AstNode<'a>>,
-    in_pre: bool,
-    in_v_pre: bool,
+    // how many <pre> already met
+    pre_count: usize,
+    // the idx of v-pre boundary in open_elems
+    // NB: idx is enough since v-pre does not nest
+    v_pre_index: Option<usize>,
     need_flag_namespace: bool,
 }
 
@@ -173,8 +179,8 @@ where
         for _ in 0..self.open_elems.len() {
             self.close_element(/*has_matched_end*/ false);
         }
-        debug_assert!(!self.in_pre);
-        debug_assert!(!self.in_v_pre);
+        debug_assert_eq!(self.pre_count, 0);
+        debug_assert!(self.v_pre_index.is_none());
         let need_condense = self.need_condense();
         compress_whitespaces(&mut self.root_nodes, need_condense);
         let location = self.tokens.get_location_from(start);
@@ -227,15 +233,39 @@ where
         }
         let location = self.tokens.get_location_from(start);
         elem.location = location;
-        let get_text_mode = self.option.get_text_mode;
-        if !self.in_pre && get_text_mode(elem.tag_name) == TextMode::Data {
-            // skip compress in pre tag or RAWTEXT/RCDATA
+        if self.pre_count > 0 {
+            self.handle_pre(&mut elem)
+        } else if (self.option.get_text_mode)(elem.tag_name) == TextMode::Data {
+            // skip compress in pre or RAWTEXT/RCDATA
             compress_whitespaces(&mut elem.children, self.need_condense());
         }
-        self.insert_node(self.parse_element(elem));
+        let node = self.parse_element(elem);
+        self.insert_node(node);
     }
-    fn parse_element(&self, elem: Element<'a>) -> AstNode<'a> {
-        if self.in_v_pre {
+    fn handle_pre(&mut self, elem: &mut Element) {
+        debug_assert!(self.pre_count > 0);
+        let pre_boundary = (self.option.is_pre_tag)(elem.tag_name);
+        // trim pre tag's leading new line
+        // https://html.spec.whatwg.org/multipage/syntax.html#element-restrictions
+        if !pre_boundary {
+            return
+        }
+        if let Some(AstNode::Text(tn)) = elem.children.last_mut() {
+            tn.text.trim_leading_newline();
+        }
+        self.pre_count -= 1;
+    }
+    fn handle_v_pre(&mut self) {
+        let idx = self.v_pre_index.unwrap();
+        debug_assert!(idx <= self.open_elems.len());
+        // met v-pre boundary, switch back
+        if idx == self.open_elems.len() {
+            self.v_pre_index = None;
+        }
+    }
+    fn parse_element(&mut self, elem: Element<'a>) -> AstNode<'a> {
+        if self.v_pre_index.is_some() {
+            self.handle_v_pre();
             AstNode::Plain(elem)
         } else if elem.tag_name == "slot" {
             AstNode::Slot(elem)

@@ -26,6 +26,23 @@ impl<'a> DecodedStr<'a> {
     pub fn contains(&self, p: &[char]) -> bool {
         self.0.iter().any(|s| s.contains(p))
     }
+    pub fn trim_leading_newline(&mut self) {
+        if self.0.is_empty() {
+            return;
+        }
+        let first = &self.0[0];
+        let offset = if first.starts_with('\n') {
+            1
+        } else if first.starts_with("\r\n") {
+            2
+        } else {
+            return;
+        };
+        self.0[0] = match first {
+            Cow::Borrowed(s) => Cow::Borrowed(&s[offset..]),
+            Cow::Owned(s) => Cow::Owned(s[offset..].to_owned()),
+        };
+    }
 }
 
 impl<'a> Add for DecodedStr<'a> {
@@ -38,6 +55,7 @@ impl<'a> Add for DecodedStr<'a> {
 
 impl<'a> From<&'a str> for DecodedStr<'a> {
     fn from(decoded: &'a str) -> Self {
+        debug_assert!(!decoded.is_empty());
         Self(smallvec![Cow::Borrowed(decoded)])
     }
 }

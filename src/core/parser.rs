@@ -174,7 +174,8 @@ where
         }
         debug_assert!(!self.in_pre);
         debug_assert!(!self.in_v_pre);
-        // TODO: compress_whitespaces for root_nodes
+        let need_condense = self.need_condense();
+        compress_whitespaces(&mut self.root_nodes, need_condense);
         let location = self.tokens.get_location_from(start);
         AstRoot{ children: self.root_nodes, location }
     }
@@ -226,11 +227,7 @@ where
         let location = self.tokens.get_location_from(start);
         elem.location = location;
         if !self.in_pre {
-            let should_condense = match self.option.whitespace {
-                WhitespaceStrategy::Condense => true,
-                _ => false,
-            };
-            compress_whitespaces(&mut elem.children, should_condense);
+            compress_whitespaces(&mut elem.children, self.need_condense());
         }
         self.insert_node(self.parse_element(elem));
     }
@@ -290,9 +287,16 @@ where
     fn is_component(&self, e: &Element) -> bool {
         todo!()
     }
+
+    fn need_condense(&self) -> bool {
+        match self.option.whitespace {
+            WhitespaceStrategy::Condense => true,
+            _ => false,
+        }
+    }
 }
 
-fn compress_whitespaces(nodes: &mut Vec<AstNode>, should_condense: bool) {
+fn compress_whitespaces(nodes: &mut Vec<AstNode>, need_condense: bool) {
     // no two consecutive Text node, ensured by parse_text
     debug_assert!({
         let no_consecutive_text = |last_is_text, is_text| {
@@ -313,14 +317,14 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, should_condense: bool) {
             use AstNode as A;
             if !child.text.is_all_whitespace() {
                 // non empty text node
-                if should_condense {
+                if need_condense {
                     compress_text_node(&mut nodes[i]);
                 }
                 false
             } else if  i == nodes.len() - 1 || i == 0 {
                 // Remove the leading/trailing whitespace
                 true
-            } else if !should_condense {
+            } else if !need_condense {
                 false
             } else {
                 // Condense mode remove whitespaces between comment and

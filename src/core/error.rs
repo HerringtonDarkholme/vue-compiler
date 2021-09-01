@@ -5,13 +5,13 @@ use std::fmt;
 pub enum CompilationErrorKind {
     AbruptClosingOfEmptyComment,
     CDataInHtmlContent,
-    DuplicateAttribute,
+    DuplicateAttribute, // TODO
     EndTagWithAttributes,
     EndTagWithTrailingSolidus,
     EofBeforeTagName,
     EofInCdata,
     EofInComment,
-    EofInScriptHtmlCommentLikeText,
+    EofInScriptHtmlCommentLikeText, // TODO
     EofInTag,
     IncorrectlyClosedComment,
     IncorrectlyOpenedComment,
@@ -23,7 +23,7 @@ pub enum CompilationErrorKind {
     UnexpectedEqualsSignBeforeAttributeName,
     UnexpectedCharacterInAttributeName,
     UnexpectedCharacterInUnquotedAttributeValue,
-    UnexpectedNullCharacter,
+    UnexpectedNullCharacter, // TODO
     UnexpectedQuestionMarkInsteadOfTagName,
     UnexpectedSolidusInTag,
 
@@ -31,8 +31,9 @@ pub enum CompilationErrorKind {
     InvalidEndTag,
     MissingEndTag,
     MissingInterpolationEnd,
-    MissingDynamicDirectiveArgumentEnd,
+    MissingDynamicDirectiveArgumentEnd, // TODO
 
+    // TODO
     // transform errors
     VIfNoExpression,
     VIfSameKey,

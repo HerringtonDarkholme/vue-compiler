@@ -168,6 +168,13 @@ where
         while let Some(token) = self.tokens.next() {
             self.parse_token(token);
         }
+        // process unclosed elements
+        for _ in 0..self.open_elems.len() {
+            self.close_element(/*has_matched_end*/ false);
+        }
+        debug_assert!(!self.in_pre);
+        debug_assert!(!self.in_v_pre);
+        // TODO: compress_whitespaces for root_nodes
         let location = self.tokens.get_location_from(start);
         AstRoot{ children: self.root_nodes, location }
     }
@@ -185,26 +192,37 @@ where
     fn parse_open_tag(&mut self, tag: Tag<'a>) {
         todo!()
     }
-    fn parse_end_tag(&mut self, s: &'a str) {
+    fn parse_end_tag(&mut self, end_tag: &'a str) {
         // rfind is good since only mismatch will traverse stack
         let index = self.open_elems
             .iter()
             .enumerate()
-            .rfind(|p| { element_matches_end_tag(p.1, s) })
+            .rfind(|p| { element_matches_end_tag(p.1, end_tag) })
             .map(|p| p.0);
         if let Some(i) = index {
-            while self.open_elems.len() > i {
-                self.close_element();
+            let mut to_close = self.open_elems.len() - i;
+            while to_close > 0 {
+                to_close -= 1;
+                self.close_element(to_close == 0);
             }
+            debug_assert_eq!(self.open_elems.len(), i);
         } else {
             let start = self.tokens.last_position();
             let loc = self.tokens.get_location_from(start);
             self.emit_error(ErrorKind::InvalidEndTag, loc);
         }
     }
-    fn close_element(&mut self) {
+    fn close_element(&mut self, has_matched_end: bool) {
         let mut elem = self.open_elems.pop().unwrap();
         let start = elem.location.start;
+        if !has_matched_end {
+            // should only span the start of a tag, not the whole tag.
+            let err_location = SourceLocation{
+                start: start.clone(),
+                end: start.clone(),
+            };
+            self.emit_error(ErrorKind::MissingEndTag, err_location);
+        }
         let location = self.tokens.get_location_from(start);
         elem.location = location;
         if !self.in_pre {
@@ -275,8 +293,8 @@ where
 }
 
 fn compress_whitespaces(nodes: &mut Vec<AstNode>, should_condense: bool) {
+    // no two consecutive Text node, ensured by parse_text
     debug_assert!({
-        // no two consecutive Text node
         let no_consecutive_text = |last_is_text, is_text| {
             if last_is_text && is_text {
                 None
@@ -307,7 +325,7 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, should_condense: bool) {
             } else {
                 // Condense mode remove whitespaces between comment and
                 // whitespaces with contains newline between two elements
-               let prev = &nodes[i - 1];
+                let prev = &nodes[i - 1];
                 let next = &nodes[i + 1];
                 match (prev, next) {
                     (A::Comment(_), A::Comment(_)) => true,

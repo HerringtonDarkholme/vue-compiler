@@ -34,7 +34,9 @@ The compilation has several phases:
 * The library seeks minimal allocation by using `&str`, `Cow<'_, str>` and `smallvec`.
 * `Fxhash` is preferred over default hasher since hash collision is not a concern.
 * The `bitflags` crate is used to represent runtime helper and vnode patch flags.
-* Use [heavily optimized](https://github.com/BurntSushi/memchr) routines for string search primitives
+* Use [heavily optimized](https://github.com/BurntSushi/memchr) routines for string search primitives.
+* Benchmark with [criterion.rs](https://github.com/bheisler/criterion.rs).
+* Test compiler output by [snapshot](https://github.com/mitsuhiko/insta) test.
 
 ## Reference
 

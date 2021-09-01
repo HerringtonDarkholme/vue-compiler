@@ -17,7 +17,7 @@
 use super::{
     Name, Namespace, SourceLocation,
     error::{ErrorHandler, CompilationError, CompilationErrorKind as ErrorKind},
-    tokenizer::{Attribute, Token, Tag, DecodedStr, TokenSource},
+    tokenizer::{Attribute, Token, Tag, DecodedStr, TokenSource, TextMode},
 };
 
 pub enum AstNode<'a> {
@@ -57,7 +57,7 @@ enum DirectiveArg<'a> {
     Dynamic(Name<'a>), // :[dynamic]="val"
 }
 
-/// Directive has
+/// Directive has the form
 /// v-name:arg.modifier="expr"
 pub struct Directive<'a> {
     name: Name<'a>,
@@ -86,6 +86,7 @@ impl Default for WhitespaceStrategy {
 pub struct ParseOption {
     whitespace: WhitespaceStrategy,
     get_namespace: fn(_: &Vec<Element<'_>>) -> Namespace,
+    get_text_mode: fn(&str) -> TextMode,
     preserve_comment: bool,
 }
 
@@ -226,7 +227,9 @@ where
         }
         let location = self.tokens.get_location_from(start);
         elem.location = location;
-        if !self.in_pre {
+        let get_text_mode = self.option.get_text_mode;
+        if !self.in_pre && get_text_mode(elem.tag_name) == TextMode::Data {
+            // skip compress in pre tag or RAWTEXT/RCDATA
             compress_whitespaces(&mut elem.children, self.need_condense());
         }
         self.insert_node(self.parse_element(elem));

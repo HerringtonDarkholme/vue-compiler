@@ -471,6 +471,8 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         if tag.self_closing {
             self.emit_error(ErrorKind::EndTagWithTrailingSolidus);
         }
+        // reset text mode after tag close
+        self.mode = TextMode::Data;
         Token::EndTag(tag.name)
     }
 

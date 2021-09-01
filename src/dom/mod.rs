@@ -1,1 +1,1 @@
-struct DomCodeGenerator {}
+pub struct DomCodeGenerator {}

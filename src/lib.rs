@@ -1,8 +1,9 @@
 //! See README.md
 
-mod core;
-mod dom;
-mod sfc;
+// TODO: reorg pub
+pub mod core;
+pub mod dom;
+pub mod sfc;
 mod ssr;
 
 pub use crate::core::base_compile;

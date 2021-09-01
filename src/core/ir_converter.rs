@@ -25,6 +25,6 @@ pub trait IRConverter {
     fn convert_ir(&self, ast: AstRoot) -> Self::IRNode;
 }
 
-pub fn convert_ast_to_ir(ast: AstRoot) -> IRNode {
+pub fn convert_ast_to_ir(_ast: AstRoot) -> IRNode {
     todo!()
 }

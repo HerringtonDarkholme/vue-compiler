@@ -1,10 +1,11 @@
-mod codegen;
-mod error;
-mod ir_converter;
-mod parser;
-mod runtime_helper;
-mod tokenizer;
-mod transformer;
+// TODO: reorg pub
+pub mod codegen;
+pub mod error;
+pub mod ir_converter;
+pub mod parser;
+pub mod runtime_helper;
+pub mod tokenizer;
+pub mod transformer;
 
 pub use codegen::CodeGenerator;
 use error::{CompilationError, ErrorHandler};

@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-mod descriptors;
-mod parse_sfc;
-
+// TODO: reorg pub
+pub mod descriptors;
+pub mod parse_sfc;
 pub use parse_sfc::{parse_sfc, SfcDescriptor};
 
 pub enum PadOption {

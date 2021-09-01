@@ -8,7 +8,7 @@ pub trait CodeGenerator {
     fn generate(&self, node: Self::IRNode) -> Self::Output;
 }
 
-fn generate(node: IRNode) {
+pub fn generate(node: IRNode) {
     use IRNode as IR;
     match node {
         IR::Text => generate_text(),

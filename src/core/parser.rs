@@ -207,6 +207,9 @@ where
         let start = elem.location.start;
         let location = self.tokens.get_location_from(start);
         elem.location = location;
+        if !self.in_pre {
+            compress_whitespaces(&mut elem.children, todo!());
+        }
         self.insert_node(self.parse_element(elem));
     }
     fn parse_element(&self, elem: Element<'a>) -> AstNode<'a> {
@@ -233,14 +236,8 @@ where
         }
         let start = self.tokens.last_position();
         let location = self.tokens.get_location_from(start);
-        let text_node = TextNode { text, location, };
+        let text_node = TextNode { text, location };
         self.insert_node(AstNode::Text(text_node))
-    }
-    fn merge_text() -> DecodedStr<'a> {
-        // Remove if:
-        // - the whitespace is the first or last node, or:
-        // - (condense mode) the whitespace is adjacent to a comment, or:
-        // - (condense mode) the whitespace is between two elements AND contains newline
     }
     fn parse_comment(&mut self, c: &'a str) {
         // Remove comments if desired by configuration.
@@ -271,6 +268,70 @@ where
     fn is_component(&self, e: &Element) -> bool {
         todo!()
     }
+}
+
+fn compress_whitespaces(nodes: &mut Vec<AstNode>, should_condense: bool) {
+    debug_assert!({
+        // no two consecutive Text node
+        let no_consecutive_text = |last_is_text, is_text| {
+            if last_is_text && is_text {
+                None
+            } else {
+                Some(is_text)
+            }
+        };
+        nodes.iter()
+            .map(|n| matches!(n, AstNode::Text(_)))
+            .try_fold(false, no_consecutive_text)
+            .is_some()
+    });
+    let mut i = 0;
+    while i < nodes.len() {
+        if let AstNode::Text(child) = &mut nodes[i] {
+            use AstNode as A;
+            let should_remove = if !child.text.is_all_whitespace() {
+                // non empty text node
+                if should_condense {
+                    compress_text_node(child);
+                }
+                false
+            } else if  i == nodes.len() - 1 || i == 0 {
+                // Remove the leading/trailing whitespace
+                true
+            } else if !should_condense {
+                false
+            } else {
+                // Condense mode remove whitespaces between comment and
+                // whitespaces with contains newline between two elements
+                let prev = &nodes[i - 1];
+                let next = &nodes[i + 1];
+                match (prev, next) {
+                    (A::Comment(_), A::Comment(_)) => true,
+                    _ if is_element(&prev) && is_element(&next) => {
+                        child.text.contains(&['\r', '\n'][..])
+                    },
+                    _ => false,
+                }
+            };
+            if should_remove {
+                nodes.remove(i);
+                continue;
+            }
+        }
+        i += 1;
+    }
+}
+
+fn is_element(n: &AstNode) -> bool {
+    use AstNode as A;
+    match n {
+        A::Plain(_) | A::Template(_) | A::Component(_) | A::Slot(_) => true,
+        _ => false,
+    }
+}
+
+fn compress_text_node(n: &mut TextNode) {
+    todo!("remove whitespace without allocation")
 }
 
 fn is_special_template_directive(dir: &Directive) -> bool {

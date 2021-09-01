@@ -17,6 +17,17 @@ use std::{borrow::Cow, str::Chars, ops::Add};
 #[derive(Debug)]
 pub struct DecodedStr<'a>(SmallVec<[Cow<'a, str>; 1]>);
 
+impl<'a> DecodedStr<'a> {
+    pub fn is_all_whitespace(&self) -> bool {
+        self.0.iter().all(|s| {
+            !s.chars().any(non_whitespace)
+        })
+    }
+    pub fn contains(&self, p: &[char]) -> bool {
+        self.0.iter().any(|s| s.contains(p))
+    }
+}
+
 impl<'a> Add for DecodedStr<'a> {
     type Output = Self;
     fn add(mut self, rhs: Self) -> Self {
@@ -716,7 +727,7 @@ fn is_valid_name_char(c: char) -> bool {
 }
 
 fn non_whitespace(c: char) -> bool {
-    !c.is_whitespace()
+    !c.is_ascii_whitespace()
 }
 
 // tag name should begin with [a-zA-Z]

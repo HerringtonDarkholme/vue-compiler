@@ -73,6 +73,7 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
 pub struct Attribute<'a> {
     pub name: Name<'a>,
     pub value: Option<AttributeValue<'a>>,
+    pub location: SourceLocation,
 }
 
 #[derive(Debug)]
@@ -364,6 +365,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     // https://html.spec.whatwg.org/multipage/parsing.html#after-attribute-name-state
     fn scan_attribute(&mut self) -> Attribute<'a> {
         debug_assert!(!self.source.is_empty());
+        let start = self.current_position();
         let name = self.scan_attr_name();
         // 13.2.5.34 After attribute name state, ignore white spaces
         self.skip_whitespace();
@@ -371,11 +373,13 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
             || self.did_skip_slash_in_tag()
             || !self.source.starts_with("=")
         {
-            return Attribute { name, value: None };
+            let location = self.get_location_from(start);
+            return Attribute { name, location, value: None };
         }
         self.move_by(1); // equal sign
         let value = self.scan_attr_value();
-        Attribute { name, value }
+        let location = self.get_location_from(start);
+        Attribute { name, value, location }
     }
     fn is_about_to_close_tag(&self) -> bool {
         let source = &self.source; // must get fresh source

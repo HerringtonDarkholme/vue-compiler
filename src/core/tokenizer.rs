@@ -72,7 +72,13 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
 #[derive(Debug)]
 pub struct Attribute<'a> {
     pub name: Name<'a>,
-    pub value: Option<DecodedStr<'a>>,
+    pub value: Option<AttributeValue<'a>>,
+}
+
+#[derive(Debug)]
+pub struct AttributeValue<'a> {
+    pub content: DecodedStr<'a>,
+    pub location: SourceLocation,
 }
 
 /// Tag is used only for start tag since end tag is bare
@@ -407,18 +413,23 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         src
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-value-state
-    fn scan_attr_value(&mut self) -> Option<DecodedStr<'a>> {
+    fn scan_attr_value(&mut self) -> Option<AttributeValue<'a>> {
         self.skip_whitespace();
         let source = &self.source;
         if source.starts_with('>') {
             self.emit_error(ErrorKind::MissingAttributeValue);
             return None;
         }
-        if self.source.starts_with(&['"', '\''][..]) {
+        let start = self.current_position();
+        let val = if self.source.starts_with(&['"', '\''][..]) {
             let c = self.source.chars().next().unwrap();
-            return self.scan_quoted_attr_value(c);
-        }
-        self.scan_unquoted_attr_value()
+            self.scan_quoted_attr_value(c)
+        } else {
+            self.scan_unquoted_attr_value()
+        };
+        val.map(|content| AttributeValue {
+            content, location: self.get_location_from(start)
+        })
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(double-quoted)-state
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(single-quoted)-state

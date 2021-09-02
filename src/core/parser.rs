@@ -253,12 +253,13 @@ where
             "element should not be pushed to stack yet.",
         );
         // increment_pre
-        if todo!("check pre") {
+        if (self.option.is_pre_tag)(elem.tag_name) {
             self.pre_count += 1;
         }
         // open_v_pre
-        if todo!("check v pre") {
+        if is_v_pre_boundary(&elem) {
             debug_assert!(self.v_pre_index.is_none());
+            self.v_pre_index = Some(self.open_elems.len());
         }
     }
     fn parse_end_tag(&mut self, end_tag: &'a str) {
@@ -327,6 +328,10 @@ where
     }
     fn parse_element(&mut self, elem: Element<'a>) -> AstNode<'a> {
         if self.v_pre_index.is_some() {
+            debug_assert!({
+                let i = *self.v_pre_index.as_ref().unwrap();
+                i != self.open_elems.len() || is_v_pre_boundary(&elem)
+            });
             self.close_v_pre();
             AstNode::Plain(elem)
         } else if elem.tag_name == "slot" {
@@ -374,6 +379,7 @@ where
         self.insert_node(AstNode::Interpolation(source_node));
     }
 
+    // https://html.spec.whatwg.org/multipage/parsing.html#parse-error-eof-in-script-html-comment-like-text
     fn report_unclosed_script_comment(&mut self) {
         debug_assert!(self.tokens.next().is_none());
         let elem = match self.open_elems.last() {
@@ -538,4 +544,9 @@ fn is_template_element(e: &Element) -> bool {
 
 fn element_matches_end_tag(e: &Element, tag: &str) -> bool {
     e.tag_name.eq_ignore_ascii_case(tag)
+}
+
+fn is_v_pre_boundary(elem: &Element) -> bool {
+    let dirs = &elem.directives;
+    dirs.iter().any(|d| d.name == "pre")
 }

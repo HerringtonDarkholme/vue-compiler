@@ -17,7 +17,9 @@
 use super::{
     Name, Namespace, SourceLocation,
     error::{ErrorHandler, CompilationError, CompilationErrorKind as ErrorKind},
-    tokenizer::{Attribute, Token, Tag, DecodedStr, TokenSource, TextMode},
+    tokenizer::{
+        Attribute, Token, Tag, DecodedStr, TokenSource, TextMode, AttributeValue
+    },
 };
 
 pub enum AstNode<'a> {
@@ -58,11 +60,12 @@ enum DirectiveArg<'a> {
 }
 
 /// Directive has the form
-/// v-name:arg.modifier="expr"
+/// v-name:arg.mod1.mod2="expr"
 pub struct Directive<'a> {
     name: Name<'a>,
-    arg: DirectiveArg<'a>,
+    argument: DirectiveArg<'a>,
     modifiers: Vec<&'a str>,
+    expression: AttributeValue<'a>,
     location: SourceLocation,
 }
 
@@ -506,14 +509,20 @@ fn parse_directive<'a>(
         "bind"
     } else if name.starts_with("v-") {
         // non-shorthand
-        todo!()
+        if name.len() > 2 {
+            &name[2..]
+        } else {
+            // error
+            return None
+        }
     } else {
         return None;
     };
     Some(Directive {
         name: dir_name,
-        arg: todo!(),
+        argument: todo!(),
         modifiers: todo!(),
+        expression: todo!(),
         location: todo!(),
     })
 }

@@ -867,6 +867,7 @@ mod test {
             r#"<!--->"#,                     // abrupt closing
             r#"<!---->"#,                    // ok
             r#"<!-- nested <!--> text -->"#, // ok
+            r#"<p v-err=232/>"#,
             r#"<textarea><div/></textareas>"#,
             r#"<textarea>{{test}}</textarea>"#,
             r#"<textarea>{{'</textarea>'}}</textarea>"#,

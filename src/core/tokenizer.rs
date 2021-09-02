@@ -416,21 +416,23 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         }
         if self.source.starts_with(&['"', '\''][..]) {
             let c = self.source.chars().next().unwrap();
-            return Some(self.scan_quoted_attr_value(c));
+            return self.scan_quoted_attr_value(c);
         }
         self.scan_unquoted_attr_value()
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(double-quoted)-state
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(single-quoted)-state
-    fn scan_quoted_attr_value(&mut self, quote: char) -> DecodedStr<'a> {
+    fn scan_quoted_attr_value(&mut self, quote: char) -> Option<DecodedStr<'a>> {
         debug_assert!(self.source.starts_with(quote));
         self.move_by(1);
         let src = if let Some(i) = self.source.find(quote) {
             let val = self.move_by(i);
             self.move_by(1); // consume quote char
             val
-        } else {
+        } else if !self.source.is_empty() {
             self.move_by(self.source.len())
+        } else {
+            return None
         };
         // https://html.spec.whatwg.org/multipage/parsing.html#after-attribute-value-(quoted)-state
         if !self.is_about_to_close_tag()
@@ -439,7 +441,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         {
             self.emit_error(ErrorKind::MissingWhitespaceBetweenAttributes);
         }
-        self.decode_text(src, /*is_attr*/ true)
+        Some(self.decode_text(src, /*is_attr*/ true))
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(unquoted)-state
     fn scan_unquoted_attr_value(&mut self) -> Option<DecodedStr<'a>> {

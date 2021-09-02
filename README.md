@@ -49,3 +49,33 @@ The compilation has several phases:
 ## Performance Related Reference
 
 * https://lise-henry.github.io/articles/optimising_strings.html
+
+## Roadmap
+
+Todo tasks grouped by scopes.
+
+### [core]
+- [x] tokenizer
+- [ ] parser
+- [ ] IR converter
+- [ ] transformer
+- [ ] code generator
+### [dom]
+- [ ] transformer
+- [ ] code generator
+### [ssr]
+- [ ] TODO
+### [sfc]
+- [ ] TODO
+### [test]
+- [ ] Add unit test
+- [ ] Add insta snapshot
+### [bench]
+- [x] Add benchmark framework
+- [ ] Micro benchmarks for compiler components
+- [ ] Integrated benchmarks using repos like [Element-Plus](https://github.com/element-plus/element-plus)
+### [infra]
+- [x] Add [pre-commit](https://pre-commit.com/) hooks.
+- [ ] Add Github Actions for various checks.
+### [community]
+- [ ] TODO. not ready for contribution for now.

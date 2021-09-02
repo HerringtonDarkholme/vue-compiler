@@ -260,7 +260,12 @@ where
     }
 
     fn parse_directive(&self, attr: &Attribute<'a>) -> Option<Directive<'a>> {
-        let (dir_name, i) = self.parse_directive_name(attr)?;
+        let (dir_name, remain) = self.parse_directive_name(attr)?;
+        /*
+            "bind" accept arg, mod
+            "on"  accept arg, mod
+            "slot" accept nothing
+        */
         Some(Directive {
             name: dir_name,
             argument: todo!(),
@@ -269,30 +274,32 @@ where
             location: todo!(),
         })
     }
-    fn parse_directive_name(&self, attr: &Attribute<'a>) -> Option<(&'a str, usize)> {
+    fn parse_directive_name(&self, attr: &Attribute<'a>) -> Option<(&'a str, &'a str)> {
         let name = attr.name;
-        if name.starts_with("v-") {
-            let dir_name = &name[2..];
+        if !name.starts_with("v-") {
+            let ret = match name.chars().next()? {
+                // https://v3.vuejs.org/api/directives.html#v-bind
+                // . is the new shorthand for v-bind.prop
+                ':' | '.' => "bind",
+                '@' => "on",
+                '#' => "slot",
+                _ => return None,
+            };
+            return Some((ret, &name[1..]));
+        }
+        let n = &name[2..];
+        const SEP: [char; 2] = ['.', ':'];
+        let ret = if let Some((i, s)) = n.match_indices(&SEP[..]).next() {
+            // strip : but not .
+            let offset = if s == "." { 0 } else { 1 };
+            (&n[..i], &n[i + offset..])
+        } else {
+            (n, "")
+        };
+        if ret.0.is_empty() {
             self.emit_error(ErrorKind::MissingDirectiveName, todo!());
             return None;
         }
-        debug_assert!(!name.starts_with("v-"));
-        let ret = if name.starts_with(':') {
-            // accept arg, mod
-            ("bind", 1)
-        } else if name.starts_with('@') {
-            // accept mod
-            ("on", 1)
-        } else if name.starts_with('#') {
-            // accept nothing
-            ("slot", 1)
-        } else if name.starts_with('.') {
-            // accept arg, mod
-            // https://v3.vuejs.org/api/directives.html#v-bind
-            ("bind", 1)
-        } else {
-            return None;
-        };
         Some(ret)
     }
     fn handle_pre_like(&mut self, elem: &Element) {

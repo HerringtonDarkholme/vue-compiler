@@ -10,7 +10,7 @@ use super::{
     Name, Position, SourceLocation,
 };
 use std::{
-    borrow::Cow, ops::Add, str::Chars,
+    borrow::Cow, ops::{Add, Deref}, str::Chars,
     iter::FusedIterator,
 };
 use rustc_hash::FxHashSet;
@@ -26,9 +26,6 @@ impl<'a> DecodedStr<'a> {
         self.0.iter().all(|s| {
             !s.chars().any(non_whitespace)
         })
-    }
-    pub fn contains(&self, p: &[char]) -> bool {
-        self.0.iter().any(|s| s.contains(p))
     }
     pub fn trim_leading_newline(&mut self) {
         if self.0.is_empty() {
@@ -46,6 +43,14 @@ impl<'a> DecodedStr<'a> {
             Cow::Borrowed(s) => Cow::Borrowed(&s[offset..]),
             Cow::Owned(s) => Cow::Owned(s[offset..].to_owned()),
         };
+    }
+}
+
+impl<'a> Deref for DecodedStr<'a> {
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        debug_assert!(self.0.len() == 1);
+        self
     }
 }
 

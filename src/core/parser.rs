@@ -176,8 +176,7 @@ where
         while let Some(token) = self.tokens.next() {
             self.parse_token(token);
         }
-        // TODO: emit EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT error
-        // process unclosed elements
+        self.report_unclosed_script_comment();
         for _ in 0..self.open_elems.len() {
             self.close_element(/*has_matched_end*/ false);
         }
@@ -375,12 +374,38 @@ where
         self.insert_node(AstNode::Interpolation(source_node));
     }
 
+    fn report_unclosed_script_comment(&mut self) {
+        debug_assert!(self.tokens.next().is_none());
+        let elem = match self.open_elems.last() {
+            Some(e) => e,
+            _ => return,
+        };
+        if !elem.tag_name.eq_ignore_ascii_case("script") {
+            return;
+        }
+        let TextNode { text, .. } = match elem.children.first() {
+            Some(AstNode::Text(text)) => text,
+            _ => return,
+        };
+        // Netscape's legacy from 1995 when JS is nascent.
+        // Even 4 years before Bizarre Summer(?v=UztXN2rKQNc).
+        // https://stackoverflow.com/questions/808816/
+        if text.contains("<!--") && !text.contains("-->") {
+            let loc = SourceLocation {
+                start: self.tokens.last_position(),
+                end: self.tokens.last_position(),
+            };
+            self.emit_error(ErrorKind::EofInScriptHtmlCommentLikeText, loc);
+        }
+    }
+
     // must call this when handle CDATA
     #[inline]
     fn set_tokenizer_flag(&mut self) {
         if self.need_flag_namespace {
             return
         }
+        // TODO: we can set flag only when namespace changes
         let in_html = self.open_elems.last()
             .map_or(true, |e| e.namespace == Namespace::Html);
         self.tokens.set_is_in_html(in_html)

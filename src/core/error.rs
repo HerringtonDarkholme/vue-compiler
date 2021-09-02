@@ -5,13 +5,13 @@ use std::fmt;
 pub enum CompilationErrorKind {
     AbruptClosingOfEmptyComment,
     CDataInHtmlContent,
-    DuplicateAttribute, // TODO
+    DuplicateAttribute,
     EndTagWithAttributes,
     EndTagWithTrailingSolidus,
     EofBeforeTagName,
     EofInCdata,
     EofInComment,
-    EofInScriptHtmlCommentLikeText, // TODO
+    EofInScriptHtmlCommentLikeText,
     EofInTag,
     IncorrectlyClosedComment,
     IncorrectlyOpenedComment,

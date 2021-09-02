@@ -9,7 +9,10 @@ use super::{
     },
     Name, Position, SourceLocation,
 };
-use std::{borrow::Cow, str::Chars, ops::Add};
+use std::{
+    borrow::Cow, ops::Add, str::Chars,
+    iter::FusedIterator,
+};
 use rustc_hash::FxHashSet;
 use smallvec::{smallvec, SmallVec};
 
@@ -787,6 +790,9 @@ impl<'a, C: ErrorHandler> Iterator for Tokens<'a, C> {
     }
 }
 
+// Parser requires Tokens always yield None when exhausted.
+impl<'a, C: ErrorHandler> FusedIterator for Tokens<'a, C> {}
+
 impl<'a, C: ErrorHandler> FlagCDataNs for Tokens<'a, C> {
     fn set_is_in_html(&mut self, in_html: bool) {
         self.is_in_html_namespace = in_html;
@@ -814,7 +820,7 @@ impl <'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
 }
 
 pub trait TokenSource<'a>:
-Iterator<Item=Token<'a>> + FlagCDataNs + Locatable {}
+FusedIterator<Item=Token<'a>> + FlagCDataNs + Locatable {}
 impl<'a, C> TokenSource<'a> for Tokens<'a, C>
 where C: ErrorHandler {}
 

@@ -202,7 +202,6 @@ where
     fn parse_open_tag(&mut self, tag: Tag<'a>) {
         let Tag{name, self_closing, attributes} = tag;
         let (dirs, attrs) = self.parse_attributes(attributes);
-        self.handle_pre_like(&dirs);
         if self.need_flag_namespace {
             self.set_tokenizer_flag();
         }
@@ -222,16 +221,45 @@ where
             let node = self.parse_element(elem);
             self.insert_node(node);
         } else {
+            // only element with childen needs set pre/v-pre.
+            // self-closing element cancels out pre itself.
+            self.handle_pre_like(&elem);
             self.open_elems.push(elem);
         }
     }
-    fn parse_attributes(&mut self, attrs: Vec<Attribute<'a>>) -> (Vec<Directive<'a>>, Vec<Attribute<'a>>) {
-        todo!("parse attributes to directive");
+    fn parse_attributes(
+        &mut self, mut attrs: Vec<Attribute<'a>>
+    ) -> (Vec<Directive<'a>>, Vec<Attribute<'a>>) {
+        let mut dirs = vec![];
+        // in v-pre, parse no directive
+        if self.v_pre_index.is_some() {
+            return (dirs, attrs);
+        }
+        // v-pre precedes any other directives
+        for i in 0..attrs.len() {
+            if attrs[i].name == "v-pre" {
+                let dir = parse_directive(&attrs.remove(i));
+                dirs.push(dir.expect("v-pre must be a directive"));
+                return (dirs, attrs);
+            }
+        }
+        // remove directive from attributes
+        attrs.retain(|a| match parse_directive(a) {
+            Some(dir) => { dirs.push(dir); false },
+            None => true,
+        });
+        (dirs, attrs)
     }
-    fn handle_pre_like(&mut self, dirs: &[Directive]) {
+    fn handle_pre_like(&mut self, elem: &Element) {
+        debug_assert!(
+            self.open_elems.last().map_or(false, |e| e.location != elem.location),
+            "element should not be pushed to stack yet.",
+        );
+        // increment_pre
         if todo!("check pre") {
             self.pre_count += 1;
         }
+        // open_v_pre
         if todo!("check v pre") {
             debug_assert!(self.v_pre_index.is_none());
         }
@@ -291,7 +319,7 @@ where
         }
         self.pre_count -= 1;
     }
-    fn try_close_v_pre(&mut self) {
+    fn close_v_pre(&mut self) {
         let idx = self.v_pre_index.unwrap();
         debug_assert!(idx <= self.open_elems.len());
         // met v-pre boundary, switch back
@@ -301,7 +329,7 @@ where
     }
     fn parse_element(&mut self, elem: Element<'a>) -> AstNode<'a> {
         if self.v_pre_index.is_some() {
-            self.try_close_v_pre();
+            self.close_v_pre();
             AstNode::Plain(elem)
         } else if elem.tag_name == "slot" {
             AstNode::Slot(elem)
@@ -425,6 +453,33 @@ fn is_element(n: &AstNode) -> bool {
         A::Plain(_) | A::Template(_) | A::Component(_) | A::Slot(_) => true,
         _ => false,
     }
+}
+
+fn parse_directive<'a>(
+    attr: &Attribute<'a>
+) -> Option<Directive<'a>> {
+    let name = attr.name;
+    let dir_name = if name.starts_with(':') {
+        "bind"
+    } else if name.starts_with('@') {
+        "on"
+    } else if name.starts_with('#') {
+        "slot"
+    } else if name.starts_with('.') {
+        // https://v3.vuejs.org/api/directives.html#v-bind
+        "bind"
+    } else if name.starts_with("v-") {
+        // non-shorthand
+        todo!()
+    } else {
+        return None;
+    };
+    Some(Directive {
+        name: dir_name,
+        arg: todo!(),
+        modifiers: todo!(),
+        location: todo!(),
+    })
 }
 
 fn compress_text_node(n: &mut AstNode) {

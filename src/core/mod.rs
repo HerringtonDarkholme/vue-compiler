@@ -38,7 +38,7 @@ impl Default for Position {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct SourceLocation {
     pub start: Position,
     pub end: Position,

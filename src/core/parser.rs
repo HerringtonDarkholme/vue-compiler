@@ -202,9 +202,6 @@ where
     fn parse_open_tag(&mut self, tag: Tag<'a>) {
         let Tag{name, self_closing, attributes} = tag;
         let (dirs, attrs) = self.parse_attributes(attributes);
-        if self.need_flag_namespace {
-            self.set_tokenizer_flag();
-        }
         let ns = (self.option.get_namespace)(name, &self.open_elems);
         let elem = Element {
             tag_name: name,
@@ -225,6 +222,7 @@ where
             // self-closing element cancels out pre itself.
             self.handle_pre_like(&elem);
             self.open_elems.push(elem);
+            self.set_tokenizer_flag();
         }
     }
     fn parse_attributes(
@@ -286,6 +284,7 @@ where
     }
     fn close_element(&mut self, has_matched_end: bool) {
         let mut elem = self.open_elems.pop().unwrap();
+        self.set_tokenizer_flag();
         let start = elem.location.start;
         if !has_matched_end {
             // should only span the start of a tag, not the whole tag.
@@ -377,8 +376,14 @@ where
     }
 
     // must call this when handle CDATA
+    #[inline]
     fn set_tokenizer_flag(&mut self) {
-        self.tokens.set_is_in_html(todo!())
+        if self.need_flag_namespace {
+            return
+        }
+        let in_html = self.open_elems.last()
+            .map_or(true, |e| e.namespace == Namespace::Html);
+        self.tokens.set_is_in_html(in_html)
     }
 
     fn is_component(&self, e: &Element) -> bool {

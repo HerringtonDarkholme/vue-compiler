@@ -9,8 +9,9 @@ use super::{
     },
     Name, Position, SourceLocation,
 };
-use smallvec::{smallvec, SmallVec};
 use std::{borrow::Cow, str::Chars, ops::Add};
+use rustc_hash::FxHashSet;
+use smallvec::{smallvec, SmallVec};
 
 /// DecodedStr represents text after decoding html entities.
 /// SmallVec and Cow are used internally for less allocation.
@@ -325,8 +326,9 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     // https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-name-state
     fn scan_attributes(&mut self) -> Vec<Attribute<'a>> {
         let mut attrs = vec![]; // TODO: size hint?
-                                // TODO: forbid infinite loop
+        let mut set = FxHashSet::default();
         loop {
+            // TODO: forbid infinite loop
             self.skip_whitespace();
             if self.is_about_to_close_tag() {
                 return attrs;
@@ -335,6 +337,13 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
                 continue;
             }
             let attr = self.scan_attribute();
+            if set.contains(attr.name) {
+                // new attribute must be removed from the token.
+                // NB: original vue compiler does not remove it.
+                self.emit_error(ErrorKind::DuplicateAttribute);
+                continue;
+            }
+            set.insert(attr.name);
             attrs.push(attr);
         }
     }

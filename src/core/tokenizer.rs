@@ -425,13 +425,13 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
             return None;
         }
         let start = self.current_position();
-        let val = if self.source.starts_with(&['"', '\''][..]) {
+        let content = if self.source.starts_with(&['"', '\''][..]) {
             let c = self.source.chars().next().unwrap();
-            self.scan_quoted_attr_value(c)
+            self.scan_quoted_attr_value(c)?
         } else {
-            self.scan_unquoted_attr_value()
+            self.scan_unquoted_attr_value()?
         };
-        val.map(|content| AttributeValue {
+        Some(AttributeValue {
             content, location: self.get_location_from(start)
         })
     }

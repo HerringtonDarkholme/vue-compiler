@@ -61,7 +61,7 @@ enum DirectiveArg<'a> {
 /// v-name:arg.mod1.mod2="expr"
 pub struct Directive<'a> {
     name: Name<'a>,
-    argument: DirectiveArg<'a>,
+    argument: Option<DirectiveArg<'a>>,
     modifiers: Vec<&'a str>,
     expression: AttributeValue<'a>,
     location: SourceLocation,
@@ -260,16 +260,19 @@ where
     }
 
     fn parse_directive(&self, attr: &Attribute<'a>) -> Option<Directive<'a>> {
-        let (dir_name, remain) = self.parse_directive_name(attr)?;
-        /*
-            "bind" accept arg, mod
-            "on"  accept arg, mod
-            "slot" accept nothing
-        */
+        let (name, remain) = self.parse_directive_name(attr)?;
+        // "bind" accept arg, mod
+        // "on"  accept arg, mod
+        // "slot" accept nothing
+        let (argument, modifiers) = if name == "slot" {
+            (self.parse_directive_arg(remain), vec![])
+        } else {
+            todo!()
+        };
         Some(Directive {
-            name: dir_name,
-            argument: todo!(),
-            modifiers: todo!(),
+            name,
+            argument,
+            modifiers,
             expression: todo!(),
             location: todo!(),
         })
@@ -285,22 +288,24 @@ where
                 '#' => "slot",
                 _ => return None,
             };
-            return Some((ret, &name[1..]));
+            return Some((ret, name));
         }
         let n = &name[2..];
         const SEP: [char; 2] = ['.', ':'];
-        let ret = if let Some((i, s)) = n.match_indices(&SEP[..]).next() {
-            // strip : but not .
-            let offset = if s == "." { 0 } else { 1 };
-            (&n[..i], &n[i + offset..])
-        } else {
-            (n, "")
-        };
+        let ret = n
+            .find(&SEP[..])
+            .map(|i| (&n[..i], &n[i..]))
+            .unwrap_or((n, ""));
         if ret.0.is_empty() {
             self.emit_error(ErrorKind::MissingDirectiveName, todo!());
             return None;
         }
         Some(ret)
+    }
+    fn parse_directive_arg(&self, s: &'a str) -> Option<DirectiveArg<'a>> {
+        debug_assert!(s.is_empty() || s.starts_with(|c| "@#:.".contains(c)));
+        // see vue-next #1241 special case for v-slot
+        todo!()
     }
     fn handle_pre_like(&mut self, elem: &Element) {
         debug_assert!(

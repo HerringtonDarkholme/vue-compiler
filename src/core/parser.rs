@@ -15,11 +15,9 @@
 // Instead, we use a simple stack to construct AST.
 
 use super::{
+    error::{CompilationError, CompilationErrorKind as ErrorKind, ErrorHandler},
+    tokenizer::{Attribute, AttributeValue, DecodedStr, Tag, TextMode, Token, TokenSource},
     Name, Namespace, SourceLocation,
-    error::{ErrorHandler, CompilationError, CompilationErrorKind as ErrorKind},
-    tokenizer::{
-        Attribute, Token, Tag, DecodedStr, TokenSource, TextMode, AttributeValue
-    },
 };
 
 pub enum AstNode<'a> {
@@ -106,12 +104,10 @@ impl Parser {
         Self { option }
     }
 
-    pub fn parse<'a, Ts, E>(
-        &self, tokens: Ts, err_handle: E
-    ) -> AstRoot<'a>
+    pub fn parse<'a, Ts, E>(&self, tokens: Ts, err_handle: E) -> AstRoot<'a>
     where
         Ts: TokenSource<'a>,
-        E: ErrorHandler
+        E: ErrorHandler,
     {
         let need_flag_namespace = tokens.need_flag_hint();
         AstBuilder {
@@ -123,7 +119,8 @@ impl Parser {
             pre_count: 0,
             v_pre_index: None,
             need_flag_namespace,
-        }.build_ast()
+        }
+        .build_ast()
     }
 }
 
@@ -188,7 +185,10 @@ where
         let need_condense = self.need_condense();
         compress_whitespaces(&mut self.root_nodes, need_condense);
         let location = self.tokens.get_location_from(start);
-        AstRoot{ children: self.root_nodes, location }
+        AstRoot {
+            children: self.root_nodes,
+            location,
+        }
     }
 
     fn parse_token(&mut self, token: Token<'a>) {
@@ -202,7 +202,11 @@ where
         };
     }
     fn parse_open_tag(&mut self, tag: Tag<'a>) {
-        let Tag{name, self_closing, attributes} = tag;
+        let Tag {
+            name,
+            self_closing,
+            attributes,
+        } = tag;
         let (dirs, attrs) = self.parse_attributes(attributes);
         let ns = (self.option.get_namespace)(name, &self.open_elems);
         let elem = Element {
@@ -211,7 +215,7 @@ where
             attributes: attrs,
             directives: dirs,
             children: vec![],
-            location: SourceLocation{
+            location: SourceLocation {
                 start: self.tokens.last_position(),
                 end: self.tokens.current_position(),
             },
@@ -228,7 +232,8 @@ where
         }
     }
     fn parse_attributes(
-        &mut self, mut attrs: Vec<Attribute<'a>>
+        &mut self,
+        mut attrs: Vec<Attribute<'a>>,
     ) -> (Vec<Directive<'a>>, Vec<Attribute<'a>>) {
         let mut dirs = vec![];
         // in v-pre, parse no directive
@@ -238,21 +243,63 @@ where
         // v-pre precedes any other directives
         for i in 0..attrs.len() {
             if attrs[i].name == "v-pre" {
-                let dir = parse_directive(&attrs.remove(i));
+                let dir = self.parse_directive(&attrs.remove(i));
                 dirs.push(dir.expect("v-pre must be a directive"));
                 return (dirs, attrs);
             }
         }
         // remove directive from attributes
-        attrs.retain(|a| match parse_directive(a) {
-            Some(dir) => { dirs.push(dir); false },
+        attrs.retain(|a| match self.parse_directive(a) {
+            Some(dir) => {
+                dirs.push(dir);
+                false
+            }
             None => true,
         });
         (dirs, attrs)
     }
+
+    fn parse_directive(&self, attr: &Attribute<'a>) -> Option<Directive<'a>> {
+        let (dir_name, i) = self.parse_directive_name(attr)?;
+        Some(Directive {
+            name: dir_name,
+            argument: todo!(),
+            modifiers: todo!(),
+            expression: todo!(),
+            location: todo!(),
+        })
+    }
+    fn parse_directive_name(&self, attr: &Attribute<'a>) -> Option<(&'a str, usize)> {
+        let name = attr.name;
+        if name.starts_with("v-") {
+            let dir_name = &name[2..];
+            self.emit_error(ErrorKind::MissingDirectiveName, todo!());
+            return None;
+        }
+        debug_assert!(!name.starts_with("v-"));
+        let ret = if name.starts_with(':') {
+            // accept arg, mod
+            ("bind", 1)
+        } else if name.starts_with('@') {
+            // accept mod
+            ("on", 1)
+        } else if name.starts_with('#') {
+            // accept nothing
+            ("slot", 1)
+        } else if name.starts_with('.') {
+            // accept arg, mod
+            // https://v3.vuejs.org/api/directives.html#v-bind
+            ("bind", 1)
+        } else {
+            return None;
+        };
+        Some(ret)
+    }
     fn handle_pre_like(&mut self, elem: &Element) {
         debug_assert!(
-            self.open_elems.last().map_or(false, |e| e.location != elem.location),
+            self.open_elems
+                .last()
+                .map_or(false, |e| e.location != elem.location),
             "element should not be pushed to stack yet.",
         );
         // increment_pre
@@ -267,10 +314,11 @@ where
     }
     fn parse_end_tag(&mut self, end_tag: &'a str) {
         // rfind is good since only mismatch will traverse stack
-        let index = self.open_elems
+        let index = self
+            .open_elems
             .iter()
             .enumerate()
-            .rfind(|p| { element_matches_end_tag(p.1, end_tag) })
+            .rfind(|p| element_matches_end_tag(p.1, end_tag))
             .map(|p| p.0);
         if let Some(i) = index {
             let mut to_close = self.open_elems.len() - i;
@@ -291,7 +339,7 @@ where
         let start = elem.location.start;
         if !has_matched_end {
             // should only span the start of a tag, not the whole tag.
-            let err_location = SourceLocation{
+            let err_location = SourceLocation {
                 start: start.clone(),
                 end: start.clone(),
             };
@@ -314,7 +362,7 @@ where
         // trim pre tag's leading new line
         // https://html.spec.whatwg.org/multipage/syntax.html#element-restrictions
         if !pre_boundary {
-            return
+            return;
         }
         if let Some(AstNode::Text(tn)) = elem.children.last_mut() {
             tn.text.trim_leading_newline();
@@ -367,17 +415,17 @@ where
             return;
         }
         let pos = self.tokens.last_position();
-        let source_node = SourceNode{
+        let source_node = SourceNode {
             source: c,
-            location: self.tokens.get_location_from(pos)
+            location: self.tokens.get_location_from(pos),
         };
         self.insert_node(AstNode::Comment(source_node));
     }
     fn parse_interpolation(&mut self, src: &'a str) {
         let pos = self.tokens.last_position();
-        let source_node = SourceNode{
+        let source_node = SourceNode {
             source: src,
-            location: self.tokens.get_location_from(pos)
+            location: self.tokens.get_location_from(pos),
         };
         self.insert_node(AstNode::Interpolation(source_node));
     }
@@ -412,10 +460,12 @@ where
     #[inline]
     fn set_tokenizer_flag(&mut self) {
         if self.need_flag_namespace {
-            return
+            return;
         }
         // TODO: we can set flag only when namespace changes
-        let in_html = self.open_elems.last()
+        let in_html = self
+            .open_elems
+            .last()
             .map_or(true, |e| e.namespace == Namespace::Html);
         self.tokens.set_is_in_html(in_html)
     }
@@ -442,7 +492,8 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, need_condense: bool) {
                 Some(is_text)
             }
         };
-        nodes.iter()
+        nodes
+            .iter()
             .map(|n| matches!(n, AstNode::Text(_)))
             .try_fold(false, no_consecutive_text)
             .is_some()
@@ -457,7 +508,7 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, need_condense: bool) {
                     compress_text_node(&mut nodes[i]);
                 }
                 false
-            } else if  i == nodes.len() - 1 || i == 0 {
+            } else if i == nodes.len() - 1 || i == 0 {
                 // Remove the leading/trailing whitespace
                 true
             } else if !need_condense {
@@ -471,7 +522,7 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, need_condense: bool) {
                     (A::Comment(_), A::Comment(_)) => true,
                     _ if is_element(&prev) && is_element(&next) => {
                         child.text.contains(&['\r', '\n'][..])
-                    },
+                    }
                     _ => false,
                 }
             }
@@ -492,39 +543,6 @@ fn is_element(n: &AstNode) -> bool {
         A::Plain(_) | A::Template(_) | A::Component(_) | A::Slot(_) => true,
         _ => false,
     }
-}
-
-fn parse_directive<'a>(
-    attr: &Attribute<'a>
-) -> Option<Directive<'a>> {
-    let name = attr.name;
-    let dir_name = if name.starts_with(':') {
-        "bind"
-    } else if name.starts_with('@') {
-        "on"
-    } else if name.starts_with('#') {
-        "slot"
-    } else if name.starts_with('.') {
-        // https://v3.vuejs.org/api/directives.html#v-bind
-        "bind"
-    } else if name.starts_with("v-") {
-        // non-shorthand
-        if name.len() > 2 {
-            &name[2..]
-        } else {
-            // error
-            return None
-        }
-    } else {
-        return None;
-    };
-    Some(Directive {
-        name: dir_name,
-        argument: todo!(),
-        modifiers: todo!(),
-        expression: todo!(),
-        location: todo!(),
-    })
 }
 
 fn compress_text_node(n: &mut AstNode) {
@@ -558,4 +576,31 @@ fn element_matches_end_tag(e: &Element, tag: &str) -> bool {
 fn is_v_pre_boundary(elem: &Element) -> bool {
     let dirs = &elem.directives;
     dirs.iter().any(|d| d.name == "pre")
+}
+
+#[cfg(test)]
+mod test {
+    fn test() {
+        let cases = [
+            r#"<p :="tt"/>"#,          // bind, N/A,
+            r#"<p @="tt"/>"#,          // on, N/A,
+            r#"<p #="tt"/>"#,          // slot, default,
+            r#"<p :^_^="tt"/>"#,       // bind, ^_^
+            r#"<p :^_^.prop="tt"/>"#,  // bind, ^_^, prop
+            r#"<p :_:.prop="tt"/>"#,   // bind, _:, prop
+            r#"<p @::="tt"/>"#,        // on , :: ,
+            r#"<p @_@="tt"/>"#,        // on , _@ ,
+            r#"<p @_@.stop="tt"/>"#,   // on, _@, stop
+            r#"<p .stop="tt"/>"#,      // bind, stop, prop
+            r#"<p .^-^.attr="tt" />"#, // bind, ^-^, attr|prop
+            r#"<p v-="tt"/>"#,         // ERROR,
+            r#"<p v-:="tt"/>"#,        // ERROR,
+            r#"<p v-.="tt"/>"#,        // ERROR,
+            r#"<p v-@="tt"/>"#,        // @, N/A,
+            r#"<p v-#="tt"/>"#,        // #, N/A,
+            r#"<p v-^.stop="tt"/>"#,   // ^, N/A, stop
+            r#"<p v-a:.="tt"/>"#,      // ERROR
+            r#"<p v-a:b.="tt"/>"#,     // ERROR
+        ];
+    }
 }

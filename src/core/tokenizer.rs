@@ -3,18 +3,17 @@
 //! https://html.spec.whatwg.org/multipage/parsing.html#tokenization
 
 use super::{
-    error::{
-        CompilationError, ErrorHandler,
-        CompilationErrorKind as ErrorKind,
-    },
+    error::{CompilationError, CompilationErrorKind as ErrorKind, ErrorHandler},
     Name, Position, SourceLocation,
-};
-use std::{
-    borrow::Cow, ops::{Add, Deref}, str::Chars,
-    iter::FusedIterator,
 };
 use rustc_hash::FxHashSet;
 use smallvec::{smallvec, SmallVec};
+use std::{
+    borrow::Cow,
+    iter::FusedIterator,
+    ops::{Add, Deref},
+    str::Chars,
+};
 
 /// DecodedStr represents text after decoding html entities.
 /// SmallVec and Cow are used internally for less allocation.
@@ -23,9 +22,7 @@ pub struct DecodedStr<'a>(SmallVec<[Cow<'a, str>; 1]>);
 
 impl<'a> DecodedStr<'a> {
     pub fn is_all_whitespace(&self) -> bool {
-        self.0.iter().all(|s| {
-            !s.chars().any(non_whitespace)
-        })
+        self.0.iter().all(|s| !s.chars().any(non_whitespace))
     }
     pub fn trim_leading_newline(&mut self) {
         if self.0.is_empty() {
@@ -374,12 +371,20 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
             || !self.source.starts_with("=")
         {
             let location = self.get_location_from(start);
-            return Attribute { name, location, value: None };
+            return Attribute {
+                name,
+                location,
+                value: None,
+            };
         }
         self.move_by(1); // equal sign
         let value = self.scan_attr_value();
         let location = self.get_location_from(start);
-        Attribute { name, value, location }
+        Attribute {
+            name,
+            value,
+            location,
+        }
     }
     fn is_about_to_close_tag(&self) -> bool {
         let source = &self.source; // must get fresh source
@@ -432,7 +437,8 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
             self.scan_unquoted_attr_value()?
         };
         Some(AttributeValue {
-            content, location: self.get_location_from(start)
+            content,
+            location: self.get_location_from(start),
         })
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(double-quoted)-state
@@ -447,7 +453,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         } else if !self.source.is_empty() {
             self.move_by(self.source.len())
         } else {
-            return None
+            return None;
         };
         // https://html.spec.whatwg.org/multipage/parsing.html#after-attribute-value-(quoted)-state
         if !self.is_about_to_close_tag()
@@ -824,7 +830,7 @@ impl<'a, C: ErrorHandler> FlagCDataNs for Tokens<'a, C> {
     }
 }
 
-impl <'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
+impl<'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
     fn current_position(&self) -> Position {
         self.position.clone()
     }
@@ -837,14 +843,12 @@ impl <'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
     }
     fn get_location_from(&self, start: Position) -> SourceLocation {
         let end = self.current_position();
-        SourceLocation{start, end}
+        SourceLocation { start, end }
     }
 }
 
-pub trait TokenSource<'a>:
-FusedIterator<Item=Token<'a>> + FlagCDataNs + Locatable {}
-impl<'a, C> TokenSource<'a> for Tokens<'a, C>
-where C: ErrorHandler {}
+pub trait TokenSource<'a>: FusedIterator<Item = Token<'a>> + FlagCDataNs + Locatable {}
+impl<'a, C> TokenSource<'a> for Tokens<'a, C> where C: ErrorHandler {}
 
 #[cfg(test)]
 mod test {

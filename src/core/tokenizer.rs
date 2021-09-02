@@ -3,14 +3,11 @@
 //! https://html.spec.whatwg.org/multipage/parsing.html#tokenization
 
 use super::{
-    error::{
-        CompilationError, ErrorHandler,
-        CompilationErrorKind as ErrorKind,
-    },
+    error::{CompilationError, CompilationErrorKind as ErrorKind, ErrorHandler},
     Name, Position, SourceLocation,
 };
 use smallvec::{smallvec, SmallVec};
-use std::{borrow::Cow, str::Chars, ops::Add};
+use std::{borrow::Cow, ops::Add, str::Chars};
 
 /// DecodedStr represents text after decoding html entities.
 /// SmallVec and Cow are used internally for less allocation.
@@ -19,9 +16,7 @@ pub struct DecodedStr<'a>(SmallVec<[Cow<'a, str>; 1]>);
 
 impl<'a> DecodedStr<'a> {
     pub fn is_all_whitespace(&self) -> bool {
-        self.0.iter().all(|s| {
-            !s.chars().any(non_whitespace)
-        })
+        self.0.iter().all(|s| !s.chars().any(non_whitespace))
     }
     pub fn contains(&self, p: &[char]) -> bool {
         self.0.iter().any(|s| s.contains(p))
@@ -227,17 +222,14 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         // process html entity & later
         let index = self.source.find(&['<', d][..]);
         // no tag or interpolation found
-        if index.is_none() {
-            return self.scan_text(self.source.len());
+        match index {
+            None => self.scan_text(self.source.len()),
+            Some(i) if i != 0 => self.scan_text(i),
+            Some(_) if self.source.starts_with(&self.option.delimiters.0) => {
+                self.scan_interpolation()
+            }
+            _ => self.scan_tag_open(),
         }
-        let i = index.unwrap();
-        if i != 0 {
-            return self.scan_text(i);
-        }
-        if self.source.starts_with(&self.option.delimiters.0) {
-            return self.scan_interpolation();
-        }
-        self.scan_tag_open()
     }
 
     // produces an entity_decoded Text token.
@@ -787,7 +779,7 @@ impl<'a, C: ErrorHandler> FlagCDataNs for Tokens<'a, C> {
     }
 }
 
-impl <'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
+impl<'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
     fn current_position(&self) -> Position {
         self.position.clone()
     }
@@ -800,14 +792,12 @@ impl <'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
     }
     fn get_location_from(&self, start: Position) -> SourceLocation {
         let end = self.current_position();
-        SourceLocation{start, end}
+        SourceLocation { start, end }
     }
 }
 
-pub trait TokenSource<'a>:
-Iterator<Item=Token<'a>> + FlagCDataNs + Locatable {}
-impl<'a, C> TokenSource<'a> for Tokens<'a, C>
-where C: ErrorHandler {}
+pub trait TokenSource<'a>: Iterator<Item = Token<'a>> + FlagCDataNs + Locatable {}
+impl<'a, C> TokenSource<'a> for Tokens<'a, C> where C: ErrorHandler {}
 
 #[cfg(test)]
 mod test {

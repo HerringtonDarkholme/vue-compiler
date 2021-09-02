@@ -9,21 +9,21 @@ pub trait CodeGenerator {
 }
 
 pub fn generate(node: IRNode) {
-    use IRNode as IR;
+    use IRNode::*;
     match node {
-        IR::Text => generate_text(),
-        IR::Interpolation => generate_interpolation(),
-        IR::Simple => generate_simple(),
-        IR::Compound => generate_compound(),
-        IR::Comment => generate_comment(),
-        IR::VNode => generate_vnode(),
-        IR::Call => generate_call(),
-        IR::Object => generate_object(),
-        IR::Array => generate_array(),
-        IR::Function => generate_function(),
-        IR::Conditional => generate_conditional(),
-        IR::Cache => generate_cache(),
-        IR::Block => generate_block(),
+        Text => generate_text(),
+        Interpolation => generate_interpolation(),
+        Simple => generate_simple(),
+        Compound => generate_compound(),
+        Comment => generate_comment(),
+        VNode => generate_vnode(),
+        Call => generate_call(),
+        Object => generate_object(),
+        Array => generate_array(),
+        Function => generate_function(),
+        Conditional => generate_conditional(),
+        Cache => generate_cache(),
+        Block => generate_block(),
     }
 }
 

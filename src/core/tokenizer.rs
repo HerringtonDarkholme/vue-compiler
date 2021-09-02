@@ -844,6 +844,8 @@ mod test {
             r#"<tag =value />"#,
             r#"<a wrong-attr>=123 />"#,
             r#"<a></a < / attr attr=">" >"#,
+            r#"<a attr="1123"#,              // unclosed quote
+            r#"<a attr=""#,                  // unclosed without val
             r#"<!-->"#,                      // abrupt closing
             r#"<!--->"#,                     // abrupt closing
             r#"<!---->"#,                    // ok

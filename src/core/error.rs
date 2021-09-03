@@ -35,6 +35,7 @@ pub enum CompilationErrorKind {
     MissingDirectiveName,
     MissingDirectiveArg,
     MissingDirectiveMod,
+    InvalidVSlotModifier,
 
     // TODO
     // transform errors
@@ -137,6 +138,7 @@ fn msg(kind: &CompilationErrorKind) -> &'static str {
         k::MissingDirectiveName => "Legal directive name was expected.",
         k::MissingDirectiveArg => "Directive argument was expected.",
         k::MissingDirectiveMod => "Directive modifier was expected.",
+        k::InvalidVSlotModifier => "v-slot does not take modifier.",
 
         // transform errors
         k::VIfNoExpression => "v-if/v-else-if is missing expression.",

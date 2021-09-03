@@ -186,11 +186,11 @@ where
 }
 
 const BIND_CHAR: char = ':';
-const ARG_CHAR: char = '.';
+const MOD_CHAR: char = '.';
 const ON_CHAR: char = '@';
 const SLOT_CHAR: char = '#';
-const SEP_BYTES: &[u8] = &[BIND_CHAR as u8, ARG_CHAR as u8];
-const SHORTHANDS: &[char] = &[BIND_CHAR, ON_CHAR, SLOT_CHAR, ARG_CHAR];
+const SEP_BYTES: &[u8] = &[BIND_CHAR as u8, MOD_CHAR as u8];
+const SHORTHANDS: &[char] = &[BIND_CHAR, ON_CHAR, SLOT_CHAR, MOD_CHAR];
 const DIR_MARK: &str = "v-";
 // parse logic
 impl<'a, Ts, Eh> AstBuilder<'a, Ts, Eh>
@@ -289,7 +289,7 @@ where
     fn parse_directive(&self, attr: &Attribute<'a>) -> Option<Directive<'a>> {
         let (name, prefixed) = self.parse_directive_name(attr)?;
         debug_assert!(attr.name.starts_with(SHORTHANDS) || attr.name.starts_with(DIR_MARK));
-        let (arg_str, mods_str) = self.split_arg_and_mods(name, prefixed);
+        let (arg_str, mods_str) = self.split_arg_and_mods(name == "slot", prefixed);
         let argument = self.parse_directive_arg(arg_str);
         let modifiers = self.parse_directive_mods(mods_str);
         let expression = todo!("how to take option from attr?");
@@ -306,7 +306,7 @@ where
         let name = attr.name;
         if !name.starts_with(DIR_MARK) {
             let ret = match name.chars().next()? {
-                BIND_CHAR | ARG_CHAR => "bind",
+                BIND_CHAR | MOD_CHAR => "bind",
                 ON_CHAR => "on",
                 SLOT_CHAR => "slot",
                 _ => return None,
@@ -326,24 +326,29 @@ where
         }
         Some(ret)
     }
-    fn split_arg_and_mods(&self, name: &'a str, prefixed: &'a str) -> (&'a str, &'a str) {
+    fn split_arg_and_mods(&self, is_slot: bool, prefixed: &'a str) -> (&'a str, &'a str) {
         // prefixed should either be empty or starts with shorthand.
         debug_assert!(prefixed.is_empty() || prefixed.starts_with(SHORTHANDS));
         if prefixed.is_empty() {
             return ("", "");
         }
+        if prefixed.len() == 1 {
+            self.emit_error(ErrorKind::MissingDirectiveArg, todo!());
+        }
         // bind/on/customDir accept arg, mod. slot accepts nothing.
         // see vuejs/vue-next#1241 special case for v-slot
-        // We probably should disallow this in future.
-        if name == "slot" {
-            if prefixed.starts_with(ARG_CHAR) {
+        if is_slot {
+            if prefixed.starts_with(MOD_CHAR) {
                 // only . can end dir_name, e.g. v-slot.error
-                self.emit_error(ErrorKind::MissingDirectiveArg, todo!());
-                ("default", "")
+                self.emit_error(ErrorKind::InvalidVSlotModifier, todo!());
+                ("", "")
             } else {
                 debug_assert!(prefixed.starts_with(&[SLOT_CHAR, BIND_CHAR][..]));
                 (&prefixed[1..], "")
             }
+        } else if prefixed.bytes().nth(1).map_or(false, |b| b == b'[') {
+            // dynamic arg
+            todo!("emit error for case like :[arg]err.test")
         } else {
             debug_assert!(!prefixed.starts_with(SLOT_CHAR));
             // handle .prop shorthand elsewhere
@@ -351,19 +356,27 @@ where
             remain
                 .as_bytes()
                 .iter()
-                .position(|&u| u == ARG_CHAR as u8)
+                .position(|&u| u == MOD_CHAR as u8)
                 .map(|i| remain.split_at(i))
                 .unwrap_or((remain, ""))
         }
     }
     fn parse_directive_arg(&self, arg: &'a str) -> Option<DirectiveArg<'a>> {
-        debug_assert!(arg.is_empty() || arg.starts_with(ARG_CHAR));
         if arg.is_empty() {
             return None;
         }
-        todo!()
+        if !arg.starts_with('[') {
+            return Some(DirectiveArg::Static(arg));
+        }
+        if let Some(i) = arg.bytes().position(|c| c == b']') {
+            debug_assert!(i == arg.len() - 1);
+            todo!()
+        } else {
+            todo!()
+        }
     }
     fn parse_directive_mods(&self, mods: &'a str) -> Vec<&'a str> {
+        debug_assert!(mods.is_empty() || mods.starts_with(MOD_CHAR));
         todo!()
     }
     fn handle_pre_like(&mut self, elem: &Element) {
@@ -680,6 +693,9 @@ mod test {
             r#"<p v-slot.-="tt"/>"#,    // ERROR: slot, N/A, -
             r#"<p v-slot@.@="tt"/>"#,   // slot@, N/A, @
             r#"<p v-🖖:🤘.🤙/>"#, // unicode, VUE in hand sign
+            r#"<p :[a.b].stop="tt"/>"#, // bind, [a.b], stop
+            r#"<p :[]="tt"/>"#,         // bind, nothing, stop
+            r#"<p :[t]err="tt"/>"#,     // bind, nothing, stop
         ];
         for &case in cases.iter() {
             let ast = base_parse(case);

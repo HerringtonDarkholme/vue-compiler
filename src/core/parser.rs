@@ -91,20 +91,20 @@ impl Default for WhitespaceStrategy {
     }
 }
 
-/// To understand `is_xxx` methods in ParseOption requires knowing their targeted audience.
-/// We have three levels of developers for Vue compiler:
-///
-/// * Platform user: every Vue developers who write component and application code.
-/// * Platform developer: devs who write compiler implementation for DOM/SSR/Native platform.
-/// * Library author: Vue core lib author a.k.a Evan.
-///
-/// The core library targets multiple platforms and can be extended to support more.
-/// Core library components span all platforms and are hardwired to the core lib runtime.
-/// Platforms are usually DOM or SSR environment. Hosts are browser and node, respectively.
-/// Developing a platform needs to write code for both vue-compiler and vue-runtime.
-/// Optionally platform developer can write code in host, e.g. in hybrid app or mini-program.
-/// And finally end users can write business code and
-/// application components targeted to certain platforms. ()
+// To understand `is_xxx` methods in ParseOption requires knowing their targeted audience.
+// We have three levels of developers for Vue compiler:
+//
+// * Platform user: every Vue developers who write component and application code.
+// * Platform developer: devs who write compiler implementation for DOM/SSR/Native platform.
+// * Library author: Vue core lib author a.k.a Evan.
+//
+// The core library targets multiple platforms and can be extended to support more.
+// Core library components span all platforms and are hardwired to the core lib runtime.
+// Platforms are usually DOM or SSR environment. Hosts are browser and node, respectively.
+// Developing a platform needs to write code for both vue-compiler and vue-runtime.
+// Optionally platform developer can write code in host, e.g. in hybrid app or mini-program.
+// And finally end users can write business code and
+// application components targeted to certain platforms. ()
 #[derive(Clone)]
 pub struct ParseOption {
     whitespace: WhitespaceStrategy,

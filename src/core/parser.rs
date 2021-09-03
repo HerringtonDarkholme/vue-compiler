@@ -169,7 +169,7 @@ const BIND_CHAR: char = ':';
 const ARG_CHAR: char = '.';
 const ON_CHAR: char = '@';
 const SLOT_CHAR: char = '#';
-const DIR_SEP: &[char] = &[BIND_CHAR, ARG_CHAR];
+const SEP_BYTES: &[u8] = &[BIND_CHAR as u8, ARG_CHAR as u8];
 const SHORTHANDS: &[char] = &[BIND_CHAR, ON_CHAR, SLOT_CHAR, ARG_CHAR];
 const DIR_MARK: &str = "v-";
 // parse logic
@@ -295,8 +295,10 @@ where
         }
         let n = &name[2..];
         let ret = n
-            .find(DIR_SEP)
-            .map(|i| (&n[..i], &n[i..]))
+            .as_bytes()
+            .iter()
+            .position(|c| SEP_BYTES.contains(c))
+            .map(|i| n.split_at(i))
             .unwrap_or((n, ""));
         if ret.0.is_empty() {
             self.emit_error(ErrorKind::MissingDirectiveName, todo!());
@@ -327,8 +329,10 @@ where
             // handle .prop shorthand elsewhere
             let remain = &prefixed[1..];
             remain
-                .find(ARG_CHAR)
-                .map(|i| (&remain[..i], &remain[i..]))
+                .as_bytes()
+                .iter()
+                .position(|&u| u == ARG_CHAR as u8)
+                .map(|i| remain.split_at(i))
                 .unwrap_or((remain, ""))
         }
     }

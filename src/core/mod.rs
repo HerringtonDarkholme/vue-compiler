@@ -46,7 +46,7 @@ pub struct SourceLocation {
 
 /// namespace for HTML/SVG/MathML tag
 #[non_exhaustive]
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Namespace {
     Html,
     Svg,

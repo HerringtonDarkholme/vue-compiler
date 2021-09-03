@@ -851,11 +851,8 @@ pub trait TokenSource<'a>: FusedIterator<Item = Token<'a>> + FlagCDataNs + Locat
 impl<'a, C> TokenSource<'a> for Tokens<'a, C> where C: ErrorHandler {}
 
 #[cfg(test)]
-mod test {
-    use super::*;
-    #[derive(Clone)]
-    struct TestCtx;
-    impl ErrorHandler for TestCtx {}
+pub mod test {
+    use super::{super::error::test::TestErrorHandler, *};
     #[test]
     fn test() {
         let cases = [
@@ -880,13 +877,16 @@ mod test {
             r#"<style></styles"#,
             r#"<style></style "#,
         ];
-        let tokenizer = Tokenizer::new(TokenizeOption::default());
-        let ctx = TestCtx;
         for &case in cases.iter() {
-            let tokens = tokenizer.scan(case, ctx.clone());
-            for t in tokens {
+            for t in base_scan(case) {
                 println!("{:?}", t);
             }
         }
+    }
+
+    pub fn base_scan(s: &str) -> impl TokenSource {
+        let tokenizer = Tokenizer::new(TokenizeOption::default());
+        let ctx = TestErrorHandler;
+        tokenizer.scan(s, ctx)
     }
 }

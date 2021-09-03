@@ -20,6 +20,7 @@ use super::{
     Name, Namespace, SourceLocation,
 };
 
+#[derive(Debug)]
 pub enum AstNode<'a> {
     Plain(Element<'a>),
     Template(Element<'a>),
@@ -30,16 +31,19 @@ pub enum AstNode<'a> {
     Comment(SourceNode<'a>),
 }
 
+#[derive(Debug)]
 pub struct SourceNode<'a> {
     pub source: &'a str,
     pub location: SourceLocation,
 }
 
+#[derive(Debug)]
 pub struct TextNode<'a> {
     pub text: DecodedStr<'a>,
     pub location: SourceLocation,
 }
 
+#[derive(Debug)]
 pub struct Element<'a> {
     pub tag_name: Name<'a>,
     pub namespace: Namespace,
@@ -51,6 +55,7 @@ pub struct Element<'a> {
 
 /// Directive supports two forms
 /// static and dynamic
+#[derive(Debug)]
 enum DirectiveArg<'a> {
     // :static="val"
     Static(Name<'a>),
@@ -59,6 +64,7 @@ enum DirectiveArg<'a> {
 
 /// Directive has the form
 /// v-name:arg.mod1.mod2="expr"
+#[derive(Debug)]
 pub struct Directive<'a> {
     name: Name<'a>,
     argument: Option<DirectiveArg<'a>>,
@@ -67,6 +73,7 @@ pub struct Directive<'a> {
     location: SourceLocation,
 }
 
+#[derive(Debug)]
 pub struct AstRoot<'a> {
     children: Vec<AstNode<'a>>,
     location: SourceLocation,
@@ -93,6 +100,19 @@ pub struct ParseOption {
     // probably we don't need configure pre tag?
     // in original Vue this is only used for parsing SFC.
     is_pre_tag: fn(&str) -> bool,
+}
+
+impl Default for ParseOption {
+    fn default() -> Self {
+        Self {
+            whitespace: WhitespaceStrategy::Condense,
+            preserve_comment: true,
+            get_namespace: |_, _| Namespace::Html,
+            get_text_mode: |_| TextMode::Data,
+            is_void_tag: |_| false,
+            is_pre_tag: |s| s == "pre",
+        }
+    }
 }
 
 pub struct Parser {
@@ -628,6 +648,10 @@ fn is_v_pre_boundary(elem: &Element) -> bool {
 
 #[cfg(test)]
 mod test {
+    use super::super::{error::test::TestErrorHandler, tokenizer};
+    use super::*;
+
+    #[test]
     fn test() {
         let cases = [
             r#"<p :="tt"/>"#,           // bind, N/A,
@@ -657,5 +681,16 @@ mod test {
             r#"<p v-slot@.@="tt"/>"#,   // slot@, N/A, @
             r#"<p v-🖖:🤘.🤙/>"#, // unicode, VUE in hand sign
         ];
+        for &case in cases.iter() {
+            let ast = base_parse(case);
+            println!("{:?}", ast);
+        }
+    }
+
+    pub fn base_parse(s: &str) -> AstRoot {
+        let tokens = tokenizer::test::base_scan(s);
+        let parser = Parser::new(ParseOption::default());
+        let eh = TestErrorHandler;
+        parser.parse(tokens, eh)
     }
 }

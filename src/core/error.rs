@@ -192,3 +192,11 @@ pub trait ErrorHandler: Clone {
     // use RefCell as implementation
     fn on_error(&self, _: CompilationError) {}
 }
+
+#[cfg(test)]
+pub mod test {
+    use super::ErrorHandler;
+    #[derive(Clone)]
+    pub struct TestErrorHandler;
+    impl ErrorHandler for TestErrorHandler {}
+}

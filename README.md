@@ -31,6 +31,7 @@ The compilation has several phases:
 
 ## Implementation Detail
 
+* Plenty of `debug_assert`s to maintain compiler state invariants.
 * The library seeks minimal allocation by using `&str`, `Cow<'_, str>` and `smallvec`.
 * `Fxhash` is preferred over default hasher since hash collision is not a concern.
 * The `bitflags` crate is used to represent runtime helper and vnode patch flags.

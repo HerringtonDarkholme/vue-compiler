@@ -165,8 +165,12 @@ where
     }
 }
 
-const DIR_SEP: &[char] = &['.', ':'];
-const SHORTHANDS: &[char] = &[':', '@', '#', '.'];
+const BIND_CHAR: char = ':';
+const ARG_CHAR: char = '.';
+const ON_CHAR: char = '@';
+const SLOT_CHAR: char = '#';
+const DIR_SEP: &[char] = &[BIND_CHAR, ARG_CHAR];
+const SHORTHANDS: &[char] = &[BIND_CHAR, ON_CHAR, SLOT_CHAR, ARG_CHAR];
 const DIR_MARK: &str = "v-";
 // parse logic
 impl<'a, Ts, Eh> AstBuilder<'a, Ts, Eh>
@@ -284,9 +288,9 @@ where
             let ret = match name.chars().next()? {
                 // https://v3.vuejs.org/api/directives.html#v-bind
                 // . is the new shorthand for v-bind.prop
-                ':' | '.' => "bind",
-                '@' => "on",
-                '#' => "slot",
+                BIND_CHAR | ARG_CHAR => "bind",
+                ON_CHAR => "on",
+                SLOT_CHAR => "slot",
                 _ => return None,
             };
             return Some((ret, name));
@@ -305,19 +309,19 @@ where
     fn split_arg_and_mods(&self, name: &'a str, prefixed: &'a str) -> (&'a str, &'a str) {
         // prefixed should either be empty or starts with shorthand.
         debug_assert!(prefixed.is_empty() || prefixed.starts_with(SHORTHANDS));
-        // bind/on/customDir accept arg, mod. slot accepts nothing.
         if prefixed.is_empty() {
             return ("", "");
         }
+        // bind/on/customDir accept arg, mod. slot accepts nothing.
         // see vue-next #1241 special case for v-slot
         // We probably should disallow this in future.
         if name == "slot" {
-            return if prefixed.starts_with('.') {
+            return if prefixed.starts_with(ARG_CHAR) {
                 // only . can end dir_name, e.g. v-slot.error
                 self.emit_error(ErrorKind::MissingDirectiveArg, todo!());
                 ("default", "")
             } else {
-                debug_assert!(prefixed.starts_with(&['#', ':'][..]));
+                debug_assert!(prefixed.starts_with(&[SLOT_CHAR, BIND_CHAR][..]));
                 (&prefixed[1..], "")
             };
         }
@@ -628,6 +632,7 @@ mod test {
             r#"<p @::="tt"/>"#,        // on , :: ,
             r#"<p @_@="tt"/>"#,        // on , _@ ,
             r#"<p @_@.stop="tt"/>"#,   // on, _@, stop
+            r#"<p @.stop="tt"/>"#,     // on, N/A, stop
             r#"<p .stop="tt"/>"#,      // bind, stop, prop
             r#"<p .^-^.attr="tt" />"#, // bind, ^-^, attr|prop
             r#"<p v-="tt"/>"#,         // ERROR,

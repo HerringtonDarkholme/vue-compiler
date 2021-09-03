@@ -17,6 +17,7 @@
 use super::{
     error::{CompilationError, CompilationErrorKind as ErrorKind, ErrorHandler},
     tokenizer::{Attribute, AttributeValue, DecodedStr, Tag, TextMode, Token, TokenSource},
+    util::{is_core_component, no, yes},
     Name, Namespace, SourceLocation,
 };
 
@@ -90,16 +91,38 @@ impl Default for WhitespaceStrategy {
     }
 }
 
+/// To understand `is_xxx` methods in ParseOption requires knowing their targeted audience.
+/// We have three levels of developers for Vue compiler:
+///
+/// * Platform user: every Vue developers who write component and application code.
+/// * Platform developer: devs who write compiler implementation for DOM/SSR/Native platform.
+/// * Library author: Vue core lib author a.k.a Evan.
+///
+/// The core library targets multiple platforms and can be extended to support more.
+/// Core library components span all platforms and are hardwired to the core lib runtime.
+/// Platforms are usually DOM or SSR environment. Hosts are browser and node, respectively.
+/// Developing a platform needs to write code for both vue-compiler and vue-runtime.
+/// Optionally platform developer can write code in host, e.g. in hybrid app or mini-program.
+/// And finally end users can write business code and
+/// application components targeted to certain platforms. ()
 #[derive(Clone)]
 pub struct ParseOption {
     whitespace: WhitespaceStrategy,
     preserve_comment: bool,
     get_namespace: fn(&str, &Vec<Element<'_>>) -> Namespace,
     get_text_mode: fn(&str) -> TextMode,
+    /// Returns if a tag is self closing.
     is_void_tag: fn(&str) -> bool,
     // probably we don't need configure pre tag?
     // in original Vue this is only used for parsing SFC.
     is_pre_tag: fn(&str) -> bool,
+    /// Exposed to end user for customization like importing web-component from React.
+    is_custom_element: fn(&str) -> bool,
+    /// For platform developers. Registers platform specific components written in JS.
+    /// e.g. transition, transition-group. Components that require code in Vue runtime.
+    is_builtin_component: fn(&str) -> bool,
+    /// For platform developer. Registers platform components written in host language like C++.
+    is_native_element: fn(&str) -> bool,
 }
 
 impl Default for ParseOption {
@@ -109,8 +132,11 @@ impl Default for ParseOption {
             preserve_comment: true,
             get_namespace: |_, _| Namespace::Html,
             get_text_mode: |_| TextMode::Data,
-            is_void_tag: |_| false,
+            is_void_tag: no,
             is_pre_tag: |s| s == "pre",
+            is_custom_element: no,
+            is_builtin_component: no,
+            is_native_element: yes,
         }
     }
 }
@@ -459,7 +485,35 @@ where
     }
 
     fn is_component(&self, e: &Element) -> bool {
-        todo!()
+        let opt = &self.option;
+        let tag_name = e.tag_name;
+        if (opt.is_custom_element)(tag_name) {
+            return false;
+        }
+        if tag_name == "component"
+            || tag_name.starts_with(|c| matches!(c, 'A'..='Z'))
+            || is_core_component(tag_name)
+            || (opt.is_builtin_component)(tag_name)
+            || !(opt.is_native_element)(tag_name)
+        {
+            return true;
+        }
+        for attr in e.attributes.iter() {
+            if attr.name != "is" {
+                continue;
+            }
+            if let Some(v) = &attr.value {
+                if v.content.starts_with("vue:") {
+                    return true;
+                }
+            }
+        }
+        for dir in e.directives.iter() {
+            if dir.name == "is" {
+                return true;
+            }
+        }
+        false
     }
 
     fn need_condense(&self) -> bool {

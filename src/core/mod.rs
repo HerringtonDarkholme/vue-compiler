@@ -2,10 +2,11 @@
 pub mod codegen;
 pub mod error;
 pub mod ir_converter;
-pub mod parser;
+mod parser;
 pub mod runtime_helper;
-pub mod tokenizer;
+mod tokenizer;
 pub mod transformer;
+mod util;
 
 pub use codegen::CodeGenerator;
 use error::{CompilationError, ErrorHandler};

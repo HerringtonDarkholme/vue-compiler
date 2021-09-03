@@ -551,7 +551,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
     }
     fn detect_directive(&mut self, attr: &Attribute<'a>) -> bool {
         debug_assert!(self.cached.is_none());
-        self.cached = self.detect_dir_name(&attr);
+        self.cached = self.detect_dir_name(attr);
         self.cached.is_some()
     }
     fn set_location(&mut self, attr: &Attribute<'a>) {

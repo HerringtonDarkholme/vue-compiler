@@ -70,6 +70,7 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
 pub struct Attribute<'a> {
     pub name: Name<'a>,
     pub value: Option<AttributeValue<'a>>,
+    pub name_loc: SourceLocation,
     pub location: SourceLocation,
 }
 
@@ -364,6 +365,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         debug_assert!(!self.source.is_empty());
         let start = self.current_position();
         let name = self.scan_attr_name();
+        let name_loc = self.get_location_from(start.clone());
         // 13.2.5.34 After attribute name state, ignore white spaces
         self.skip_whitespace();
         if self.is_about_to_close_tag()
@@ -374,6 +376,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
             return Attribute {
                 name,
                 location,
+                name_loc,
                 value: None,
             };
         }
@@ -384,6 +387,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
             name,
             value,
             location,
+            name_loc,
         }
     }
     fn is_about_to_close_tag(&self) -> bool {
@@ -859,6 +863,9 @@ pub mod test {
             r#"<a test="value">...</a>"#,
             r#"<a v-bind:['foo' + bar]="value">...</a>"#,
             r#"<tag =value />"#,
+            r#"<a =123 />"#,
+            r#"<a ==123 />"#,
+            r#"<a == />"#,
             r#"<a wrong-attr>=123 />"#,
             r#"<a></a < / attr attr=">" >"#,
             r#"<a attr="1123"#,              // unclosed quote

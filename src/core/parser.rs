@@ -502,7 +502,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
     }
     fn set_location(&mut self, attr: &Attribute<'a>) {
         self.location = attr.location.clone();
-        self.name_loc = todo!();
+        self.name_loc = attr.name_loc.clone();
     }
 
     fn parse(&mut self, attr: Attribute<'a>) -> Directive<'a> {

@@ -32,6 +32,7 @@ pub enum CompilationErrorKind {
     MissingEndTag,
     MissingInterpolationEnd,
     MissingDynamicDirectiveArgumentEnd, // TODO
+    UnexpectedContentAfterDynamicDirective,
     MissingDirectiveName,
     MissingDirectiveArg,
     MissingDirectiveMod,
@@ -135,6 +136,8 @@ fn msg(kind: &CompilationErrorKind) -> &'static str {
         k::MissingInterpolationEnd => "Interpolation end sign was not found.",
         k::MissingDynamicDirectiveArgumentEnd =>
             "End bracket for dynamic directive argument was not found. Note that dynamic directive argument cannot contain spaces.",
+        k::UnexpectedContentAfterDynamicDirective =>
+            "Unexpected content was found after a closed dynamic argument. Add a dot as separator if it is a modifier.",
         k::MissingDirectiveName => "Legal directive name was expected.",
         k::MissingDirectiveArg => "Directive argument was expected.",
         k::MissingDirectiveMod => "Directive modifier was expected.",

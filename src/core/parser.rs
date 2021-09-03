@@ -549,6 +549,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
         }
         Some(ret)
     }
+    // Returns arg without shorthand/separator and dot-leading mods
     fn split_arg_and_mods(&self, is_slot: bool, prefixed: &'a str) -> (&'a str, &'a str) {
         // prefixed should either be empty or starts with shorthand.
         debug_assert!(prefixed.is_empty() || prefixed.starts_with(SHORTHANDS));
@@ -557,6 +558,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
         }
         if prefixed.len() == 1 {
             self.attr_name_err(ErrorKind::MissingDirectiveArg);
+            return ("", "");
         }
         // bind/on/customDir accept arg, mod. slot accepts nothing.
         // see vuejs/vue-next#1241 special case for v-slot
@@ -569,9 +571,20 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
                 debug_assert!(prefixed.starts_with(&[SLOT_CHAR, BIND_CHAR][..]));
                 (&prefixed[1..], "")
             }
-        } else if prefixed.bytes().nth(1).map_or(false, |b| b == b'[') {
+        } else if prefixed.as_bytes().get(1).map_or(false, |b| *b == b'[') {
             // dynamic arg
-            todo!("emit error for case like :[arg]err.test")
+            let remain = &prefixed[1..];
+            let bytes = prefixed.as_bytes();
+            let end = bytes
+                .iter()
+                .position(|b| *b == b']')
+                .map_or(bytes.len(), |i| i + 1);
+            let (arg, mut mods) = remain.split_at(end);
+            if mods.starts_with(|c| c != MOD_CHAR) {
+                self.attr_name_err(ErrorKind::UnexpectedContentAfterDynamicDirective);
+                mods = mods.trim_matches(|c| c != MOD_CHAR);
+            }
+            (arg, mods)
         } else {
             debug_assert!(!prefixed.starts_with(SLOT_CHAR));
             // handle .prop shorthand elsewhere
@@ -738,10 +751,10 @@ mod test {
             r#"<p :[]="tt"/>"#,         // bind, nothing, stop
             r#"<p :[t]err="tt"/>"#,     // bind, nothing, stop
         ];
-        for &case in cases.iter() {
-            let ast = base_parse(case);
-            println!("{:?}", ast);
-        }
+        // for &case in cases.iter() {
+        //     let ast = base_parse(case);
+        //     println!("{:?}", ast);
+        // }
     }
 
     pub fn base_parse(s: &str) -> AstRoot {

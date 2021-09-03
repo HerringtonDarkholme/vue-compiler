@@ -368,7 +368,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         self.skip_whitespace();
         if self.is_about_to_close_tag()
             || self.did_skip_slash_in_tag()
-            || !self.source.starts_with("=")
+            || !self.source.starts_with('=')
         {
             let location = self.get_location_from(start);
             return Attribute {

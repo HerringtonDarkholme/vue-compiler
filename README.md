@@ -76,6 +76,6 @@ Todo tasks grouped by scopes.
 - [ ] Integrated benchmarks using repos like [Element-Plus](https://github.com/element-plus/element-plus)
 ### [infra]
 - [x] Add [pre-commit](https://pre-commit.com/) hooks.
-- [ ] Add Github Actions for various checks.
+- [x] Add Github Actions for various checks.
 ### [community]
 - [ ] TODO. not ready for contribution for now.

@@ -319,7 +319,7 @@ where
             self.pre_count += 1;
         }
         // open_v_pre
-        if is_v_pre_boundary(&elem) {
+        if is_v_pre_boundary(elem) {
             debug_assert!(self.v_pre_index.is_none());
             self.v_pre_index = Some(self.open_elems.len());
         }
@@ -487,10 +487,7 @@ where
     }
 
     fn need_condense(&self) -> bool {
-        match self.option.whitespace {
-            WhitespaceStrategy::Condense => true,
-            _ => false,
-        }
+        matches!(self.option.whitespace, WhitespaceStrategy::Condense)
     }
 }
 
@@ -532,7 +529,7 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, need_condense: bool) {
                 let next = &nodes[i + 1];
                 match (prev, next) {
                     (A::Comment(_), A::Comment(_)) => true,
-                    _ if is_element(&prev) && is_element(&next) => {
+                    _ if is_element(prev) && is_element(next) => {
                         child.text.contains(&['\r', '\n'][..])
                     }
                     _ => false,
@@ -551,10 +548,10 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, need_condense: bool) {
 
 fn is_element(n: &AstNode) -> bool {
     use AstNode as A;
-    match n {
-        A::Plain(_) | A::Template(_) | A::Component(_) | A::Slot(_) => true,
-        _ => false,
-    }
+    matches!(
+        n,
+        A::Plain(_) | A::Template(_) | A::Component(_) | A::Slot(_)
+    )
 }
 
 fn compress_text_node(n: &mut AstNode) {

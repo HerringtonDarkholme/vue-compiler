@@ -88,7 +88,7 @@ where
     let tokenizer = Tokenizer::new(opt.tokenization);
     let parser = Parser::new(opt.parsing);
     let tokens = tokenizer.scan(source, eh.clone());
-    let ast = parser.parse(tokens, eh.clone());
+    let ast = parser.parse(tokens, eh);
     let mut ir = conv.convert_ir(ast);
     trans.transform(&mut ir);
     Ok(gen.generate(ir))

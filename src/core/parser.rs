@@ -63,7 +63,7 @@ pub struct Directive<'a> {
     name: Name<'a>,
     argument: Option<DirectiveArg<'a>>,
     modifiers: Vec<&'a str>,
-    expression: AttributeValue<'a>,
+    expression: Option<AttributeValue<'a>>,
     location: SourceLocation,
 }
 
@@ -260,23 +260,20 @@ where
     }
 
     fn parse_directive(&self, attr: &Attribute<'a>) -> Option<Directive<'a>> {
-        let (name, remain) = self.parse_directive_name(attr)?;
-        // "bind" accept arg, mod
-        // "on"  accept arg, mod
-        // "slot" accept nothing
-        let (argument, modifiers) = if name == "slot" {
-            (self.parse_directive_arg(remain), vec![])
-        } else {
-            todo!()
-        };
+        let (name, prefixed) = self.parse_directive_name(attr)?;
+        let (arg_str, mods_str) = self.split_arg_and_mods(name, prefixed);
+        let argument = self.parse_directive_arg(arg_str);
+        let modifiers = self.parse_directive_mods(mods_str);
+        let expression = todo!("how to take option from attr?");
         Some(Directive {
             name,
             argument,
             modifiers,
-            expression: todo!(),
+            expression,
             location: todo!(),
         })
     }
+    // Returns the directive name and shorthand-prefixed arg/mod str, if any.
     fn parse_directive_name(&self, attr: &Attribute<'a>) -> Option<(&'a str, &'a str)> {
         let name = attr.name;
         if !name.starts_with("v-") {
@@ -302,9 +299,31 @@ where
         }
         Some(ret)
     }
-    fn parse_directive_arg(&self, s: &'a str) -> Option<DirectiveArg<'a>> {
-        debug_assert!(s.is_empty() || s.starts_with(|c| "@#:.".contains(c)));
+    fn split_arg_and_mods(&self, name: &'a str, prefixed: &'a str) -> (&'a str, &'a str) {
+        // prefixed should either be empty or starts with shorthand.
+        debug_assert!(prefixed.is_empty() || prefixed.starts_with(|c| "@#:.".contains(c)));
+        // bind/on/customDir accept arg, mod. slot accepts nothing.
+        if prefixed.is_empty() {
+            return ("", "");
+        }
         // see vue-next #1241 special case for v-slot
+        // We probably should disallow this in future.
+        if name == "slot" {
+            return if prefixed.starts_with('.') {
+                // only . can end dir_name, e.g. v-slot.error
+                self.emit_error(ErrorKind::MissingDirectiveArg, todo!());
+                ("default", "")
+            } else {
+                debug_assert!(prefixed.starts_with(&['#', ':'][..]));
+                (&prefixed[1..], "")
+            };
+        }
+        todo!()
+    }
+    fn parse_directive_arg(&self, arg: &'a str) -> Option<DirectiveArg<'a>> {
+        todo!()
+    }
+    fn parse_directive_mods(&self, mods: &'a str) -> Vec<&'a str> {
         todo!()
     }
     fn handle_pre_like(&mut self, elem: &Element) {
@@ -597,6 +616,9 @@ mod test {
             r#"<p :="tt"/>"#,          // bind, N/A,
             r#"<p @="tt"/>"#,          // on, N/A,
             r#"<p #="tt"/>"#,          // slot, default,
+            r#"<p #:)="tt"/>"#,        // slot, :),
+            r#"<p #@_@="tt"/>"#,       // slot, @_@,
+            r#"<p #.-.="tt"/>"#,       // slot, .-.,
             r#"<p :^_^="tt"/>"#,       // bind, ^_^
             r#"<p :^_^.prop="tt"/>"#,  // bind, ^_^, prop
             r#"<p :_:.prop="tt"/>"#,   // bind, _:, prop
@@ -613,6 +635,8 @@ mod test {
             r#"<p v-^.stop="tt"/>"#,   // ^, N/A, stop
             r#"<p v-a:.="tt"/>"#,      // ERROR
             r#"<p v-a:b.="tt"/>"#,     // ERROR
+            r#"<p v-slot.-="tt"/>"#,   // ERROR: slot, N/A, -
+            r#"<p v-slot@.@="tt"/>"#,  // slot@, N/A, @
         ];
     }
 }

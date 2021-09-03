@@ -185,13 +185,6 @@ where
     }
 }
 
-const BIND_CHAR: char = ':';
-const MOD_CHAR: char = '.';
-const ON_CHAR: char = '@';
-const SLOT_CHAR: char = '#';
-const SEP_BYTES: &[u8] = &[BIND_CHAR as u8, MOD_CHAR as u8];
-const SHORTHANDS: &[char] = &[BIND_CHAR, ON_CHAR, SLOT_CHAR, MOD_CHAR];
-const DIR_MARK: &str = "v-";
 // parse logic
 impl<'a, Ts, Eh> AstBuilder<'a, Ts, Eh>
 where
@@ -267,16 +260,17 @@ where
         if self.v_pre_index.is_some() {
             return (dirs, attrs);
         }
+        let dir_parser = DirectiveParser::new(&self.err_handle);
         // v-pre precedes any other directives
         for i in 0..attrs.len() {
             if attrs[i].name == "v-pre" {
-                let dir = self.parse_directive(&attrs.remove(i));
+                let dir = dir_parser.parse(&attrs.remove(i));
                 dirs.push(dir.expect("v-pre must be a directive"));
                 return (dirs, attrs);
             }
         }
         // remove directive from attributes
-        attrs.retain(|a| match self.parse_directive(a) {
+        attrs.retain(|a| match dir_parser.parse(a) {
             Some(dir) => {
                 dirs.push(dir);
                 false
@@ -286,99 +280,6 @@ where
         (dirs, attrs)
     }
 
-    fn parse_directive(&self, attr: &Attribute<'a>) -> Option<Directive<'a>> {
-        let (name, prefixed) = self.parse_directive_name(attr)?;
-        debug_assert!(attr.name.starts_with(SHORTHANDS) || attr.name.starts_with(DIR_MARK));
-        let (arg_str, mods_str) = self.split_arg_and_mods(name == "slot", prefixed);
-        let argument = self.parse_directive_arg(arg_str);
-        let modifiers = self.parse_directive_mods(mods_str);
-        let expression = todo!("how to take option from attr?");
-        Some(Directive {
-            name,
-            argument,
-            modifiers,
-            expression,
-            location: todo!(),
-        })
-    }
-    // Returns the directive name and shorthand-prefixed arg/mod str, if any.
-    fn parse_directive_name(&self, attr: &Attribute<'a>) -> Option<(&'a str, &'a str)> {
-        let name = attr.name;
-        if !name.starts_with(DIR_MARK) {
-            let ret = match name.chars().next()? {
-                BIND_CHAR | MOD_CHAR => "bind",
-                ON_CHAR => "on",
-                SLOT_CHAR => "slot",
-                _ => return None,
-            };
-            return Some((ret, name));
-        }
-        let n = &name[2..];
-        let ret = n
-            .as_bytes()
-            .iter()
-            .position(|c| SEP_BYTES.contains(c))
-            .map(|i| n.split_at(i))
-            .unwrap_or((n, ""));
-        if ret.0.is_empty() {
-            self.emit_error(ErrorKind::MissingDirectiveName, todo!());
-            return None;
-        }
-        Some(ret)
-    }
-    fn split_arg_and_mods(&self, is_slot: bool, prefixed: &'a str) -> (&'a str, &'a str) {
-        // prefixed should either be empty or starts with shorthand.
-        debug_assert!(prefixed.is_empty() || prefixed.starts_with(SHORTHANDS));
-        if prefixed.is_empty() {
-            return ("", "");
-        }
-        if prefixed.len() == 1 {
-            self.emit_error(ErrorKind::MissingDirectiveArg, todo!());
-        }
-        // bind/on/customDir accept arg, mod. slot accepts nothing.
-        // see vuejs/vue-next#1241 special case for v-slot
-        if is_slot {
-            if prefixed.starts_with(MOD_CHAR) {
-                // only . can end dir_name, e.g. v-slot.error
-                self.emit_error(ErrorKind::InvalidVSlotModifier, todo!());
-                ("", "")
-            } else {
-                debug_assert!(prefixed.starts_with(&[SLOT_CHAR, BIND_CHAR][..]));
-                (&prefixed[1..], "")
-            }
-        } else if prefixed.bytes().nth(1).map_or(false, |b| b == b'[') {
-            // dynamic arg
-            todo!("emit error for case like :[arg]err.test")
-        } else {
-            debug_assert!(!prefixed.starts_with(SLOT_CHAR));
-            // handle .prop shorthand elsewhere
-            let remain = &prefixed[1..];
-            remain
-                .as_bytes()
-                .iter()
-                .position(|&u| u == MOD_CHAR as u8)
-                .map(|i| remain.split_at(i))
-                .unwrap_or((remain, ""))
-        }
-    }
-    fn parse_directive_arg(&self, arg: &'a str) -> Option<DirectiveArg<'a>> {
-        if arg.is_empty() {
-            return None;
-        }
-        if !arg.starts_with('[') {
-            return Some(DirectiveArg::Static(arg));
-        }
-        if let Some(i) = arg.bytes().position(|c| c == b']') {
-            debug_assert!(i == arg.len() - 1);
-            todo!()
-        } else {
-            todo!()
-        }
-    }
-    fn parse_directive_mods(&self, mods: &'a str) -> Vec<&'a str> {
-        debug_assert!(mods.is_empty() || mods.starts_with(MOD_CHAR));
-        todo!()
-    }
     fn handle_pre_like(&mut self, elem: &Element) {
         debug_assert!(
             self.open_elems
@@ -560,6 +461,127 @@ where
 
     fn need_condense(&self) -> bool {
         matches!(self.option.whitespace, WhitespaceStrategy::Condense)
+    }
+}
+
+const BIND_CHAR: char = ':';
+const MOD_CHAR: char = '.';
+const ON_CHAR: char = '@';
+const SLOT_CHAR: char = '#';
+const SEP_BYTES: &[u8] = &[BIND_CHAR as u8, MOD_CHAR as u8];
+const SHORTHANDS: &[char] = &[BIND_CHAR, ON_CHAR, SLOT_CHAR, MOD_CHAR];
+const DIR_MARK: &str = "v-";
+
+struct DirectiveParser<'e, Eh: ErrorHandler> {
+    eh: &'e Eh,
+    name_loc: SourceLocation,
+    location: SourceLocation,
+}
+impl<'e, Eh: ErrorHandler> DirectiveParser<'e, Eh> {
+    fn new(eh: &'e Eh) -> Self {
+        Self {
+            eh,
+            name_loc: Default::default(),
+            location: Default::default(),
+        }
+    }
+    fn attr_name_err(&self, kind: ErrorKind) {
+        let error = CompilationError::new(kind).with_location(self.name_loc.clone());
+        self.eh.on_error(error);
+    }
+
+    fn parse<'a>(&self, attr: &Attribute<'a>) -> Option<Directive<'a>> {
+        let (name, prefixed) = self.parse_directive_name(attr)?;
+        debug_assert!(attr.name.starts_with(SHORTHANDS) || attr.name.starts_with(DIR_MARK));
+        let (arg_str, mods_str) = self.split_arg_and_mods(name == "slot", prefixed);
+        let argument = self.parse_directive_arg(arg_str);
+        let modifiers = self.parse_directive_mods(mods_str);
+        let expression = todo!("how to take option from attr?");
+        Some(Directive {
+            name,
+            argument,
+            modifiers,
+            expression,
+            location: self.location,
+        })
+    }
+    // Returns the directive name and shorthand-prefixed arg/mod str, if any.
+    fn parse_directive_name<'a>(&self, attr: &Attribute<'a>) -> Option<(&'a str, &'a str)> {
+        let name = attr.name;
+        if !name.starts_with(DIR_MARK) {
+            let ret = match name.chars().next()? {
+                BIND_CHAR | MOD_CHAR => "bind",
+                ON_CHAR => "on",
+                SLOT_CHAR => "slot",
+                _ => return None,
+            };
+            return Some((ret, name));
+        }
+        let n = &name[2..];
+        let ret = n
+            .as_bytes()
+            .iter()
+            .position(|c| SEP_BYTES.contains(c))
+            .map(|i| n.split_at(i))
+            .unwrap_or((n, ""));
+        if ret.0.is_empty() {
+            self.attr_name_err(ErrorKind::MissingDirectiveName);
+            return None;
+        }
+        Some(ret)
+    }
+    fn split_arg_and_mods<'a>(&self, is_slot: bool, prefixed: &'a str) -> (&'a str, &'a str) {
+        // prefixed should either be empty or starts with shorthand.
+        debug_assert!(prefixed.is_empty() || prefixed.starts_with(SHORTHANDS));
+        if prefixed.is_empty() {
+            return ("", "");
+        }
+        if prefixed.len() == 1 {
+            self.attr_name_err(ErrorKind::MissingDirectiveArg);
+        }
+        // bind/on/customDir accept arg, mod. slot accepts nothing.
+        // see vuejs/vue-next#1241 special case for v-slot
+        if is_slot {
+            if prefixed.starts_with(MOD_CHAR) {
+                // only . can end dir_name, e.g. v-slot.error
+                self.attr_name_err(ErrorKind::InvalidVSlotModifier);
+                ("", "")
+            } else {
+                debug_assert!(prefixed.starts_with(&[SLOT_CHAR, BIND_CHAR][..]));
+                (&prefixed[1..], "")
+            }
+        } else if prefixed.bytes().nth(1).map_or(false, |b| b == b'[') {
+            // dynamic arg
+            todo!("emit error for case like :[arg]err.test")
+        } else {
+            debug_assert!(!prefixed.starts_with(SLOT_CHAR));
+            // handle .prop shorthand elsewhere
+            let remain = &prefixed[1..];
+            remain
+                .as_bytes()
+                .iter()
+                .position(|&u| u == MOD_CHAR as u8)
+                .map(|i| remain.split_at(i))
+                .unwrap_or((remain, ""))
+        }
+    }
+    fn parse_directive_arg<'a>(&self, arg: &'a str) -> Option<DirectiveArg<'a>> {
+        if arg.is_empty() {
+            return None;
+        }
+        if !arg.starts_with('[') {
+            return Some(DirectiveArg::Static(arg));
+        }
+        if let Some(i) = arg.bytes().position(|c| c == b']') {
+            debug_assert!(i == arg.len() - 1);
+            todo!()
+        } else {
+            todo!()
+        }
+    }
+    fn parse_directive_mods<'a>(&self, mods: &'a str) -> Vec<&'a str> {
+        debug_assert!(mods.is_empty() || mods.starts_with(MOD_CHAR));
+        todo!()
     }
 }
 

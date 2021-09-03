@@ -378,7 +378,7 @@ where
             self.pre_count += 1;
         }
         // open_v_pre
-        if is_v_pre_boundary(&elem) {
+        if is_v_pre_boundary(elem) {
             debug_assert!(self.v_pre_index.is_none());
             self.v_pre_index = Some(self.open_elems.len());
         }
@@ -588,7 +588,7 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, need_condense: bool) {
                 let next = &nodes[i + 1];
                 match (prev, next) {
                     (A::Comment(_), A::Comment(_)) => true,
-                    _ if is_element(&prev) && is_element(&next) => {
+                    _ if is_element(prev) && is_element(next) => {
                         child.text.contains(&['\r', '\n'][..])
                     }
                     _ => false,

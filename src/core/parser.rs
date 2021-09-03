@@ -620,7 +620,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
     fn parse_directive_mods(&self, mods: &'a str, is_prop: bool) -> Vec<&'a str> {
         debug_assert!(mods.is_empty() || mods.starts_with(MOD_CHAR));
         let report_missing_mod = |s: &&str| {
-            if s.len() == 0 {
+            if s.is_empty() {
                 self.attr_name_err(ErrorKind::MissingDirectiveMod);
             }
         };

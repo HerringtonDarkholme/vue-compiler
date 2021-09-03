@@ -386,8 +386,8 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         Attribute {
             name,
             value,
-            location,
             name_loc,
+            location,
         }
     }
     fn is_about_to_close_tag(&self) -> bool {

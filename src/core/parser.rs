@@ -288,7 +288,7 @@ where
 
     fn parse_directive(&self, attr: &Attribute<'a>) -> Option<Directive<'a>> {
         let (name, prefixed) = self.parse_directive_name(attr)?;
-        debug_assert!(name.starts_with(SHORTHANDS) || name.starts_with(DIR_MARK));
+        debug_assert!(attr.name.starts_with(SHORTHANDS) || attr.name.starts_with(DIR_MARK));
         let (arg_str, mods_str) = self.split_arg_and_mods(name, prefixed);
         let argument = self.parse_directive_arg(arg_str);
         let modifiers = self.parse_directive_mods(mods_str);

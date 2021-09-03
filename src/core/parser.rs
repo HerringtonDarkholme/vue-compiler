@@ -595,7 +595,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
         let (arg, mut mods) = remain.split_at(end);
         if mods.starts_with(|c| c != MOD_CHAR) {
             self.attr_name_err(ErrorKind::UnexpectedContentAfterDynamicDirective);
-            mods = mods.trim_matches(|c| c != MOD_CHAR);
+            mods = mods.trim_start_matches(|c| c != MOD_CHAR);
         }
         (arg, mods)
     }
@@ -615,7 +615,21 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
     }
     fn parse_directive_mods(&self, mods: &'a str) -> Vec<&'a str> {
         debug_assert!(mods.is_empty() || mods.starts_with(MOD_CHAR));
-        todo!()
+        if mods.is_empty() {
+            return vec![];
+        }
+        let report_missing_mod = |s: &&str| {
+            if s.len() == 0 {
+                self.attr_name_err(ErrorKind::MissingDirectiveMod)
+            }
+        };
+        mods[1..]
+            .as_bytes()
+            .split(|b| *b == b'.')
+            .map(std::str::from_utf8) // use unsafe if too slow
+            .map(Result::unwrap)
+            .inspect(report_missing_mod)
+            .collect()
     }
 }
 

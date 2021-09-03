@@ -31,7 +31,7 @@ pub enum CompilationErrorKind {
     InvalidEndTag,
     MissingEndTag,
     MissingInterpolationEnd,
-    MissingDynamicDirectiveArgumentEnd, // TODO
+    MissingDynamicDirectiveArgumentEnd,
     UnexpectedContentAfterDynamicDirective,
     MissingDirectiveName,
     MissingDirectiveArg,

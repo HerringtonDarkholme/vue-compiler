@@ -286,8 +286,6 @@ where
         let name = attr.name;
         if !name.starts_with(DIR_MARK) {
             let ret = match name.chars().next()? {
-                // https://v3.vuejs.org/api/directives.html#v-bind
-                // . is the new shorthand for v-bind.prop
                 BIND_CHAR | ARG_CHAR => "bind",
                 ON_CHAR => "on",
                 SLOT_CHAR => "slot",
@@ -313,19 +311,26 @@ where
             return ("", "");
         }
         // bind/on/customDir accept arg, mod. slot accepts nothing.
-        // see vue-next #1241 special case for v-slot
+        // see vuejs/vue-next#1241 special case for v-slot
         // We probably should disallow this in future.
         if name == "slot" {
-            return if prefixed.starts_with(ARG_CHAR) {
+            if prefixed.starts_with(ARG_CHAR) {
                 // only . can end dir_name, e.g. v-slot.error
                 self.emit_error(ErrorKind::MissingDirectiveArg, todo!());
                 ("default", "")
             } else {
                 debug_assert!(prefixed.starts_with(&[SLOT_CHAR, BIND_CHAR][..]));
                 (&prefixed[1..], "")
-            };
+            }
+        } else {
+            debug_assert!(!prefixed.starts_with(SLOT_CHAR));
+            // handle .prop shorthand elsewhere
+            let remain = &prefixed[1..];
+            remain
+                .find(ARG_CHAR)
+                .map(|i| (&remain[..i], &remain[i..]))
+                .unwrap_or((remain, ""))
         }
-        todo!()
     }
     fn parse_directive_arg(&self, arg: &'a str) -> Option<DirectiveArg<'a>> {
         todo!()
@@ -620,31 +625,32 @@ fn is_v_pre_boundary(elem: &Element) -> bool {
 mod test {
     fn test() {
         let cases = [
-            r#"<p :="tt"/>"#,          // bind, N/A,
-            r#"<p @="tt"/>"#,          // on, N/A,
-            r#"<p #="tt"/>"#,          // slot, default,
-            r#"<p #:)="tt"/>"#,        // slot, :),
-            r#"<p #@_@="tt"/>"#,       // slot, @_@,
-            r#"<p #.-.="tt"/>"#,       // slot, .-.,
-            r#"<p :^_^="tt"/>"#,       // bind, ^_^
-            r#"<p :^_^.prop="tt"/>"#,  // bind, ^_^, prop
-            r#"<p :_:.prop="tt"/>"#,   // bind, _:, prop
-            r#"<p @::="tt"/>"#,        // on , :: ,
-            r#"<p @_@="tt"/>"#,        // on , _@ ,
-            r#"<p @_@.stop="tt"/>"#,   // on, _@, stop
-            r#"<p @.stop="tt"/>"#,     // on, N/A, stop
-            r#"<p .stop="tt"/>"#,      // bind, stop, prop
-            r#"<p .^-^.attr="tt" />"#, // bind, ^-^, attr|prop
-            r#"<p v-="tt"/>"#,         // ERROR,
-            r#"<p v-:="tt"/>"#,        // ERROR,
-            r#"<p v-.="tt"/>"#,        // ERROR,
-            r#"<p v-@="tt"/>"#,        // @, N/A,
-            r#"<p v-#="tt"/>"#,        // #, N/A,
-            r#"<p v-^.stop="tt"/>"#,   // ^, N/A, stop
-            r#"<p v-a:.="tt"/>"#,      // ERROR
-            r#"<p v-a:b.="tt"/>"#,     // ERROR
-            r#"<p v-slot.-="tt"/>"#,   // ERROR: slot, N/A, -
-            r#"<p v-slot@.@="tt"/>"#,  // slot@, N/A, @
+            r#"<p :="tt"/>"#,           // bind, N/A,
+            r#"<p @="tt"/>"#,           // on, N/A,
+            r#"<p #="tt"/>"#,           // slot, default,
+            r#"<p #:)="tt"/>"#,         // slot, :),
+            r#"<p #@_@="tt"/>"#,        // slot, @_@,
+            r#"<p #.-.="tt"/>"#,        // slot, .-.,
+            r#"<p :^_^="tt"/>"#,        // bind, ^_^
+            r#"<p :^_^.prop="tt"/>"#,   // bind, ^_^, prop
+            r#"<p :_:.prop="tt"/>"#,    // bind, _:, prop
+            r#"<p @::="tt"/>"#,         // on , :: ,
+            r#"<p @_@="tt"/>"#,         // on , _@ ,
+            r#"<p @_@.stop="tt"/>"#,    // on, _@, stop
+            r#"<p @.stop="tt"/>"#,      // on, N/A, stop
+            r#"<p .stop="tt"/>"#,       // bind, stop, prop
+            r#"<p .^-^.attr="tt" />"#,  // bind, ^-^, attr|prop
+            r#"<p v-="tt"/>"#,          // ERROR,
+            r#"<p v-:="tt"/>"#,         // ERROR,
+            r#"<p v-.="tt"/>"#,         // ERROR,
+            r#"<p v-@="tt"/>"#,         // @, N/A,
+            r#"<p v-#="tt"/>"#,         // #, N/A,
+            r#"<p v-^.stop="tt"/>"#,    // ^, N/A, stop
+            r#"<p v-a:.="tt"/>"#,       // ERROR
+            r#"<p v-a:b.="tt"/>"#,      // ERROR
+            r#"<p v-slot.-="tt"/>"#,    // ERROR: slot, N/A, -
+            r#"<p v-slot@.@="tt"/>"#,   // slot@, N/A, @
+            r#"<p v-🖖:🤘.🤙/>"#, // unicode, VUE in hand sign
         ];
     }
 }

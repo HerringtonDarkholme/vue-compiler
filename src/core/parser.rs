@@ -337,6 +337,10 @@ where
         }
     }
     fn parse_directive_arg(&self, arg: &'a str) -> Option<DirectiveArg<'a>> {
+        debug_assert!(arg.is_empty() || arg.starts_with(ARG_CHAR));
+        if arg.is_empty() {
+            return None;
+        }
         todo!()
     }
     fn parse_directive_mods(&self, mods: &'a str) -> Vec<&'a str> {
@@ -522,10 +526,7 @@ where
     }
 
     fn need_condense(&self) -> bool {
-        match self.option.whitespace {
-            WhitespaceStrategy::Condense => true,
-            _ => false,
-        }
+        matches!(self.option.whitespace, WhitespaceStrategy::Condense)
     }
 }
 
@@ -586,10 +587,10 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, need_condense: bool) {
 
 fn is_element(n: &AstNode) -> bool {
     use AstNode as A;
-    match n {
-        A::Plain(_) | A::Template(_) | A::Component(_) | A::Slot(_) => true,
-        _ => false,
-    }
+    matches!(
+        n,
+        A::Plain(_) | A::Template(_) | A::Component(_) | A::Slot(_)
+    )
 }
 
 fn compress_text_node(n: &mut AstNode) {

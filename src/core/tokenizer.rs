@@ -368,7 +368,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         self.skip_whitespace();
         if self.is_about_to_close_tag()
             || self.did_skip_slash_in_tag()
-            || !self.source.starts_with("=")
+            || !self.source.starts_with('=')
         {
             let location = self.get_location_from(start);
             return Attribute {
@@ -645,7 +645,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     fn scan_cdata(&mut self) -> Token<'a> {
         debug_assert!(self.source.starts_with("<![CDATA["));
         self.move_by(9);
-        let i = self.source.find("]]>").unwrap_or(self.source.len());
+        let i = self.source.find("]]>").unwrap_or_else(|| self.source.len());
         let text = if i > 0 { self.move_by(i) } else { "" };
         if self.source.is_empty() {
             self.emit_error(ErrorKind::EofInCdata);

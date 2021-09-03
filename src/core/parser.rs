@@ -260,23 +260,26 @@ where
         if self.v_pre_index.is_some() {
             return (dirs, attrs);
         }
-        let dir_parser = DirectiveParser::new(&self.err_handle);
+        let mut dir_parser = DirectiveParser::new(&self.err_handle);
         // v-pre precedes any other directives
         for i in 0..attrs.len() {
             if attrs[i].name == "v-pre" {
-                let dir = dir_parser.parse(&attrs.remove(i));
-                dirs.push(dir.expect("v-pre must be a directive"));
+                let dir = dir_parser.parse(attrs.remove(i));
+                dirs.push(dir);
                 return (dirs, attrs);
             }
         }
-        // remove directive from attributes
-        attrs.retain(|a| match dir_parser.parse(a) {
-            Some(dir) => {
-                dirs.push(dir);
-                false
+        dirs.reserve(attrs.len());
+        let mut i = 0;
+        // TODO: maybe copy paste a retain_mut to improve perf.
+        while attrs.len() < i {
+            if dir_parser.detect_directive(&attrs[i]) {
+                let attr = attrs.remove(i);
+                dirs.push(dir_parser.parse(attr));
+            } else {
+                i += 1;
             }
-            None => true,
-        });
+        }
         (dirs, attrs)
     }
 
@@ -472,41 +475,57 @@ const SEP_BYTES: &[u8] = &[BIND_CHAR as u8, MOD_CHAR as u8];
 const SHORTHANDS: &[char] = &[BIND_CHAR, ON_CHAR, SLOT_CHAR, MOD_CHAR];
 const DIR_MARK: &str = "v-";
 
-struct DirectiveParser<'e, Eh: ErrorHandler> {
+type DirNameCache<'a> = Option<(&'a str, &'a str)>;
+struct DirectiveParser<'a, 'e, Eh: ErrorHandler> {
     eh: &'e Eh,
     name_loc: SourceLocation,
     location: SourceLocation,
+    cached: DirNameCache<'a>,
 }
-impl<'e, Eh: ErrorHandler> DirectiveParser<'e, Eh> {
+impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
     fn new(eh: &'e Eh) -> Self {
         Self {
             eh,
             name_loc: Default::default(),
             location: Default::default(),
+            cached: None,
         }
     }
     fn attr_name_err(&self, kind: ErrorKind) {
         let error = CompilationError::new(kind).with_location(self.name_loc.clone());
         self.eh.on_error(error);
     }
+    fn detect_directive(&mut self, attr: &Attribute<'a>) -> bool {
+        debug_assert!(self.cached.is_none());
+        self.cached = self.detect_dir_name(&attr);
+        self.cached.is_some()
+    }
+    fn set_location(&mut self, attr: &Attribute<'a>) {
+        self.location = attr.location.clone();
+        self.name_loc = todo!();
+    }
 
-    fn parse<'a>(&self, attr: &Attribute<'a>) -> Option<Directive<'a>> {
-        let (name, prefixed) = self.parse_directive_name(attr)?;
-        debug_assert!(attr.name.starts_with(SHORTHANDS) || attr.name.starts_with(DIR_MARK));
+    fn parse(&mut self, attr: Attribute<'a>) -> Directive<'a> {
+        let (name, prefixed) = self
+            .cached
+            .or_else(|| self.detect_dir_name(&attr))
+            .expect("Parse without detection requires attribute be directive.");
         let (arg_str, mods_str) = self.split_arg_and_mods(name == "slot", prefixed);
         let argument = self.parse_directive_arg(arg_str);
         let modifiers = self.parse_directive_mods(mods_str);
-        let expression = todo!("how to take option from attr?");
-        Some(Directive {
+        self.cached = None; // cleanup
+        Directive {
             name,
             argument,
             modifiers,
-            expression,
-            location: self.location,
-        })
+            expression: attr.value,
+            location: attr.location,
+        }
     }
     // Returns the directive name and shorthand-prefixed arg/mod str, if any.
-    fn parse_directive_name<'a>(&self, attr: &Attribute<'a>) -> Option<(&'a str, &'a str)> {
+    // NB: this function sets self's location so it's mut.
+    fn detect_dir_name(&mut self, attr: &Attribute<'a>) -> Option<(&'a str, &'a str)> {
+        self.set_location(attr);
         let name = attr.name;
         if !name.starts_with(DIR_MARK) {
             let ret = match name.chars().next()? {
@@ -530,7 +549,7 @@ impl<'e, Eh: ErrorHandler> DirectiveParser<'e, Eh> {
         }
         Some(ret)
     }
-    fn split_arg_and_mods<'a>(&self, is_slot: bool, prefixed: &'a str) -> (&'a str, &'a str) {
+    fn split_arg_and_mods(&self, is_slot: bool, prefixed: &'a str) -> (&'a str, &'a str) {
         // prefixed should either be empty or starts with shorthand.
         debug_assert!(prefixed.is_empty() || prefixed.starts_with(SHORTHANDS));
         if prefixed.is_empty() {
@@ -565,7 +584,7 @@ impl<'e, Eh: ErrorHandler> DirectiveParser<'e, Eh> {
                 .unwrap_or((remain, ""))
         }
     }
-    fn parse_directive_arg<'a>(&self, arg: &'a str) -> Option<DirectiveArg<'a>> {
+    fn parse_directive_arg(&self, arg: &'a str) -> Option<DirectiveArg<'a>> {
         if arg.is_empty() {
             return None;
         }
@@ -579,7 +598,7 @@ impl<'e, Eh: ErrorHandler> DirectiveParser<'e, Eh> {
             todo!()
         }
     }
-    fn parse_directive_mods<'a>(&self, mods: &'a str) -> Vec<&'a str> {
+    fn parse_directive_mods(&self, mods: &'a str) -> Vec<&'a str> {
         debug_assert!(mods.is_empty() || mods.starts_with(MOD_CHAR));
         todo!()
     }

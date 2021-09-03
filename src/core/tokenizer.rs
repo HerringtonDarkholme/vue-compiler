@@ -66,7 +66,7 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Attribute<'a> {
     pub name: Name<'a>,
     pub value: Option<AttributeValue<'a>>,

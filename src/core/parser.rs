@@ -475,12 +475,12 @@ const SEP_BYTES: &[u8] = &[BIND_CHAR as u8, MOD_CHAR as u8];
 const SHORTHANDS: &[char] = &[BIND_CHAR, ON_CHAR, SLOT_CHAR, MOD_CHAR];
 const DIR_MARK: &str = "v-";
 
-type DirNameCache<'a> = Option<(&'a str, &'a str)>;
+type StrPair<'a> = (&'a str, &'a str);
 struct DirectiveParser<'a, 'e, Eh: ErrorHandler> {
     eh: &'e Eh,
     name_loc: SourceLocation,
     location: SourceLocation,
-    cached: DirNameCache<'a>,
+    cached: Option<StrPair<'a>>,
 }
 impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
     fn new(eh: &'e Eh) -> Self {
@@ -510,9 +510,10 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
             .cached
             .or_else(|| self.detect_dir_name(&attr))
             .expect("Parse without detection requires attribute be directive.");
-        let (arg_str, mods_str) = self.split_arg_and_mods(name == "slot", prefixed);
+        let (arg_str, mods_str) = self.split_arg_and_mods(prefixed, name == "slot");
         let argument = self.parse_directive_arg(arg_str);
-        let modifiers = self.parse_directive_mods(mods_str);
+        let is_prop = prefixed.starts_with('.');
+        let modifiers = self.parse_directive_mods(mods_str, is_prop);
         self.cached = None; // cleanup
         Directive {
             name,
@@ -522,10 +523,13 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
             location: attr.location,
         }
     }
-    // Returns the directive name and shorthand-prefixed arg/mod str, if any.
     // NB: this function sets self's location so it's mut.
-    fn detect_dir_name(&mut self, attr: &Attribute<'a>) -> Option<(&'a str, &'a str)> {
+    fn detect_dir_name(&mut self, attr: &Attribute<'a>) -> Option<StrPair<'a>> {
         self.set_location(attr);
+        self.parse_dir_name(attr)
+    }
+    // Returns the directive name and shorthand-prefixed arg/mod str, if any.
+    fn parse_dir_name(&self, attr: &Attribute<'a>) -> Option<StrPair<'a>> {
         let name = attr.name;
         if !name.starts_with(DIR_MARK) {
             let ret = match name.chars().next()? {
@@ -550,7 +554,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
         Some(ret)
     }
     // Returns arg without shorthand/separator and dot-leading mods
-    fn split_arg_and_mods(&self, is_slot: bool, prefixed: &'a str) -> (&'a str, &'a str) {
+    fn split_arg_and_mods(&self, prefixed: &'a str, is_slot: bool) -> StrPair<'a> {
         // prefixed should either be empty or starts with shorthand.
         debug_assert!(prefixed.is_empty() || prefixed.starts_with(SHORTHANDS));
         if prefixed.is_empty() {
@@ -613,23 +617,28 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
             DirectiveArg::Dynamic(&arg[1..])
         })
     }
-    fn parse_directive_mods(&self, mods: &'a str) -> Vec<&'a str> {
+    fn parse_directive_mods(&self, mods: &'a str, is_prop: bool) -> Vec<&'a str> {
         debug_assert!(mods.is_empty() || mods.starts_with(MOD_CHAR));
-        if mods.is_empty() {
-            return vec![];
-        }
         let report_missing_mod = |s: &&str| {
             if s.len() == 0 {
-                self.attr_name_err(ErrorKind::MissingDirectiveMod)
+                self.attr_name_err(ErrorKind::MissingDirectiveMod);
             }
         };
-        mods[1..]
-            .as_bytes()
-            .split(|b| *b == b'.')
-            .map(std::str::from_utf8) // use unsafe if too slow
-            .map(Result::unwrap)
-            .inspect(report_missing_mod)
-            .collect()
+        let mut ret = if mods.is_empty() {
+            vec![]
+        } else {
+            mods[1..]
+                .as_bytes()
+                .split(|b| *b == b'.')
+                .map(std::str::from_utf8) // use unsafe if too slow
+                .map(Result::unwrap)
+                .inspect(report_missing_mod)
+                .collect()
+        };
+        if is_prop {
+            ret.push("prop")
+        }
+        ret
     }
 }
 

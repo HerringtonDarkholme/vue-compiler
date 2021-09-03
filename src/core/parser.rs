@@ -165,6 +165,9 @@ where
     }
 }
 
+const DIR_SEP: &[char] = &['.', ':'];
+const SHORTHANDS: &[char] = &[':', '@', '#', '.'];
+const DIR_MARK: &str = "v-";
 // parse logic
 impl<'a, Ts, Eh> AstBuilder<'a, Ts, Eh>
 where
@@ -261,6 +264,7 @@ where
 
     fn parse_directive(&self, attr: &Attribute<'a>) -> Option<Directive<'a>> {
         let (name, prefixed) = self.parse_directive_name(attr)?;
+        debug_assert!(name.starts_with(SHORTHANDS) || name.starts_with(DIR_MARK));
         let (arg_str, mods_str) = self.split_arg_and_mods(name, prefixed);
         let argument = self.parse_directive_arg(arg_str);
         let modifiers = self.parse_directive_mods(mods_str);
@@ -276,7 +280,7 @@ where
     // Returns the directive name and shorthand-prefixed arg/mod str, if any.
     fn parse_directive_name(&self, attr: &Attribute<'a>) -> Option<(&'a str, &'a str)> {
         let name = attr.name;
-        if !name.starts_with("v-") {
+        if !name.starts_with(DIR_MARK) {
             let ret = match name.chars().next()? {
                 // https://v3.vuejs.org/api/directives.html#v-bind
                 // . is the new shorthand for v-bind.prop
@@ -288,9 +292,8 @@ where
             return Some((ret, name));
         }
         let n = &name[2..];
-        const SEP: [char; 2] = ['.', ':'];
         let ret = n
-            .find(&SEP[..])
+            .find(DIR_SEP)
             .map(|i| (&n[..i], &n[i..]))
             .unwrap_or((n, ""));
         if ret.0.is_empty() {
@@ -301,7 +304,7 @@ where
     }
     fn split_arg_and_mods(&self, name: &'a str, prefixed: &'a str) -> (&'a str, &'a str) {
         // prefixed should either be empty or starts with shorthand.
-        debug_assert!(prefixed.is_empty() || prefixed.starts_with(|c| "@#:.".contains(c)));
+        debug_assert!(prefixed.is_empty() || prefixed.starts_with(SHORTHANDS));
         // bind/on/customDir accept arg, mod. slot accepts nothing.
         if prefixed.is_empty() {
             return ("", "");

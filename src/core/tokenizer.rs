@@ -66,7 +66,7 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Attribute<'a> {
     pub name: Name<'a>,
     pub value: Option<AttributeValue<'a>>,
@@ -404,18 +404,17 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     fn scan_attr_name(&mut self) -> &'a str {
         debug_assert!(self.source.starts_with(is_valid_name_char));
         // case like <tag =="value"/>
-        if self.source.starts_with('=') {
-            let s = self.move_by(1);
+        let offset = if self.source.starts_with('=') {
             self.emit_error(ErrorKind::UnexpectedEqualsSignBeforeAttributeName);
-            debug_assert!(s == "=");
-            return s;
-        }
-        let count = self
-            .source
+            1
+        } else {
+            0
+        };
+        let count = self.source[offset..]
             .chars()
             .take_while(|&c| semi_valid_attr_name(c))
             .count();
-        let src = self.move_by(count);
+        let src = self.move_by(count + offset);
         if src.contains(&['<', '"', '\''][..]) {
             self.emit_error(ErrorKind::UnexpectedCharacterInAttributeName);
         }

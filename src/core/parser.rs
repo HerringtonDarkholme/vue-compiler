@@ -560,6 +560,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
             self.attr_name_err(ErrorKind::MissingDirectiveArg);
             return ("", "");
         }
+        let remain = &prefixed[1..];
         // bind/on/customDir accept arg, mod. slot accepts nothing.
         // see vuejs/vue-next#1241 special case for v-slot
         if is_slot {
@@ -569,26 +570,13 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
                 ("", "")
             } else {
                 debug_assert!(prefixed.starts_with(&[SLOT_CHAR, BIND_CHAR][..]));
-                (&prefixed[1..], "")
+                (remain, "")
             }
-        } else if prefixed.as_bytes().get(1).map_or(false, |b| *b == b'[') {
-            // dynamic arg
-            let remain = &prefixed[1..];
-            let bytes = prefixed.as_bytes();
-            let end = bytes
-                .iter()
-                .position(|b| *b == b']')
-                .map_or(bytes.len(), |i| i + 1);
-            let (arg, mut mods) = remain.split_at(end);
-            if mods.starts_with(|c| c != MOD_CHAR) {
-                self.attr_name_err(ErrorKind::UnexpectedContentAfterDynamicDirective);
-                mods = mods.trim_matches(|c| c != MOD_CHAR);
-            }
-            (arg, mods)
+        } else if remain.starts_with('[') {
+            self.split_dynamic_arg(remain)
         } else {
             debug_assert!(!prefixed.starts_with(SLOT_CHAR));
             // handle .prop shorthand elsewhere
-            let remain = &prefixed[1..];
             remain
                 .as_bytes()
                 .iter()
@@ -597,19 +585,33 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
                 .unwrap_or((remain, ""))
         }
     }
+    fn split_dynamic_arg(&self, remain: &'a str) -> (&'a str, &'a str) {
+        // dynamic arg
+        let bytes = remain.as_bytes();
+        let end = bytes
+            .iter()
+            .position(|b| *b == b']')
+            .map_or(bytes.len(), |i| i + 1);
+        let (arg, mut mods) = remain.split_at(end);
+        if mods.starts_with(|c| c != MOD_CHAR) {
+            self.attr_name_err(ErrorKind::UnexpectedContentAfterDynamicDirective);
+            mods = mods.trim_matches(|c| c != MOD_CHAR);
+        }
+        (arg, mods)
+    }
     fn parse_directive_arg(&self, arg: &'a str) -> Option<DirectiveArg<'a>> {
         if arg.is_empty() {
             return None;
         }
-        if !arg.starts_with('[') {
-            return Some(DirectiveArg::Static(arg));
-        }
-        if let Some(i) = arg.bytes().position(|c| c == b']') {
+        Some(if !arg.starts_with('[') {
+            DirectiveArg::Static(arg)
+        } else if let Some(i) = arg.chars().position(|c| c == ']') {
             debug_assert!(i == arg.len() - 1);
-            todo!()
+            DirectiveArg::Dynamic(&arg[1..i])
         } else {
-            todo!()
-        }
+            self.attr_name_err(ErrorKind::MissingDynamicDirectiveArgumentEnd);
+            DirectiveArg::Dynamic(&arg[1..])
+        })
     }
     fn parse_directive_mods(&self, mods: &'a str) -> Vec<&'a str> {
         debug_assert!(mods.is_empty() || mods.starts_with(MOD_CHAR));

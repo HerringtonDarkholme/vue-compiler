@@ -26,7 +26,7 @@ pub enum AstNode<'a> {
     Plain(Element<'a>),
     Template(Element<'a>),
     Component(Element<'a>),
-    Slot(Element<'a>),
+    SlotOutlet(Element<'a>),
     Text(TextNode<'a>),
     Interpolation(SourceNode<'a>),
     Comment(SourceNode<'a>),
@@ -400,7 +400,7 @@ where
             self.close_v_pre();
             AstNode::Plain(elem)
         } else if elem.tag_name == "slot" {
-            AstNode::Slot(elem)
+            AstNode::SlotOutlet(elem)
         } else if is_template_element(&elem) {
             AstNode::Template(elem)
         } else if self.is_component(&elem) {
@@ -608,7 +608,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
         Some(ret)
     }
     // Returns arg without shorthand/separator and dot-leading mods
-    fn split_arg_and_mods(&self, prefixed: &'a str, is_slot: bool) -> StrPair<'a> {
+    fn split_arg_and_mods(&self, prefixed: &'a str, is_v_slot: bool) -> StrPair<'a> {
         // prefixed should either be empty or starts with shorthand.
         debug_assert!(prefixed.is_empty() || prefixed.starts_with(SHORTHANDS));
         if prefixed.is_empty() {
@@ -621,7 +621,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
         let remain = &prefixed[1..];
         // bind/on/customDir accept arg, mod. slot accepts nothing.
         // see vuejs/vue-next#1241 special case for v-slot
-        if is_slot {
+        if is_v_slot {
             if prefixed.starts_with(MOD_CHAR) {
                 // only . can end dir_name, e.g. v-slot.error
                 self.attr_name_err(ErrorKind::InvalidVSlotModifier);
@@ -755,7 +755,7 @@ fn is_element(n: &AstNode) -> bool {
     use AstNode as A;
     matches!(
         n,
-        A::Plain(_) | A::Template(_) | A::Component(_) | A::Slot(_)
+        A::Plain(_) | A::Template(_) | A::Component(_) | A::SlotOutlet(_)
     )
 }
 

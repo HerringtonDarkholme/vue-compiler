@@ -17,12 +17,12 @@ pub enum IRNode {
     Block,
 }
 
-pub trait IRConverter {
+pub trait IRConverter<'a> {
     type IRNode;
     /// convert template ast node to intermediate representation
     /// the IR format is implementation specific
     /// e.g SSR Codegen and DOM Codegen can have different IR
-    fn convert_ir(&self, ast: AstRoot) -> Self::IRNode;
+    fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IRNode;
 }
 
 pub fn convert_ast_to_ir(_ast: AstRoot) -> IRNode {

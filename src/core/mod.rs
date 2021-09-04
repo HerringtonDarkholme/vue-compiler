@@ -72,8 +72,8 @@ pub struct CompileOption<E: ErrorHandler> {
     error_handler: E,
 }
 
-pub fn base_compile<IR, O, E, Conv, Trans, Gen>(
-    source: &str,
+pub fn base_compile<'a, IR, O, E, Conv, Trans, Gen>(
+    source: &'a str,
     opt: CompileOption<E>,
     conv: Conv,
     trans: Trans,
@@ -81,7 +81,7 @@ pub fn base_compile<IR, O, E, Conv, Trans, Gen>(
 ) -> Result<O, CompilationError>
 where
     E: ErrorHandler,
-    Conv: IRConverter<IRNode = IR>,
+    Conv: IRConverter<'a, IRNode = IR>,
     Trans: Transformer<IRNode = IR>,
     Gen: CodeGenerator<IRNode = IR, Output = O>,
 {

@@ -1,4 +1,5 @@
 use super::ir_converter::IRNode;
+use std::fmt::{Result, Write};
 
 pub trait CodeGenerator {
     type IRNode;
@@ -41,3 +42,22 @@ fn generate_function() {}
 fn generate_conditional() {}
 fn generate_cache() {}
 fn generate_block() {}
+
+pub trait CodeGenWrite: Write {
+    fn write_hyphenated(&mut self, s: &str) -> Result {
+        // JS word boundary is `\w`: `[a-zA-Z0-9-]`.
+        // https://javascript.info/regexp-boundary
+        // str.replace(/\B([A-Z])/g, '-$1').toLowerCase()
+        let mut is_boundary = true;
+        for c in s.chars() {
+            if !is_boundary && c.is_ascii_uppercase() {
+                self.write_char('-')?;
+                self.write_char((c as u8 - b'A' + b'a') as char)?;
+            } else {
+                self.write_char(c)?;
+            }
+            is_boundary = !c.is_ascii_alphanumeric() && c != '_';
+        }
+        Ok(())
+    }
+}

@@ -44,7 +44,9 @@ The compilation has several phases:
 * Rust library
 * CLI binary
 * napi based nodejs library
-* wasm based npm package
+* wasm based npm package: a fallback if napi fails to work and a toy for browser.
+* No Browser build
+No support since most features in full build are additional except for browser based expression checking or HTML escaping. Browser build removed them for size. But template compiler in browser is already for toy project. For browser specific summary see [this google sheet](https://docs.google.com/spreadsheets/d/1Uofb9qW9-gxdSh8lbC-CE0kWkhpAAtTFDZlw9UW0HrE/edit?usp=sharing).
 
 ## Implementation Detail
 
@@ -52,7 +54,7 @@ The compilation has several phases:
 * The library seeks minimal allocation by using `&str`, `Cow<'_, str>` and `smallvec`.
 * `Fxhash` is preferred over default hasher since hash collision is not a concern.
 * The `bitflags` crate is used to represent runtime helper and vnode patch flags.
-* Use [heavily optimized](https://github.com/BurntSushi/memchr) routines for string search primitives.
+* Use [heavily optimized](https://github.com/BurntSushi/memchr) routines for string search primitives. ([Perf reference](https://lise-henry.github.io/articles/optimising_strings.html))
 * Benchmark with [criterion.rs](https://github.com/bheisler/criterion.rs).
 * Test compiler output by [snapshot](https://github.com/mitsuhiko/insta) test.
 
@@ -64,17 +66,13 @@ The compilation has several phases:
 * [Nu html checker](https://validator.w3.org/nu/#textarea) is the official html validator from W3C. This is the canonical error reporter for html parsing, when there is a discrepancy between the framework and the spec.
 * [AST explorer](https://astexplorer.net/) can inspect AST nodes interactively.
 
-## Performance Related Reference
-
-* https://lise-henry.github.io/articles/optimising_strings.html
-
 ## Roadmap
 
 Todo tasks grouped by scopes.
 
 ### [core]
 - [x] tokenizer
-- [ ] parser
+- [x] parser
 - [ ] IR converter
 - [ ] transformer
 - [ ] code generator
@@ -86,7 +84,8 @@ Todo tasks grouped by scopes.
 ### [sfc]
 - [ ] TODO
 ### [test]
-- [ ] Add unit test
+- [ ] tokenizer test
+- [ ] parser test
 - [ ] Add insta snapshot
 ### [bench]
 - [x] Add benchmark framework

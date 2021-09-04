@@ -91,7 +91,8 @@ impl Default for WhitespaceStrategy {
     }
 }
 
-// To understand `is_xxx` methods in ParseOption requires knowing their targeted audience.
+// `is_xxx` methods in ParseOption targets different audience.
+// Please refer to project README for more details.
 #[derive(Clone)]
 pub struct ParseOption {
     whitespace: WhitespaceStrategy,

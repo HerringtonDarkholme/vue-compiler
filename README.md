@@ -18,23 +18,23 @@ So in the Rust version I decided to take another approach.
 
 The design targets at three different levels of developers in Vue ecosystem:
 
-* Application user: every Vue developers who write component and application code.
-* Platform developer: devs who write compiler implementation for DOM/SSR/Native platform.
-* Library author: Vue core lib author a.k.a Evan.
+* Lib/App creator: every Vue developers who write component library or application code.
+* Platform developer: Devs who write compiler implementation for DOM/SSR/Native platform.
+* Framework author: Vue core lib author a.k.a Evan.
 
-The core library targets multiple platforms and can be extended to support more.
-Core library components span all platforms and are hardwired to the core lib runtime.
+The core framework targets multiple platforms and can be extended to support more.
+Core framework components span all platforms and are hardwired to the core lib runtime.
 
 Platforms are usually DOM or SSR environment. Hosts are browser and node, respectively.
 Developing a platform needs to write code for both vue-compiler and vue-runtime.
 Optionally platform developer can write code in host, e.g. in hybrid app or mini-program.
 
-And finally end users can write business code and
+And finally lib or app creators can write component library, business code or
 application components targeted to certain platforms.
 
 The compilation has several phases:
-* Scan (output: Tokens): Hardwired in the compiler at library level.
-* Parse (output: template AST): Hardwired in the compiler at library level.
+* Scan (output: Tokens): Hardwired in the compiler at framework level.
+* Parse (output: template AST): Hardwired in the compiler at framework level.
 * intermediate representation: Customizable for platform developers with sensible default.
 * transformation/optimization pass: Customizable with default by using generic/traits.
 * output generation: Customizable with default.
@@ -95,5 +95,6 @@ Todo tasks grouped by scopes.
 ### [infra]
 - [x] Add [pre-commit](https://pre-commit.com/) hooks.
 - [x] Add Github Actions for various checks.
+- [ ] Change single lib to cargo workspaces.
 ### [community]
 - [ ] TODO. not ready for contribution for now.

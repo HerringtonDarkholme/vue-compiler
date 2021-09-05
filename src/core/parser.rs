@@ -76,8 +76,8 @@ pub struct Directive<'a> {
 
 #[derive(Debug)]
 pub struct AstRoot<'a> {
-    children: Vec<AstNode<'a>>,
-    location: SourceLocation,
+    pub children: Vec<AstNode<'a>>,
+    pub location: SourceLocation,
 }
 
 #[derive(Debug, Clone)]

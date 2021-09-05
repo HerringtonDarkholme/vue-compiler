@@ -1,40 +1,71 @@
-use super::parser::AstRoot;
+use super::parser::{AstNode, AstRoot, Directive};
 
-pub enum IRNode {
-    Text,
+pub enum IRNode<'a, T: ConvertInfo> {
+    Text(&'a str, T::Text),
     Interpolation,
-    // expression
-    Simple,
-    Compound,
-    Comment,
-    VNode,
-    Call,
-    Object,
-    Array,
-    Function,
-    Conditional,
-    Cache,
-    Block,
+}
+
+type Prop = (String, String);
+
+struct DirectiveConvertResult {
+    props: Vec<Prop>,
+    need_runtime: bool,
+}
+type DirectiveConverter = fn(&Directive) -> DirectiveConvertResult;
+
+pub struct ConvertOption {
+    directive_converters: Vec<(&'static str, DirectiveConverter)>,
+}
+
+pub struct IRRoot<'a, T: ConvertInfo> {
+    body: Vec<IRNode<'a, T>>,
+}
+
+pub trait ConvertInfo {
+    type Text;
 }
 
 /// Converts template ast node to intermediate representation.
 /// All core template syntax conversion happens here.
 /// the IR format can be platform specific.
 /// e.g SSR Codegen and DOM Codegen can have different IR
-pub trait IRConverter<'a> {
-    type IRNode;
-    fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IRNode;
-
-    // core template syntax conversion
-    fn convert_once(&self) {}
-    fn convert_if(&self) {}
-    fn convert_memo(&self) {}
-    fn convert_for(&self) {}
-    fn convert_expression(&self) {}
-    fn convert_slot_outlet(&self) {}
-    fn convert_element(&self) {}
+pub trait IRConverter<'a>: Sized {
+    type IR;
+    fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR;
 }
 
-pub fn convert_ast_to_ir(_ast: AstRoot) -> IRNode {
-    todo!()
+/// Default implementation  sketch can be used in DOM/SSR.
+/// Other platform might invent and use their own IR.
+pub trait BuiltinConverter<'a, T>
+where
+    T: ConvertInfo,
+    Self: IRConverter<'a, IR = IRRoot<'a, T>>,
+{
+    fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR {
+        let body = ast
+            .children
+            .into_iter()
+            .map(|n| self.dispatch_ast(n))
+            .collect();
+        IRRoot { body }
+    }
+    fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<'a, T> {
+        match n {
+            AstNode::Text(..) => todo!(),
+            AstNode::Plain(..) => self.convert_element(),
+            AstNode::Component(..) => self.convert_element(),
+            AstNode::SlotOutlet(..) => todo!(),
+            AstNode::Template(..) => todo!(),
+            AstNode::Comment(..) => todo!(),
+            AstNode::Interpolation(..) => todo!(),
+        }
+    }
+    // core template syntax conversion
+    fn convert_directive(&self) -> IRNode<'a, T>;
+    fn convert_once(&self) -> IRNode<'a, T>;
+    fn convert_if(&self) -> IRNode<'a, T>;
+    fn convert_memo(&self) -> IRNode<'a, T>;
+    fn convert_for(&self) -> IRNode<'a, T>;
+    fn convert_slot_outlet(&self) -> IRNode<'a, T>;
+    fn convert_element(&self) -> IRNode<'a, T>;
 }

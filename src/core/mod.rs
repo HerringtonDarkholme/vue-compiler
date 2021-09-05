@@ -81,9 +81,9 @@ pub fn base_compile<'a, IR, O, E, Conv, Trans, Gen>(
 ) -> Result<O, CompilationError>
 where
     E: ErrorHandler,
-    Conv: IRConverter<'a, IRNode = IR>,
-    Trans: Transformer<IRNode = IR>,
-    Gen: CodeGenerator<IRNode = IR, Output = O>,
+    Conv: IRConverter<'a, IR = IR>,
+    Trans: Transformer<IR = IR>,
+    Gen: CodeGenerator<IR = IR, Output = O>,
 {
     let eh = opt.error_handler;
     let tokenizer = Tokenizer::new(opt.tokenization);

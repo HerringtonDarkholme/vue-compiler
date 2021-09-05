@@ -12,14 +12,24 @@ pub trait CodeGenerator {
 pub fn generate<T: ConvertInfo>(node: IRNode<T>) {
     use IRNode as IR;
     match node {
-        IR::Text(..) => generate_text(),
-        IR::Interpolation => generate_interpolation(),
+        IR::TextCall(..) => generate_text(),
+        IR::If(..) => generate_if(),
+        IR::For(..) => generate_for(),
+        IR::VNodeCall(..) => generate_vnode(),
+        IR::RenderSlotCall(..) => generate_slot_outlet(),
+        IR::VSlotExpression(..) => generate_v_slot(),
+        IR::GenericExpression(..) => generate_js_expr(),
     }
 }
 
 // TODO: implement code gen
 fn generate_text() {}
-fn generate_interpolation() {}
+fn generate_if() {}
+fn generate_for() {}
+fn generate_vnode() {}
+fn generate_slot_outlet() {}
+fn generate_v_slot() {}
+fn generate_js_expr() {}
 
 pub trait CodeGenWrite: Write {
     fn write_hyphenated(&mut self, s: &str) -> Result {

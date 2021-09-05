@@ -1,8 +1,59 @@
+/*!
+IR Converter module takes AST and produces intermediate representation.
+All core template syntax conversion happens here. IR is later used for
+optimizing transformation and code generation. As we decouple codegen
+node from AST, Vue's transformation passes are broken down to two parts.
+Convert module roughly corresponds to following transform in vue-next.
+
+# IR Convert
+* transformElement
+* transformSlotOutlet
+* transformTextCall
+* vFor
+* vIf
+* vSlot
+
+# Transform directive
+* noopDirectiveTransform
+* vModel
+* vBind
+* vOn
+*/
+
 use super::parser::{AstNode, AstRoot, Directive};
 
+pub trait ConvertInfo {
+    type TextType;
+    type IfType;
+    type ForType;
+    type VNodeType;
+    type RenderSlotType;
+    type VSlotType;
+    type GenericJSType;
+}
+
+pub enum VSlotExpr {
+    /// stable v-slots declared statically in the template
+    StableSlotObject,
+    /// v-slots dynamically declared v-slot template with v-if/v-for
+    DynamicSlotCall,
+}
+
 pub enum IRNode<'a, T: ConvertInfo> {
-    Text(&'a str, T::Text),
-    Interpolation,
+    /// interpolation or text node
+    TextCall(&'a str, T::TextType),
+    /// v-if, else-if, else
+    If(T::IfType),
+    /// v-for
+    For(T::ForType),
+    /// plain element or component
+    VNodeCall(T::VNodeType),
+    /// <slot> slot outlet
+    RenderSlotCall(T::RenderSlotType),
+    /// v-slot on component or template
+    VSlotExpression(VSlotExpr, T::VSlotType),
+    /// generic JS expression
+    GenericExpression(T::GenericJSType),
 }
 
 type Prop = (String, String);
@@ -21,12 +72,7 @@ pub struct IRRoot<'a, T: ConvertInfo> {
     body: Vec<IRNode<'a, T>>,
 }
 
-pub trait ConvertInfo {
-    type Text;
-}
-
 /// Converts template ast node to intermediate representation.
-/// All core template syntax conversion happens here.
 /// the IR format can be platform specific.
 /// e.g SSR Codegen and DOM Codegen can have different IR
 pub trait IRConverter<'a>: Sized {
@@ -54,18 +100,19 @@ where
             AstNode::Text(..) => todo!(),
             AstNode::Plain(..) => self.convert_element(),
             AstNode::Component(..) => self.convert_element(),
-            AstNode::SlotOutlet(..) => todo!(),
-            AstNode::Template(..) => todo!(),
-            AstNode::Comment(..) => todo!(),
+            AstNode::SlotOutlet(..) => self.convert_slot_outlet(),
+            AstNode::Comment(..) => self.convert_comment(),
             AstNode::Interpolation(..) => todo!(),
+            AstNode::Template(..) => self.convert_template(),
         }
     }
     // core template syntax conversion
     fn convert_directive(&self) -> IRNode<'a, T>;
-    fn convert_once(&self) -> IRNode<'a, T>;
     fn convert_if(&self) -> IRNode<'a, T>;
-    fn convert_memo(&self) -> IRNode<'a, T>;
     fn convert_for(&self) -> IRNode<'a, T>;
     fn convert_slot_outlet(&self) -> IRNode<'a, T>;
     fn convert_element(&self) -> IRNode<'a, T>;
+    fn convert_text(&self) -> IRNode<'a, T>;
+    fn convert_template(&self) -> IRNode<'a, T>;
+    fn convert_comment(&self) -> IRNode<'a, T>;
 }

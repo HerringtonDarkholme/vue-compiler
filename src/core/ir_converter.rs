@@ -62,6 +62,7 @@ struct DirectiveConvertResult {
     props: Vec<Prop>,
     need_runtime: bool,
 }
+
 type DirectiveConverter = fn(&Directive) -> DirectiveConvertResult;
 
 pub struct ConvertOption {
@@ -97,12 +98,12 @@ where
     }
     fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<'a, T> {
         match n {
-            AstNode::Text(..) => todo!(),
+            AstNode::Text(..) => self.convert_text(),
             AstNode::Plain(..) => self.convert_element(),
             AstNode::Component(..) => self.convert_element(),
             AstNode::SlotOutlet(..) => self.convert_slot_outlet(),
             AstNode::Comment(..) => self.convert_comment(),
-            AstNode::Interpolation(..) => todo!(),
+            AstNode::Interpolation(..) => self.convert_interpolation(),
             AstNode::Template(..) => self.convert_template(),
         }
     }
@@ -113,6 +114,7 @@ where
     fn convert_slot_outlet(&self) -> IRNode<'a, T>;
     fn convert_element(&self) -> IRNode<'a, T>;
     fn convert_text(&self) -> IRNode<'a, T>;
+    fn convert_interpolation(&self) -> IRNode<'a, T>;
     fn convert_template(&self) -> IRNode<'a, T>;
     fn convert_comment(&self) -> IRNode<'a, T>;
 }

@@ -1,10 +1,12 @@
-/*
- * Transform
- * hoistStatic
- * transformExpression
- * merge_text
- * vOnce
- * vMemo
+/*!
+Transform IRNode, including these original transformation:
+
+hoistStatic
+transformExpression
+mergeText
+vOnce
+vMemo
+trackScopes
  */
 pub trait Transformer {
     type IR;
@@ -17,9 +19,10 @@ pub trait Transformer {
 pub fn hoist_static() {}
 pub fn track_v_for_slot_scopes() {}
 pub fn track_slot_scopes() {}
-pub fn transform_text() {}
-pub fn transform_expression() {}
+pub fn merge_text_call() {}
+pub fn prefix_expression() {}
 pub fn transform_memo() {}
+pub fn transform_once() {}
 
 enum NodeChange<T: 'static> {
     Replace(Vec<T>),

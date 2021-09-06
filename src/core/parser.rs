@@ -71,6 +71,7 @@ pub struct Directive<'a> {
     pub argument: Option<DirectiveArg<'a>>,
     pub modifiers: Vec<&'a str>,
     pub expression: Option<AttributeValue<'a>>,
+    pub head_loc: SourceLocation,
     pub location: SourceLocation,
 }
 
@@ -562,6 +563,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
             argument,
             modifiers,
             expression: attr.value,
+            head_loc: attr.name_loc,
             location: attr.location,
         }
     }

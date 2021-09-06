@@ -80,7 +80,7 @@ pub fn base_compile<'a, IR, O, E, Conv, Trans, Gen>(
     gen: Gen,
 ) -> Result<O, CompilationError>
 where
-    E: ErrorHandler,
+    E: ErrorHandler + Clone,
     Conv: Converter<'a, IR = IR>,
     Trans: Transformer<IR = IR>,
     Gen: CodeGenerator<IR = IR, Output = O>,

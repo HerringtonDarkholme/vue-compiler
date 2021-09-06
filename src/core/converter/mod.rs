@@ -20,10 +20,12 @@ Convert module roughly corresponds to following transform in vue-next.
 * vOn
 */
 
+pub use super::error::ErrorHandler;
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use rustc_hash::FxHashMap;
 
 mod v_bind;
+mod v_on;
 
 pub trait ConvertInfo {
     type TextType;
@@ -65,7 +67,7 @@ struct VNodeIR {}
 
 pub type Prop<'a> = (JsExpression<'a>, JsExpression<'a>);
 pub enum JsExpression<'a> {
-    Literal(&'a str),
+    Lit(&'a str),
     Simple(&'a str),
     Compound(Vec<JsExpression<'a>>),
     Props(Vec<Prop<'a>>),
@@ -91,8 +93,8 @@ pub enum BindingTypes {
     Options,
 }
 pub struct ConvertOption {
-    pub directive_converters: Vec<(&'static str, DirectiveConverter)>,
-    binding_metadata: FxHashMap<&'static str, BindingTypes>,
+    pub directive_converters: Vec<DirectiveConverter>,
+    pub binding_metadata: FxHashMap<&'static str, BindingTypes>,
 }
 
 pub struct IRRoot<T: ConvertInfo> {
@@ -145,23 +147,29 @@ where
     fn convert_comment(&self) -> IRNode<T>;
 }
 
-/// TODO: add doc
+/// Directive's prop argument passed to VNodeCall after conversion.
+/// Use Dropped if the directive is dropped implicitly without codegen.
 /// NB: this is not 100% translation from TS. `value` accepts both Props and Object.
-/// This design decouples
-pub struct DirectiveConvertResult<'a> {
-    value: JsExpression<'a>,
-    need_runtime: bool,
+// This design decouples v-bind/on from transform_element.
+pub enum DirectiveConvertResult<'a> {
+    Converted {
+        value: JsExpression<'a>,
+        need_runtime: bool,
+    },
+    Dropped,
 }
 
-pub type DirectiveConverter =
-    for<'a> fn(&Directive<'a>, &Element<'a>) -> DirectiveConvertResult<'a>;
-
+/// Returns the conversion of a directive. Value could be props or object.
+// NB: we pass &dyn ErrorHandler to monomorphize the dir converter to pay
+// the minimal cost of dynamism only when error occurs. otherwise we will
+// incur the overhead of dyn DirectiveConvert in the ConvertOption.
+pub type DirConvertFn =
+    for<'a> fn(Directive<'a>, &Element<'a>, &dyn ErrorHandler) -> DirectiveConvertResult<'a>;
+pub type DirectiveConverter = (&'static str, DirConvertFn);
 pub fn no_op_directive_convert<'a>(
-    _: &Directive<'a>,
+    _: Directive<'a>,
     _: &Element<'a>,
+    _: &dyn ErrorHandler,
 ) -> DirectiveConvertResult<'a> {
-    DirectiveConvertResult {
-        value: JsExpression::Props(vec![]),
-        need_runtime: false,
-    }
+    DirectiveConvertResult::Dropped
 }

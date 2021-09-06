@@ -127,23 +127,32 @@ where
     fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<T> {
         match n {
             AstNode::Text(..) => self.convert_text(),
-            AstNode::Plain(..) => self.convert_element(),
-            AstNode::Component(..) => self.convert_element(),
+            AstNode::Plain(e) => self
+                .convert_structural_dir(e)
+                .unwrap_or_else(|e| self.convert_element(e)),
+            AstNode::Component(e) => self
+                .convert_structural_dir(e)
+                .unwrap_or_else(|e| self.convert_element(e)),
             AstNode::SlotOutlet(..) => self.convert_slot_outlet(),
             AstNode::Comment(..) => self.convert_comment(),
             AstNode::Interpolation(..) => self.convert_interpolation(),
-            AstNode::Template(..) => self.convert_template(),
+            AstNode::Template(e) => self
+                .convert_structural_dir(e)
+                .expect("template must have slot"),
         }
+    }
+    fn convert_structural_dir(&self, n: Element<'a>) -> Result<IRNode<T>, Element<'a>> {
+        todo!()
     }
     // core template syntax conversion
     fn convert_directive(&self) -> IRNode<T>;
     fn convert_if(&self) -> IRNode<T>;
     fn convert_for(&self) -> IRNode<T>;
     fn convert_slot_outlet(&self) -> IRNode<T>;
-    fn convert_element(&self) -> IRNode<T>;
+    fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_text(&self) -> IRNode<T>;
     fn convert_interpolation(&self) -> IRNode<T>;
-    fn convert_template(&self) -> IRNode<T>;
+    fn convert_template(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_comment(&self) -> IRNode<T>;
 }
 
@@ -173,3 +182,5 @@ pub fn no_op_directive_convert<'a>(
 ) -> DirectiveConvertResult<'a> {
     DirectiveConvertResult::Dropped
 }
+
+pub struct ConverterImpl {}

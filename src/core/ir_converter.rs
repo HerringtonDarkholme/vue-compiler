@@ -20,7 +20,8 @@ Convert module roughly corresponds to following transform in vue-next.
 * vOn
 */
 
-use super::parser::{AstNode, AstRoot, Directive};
+use super::parser::{AstNode, AstRoot, Directive, Element};
+use rustc_hash::FxHashMap;
 
 pub trait ConvertInfo {
     type TextType;
@@ -58,19 +59,38 @@ pub enum IRNode<'a, T: ConvertInfo> {
 
 type Prop = (String, String);
 
-struct DirectiveConvertResult {
+pub struct DirectiveConvertResult {
     props: Vec<Prop>,
     need_runtime: bool,
 }
 
-type DirectiveConverter = fn(&Directive) -> DirectiveConvertResult;
+pub type DirectiveConverter = fn(&Directive, &Element) -> DirectiveConvertResult;
 
+pub enum BindingTypes {
+    /// returned from data()
+    Data,
+    /// declared as a prop
+    Props,
+    /// a let binding (may or may not be a ref)
+    SetupLet,
+    ///a const binding that can never be a ref.
+    ///these bindings don't need `unref()` calls when processed in inlined
+    ///template expressions.
+    SetupConst,
+    /// a const binding that may be a ref.
+    SetupMaybeRef,
+    /// bindings that are guaranteed to be refs
+    SetupRef,
+    /// declared by other options, e.g. computed, inject
+    Options,
+}
 pub struct ConvertOption {
-    directive_converters: Vec<(&'static str, DirectiveConverter)>,
+    pub directive_converters: Vec<(&'static str, DirectiveConverter)>,
+    binding_metadata: FxHashMap<&'static str, BindingTypes>,
 }
 
 pub struct IRRoot<'a, T: ConvertInfo> {
-    body: Vec<IRNode<'a, T>>,
+    pub body: Vec<IRNode<'a, T>>,
 }
 
 /// Converts template ast node to intermediate representation.

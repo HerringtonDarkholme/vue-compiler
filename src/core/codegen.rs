@@ -1,4 +1,4 @@
-use super::ir_converter::{ConvertInfo, IRNode};
+use super::ir_converter::{ConvertInfo, IRNode, IRRoot};
 use std::fmt::{Result, Write};
 
 pub trait CodeGenerator {
@@ -9,7 +9,13 @@ pub trait CodeGenerator {
     fn generate(&self, node: Self::IR) -> Self::Output;
 }
 
-pub fn generate<T: ConvertInfo>(node: IRNode<T>) {
+pub fn generate_root<T: ConvertInfo>(root: IRRoot<T>) {
+    for n in root.body {
+        generate_node(n)
+    }
+}
+
+fn generate_node<T: ConvertInfo>(node: IRNode<T>) {
     use IRNode as IR;
     match node {
         IR::TextCall(..) => generate_text(),

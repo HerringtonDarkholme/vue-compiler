@@ -20,8 +20,10 @@ Convert module roughly corresponds to following transform in vue-next.
 * vOn
 */
 
-use super::parser::{AstNode, AstRoot, Directive, Element};
+pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use rustc_hash::FxHashMap;
+
+mod v_bind;
 
 pub trait ConvertInfo {
     type TextType;
@@ -40,9 +42,9 @@ pub enum VSlotExpr {
     DynamicSlotCall,
 }
 
-pub enum IRNode<'a, T: ConvertInfo> {
+pub enum IRNode<T: ConvertInfo> {
     /// interpolation or text node
-    TextCall(&'a str, T::TextType),
+    TextCall(T::TextType),
     /// v-if, else-if, else
     If(T::IfType),
     /// v-for
@@ -52,19 +54,23 @@ pub enum IRNode<'a, T: ConvertInfo> {
     /// <slot> slot outlet
     RenderSlotCall(T::RenderSlotType),
     /// v-slot on component or template
-    VSlotExpression(VSlotExpr, T::VSlotType),
+    VSlotExpression(T::VSlotType),
     /// generic JS expression
     GenericExpression(T::GenericJSType),
 }
 
-type Prop = (String, String);
+struct IfNodeIR {}
+struct ForNodeIR {}
+struct VNodeIR {}
 
-pub struct DirectiveConvertResult {
-    props: Vec<Prop>,
-    need_runtime: bool,
+pub type Prop<'a> = (JsExpression<'a>, JsExpression<'a>);
+pub enum JsExpression<'a> {
+    Literal(&'a str),
+    Simple(&'a str),
+    Compound(Vec<JsExpression<'a>>),
+    Props(Vec<Prop<'a>>),
+    Call(&'static str, Vec<JsExpression<'a>>),
 }
-
-pub type DirectiveConverter = fn(&Directive, &Element) -> DirectiveConvertResult;
 
 pub enum BindingTypes {
     /// returned from data()
@@ -89,14 +95,14 @@ pub struct ConvertOption {
     binding_metadata: FxHashMap<&'static str, BindingTypes>,
 }
 
-pub struct IRRoot<'a, T: ConvertInfo> {
-    pub body: Vec<IRNode<'a, T>>,
+pub struct IRRoot<T: ConvertInfo> {
+    pub body: Vec<IRNode<T>>,
 }
 
 /// Converts template ast node to intermediate representation.
 /// the IR format can be platform specific.
 /// e.g SSR Codegen and DOM Codegen can have different IR
-pub trait IRConverter<'a>: Sized {
+pub trait Converter<'a>: Sized {
     type IR;
     fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR;
 }
@@ -106,7 +112,7 @@ pub trait IRConverter<'a>: Sized {
 pub trait BuiltinConverter<'a, T>
 where
     T: ConvertInfo,
-    Self: IRConverter<'a, IR = IRRoot<'a, T>>,
+    Self: Converter<'a, IR = IRRoot<T>>,
 {
     fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR {
         let body = ast
@@ -116,7 +122,7 @@ where
             .collect();
         IRRoot { body }
     }
-    fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<'a, T> {
+    fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<T> {
         match n {
             AstNode::Text(..) => self.convert_text(),
             AstNode::Plain(..) => self.convert_element(),
@@ -128,13 +134,34 @@ where
         }
     }
     // core template syntax conversion
-    fn convert_directive(&self) -> IRNode<'a, T>;
-    fn convert_if(&self) -> IRNode<'a, T>;
-    fn convert_for(&self) -> IRNode<'a, T>;
-    fn convert_slot_outlet(&self) -> IRNode<'a, T>;
-    fn convert_element(&self) -> IRNode<'a, T>;
-    fn convert_text(&self) -> IRNode<'a, T>;
-    fn convert_interpolation(&self) -> IRNode<'a, T>;
-    fn convert_template(&self) -> IRNode<'a, T>;
-    fn convert_comment(&self) -> IRNode<'a, T>;
+    fn convert_directive(&self) -> IRNode<T>;
+    fn convert_if(&self) -> IRNode<T>;
+    fn convert_for(&self) -> IRNode<T>;
+    fn convert_slot_outlet(&self) -> IRNode<T>;
+    fn convert_element(&self) -> IRNode<T>;
+    fn convert_text(&self) -> IRNode<T>;
+    fn convert_interpolation(&self) -> IRNode<T>;
+    fn convert_template(&self) -> IRNode<T>;
+    fn convert_comment(&self) -> IRNode<T>;
+}
+
+/// TODO: add doc
+/// NB: this is not 100% translation from TS. `value` accepts both Props and Object.
+/// This design decouples
+pub struct DirectiveConvertResult<'a> {
+    value: JsExpression<'a>,
+    need_runtime: bool,
+}
+
+pub type DirectiveConverter =
+    for<'a> fn(&Directive<'a>, &Element<'a>) -> DirectiveConvertResult<'a>;
+
+pub fn no_op_directive_convert<'a>(
+    _: &Directive<'a>,
+    _: &Element<'a>,
+) -> DirectiveConvertResult<'a> {
+    DirectiveConvertResult {
+        value: JsExpression::Props(vec![]),
+        need_runtime: false,
+    }
 }

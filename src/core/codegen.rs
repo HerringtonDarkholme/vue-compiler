@@ -1,4 +1,4 @@
-use super::ir_converter::{ConvertInfo, IRNode, IRRoot};
+use super::converter::{ConvertInfo, IRNode, IRRoot};
 use std::fmt::{Result, Write};
 
 pub trait CodeGenerator {
@@ -7,6 +7,13 @@ pub trait CodeGenerator {
     /// generate will take optimized ir node and output
     /// desired code format, either String or Binary code
     fn generate(&self, node: Self::IR) -> Self::Output;
+}
+
+pub struct CodeGenerateOption {
+    pub is_ts: bool,
+    pub source_map: bool,
+    // filename for source map
+    pub filename: String,
 }
 
 pub fn generate_root<T: ConvertInfo>(root: IRRoot<T>) {

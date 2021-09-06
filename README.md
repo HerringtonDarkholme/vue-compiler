@@ -6,7 +6,7 @@ https://github.com/vuejs/rfcs/discussions/369#discussioncomment-1192421
 
 Future is now!
 
-## Design
+## Architecture
 
 The original design in [vue-next](https://github.com/vuejs/vue-next/blob/master/packages/compiler-core/src/ast.ts) mixes
 code generation and ast parsing in the same data structure. As we can see, the transform pass will in-place mutate ast nodes,
@@ -35,9 +35,14 @@ application components targeted to certain platforms.
 The compilation has several phases:
 * Scan (output: Tokens): Hardwired in the compiler at framework level.
 * Parse (output: template AST): Hardwired in the compiler at framework level.
-* intermediate representation: Customizable for platform developers with sensible default.
-* transformation/optimization pass: Customizable with default by using generic/traits.
-* output generation: Customizable with default.
+* Convert (output: intermediate representation): Customizable for platform developers with sensible default.
+* Transform (input/output: customizable IR): Customizable with default by using generic/traits.
+* Code Generate (customizable output: e.g. JS/TS): Customizable with default.
+
+## Other Design different from the original compiler
+* Directive parsing is implemented manually instead of by regexp.
+* [`nodeTransforms`](https://github.com/vuejs/vue-next/blob/642710ededf51f1e57286496ab0a64a4d27be800/packages/compiler-core/src/options.ts#L174) is not supported. It's too hard for app creator to use and maintain IR invariants. Platform devs can still customize by implementing converter/transformer.
+* [`directiveTransforms`](https://github.com/vuejs/vue-next/blob/642710ededf51f1e57286496ab0a64a4d27be800/packages/compiler-core/src/options.ts#L179) now can returns not only `Props` but also `SimpleExpression`. The extra flexibility makes a more cohesive v-bind/v-on conversion: the logic for processing the directives now resides in one single file without regard to the presence of an argument.
 
 ## Intended Usage
 

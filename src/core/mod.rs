@@ -1,16 +1,16 @@
 // TODO: reorg pub
 pub mod codegen;
+pub mod converter;
 pub mod error;
-pub mod ir_converter;
 mod parser;
 pub mod runtime_helper;
 mod tokenizer;
 pub mod transformer;
-mod util;
+pub mod util;
 
 pub use codegen::CodeGenerator;
+pub use converter::Converter;
 use error::{CompilationError, ErrorHandler};
-pub use ir_converter::IRConverter;
 use parser::{ParseOption, Parser};
 use tokenizer::{TokenizeOption, Tokenizer};
 pub use transformer::Transformer;
@@ -81,7 +81,7 @@ pub fn base_compile<'a, IR, O, E, Conv, Trans, Gen>(
 ) -> Result<O, CompilationError>
 where
     E: ErrorHandler,
-    Conv: IRConverter<'a, IR = IR>,
+    Conv: Converter<'a, IR = IR>,
     Trans: Transformer<IR = IR>,
     Gen: CodeGenerator<IR = IR, Output = O>,
 {

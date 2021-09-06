@@ -57,7 +57,7 @@ pub struct Element<'a> {
 /// Directive supports two forms
 /// static and dynamic
 #[derive(Debug)]
-enum DirectiveArg<'a> {
+pub enum DirectiveArg<'a> {
     // :static="val"
     Static(Name<'a>),
     Dynamic(Name<'a>), // :[dynamic]="val"
@@ -67,11 +67,11 @@ enum DirectiveArg<'a> {
 /// v-name:arg.mod1.mod2="expr"
 #[derive(Debug)]
 pub struct Directive<'a> {
-    name: Name<'a>,
-    argument: Option<DirectiveArg<'a>>,
-    modifiers: Vec<&'a str>,
-    expression: Option<AttributeValue<'a>>,
-    location: SourceLocation,
+    pub name: Name<'a>,
+    pub argument: Option<DirectiveArg<'a>>,
+    pub modifiers: Vec<&'a str>,
+    pub expression: Option<AttributeValue<'a>>,
+    pub location: SourceLocation,
 }
 
 #[derive(Debug)]

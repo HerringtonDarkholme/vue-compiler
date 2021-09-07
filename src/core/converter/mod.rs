@@ -26,6 +26,7 @@ use super::util::find_dir;
 use rustc_hash::FxHashMap;
 
 mod v_bind;
+mod v_if;
 mod v_on;
 
 pub trait ConvertInfo {
@@ -35,7 +36,7 @@ pub trait ConvertInfo {
     type VNodeType;
     type RenderSlotType;
     type VSlotType;
-    type GenericJSType;
+    type JsExpression;
 }
 
 pub enum VSlotExpr {
@@ -49,9 +50,9 @@ pub enum IRNode<T: ConvertInfo> {
     /// interpolation or text node
     TextCall(T::TextType),
     /// v-if, else-if, else
-    If(T::IfType),
+    If(IfNodeIR<T>),
     /// v-for
-    For(T::ForType),
+    For(ForNodeIR<T>),
     /// plain element or component
     VNodeCall(T::VNodeType),
     /// <slot> slot outlet
@@ -59,20 +60,37 @@ pub enum IRNode<T: ConvertInfo> {
     /// v-slot on component or template
     VSlotExpression(T::VSlotType),
     /// generic JS expression
-    GenericExpression(T::GenericJSType),
+    GenericExpression(T::JsExpression),
 }
 
-struct IfNodeIR {}
-struct ForNodeIR {}
+pub struct IfNodeIR<T: ConvertInfo> {
+    branches: Vec<IfBranch<T>>,
+    info: T::IfType,
+}
+struct IfBranch<T: ConvertInfo> {
+    condition: T::JsExpression,
+    children: Vec<IRNode<T>>,
+}
+pub struct ForNodeIR<T: ConvertInfo> {
+    source: T::JsExpression,
+    parse_result: ForParseResult<T>,
+    children: Vec<IRNode<T>>,
+}
+// (value, key, index) in source
+struct ForParseResult<T: ConvertInfo> {
+    value: Option<T::JsExpression>,
+    key: Option<T::JsExpression>,
+    index: Option<T::JsExpression>,
+}
 struct VNodeIR {}
 
-pub type Prop<'a> = (JsExpression<'a>, JsExpression<'a>);
-pub enum JsExpression<'a> {
+pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
+pub enum JsExpr<'a> {
     Lit(&'a str),
     Simple(&'a str),
-    Compound(Vec<JsExpression<'a>>),
+    Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),
-    Call(&'static str, Vec<JsExpression<'a>>),
+    Call(&'static str, Vec<JsExpr<'a>>),
 }
 
 pub enum BindingTypes {
@@ -154,9 +172,10 @@ where
                 if_nodes.push(n);
                 continue;
             }
+            // TODO: add comment and empty text handling
             if !if_nodes.is_empty() {
                 let to_convert = if_nodes.drain(..).collect();
-                let converted = self.pre_convert_if(to_convert);
+                let converted = self.convert_if(to_convert);
                 ret.push(converted);
             }
             ret.push(self.dispatch_ast(n));
@@ -179,8 +198,8 @@ where
     }
 
     // core template syntax conversion
-    fn pre_convert_if(&self, nodes: Vec<AstNode<'a>>) -> IRNode<T>;
     fn convert_directive(&self) -> IRNode<T>;
+    fn convert_if(&self, nodes: Vec<AstNode<'a>>) -> IRNode<T>;
     fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
     fn convert_slot_outlet(&self) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
@@ -197,7 +216,7 @@ where
 // This design decouples v-bind/on from transform_element.
 pub enum DirectiveConvertResult<'a> {
     Converted {
-        value: JsExpression<'a>,
+        value: JsExpr<'a>,
         need_runtime: bool,
     },
     Dropped,

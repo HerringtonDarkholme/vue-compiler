@@ -1,8 +1,7 @@
 use super::{
     super::error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
     super::parser::DirectiveArg,
-    Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
-    JsExpression as Js,
+    Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler, JsExpr as Js,
 };
 
 // this module process v-bind without arg and with arg.

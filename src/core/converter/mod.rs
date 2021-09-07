@@ -166,6 +166,7 @@ where
         let mut if_nodes = Vec::with_capacity(children.len());
         let mut key = 0;
         // pre group adjacent v-if here to avoid access siblings
+        // TODO: move group logic to v-if
         for n in children {
             let found_v_if = n
                 .get_element()
@@ -184,6 +185,14 @@ where
                 ret.push(converted);
             }
             ret.push(self.dispatch_ast(n));
+        }
+        // Missed trailing if_nodes LOL!
+        if !if_nodes.is_empty() {
+            let to_convert: Vec<_> = if_nodes.drain(..).collect();
+            let len = to_convert.len();
+            let converted = self.convert_if(to_convert, key);
+            key += len;
+            ret.push(converted);
         }
         ret
     }

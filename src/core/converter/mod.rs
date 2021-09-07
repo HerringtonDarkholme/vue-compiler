@@ -20,6 +20,8 @@ Convert module roughly corresponds to following transform in vue-next.
 * vOn
 */
 
+use std::marker::PhantomData;
+
 pub use super::error::ErrorHandler;
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use super::util::find_dir;
@@ -162,6 +164,7 @@ where
     fn convert_children(&self, children: Vec<AstNode<'a>>) -> Vec<IRNode<T>> {
         let mut ret = Vec::with_capacity(children.len());
         let mut if_nodes = Vec::with_capacity(children.len());
+        let mut key = 0;
         // pre group adjacent v-if here to avoid access siblings
         for n in children {
             let found_v_if = n
@@ -174,8 +177,10 @@ where
             }
             // TODO: add comment and empty text handling
             if !if_nodes.is_empty() {
-                let to_convert = if_nodes.drain(..).collect();
-                let converted = self.convert_if(to_convert);
+                let to_convert: Vec<_> = if_nodes.drain(..).collect();
+                let len = to_convert.len();
+                let converted = self.convert_if(to_convert, key);
+                key += len;
                 ret.push(converted);
             }
             ret.push(self.dispatch_ast(n));
@@ -198,8 +203,8 @@ where
     }
 
     // core template syntax conversion
-    fn convert_directive(&self) -> IRNode<T>;
-    fn convert_if(&self, nodes: Vec<AstNode<'a>>) -> IRNode<T>;
+    fn convert_directive(&self) -> DirectiveConvertResult<T>;
+    fn convert_if(&self, nodes: Vec<AstNode<'a>>, key: usize) -> IRNode<T>;
     fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
     fn convert_slot_outlet(&self) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
@@ -214,25 +219,39 @@ where
 /// Use Dropped if the directive is dropped implicitly without codegen.
 /// NB: this is not 100% translation from TS. `value` accepts both Props and Object.
 // This design decouples v-bind/on from transform_element.
-pub enum DirectiveConvertResult<'a> {
+pub enum DirectiveConvertResult<T: ConvertInfo> {
     Converted {
-        value: JsExpr<'a>,
+        value: T::JsExpression,
         need_runtime: bool,
     },
     Dropped,
 }
+
+type CoreDirConvRet<'a> = DirectiveConvertResult<CoreConvertInfo<'a>>;
 
 /// Returns the conversion of a directive. Value could be props or object.
 // NB: we pass &dyn ErrorHandler to monomorphize the dir converter to pay
 // the minimal cost of dynamism only when error occurs. otherwise we will
 // incur the overhead of dyn DirectiveConvert in the ConvertOption.
 pub type DirConvertFn =
-    for<'a> fn(Directive<'a>, &Element<'a>, &dyn ErrorHandler) -> DirectiveConvertResult<'a>;
+    for<'a> fn(Directive<'a>, &Element<'a>, &dyn ErrorHandler) -> CoreDirConvRet<'a>;
 pub type DirectiveConverter = (&'static str, DirConvertFn);
-pub fn no_op_directive_convert<'a>(
+pub fn no_op_directive_convert<'a, T: ConvertInfo>(
     _: Directive<'a>,
     _: &Element<'a>,
     _: &dyn ErrorHandler,
-) -> DirectiveConvertResult<'a> {
+) -> DirectiveConvertResult<T> {
     DirectiveConvertResult::Dropped
+}
+
+pub struct CoreConvertInfo<'a>(PhantomData<&'a ()>);
+
+impl<'a> ConvertInfo for CoreConvertInfo<'a> {
+    type TextType = &'a str;
+    type IfType = ();
+    type ForType = ();
+    type VNodeType = ();
+    type RenderSlotType = ();
+    type VSlotType = ();
+    type JsExpression = JsExpr<'a>;
 }

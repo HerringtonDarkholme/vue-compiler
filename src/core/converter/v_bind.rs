@@ -1,7 +1,8 @@
 use super::{
     super::error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
     super::parser::DirectiveArg,
-    Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler, JsExpr as Js,
+    CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
+    JsExpr as Js,
 };
 
 // this module process v-bind without arg and with arg.
@@ -9,7 +10,7 @@ pub fn convert_v_bind<'a>(
     dir: Directive<'a>,
     _: &Element<'a>,
     eh: &dyn ErrorHandler,
-) -> DirectiveConvertResult<'a> {
+) -> CoreDirConvRet<'a> {
     let Directive {
         expression,
         modifiers,

@@ -32,6 +32,19 @@ pub enum AstNode<'a> {
     Comment(SourceNode<'a>),
 }
 
+impl<'a> AstNode<'a> {
+    pub fn get_element(&self) -> Option<&Element<'a>> {
+        use AstNode as A;
+        match self {
+            A::Plain(e) => Some(e),
+            A::Template(e) => Some(e),
+            A::Component(e) => Some(e),
+            A::SlotOutlet(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct SourceNode<'a> {
     pub source: &'a str,
@@ -741,12 +754,9 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, need_condense: bool) {
     }
 }
 
+#[inline]
 fn is_element(n: &AstNode) -> bool {
-    use AstNode as A;
-    matches!(
-        n,
-        A::Plain(_) | A::Template(_) | A::Component(_) | A::SlotOutlet(_)
-    )
+    n.get_element().is_some()
 }
 
 fn compress_text_node(n: &mut AstNode) {

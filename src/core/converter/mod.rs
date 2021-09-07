@@ -114,20 +114,16 @@ pub trait Converter<'a>: Sized {
 /// The last argument is a continuation closure for base conversion.
 // continuation is from continuation passing style.
 // TODO: benchmark this monster function.
-fn pre_convert_structural_dir<'a, T, C, K>(c: &C, mut e: Element<'a>, base_convert: K) -> IRNode<T>
+fn pre_convert_for<'a, T, C, K>(c: &C, mut e: Element<'a>, base_convert: K) -> IRNode<T>
 where
     T: ConvertInfo,
     C: BuiltinConverter<'a, T>,
     K: FnOnce(Element<'a>) -> IRNode<T>,
 {
-    // convert v-if first, then v-for
-    if let Some(dir) = find_dir(&mut e, ["if", "else-if", "else"]) {
+    // convert v-for, v-if is converted elsewhere
+    if let Some(dir) = find_dir(&mut e, "for") {
         let b = dir.take();
-        let n = pre_convert_structural_dir(c, e, base_convert);
-        c.convert_if(b, n)
-    } else if let Some(dir) = find_dir(&mut e, "for") {
-        let b = dir.take();
-        let n = pre_convert_structural_dir(c, e, base_convert);
+        let n = pre_convert_for(c, e, base_convert);
         c.convert_for(b, n)
     } else {
         base_convert(e)
@@ -142,33 +138,49 @@ where
     Self: Converter<'a, IR = IRRoot<T>>,
 {
     fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR {
-        let body = ast
-            .children
-            .into_iter()
-            .map(|n| self.dispatch_ast(n))
-            .collect();
+        let body = self.convert_children(ast.children);
         IRRoot { body }
     }
+    fn convert_children(&self, children: Vec<AstNode<'a>>) -> Vec<IRNode<T>> {
+        let mut ret = Vec::with_capacity(children.len());
+        let mut if_nodes = Vec::with_capacity(children.len());
+        // pre group adjacent v-if here to avoid access siblings
+        for n in children {
+            let found_v_if = n
+                .get_element()
+                .and_then(|e| find_dir(e, ["if", "else-if", "else"]))
+                .is_some();
+            if found_v_if {
+                if_nodes.push(n);
+                continue;
+            }
+            if !if_nodes.is_empty() {
+                let to_convert = if_nodes.drain(..).collect();
+                let converted = self.pre_convert_if(to_convert);
+                ret.push(converted);
+            }
+            ret.push(self.dispatch_ast(n));
+        }
+        ret
+    }
+
     fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<T> {
         match n {
             AstNode::Text(..) => self.convert_text(),
             AstNode::Comment(..) => self.convert_comment(),
             AstNode::Interpolation(..) => self.convert_interpolation(),
-            // all element like node needs structural pre conversion
-            AstNode::Plain(e) => pre_convert_structural_dir(self, e, |e| self.convert_element(e)),
-            AstNode::Component(e) => {
-                pre_convert_structural_dir(self, e, |e| self.convert_component(e))
-            }
-            AstNode::Template(e) => {
-                pre_convert_structural_dir(self, e, |e| self.convert_template(e))
-            }
+            // all element like node needs pre-convert structural dirs
+            AstNode::Plain(e) => pre_convert_for(self, e, |e| self.convert_element(e)),
+            AstNode::Component(e) => pre_convert_for(self, e, |e| self.convert_component(e)),
+            AstNode::Template(e) => pre_convert_for(self, e, |e| self.convert_template(e)),
             // <slot> requires special v-if/v-for handling
             AstNode::SlotOutlet(..) => self.convert_slot_outlet(),
         }
     }
+
     // core template syntax conversion
+    fn pre_convert_if(&self, nodes: Vec<AstNode<'a>>) -> IRNode<T>;
     fn convert_directive(&self) -> IRNode<T>;
-    fn convert_if(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
     fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
     fn convert_slot_outlet(&self) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;

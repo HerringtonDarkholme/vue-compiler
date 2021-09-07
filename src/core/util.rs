@@ -2,6 +2,7 @@ use super::{
     parser::{Directive, Element},
     runtime_helper::RuntimeHelper,
 };
+use std::ops::{Deref, DerefMut};
 
 pub fn get_core_component(tag: &str) -> Option<RuntimeHelper> {
     use RuntimeHelper as RH;
@@ -40,31 +41,43 @@ impl<const N: usize> DirPattern for [&'static str; N] {
     }
 }
 
-pub struct FoundDir<'s, 'a> {
-    dirs: &'s mut Vec<Directive<'a>>,
+pub struct DirFound<'a, E>
+where
+    E: Deref<Target = Element<'a>>,
+{
+    elem: E,
     pos: usize,
 }
-impl<'s, 'a> FoundDir<'s, 'a> {
-    pub fn take(self) -> Directive<'a> {
-        self.dirs.remove(self.pos)
-    }
+impl<'a, E> DirFound<'a, E>
+where
+    E: Deref<Target = Element<'a>>,
+{
     pub fn as_ref(&self) -> &Directive<'a> {
-        &self.dirs[self.pos]
+        &self.elem.directives[self.pos]
+    }
+}
+// take is only available when access is mutable
+impl<'a, E> DirFound<'a, E>
+where
+    E: DerefMut<Target = Element<'a>>,
+{
+    pub fn take(mut self) -> Directive<'a> {
+        self.elem.directives.remove(self.pos)
     }
 }
 
-pub fn find_dir<'s, 'a, P>(e: &'s mut Element<'a>, pattern: P) -> Option<FoundDir<'s, 'a>>
+// sometimes mutable access to the element is not available so
+// Deref is used to override the DirFound and `take` is optional
+pub fn find_dir<'a, E, P>(e: E, pattern: P) -> Option<DirFound<'a, E>>
 where
+    E: Deref<Target = Element<'a>>,
     P: DirPattern,
 {
     let pos = e
         .directives
         .iter()
         .position(|dir| pattern.is_match(dir.name))?;
-    Some(FoundDir {
-        pos,
-        dirs: &mut e.directives,
-    })
+    Some(DirFound { pos, elem: e })
 }
 
 #[cfg(test)]
@@ -91,6 +104,17 @@ mod test {
 
     #[test]
     fn test_find_dir() {
+        let dir = mock_directive("if");
+        let e = mock_element(dir);
+        let found = find_dir(&e, "if");
+        assert!(found.is_some());
+        let found = found.unwrap();
+        assert_eq!(found.as_ref().name, "if");
+        assert_eq!(e.directives.len(), 1);
+    }
+
+    #[test]
+    fn test_find_dir_mut() {
         let dir = mock_directive("if");
         let mut e = mock_element(dir);
         let found = find_dir(&mut e, "if");

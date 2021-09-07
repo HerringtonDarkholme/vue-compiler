@@ -20,6 +20,8 @@ Convert module roughly corresponds to following transform in vue-next.
 * vOn
 */
 
+use std::convert::TryInto;
+
 pub use super::error::ErrorHandler;
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use rustc_hash::FxHashMap;
@@ -127,27 +129,31 @@ where
     fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<T> {
         match n {
             AstNode::Text(..) => self.convert_text(),
-            AstNode::Plain(e) => self
-                .convert_structural_dir(e)
-                .unwrap_or_else(|e| self.convert_element(e)),
-            AstNode::Component(e) => self
-                .convert_structural_dir(e)
-                .unwrap_or_else(|e| self.convert_element(e)),
+            AstNode::Plain(e) => self.convert_element(e),
+            AstNode::Component(e) => self.convert_element(e),
             AstNode::SlotOutlet(..) => self.convert_slot_outlet(),
             AstNode::Comment(..) => self.convert_comment(),
             AstNode::Interpolation(..) => self.convert_interpolation(),
-            AstNode::Template(e) => self
-                .convert_structural_dir(e)
-                .expect("template must have slot"),
+            AstNode::Template(e) => self.convert_element(e),
         }
     }
-    fn convert_structural_dir(&self, n: Element<'a>) -> Result<IRNode<T>, Element<'a>> {
-        todo!()
+    fn convert_structural_dir(&self, mut e: Element<'a>) -> IRNode<T> {
+        if let Some(dir) = find_dir(&mut e, ["if", "else-if", "else", "for"]) {
+            let b = dir.take();
+            let e = self.convert_structural_dir(e);
+            if b.name == "for" {
+                self.convert_for(e)
+            } else {
+                self.convert_if(e)
+            }
+        } else {
+            self.convert_element(e)
+        }
     }
     // core template syntax conversion
     fn convert_directive(&self) -> IRNode<T>;
-    fn convert_if(&self) -> IRNode<T>;
-    fn convert_for(&self) -> IRNode<T>;
+    fn convert_if(&self, n: IRNode<T>) -> IRNode<T>;
+    fn convert_for(&self, n: IRNode<T>) -> IRNode<T>;
     fn convert_slot_outlet(&self) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_text(&self) -> IRNode<T>;
@@ -183,4 +189,79 @@ pub fn no_op_directive_convert<'a>(
     DirectiveConvertResult::Dropped
 }
 
-pub struct ConverterImpl {}
+pub trait DirPattern {
+    fn is_match(&self, name: &str) -> bool;
+}
+impl DirPattern for &str {
+    fn is_match(&self, name: &str) -> bool {
+        name == *self
+    }
+}
+
+impl<const N: usize> DirPattern for [&'static str; N] {
+    fn is_match(&self, name: &str) -> bool {
+        self.contains(&name)
+    }
+}
+
+pub struct FoundDir<'s, 'a> {
+    dirs: &'s mut Vec<Directive<'a>>,
+    pos: usize,
+}
+impl<'s, 'a> FoundDir<'s, 'a> {
+    pub fn take(self) -> Directive<'a> {
+        self.dirs.remove(self.pos)
+    }
+    pub fn as_ref(&self) -> &Directive<'a> {
+        &self.dirs[self.pos]
+    }
+}
+
+pub fn find_dir<'s, 'a, P>(e: &'s mut Element<'a>, pattern: P) -> Option<FoundDir<'s, 'a>>
+where
+    P: DirPattern,
+{
+    let pos = e
+        .directives
+        .iter()
+        .position(|dir| pattern.is_match(dir.name))?;
+    Some(FoundDir {
+        pos,
+        dirs: &mut e.directives,
+    })
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::core::Namespace;
+
+    fn mock_element(dir: Directive) -> Element {
+        Element {
+            tag_name: "div",
+            namespace: Namespace::Html,
+            attributes: vec![],
+            directives: vec![dir],
+            children: vec![],
+            location: Default::default(),
+        }
+    }
+    fn mock_directive(name: &str) -> Directive {
+        Directive {
+            name,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_find_dir() {
+        let dir = mock_directive("if");
+        let mut e = mock_element(dir);
+        let found = find_dir(&mut e, "if");
+        assert!(found.is_some());
+        let found = found.unwrap();
+        assert_eq!(found.as_ref().name, "if");
+        assert_eq!(found.take().name, "if");
+        assert!(e.directives.is_empty());
+    }
+}

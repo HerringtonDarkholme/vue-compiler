@@ -43,6 +43,7 @@ impl<'a> Iterator for PreGroupIter<'a> {
                 let e = n.into_element().unwrap();
                 self.group.push(e);
             } else {
+                // TODO: add comment and empty text handling
                 break;
             }
         }
@@ -52,6 +53,10 @@ impl<'a> Iterator for PreGroupIter<'a> {
             // if no group, consume next standalone element if available
             self.inner.next().map(|n| PreGroup::StandAlone(n))
         })
+    }
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (0, self.inner.size_hint().1)
     }
 }
 

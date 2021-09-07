@@ -30,6 +30,7 @@ use rustc_hash::FxHashMap;
 mod v_bind;
 mod v_if;
 mod v_on;
+use v_if::{pre_group_v_if, PreGroup};
 
 pub trait ConvertInfo {
     type TextType;
@@ -162,39 +163,19 @@ where
         IRRoot { body }
     }
     fn convert_children(&self, children: Vec<AstNode<'a>>) -> Vec<IRNode<T>> {
-        let mut ret = Vec::with_capacity(children.len());
-        let mut if_nodes = Vec::with_capacity(children.len());
         let mut key = 0;
         // pre group adjacent v-if here to avoid access siblings
-        // TODO: move group logic to v-if
-        for n in children {
-            let found_v_if = n
-                .get_element()
-                .and_then(|e| find_dir(e, ["if", "else-if", "else"]))
-                .is_some();
-            if found_v_if {
-                if_nodes.push(n);
-                continue;
-            }
-            // TODO: add comment and empty text handling
-            if !if_nodes.is_empty() {
-                let to_convert: Vec<_> = if_nodes.drain(..).collect();
-                let len = to_convert.len();
-                let converted = self.convert_if(to_convert, key);
-                key += len;
-                ret.push(converted);
-            }
-            ret.push(self.dispatch_ast(n));
-        }
-        // Missed trailing if_nodes LOL!
-        if !if_nodes.is_empty() {
-            let to_convert: Vec<_> = if_nodes.drain(..).collect();
-            let len = to_convert.len();
-            let converted = self.convert_if(to_convert, key);
-            key += len;
-            ret.push(converted);
-        }
-        ret
+        pre_group_v_if(children)
+            .map(|pre| match pre {
+                PreGroup::VIfGroup(to_convert) => {
+                    let len = to_convert.len();
+                    let converted = self.convert_if(to_convert, key);
+                    key += len;
+                    converted
+                }
+                PreGroup::StandAlone(n) => self.dispatch_ast(n),
+            })
+            .collect()
     }
 
     fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<T> {
@@ -213,7 +194,7 @@ where
 
     // core template syntax conversion
     fn convert_directive(&self) -> DirectiveConvertResult<T>;
-    fn convert_if(&self, nodes: Vec<AstNode<'a>>, key: usize) -> IRNode<T>;
+    fn convert_if(&self, nodes: Vec<Element<'a>>, key: usize) -> IRNode<T>;
     fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
     fn convert_slot_outlet(&self) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;

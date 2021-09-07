@@ -43,6 +43,16 @@ impl<'a> AstNode<'a> {
             _ => None,
         }
     }
+    pub fn into_element(self) -> Option<Element<'a>> {
+        use AstNode as A;
+        match self {
+            A::Plain(e) => Some(e),
+            A::Template(e) => Some(e),
+            A::Component(e) => Some(e),
+            A::SlotOutlet(e) => Some(e),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug)]

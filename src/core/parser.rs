@@ -65,7 +65,7 @@ pub enum DirectiveArg<'a> {
 
 /// Directive has the form
 /// v-name:arg.mod1.mod2="expr"
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Directive<'a> {
     pub name: Name<'a>,
     pub argument: Option<DirectiveArg<'a>>,

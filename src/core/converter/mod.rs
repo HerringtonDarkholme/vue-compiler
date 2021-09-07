@@ -110,6 +110,30 @@ pub trait Converter<'a>: Sized {
     fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR;
 }
 
+/// Pre converts v-if or v-for like structural dir
+/// The last argument is a continuation closure for base conversion.
+// continuation is from continuation passing style.
+// TODO: benchmark this monster function.
+fn pre_convert_structural_dir<'a, T, C, K>(c: &C, mut e: Element<'a>, base_convert: K) -> IRNode<T>
+where
+    T: ConvertInfo,
+    C: BuiltinConverter<'a, T>,
+    K: FnOnce(Element<'a>) -> IRNode<T>,
+{
+    // convert v-if first, then v-for
+    if let Some(dir) = find_dir(&mut e, ["if", "else-if", "else"]) {
+        let b = dir.take();
+        let n = pre_convert_structural_dir(c, e, base_convert);
+        c.convert_if(b, n)
+    } else if let Some(dir) = find_dir(&mut e, "for") {
+        let b = dir.take();
+        let n = pre_convert_structural_dir(c, e, base_convert);
+        c.convert_for(b, n)
+    } else {
+        base_convert(e)
+    }
+}
+
 /// Default implementation  sketch can be used in DOM/SSR.
 /// Other platform might invent and use their own IR.
 pub trait BuiltinConverter<'a, T>
@@ -131,33 +155,24 @@ where
             AstNode::Comment(..) => self.convert_comment(),
             AstNode::Interpolation(..) => self.convert_interpolation(),
             // all element like node needs structural pre conversion
-            AstNode::Plain(e) => self.pre_convert_structural_dir(e),
-            AstNode::Component(e) => self.pre_convert_structural_dir(e),
-            AstNode::Template(e) => self.pre_convert_structural_dir(e),
+            AstNode::Plain(e) => pre_convert_structural_dir(self, e, |e| self.convert_element(e)),
+            AstNode::Component(e) => {
+                pre_convert_structural_dir(self, e, |e| self.convert_component(e))
+            }
+            AstNode::Template(e) => {
+                pre_convert_structural_dir(self, e, |e| self.convert_template(e))
+            }
             // <slot> requires special v-if/v-for handling
             AstNode::SlotOutlet(..) => self.convert_slot_outlet(),
         }
     }
-    // pre convert v-if or v-for like structural dir
-    fn pre_convert_structural_dir(&self, mut e: Element<'a>) -> IRNode<T> {
-        if let Some(dir) = find_dir(&mut e, ["if", "else-if", "else", "for"]) {
-            let b = dir.take();
-            let n = self.pre_convert_structural_dir(e);
-            if b.name == "for" {
-                self.convert_for(n)
-            } else {
-                self.convert_if(n)
-            }
-        } else {
-            self.convert_element(e)
-        }
-    }
     // core template syntax conversion
     fn convert_directive(&self) -> IRNode<T>;
-    fn convert_if(&self, n: IRNode<T>) -> IRNode<T>;
-    fn convert_for(&self, n: IRNode<T>) -> IRNode<T>;
+    fn convert_if(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
+    fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
     fn convert_slot_outlet(&self) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
+    fn convert_component(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_text(&self) -> IRNode<T>;
     fn convert_interpolation(&self) -> IRNode<T>;
     fn convert_template(&self, e: Element<'a>) -> IRNode<T>;

@@ -51,7 +51,7 @@ impl<'a> Iterator for PreGroupIter<'a> {
         // first, flush preceding group
         self.flush_group().or_else(|| {
             // if no group, consume next standalone element if available
-            self.inner.next().map(|n| PreGroup::StandAlone(n))
+            self.inner.next().map(PreGroup::StandAlone)
         })
     }
     #[inline]
@@ -62,7 +62,7 @@ impl<'a> Iterator for PreGroupIter<'a> {
 
 /// pre group adjacent elements with v-if
 // using generator here will be super cool
-pub fn pre_group_v_if<'a>(children: Vec<AstNode<'a>>) -> impl Iterator<Item = PreGroup<'a>> {
+pub fn pre_group_v_if(children: Vec<AstNode>) -> impl Iterator<Item = PreGroup> {
     PreGroupIter::new(children)
 }
 

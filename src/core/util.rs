@@ -52,7 +52,7 @@ impl<'a, E> DirFound<'a, E>
 where
     E: Deref<Target = Element<'a>>,
 {
-    pub fn as_ref(&self) -> &Directive<'a> {
+    pub fn get_ref(&self) -> &Directive<'a> {
         &self.elem.directives[self.pos]
     }
 }
@@ -109,7 +109,7 @@ mod test {
         let found = find_dir(&e, "if");
         assert!(found.is_some());
         let found = found.unwrap();
-        assert_eq!(found.as_ref().name, "if");
+        assert_eq!(found.get_ref().name, "if");
         assert_eq!(e.directives.len(), 1);
     }
 
@@ -120,7 +120,7 @@ mod test {
         let found = find_dir(&mut e, "if");
         assert!(found.is_some());
         let found = found.unwrap();
-        assert_eq!(found.as_ref().name, "if");
+        assert_eq!(found.get_ref().name, "if");
         assert_eq!(found.take().name, "if");
         assert!(e.directives.is_empty());
     }

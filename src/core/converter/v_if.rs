@@ -1,11 +1,14 @@
 use super::{
-    super::error::CompilationErrorKind as ErrorKind, AstNode, BaseConvertInfo, BaseConverter as BC,
-    BaseIR, CompilationError, Directive, Element, IRNode, IfBranch, IfNodeIR,
+    super::error::CompilationErrorKind as ErrorKind, super::parser::ElemProp, AstNode,
+    BaseConvertInfo, BaseConverter as BC, BaseIR, CompilationError, Directive, Element, IRNode,
+    IfBranch, IfNodeIR,
 };
 use crate::core::{
     converter::{CoreConverter, JsExpr},
-    util::find_dir,
+    tokenizer::Attribute,
+    util::{find_dir, find_prop},
 };
+use rustc_hash::FxHashSet;
 use std::{iter::Peekable, vec::IntoIter};
 
 pub enum PreGroup<'a> {
@@ -96,12 +99,12 @@ pub fn pre_group_v_if(children: Vec<AstNode>) -> impl Iterator<Item = PreGroup> 
 pub fn convert_if<'a>(c: &BC, nodes: Vec<AstNode<'a>>, key: usize) -> BaseIR<'a> {
     debug_assert!(!nodes.is_empty());
     check_dangling_else(c, &nodes[0]);
+    check_same_key(c, &nodes);
     let branches: Vec<_> = nodes
         .into_iter()
         .enumerate()
         .map(|(i, n)| convert_if_branch(c, n, key + i))
         .collect();
-    check_same_key(&branches);
     IRNode::If(IfNodeIR { branches, info: () })
 }
 
@@ -119,8 +122,41 @@ pub fn check_dangling_else<'a>(c: &BC, first_node: &AstNode<'a>) {
     c.emit_error(error);
 }
 
-fn check_same_key(_: &[IfBranch<BaseConvertInfo>]) {
-    // TODO, vue only does this in
+fn check_same_key<'a>(c: &BC, nodes: &[AstNode<'a>]) {
+    // vue only does this in dev build
+    let mut dirs = FxHashSet::default();
+    let mut attrs = FxHashSet::default();
+    for node in nodes {
+        let child = node.get_element().unwrap();
+        let prop = find_prop(child, "if");
+        if prop.is_none() {
+            continue;
+        }
+        match prop.unwrap().get_ref() {
+            ElemProp::Dir(Directive {
+                expression: Some(v),
+                ..
+            }) => {
+                if dirs.contains(v.content.raw) {
+                    let error = CompilationError::new(ErrorKind::VIfSameKey)
+                        .with_location(v.location.clone());
+                    c.emit_error(error);
+                } else {
+                    dirs.insert(v.content.raw);
+                }
+            }
+            ElemProp::Attr(Attribute { value: Some(v), .. }) => {
+                if attrs.contains(v.content.raw) {
+                    let error = CompilationError::new(ErrorKind::VIfSameKey)
+                        .with_location(v.location.clone());
+                    c.emit_error(error);
+                } else {
+                    attrs.insert(v.content.raw);
+                }
+            }
+            _ => (),
+        }
+    }
 }
 
 fn convert_if_branch<'a>(c: &BC, mut n: AstNode<'a>, key: usize) -> IfBranch<BaseConvertInfo<'a>> {

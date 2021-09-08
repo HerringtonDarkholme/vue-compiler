@@ -866,6 +866,7 @@ pub mod test {
             r#"<textarea>{{'</textarea>'}}</textarea>"#,
             r#"<textarea>{{}}</textarea>"#,
             r#"<textarea>{{</textarea>"#,
+            r#"<textarea>{{"#,
             r#"<textarea>{{ garbage  {{ }}</textarea>"#,
         ];
         for &case in cases.iter() {

@@ -1,7 +1,7 @@
 use super::{
     AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, Element, IRNode, IfBranch, IfNodeIR,
 };
-use crate::core::{converter::CoreConverter, util::find_dir};
+use crate::core::util::find_dir;
 use std::{iter::Peekable, vec::IntoIter};
 
 pub enum PreGroup<'a> {

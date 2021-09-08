@@ -135,6 +135,23 @@ pub struct Directive<'a> {
     pub location: SourceLocation,
 }
 
+impl<'a> Directive<'a> {
+    pub fn check_empty_expr(&self, kind: ErrorKind) -> Option<CompilationError> {
+        let is_empty_val = self
+            .expression
+            .as_ref()
+            .map_or(true, |v| !v.content.contains(non_whitespace));
+        if !is_empty_val {
+            return None;
+        }
+        let loc = self
+            .expression
+            .as_ref()
+            .map_or(self.head_loc.clone(), |v| v.location.clone());
+        Some(CompilationError::new(kind).with_location(loc))
+    }
+}
+
 #[derive(Debug)]
 pub struct AstRoot<'a> {
     pub children: Vec<AstNode<'a>>,

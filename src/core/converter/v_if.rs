@@ -28,6 +28,14 @@ impl<'a> PreGroupIter<'a> {
             Some(PreGroup::VIfGroup(group))
         }
     }
+
+    fn next_standalone(&mut self) -> Option<PreGroup<'a>> {
+        debug_assert!(self
+            .inner
+            .peek()
+            .map_or(true, |n| { n.get_element().is_none() }));
+        self.inner.next().map(PreGroup::StandAlone)
+    }
 }
 impl<'a> Iterator for PreGroupIter<'a> {
     type Item = PreGroup<'a>;
@@ -42,8 +50,18 @@ impl<'a> Iterator for PreGroupIter<'a> {
                 let n = self.inner.next().unwrap(); // must next to advance
                 let e = n.into_element().unwrap();
                 self.group.push(e);
+            } else if let AstNode::Text(s) = n {
+                if s.text.is_all_whitespace() {
+                    // skip whitespace
+                    self.next().unwrap();
+                } else {
+                    // break if text is not whitespaces
+                    break;
+                }
+            } else if matches!(n, &AstNode::Comment(_)) {
+                // ignore comments for now. #3619
+                return self.next_standalone();
             } else {
-                // TODO: add comment and empty text handling
                 break;
             }
         }
@@ -51,7 +69,7 @@ impl<'a> Iterator for PreGroupIter<'a> {
         // first, flush preceding group
         self.flush_group().or_else(|| {
             // if no group, consume next standalone element if available
-            self.inner.next().map(PreGroup::StandAlone)
+            self.next_standalone()
         })
     }
     #[inline]

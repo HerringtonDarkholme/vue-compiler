@@ -96,7 +96,7 @@ pub fn pre_group_v_if(children: Vec<AstNode>) -> impl Iterator<Item = PreGroup> 
 pub fn convert_if<'a>(c: &BC, nodes: Vec<AstNode<'a>>, key: usize) -> BaseIR<'a> {
     debug_assert!(!nodes.is_empty());
     check_dangling_else(c, &nodes[0]);
-    let branches = nodes
+    let branches: Vec<_> = nodes
         .into_iter()
         .enumerate()
         .map(|(i, n)| convert_if_branch(c, n, key + i))
@@ -107,18 +107,19 @@ pub fn convert_if<'a>(c: &BC, nodes: Vec<AstNode<'a>>, key: usize) -> BaseIR<'a>
 
 pub fn check_dangling_else<'a>(c: &BC, first_node: &AstNode<'a>) {
     let first_elem = first_node.get_element().unwrap();
-    if find_dir(first_elem, "if").is_none() {
-        let loc = find_dir(first_elem, ["else-if", "else"])
-            .expect("must have other v-if dir")
-            .get_ref()
-            .location
-            .clone();
-        let error = CompilationError::new(ErrorKind::VElseNoAdjacentIf).with_location(loc);
-        c.emit_error(error);
+    if find_dir(first_elem, "if").is_some() {
+        return;
     }
+    let loc = find_dir(first_elem, ["else-if", "else"])
+        .expect("must have other v-if dir")
+        .get_ref()
+        .location
+        .clone();
+    let error = CompilationError::new(ErrorKind::VElseNoAdjacentIf).with_location(loc);
+    c.emit_error(error);
 }
 
-fn check_same_key<'a>(_: &Vec<IfBranch<BaseConvertInfo<'a>>>) {
+fn check_same_key(_: &[IfBranch<BaseConvertInfo>]) {
     // TODO, vue only does this in
 }
 

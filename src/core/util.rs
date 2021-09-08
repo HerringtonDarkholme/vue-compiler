@@ -31,16 +31,16 @@ pub const fn no(_: &str) -> bool {
     false
 }
 
-pub trait DirPattern {
+pub trait PropPattern {
     fn is_match(&self, name: &str) -> bool;
 }
-impl DirPattern for &str {
+impl PropPattern for &str {
     fn is_match(&self, name: &str) -> bool {
         name == *self
     }
 }
 
-impl<const N: usize> DirPattern for [&'static str; N] {
+impl<const N: usize> PropPattern for [&'static str; N] {
     fn is_match(&self, name: &str) -> bool {
         self.contains(&name)
     }
@@ -76,7 +76,7 @@ where
 pub fn find_dir<'a, E, P>(e: E, pattern: P) -> Option<DirFound<'a, E>>
 where
     E: Deref<Target = Element<'a>>,
-    P: DirPattern,
+    P: PropPattern,
 {
     let pos = e
         .directives

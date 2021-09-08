@@ -169,6 +169,7 @@ bitflags! {
         const DECODE_ENTITY       = 1 << 1;
         const CAMEL_CASE          = 1 << 2;
         const IS_ATTR             = 1 << 3;
+        const HANDLER_KEY         = 1 << 4;
     }
 }
 
@@ -205,6 +206,10 @@ impl<'a> VStr<'a> {
     }
     pub fn compress_whitespace(&mut self) -> &mut Self {
         self.ops |= StrOps::COMPRESS_WHITESPACE;
+        self
+    }
+    pub fn to_handler_key(&mut self) -> &mut Self {
+        self.ops |= StrOps::HANDLER_KEY;
         self
     }
 }

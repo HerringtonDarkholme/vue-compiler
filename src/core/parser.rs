@@ -855,40 +855,40 @@ mod test {
     #[test]
     fn test() {
         let cases = [
-            r#"<p :="tt"/>"#,           // bind, N/A,
-            r#"<p @="tt"/>"#,           // on, N/A,
-            r#"<p #="tt"/>"#,           // slot, default,
-            r#"<p #:)="tt"/>"#,         // slot, :),
-            r#"<p #@_@="tt"/>"#,        // slot, @_@,
-            r#"<p #.-.="tt"/>"#,        // slot, .-.,
-            r#"<p :^_^="tt"/>"#,        // bind, ^_^
-            r#"<p :^_^.prop="tt"/>"#,   // bind, ^_^, prop
-            r#"<p :_:.prop="tt"/>"#,    // bind, _:, prop
-            r#"<p @::="tt"/>"#,         // on , :: ,
-            r#"<p @_@="tt"/>"#,         // on , _@ ,
-            r#"<p @_@.stop="tt"/>"#,    // on, _@, stop
-            r#"<p @.stop="tt"/>"#,      // on, N/A, stop
-            r#"<p .stop="tt"/>"#,       // bind, stop, prop
-            r#"<p .^-^.attr="tt" />"#,  // bind, ^-^, attr|prop
-            r#"<p v-="tt"/>"#,          // ERROR,
-            r#"<p v-:="tt"/>"#,         // ERROR,
-            r#"<p v-.="tt"/>"#,         // ERROR,
-            r#"<p v-@="tt"/>"#,         // @, N/A,
-            r#"<p v-#="tt"/>"#,         // #, N/A,
-            r#"<p v-^.stop="tt"/>"#,    // ^, N/A, stop
-            r#"<p v-a:.="tt"/>"#,       // ERROR
-            r#"<p v-a:b.="tt"/>"#,      // ERROR
-            r#"<p v-slot.-="tt"/>"#,    // ERROR: slot, N/A, -
-            r#"<p v-slot@.@="tt"/>"#,   // slot@, N/A, @
-            r#"<p v-🖖:🤘.🤙/>"#, // unicode, VUE in hand sign
+            r#"<p :="tt"/>"#,          // bind, N/A,
+            r#"<p @="tt"/>"#,          // on, N/A,
+            r#"<p #="tt"/>"#,          // slot, default,
+            r#"<p #:)="tt"/>"#,        // slot, :),
+            r#"<p #@_@="tt"/>"#,       // slot, @_@,
+            r#"<p #.-.="tt"/>"#,       // slot, .-.,
+            r#"<p :^_^="tt"/>"#,       // bind, ^_^
+            r#"<p :^_^.prop="tt"/>"#,  // bind, ^_^, prop
+            r#"<p :_:.prop="tt"/>"#,   // bind, _:, prop
+            r#"<p @::="tt"/>"#,        // on , :: ,
+            r#"<p @_@="tt"/>"#,        // on , _@ ,
+            r#"<p @_@.stop="tt"/>"#,   // on, _@, stop
+            r#"<p @.stop="tt"/>"#,     // on, N/A, stop
+            r#"<p .stop="tt"/>"#,      // bind, stop, prop
+            r#"<p .^-^.attr="tt" />"#, // bind, ^-^, attr|prop
+            r#"<p v-="tt"/>"#,         // ERROR,
+            r#"<p v-:="tt"/>"#,        // ERROR,
+            r#"<p v-.="tt"/>"#,        // ERROR,
+            r#"<p v-@="tt"/>"#,        // @, N/A,
+            r#"<p v-#="tt"/>"#,        // #, N/A,
+            r#"<p v-^.stop="tt"/>"#,   // ^, N/A, stop
+            r#"<p v-a:.="tt"/>"#,      // ERROR
+            r#"<p v-a:b.="tt"/>"#,     // ERROR
+            r#"<p v-slot.-="tt"/>"#,   // ERROR: slot, N/A, -
+            r#"<p v-slot@.@="tt"/>"#,  // slot@, N/A, @
+            // r#"<p v-🖖:🤘.🤙/>"#, // unicode, VUE in hand sign
             r#"<p :[a.b].stop="tt"/>"#, // bind, [a.b], stop
             r#"<p :[]="tt"/>"#,         // bind, nothing, stop
             r#"<p :[t]err="tt"/>"#,     // bind, nothing, stop
         ];
-        // for &case in cases.iter() {
-        //     let ast = base_parse(case);
-        //     println!("{:?}", ast);
-        // }
+        for &case in cases.iter() {
+            let ast = base_parse(case);
+            println!("{:?}", ast);
+        }
     }
 
     pub fn base_parse(s: &str) -> AstRoot {

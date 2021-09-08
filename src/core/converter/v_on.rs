@@ -1,5 +1,5 @@
 use super::{
-    CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
+    BaseDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
 };
 
 // this module process v-on without arg and with arg.
@@ -7,7 +7,7 @@ pub fn convert_v_on<'a>(
     dir: Directive<'a>,
     _: &Element<'a>,
     _: &dyn ErrorHandler,
-) -> CoreDirConvRet<'a> {
+) -> BaseDirConvRet<'a> {
     let Directive {
         expression,
         modifiers,

@@ -1,4 +1,6 @@
-use super::{AstNode, CoreConvertInfo, Element, IRNode, IfBranch, IfNodeIR};
+use super::{
+    AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, Element, IRNode, IfBranch, IfNodeIR,
+};
 use crate::core::util::find_dir;
 use std::{iter::Peekable, vec::IntoIter};
 
@@ -84,18 +86,25 @@ pub fn pre_group_v_if(children: Vec<AstNode>) -> impl Iterator<Item = PreGroup> 
     PreGroupIter::new(children)
 }
 
-pub fn convert_if(nodes: Vec<AstNode>, key: usize) -> IRNode<CoreConvertInfo> {
+pub fn convert_if<'a>(c: &BC, nodes: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
     let branches = nodes
         .into_iter()
-        .map(|n| convert_if_branch(n, key))
+        .map(|n| convert_if_branch(c, n, key))
         .collect();
     IRNode::If(IfNodeIR { branches, info: () })
 }
 
-fn convert_if_branch(node: AstNode, start_key: usize) -> IfBranch<CoreConvertInfo> {
+fn convert_if_branch<'a>(
+    c: &BC,
+    mut e: Element,
+    start_key: usize,
+) -> IfBranch<BaseConvertInfo<'a>> {
+    let dir =
+        find_dir(&mut e, ["if", "else-if", "else"]).expect("the element must have v-if directives");
     IfBranch {
         children: vec![],
         condition: todo!(),
+        info: start_key,
     }
 }
 

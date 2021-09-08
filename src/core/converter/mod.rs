@@ -181,7 +181,7 @@ where
     // emit error
     fn emit_error(&self, error: CompilationError);
     // core template syntax conversion
-    fn convert_directive(&self) -> DirectiveConvertResult<T>;
+    fn convert_directive(&self) -> DirectiveConvertResult<T::JsExpression>;
     fn convert_if(&self, nodes: Vec<Element<'a>>, key: usize) -> IRNode<T>;
     fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
     fn convert_slot_outlet(&self) -> IRNode<T>;
@@ -197,19 +197,16 @@ where
 /// Use Dropped if the directive is dropped implicitly without codegen.
 /// NB: this is not 100% translation from TS. `value` accepts both Props and Object.
 // This design decouples v-bind/on from transform_element.
-pub enum DirectiveConvertResult<T: ConvertInfo> {
-    Converted {
-        value: T::JsExpression,
-        need_runtime: bool,
-    },
+pub enum DirectiveConvertResult<Expr> {
+    Converted { value: Expr, need_runtime: bool },
     Dropped,
 }
 
-pub fn no_op_directive_convert<'a, T: ConvertInfo>(
+pub fn no_op_directive_convert<'a>(
     _: Directive<'a>,
     _: &Element<'a>,
     _: &dyn ErrorHandler,
-) -> DirectiveConvertResult<T> {
+) -> DirectiveConvertResult<JsExpr<'a>> {
     DirectiveConvertResult::Dropped
 }
 
@@ -228,13 +225,13 @@ impl<'a> ConvertInfo for BaseConvertInfo<'a> {
     type JsExpression = JsExpr<'a>;
 }
 
-type BaseDirConvRet<'a> = DirectiveConvertResult<BaseConvertInfo<'a>>;
+type CoreDirConvRet<'a> = DirectiveConvertResult<JsExpr<'a>>;
 /// Returns the conversion of a directive. Value could be props or object.
 // NB: we pass &dyn ErrorHandler to monomorphize the dir converter to pay
 // the minimal cost of dynamism only when error occurs. otherwise we will
 // incur the overhead of dyn DirectiveConvert in the ConvertOption.
 pub type DirConvertFn =
-    for<'a> fn(Directive<'a>, &Element<'a>, &dyn ErrorHandler) -> BaseDirConvRet<'a>;
+    for<'a> fn(Directive<'a>, &Element<'a>, &dyn ErrorHandler) -> CoreDirConvRet<'a>;
 pub type DirectiveConverter = (&'static str, DirConvertFn);
 
 pub struct BaseConverter {}
@@ -251,7 +248,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
         todo!()
     }
     // core template syntax conversion
-    fn convert_directive(&self) -> BaseDirConvRet<'a> {
+    fn convert_directive(&self) -> CoreDirConvRet<'a> {
         todo!()
     }
     fn convert_if(&self, nodes: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {

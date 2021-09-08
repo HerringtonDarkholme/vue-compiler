@@ -2,7 +2,7 @@ use super::{
     super::error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
     super::parser::DirectiveArg,
     super::util::{non_whitespace, VStr},
-    BaseDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
+    CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
     JsExpr as Js,
 };
 
@@ -11,7 +11,7 @@ pub fn convert_v_bind<'a>(
     dir: Directive<'a>,
     _: &Element<'a>,
     eh: &dyn ErrorHandler,
-) -> BaseDirConvRet<'a> {
+) -> CoreDirConvRet<'a> {
     let Directive {
         expression,
         modifiers,

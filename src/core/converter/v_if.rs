@@ -1,7 +1,7 @@
 use super::{
     AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, Element, IRNode, IfBranch, IfNodeIR,
 };
-use crate::core::util::find_dir;
+use crate::core::{converter::CoreConverter, util::find_dir};
 use std::{iter::Peekable, vec::IntoIter};
 
 pub enum PreGroup<'a> {
@@ -99,8 +99,10 @@ fn convert_if_branch<'a>(
     mut e: Element,
     start_key: usize,
 ) -> IfBranch<BaseConvertInfo<'a>> {
-    let dir =
-        find_dir(&mut e, ["if", "else-if", "else"]).expect("the element must have v-if directives");
+    let dir = find_dir(&mut e, ["if", "else-if", "else"])
+        .expect("the element must have v-if directives")
+        .take();
+    if dir.name != "else" {}
     IfBranch {
         children: vec![],
         condition: todo!(),

@@ -132,7 +132,7 @@ impl Tokenizer {
             delimiter_first_char,
         }
     }
-    pub fn scan<'a, E>(&self, source: &'a str, err_handle: E) -> Tokens<'a, E>
+    pub fn scan<'a, E>(&self, source: &'a str, err_handle: E) -> impl TokenSource<'a>
     where
         E: ErrorHandler,
     {
@@ -177,6 +177,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     // NB: & is not handled here but instead in `decode_entities`
     fn scan_data(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::Data);
+        debug_assert!(!self.source.is_empty());
         let d = self.delimiter_first_char;
         // process html entity & later
         let index = self.source.find(&['<', d][..]);
@@ -197,6 +198,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     // produces an entity_decoded Text token.
     fn scan_text(&mut self, size: usize) -> Token<'a> {
         debug_assert!(matches!(self.mode, TextMode::Data | TextMode::RcData));
+        debug_assert_ne!(size, 0);
         let src = self.move_by(size);
         Token::Text(self.decode_text(src, false))
     }
@@ -390,7 +392,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         debug_assert!(self.source.starts_with(quote));
         self.move_by(1);
         let src = if let Some(i) = self.source.find(quote) {
-            let val = self.move_by(i);
+            let val = if i == 0 { "" } else { self.move_by(i) };
             self.move_by(1); // consume quote char
             val
         } else if !self.source.is_empty() {
@@ -589,7 +591,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         debug_assert!(self.source.starts_with("<![CDATA["));
         self.move_by(9);
         let i = self.source.find("]]>").unwrap_or_else(|| self.source.len());
-        let text = if i > 0 { self.move_by(i) } else { "" };
+        let text = self.move_by(i); // can be zero
         if self.source.is_empty() {
             self.emit_error(ErrorKind::EofInCdata);
         } else {
@@ -603,15 +605,21 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     // https://html.spec.whatwg.org/multipage/parsing.html#rawtext-state
     fn scan_rawtext(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::RawText);
+        debug_assert!(!self.source.is_empty());
         let end = self.find_appropriate_end();
         // NOTE: rawtext decodes no entity. Don't call scan_text
-        let src = self.move_by(end);
+        let src = if end == 0 { "" } else { self.move_by(end) };
         self.mode = TextMode::Data;
-        Token::from(src)
+        if src.is_empty() {
+            self.scan_data()
+        } else {
+            Token::from(src)
+        }
     }
 
     fn scan_rcdata(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::RcData);
+        debug_assert!(!self.source.is_empty());
         let delimiter = &self.option.delimiters.0;
         if self.source.starts_with(delimiter) {
             return self.scan_interpolation();
@@ -619,27 +627,31 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         let end = self.find_appropriate_end();
         let interpolation_start = self.source.find(delimiter).unwrap_or(end);
         if interpolation_start < end {
+            debug_assert_ne!(interpolation_start, 0);
             return self.scan_text(interpolation_start);
         }
-        let ret = self.scan_text(end);
+        // scan_text does not read mode so it's safe to put this ahead.
         self.mode = TextMode::Data;
-        ret
+        if end > 0 {
+            self.scan_text(end)
+        } else {
+            self.scan_data()
+        }
     }
 
     /// find first </{last_start_tag_name}
     fn find_appropriate_end(&self) -> usize {
-        debug_assert!(self.last_start_tag_name.is_some());
         let tag_name = self
             .last_start_tag_name
             .expect("RAWTEXT/RCDATA must appear inside a tag");
         let len = tag_name.len();
         let source = self.source; // no mut self, need no &&str
         for (i, _) in source.match_indices("</") {
-            //  match point     non letter separator
-            //      ￬   </  style ￬
-            let e = i + 2 + len + 1;
+            //  match point
+            //      ￬   </  style
+            let e = i + 2 + len;
             // emit text without error per spec
-            if e > source.len() {
+            if e >= source.len() {
                 break;
             }
             // https://html.spec.whatwg.org/multipage/parsing.html#rawtext-end-tag-name-state
@@ -794,12 +806,15 @@ pub mod test {
     #[test]
     fn test() {
         let cases = [
+            r#"<![CDATA["#,
+            r#"{{}}"#,
             r#"{{test}}"#,
             r#"<a test="value">...</a>"#,
             r#"<a v-bind:['foo' + bar]="value">...</a>"#,
             r#"<tag =value />"#,
             r#"<a =123 />"#,
             r#"<a ==123 />"#,
+            r#"<a b="" />"#,
             r#"<a == />"#,
             r#"<a wrong-attr>=123 />"#,
             r#"<a></a < / attr attr=">" >"#,
@@ -810,13 +825,6 @@ pub mod test {
             r#"<!---->"#,                    // ok
             r#"<!-- nested <!--> text -->"#, // ok
             r#"<p v-err=232/>"#,
-            r#"<textarea><div/></textareas>"#,
-            r#"<textarea>{{test}}</textarea>"#,
-            r#"<textarea>{{'</textarea>'}}</textarea>"#,
-            r#"<style></style"#,
-            r#"<style></styl"#,
-            r#"<style></styles"#,
-            r#"<style></style "#,
         ];
         for &case in cases.iter() {
             for t in base_scan(case) {
@@ -825,9 +833,59 @@ pub mod test {
         }
     }
 
-    pub fn base_scan(s: &str) -> impl TokenSource {
-        let tokenizer = Tokenizer::new(TokenizeOption::default());
+    #[test]
+    fn test_raw_text() {
+        let cases = [
+            r#"<style></style"#,
+            r#"<style></styl"#,
+            r#"<style></styles"#,
+            r#"<style></style "#,
+            r#"<style></style>"#,
+            r#"<style>abc</style>"#,
+        ];
+        for &case in cases.iter() {
+            let opt = TokenizeOption {
+                get_text_mode: |_| TextMode::RawText,
+                ..Default::default()
+            };
+            for t in scan_with_opt(case, opt) {
+                println!("{:?}", t);
+            }
+        }
+    }
+    #[test]
+    fn test_rc_data() {
+        let cases = [
+            r#"<textarea>   "#,
+            r#"<textarea></textarea "#,
+            r#"<textarea></textarea"#,
+            r#"<textarea></textareas>"#,
+            r#"<textarea><div/></textarea>"#,
+            r#"<textarea><div/></textareas>"#,
+            r#"<textarea>{{test}}</textarea>"#,
+            r#"<textarea>{{'</textarea>'}}</textarea>"#,
+            r#"<textarea>{{}}</textarea>"#,
+            r#"<textarea>{{</textarea>"#,
+            r#"<textarea>{{ garbage  {{ }}</textarea>"#,
+        ];
+        for &case in cases.iter() {
+            let opt = TokenizeOption {
+                get_text_mode: |_| TextMode::RcData,
+                ..Default::default()
+            };
+            for t in scan_with_opt(case, opt) {
+                println!("{:?}", t);
+            }
+        }
+    }
+
+    fn scan_with_opt(s: &str, opt: TokenizeOption) -> impl TokenSource {
+        let tokenizer = Tokenizer::new(opt);
         let ctx = TestErrorHandler;
         tokenizer.scan(s, ctx)
+    }
+
+    pub fn base_scan(s: &str) -> impl TokenSource {
+        scan_with_opt(s, TokenizeOption::default())
     }
 }

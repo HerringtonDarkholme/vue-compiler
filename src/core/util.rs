@@ -144,7 +144,6 @@ where
 }
 
 type DirFound<'a, E> = PropFound<'a, E, Directive<'a>>;
-type AttrFound<'a, E> = PropFound<'a, E, Attribute<'a>>;
 
 // sometimes mutable access to the element is not available so
 // Deref is used to override the PropFound and `take` is optional
@@ -246,7 +245,7 @@ mod test {
         assert!(found.is_some());
         let found = found.unwrap();
         assert_eq!(found.get_ref().name, "if");
-        assert_eq!(e.directives.len(), 1);
+        assert_eq!(e.properties.len(), 1);
     }
 
     #[test]
@@ -258,6 +257,6 @@ mod test {
         let found = found.unwrap();
         assert_eq!(found.get_ref().name, "if");
         assert_eq!(found.take().name, "if");
-        assert!(e.directives.is_empty());
+        assert!(e.properties.is_empty());
     }
 }

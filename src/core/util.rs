@@ -2,6 +2,7 @@ use super::{
     parser::{Directive, Element},
     runtime_helper::RuntimeHelper,
 };
+use bitflags::bitflags;
 use std::ops::{Deref, DerefMut};
 
 pub fn get_core_component(tag: &str) -> Option<RuntimeHelper> {
@@ -78,6 +79,22 @@ where
         .iter()
         .position(|dir| pattern.is_match(dir.name))?;
     Some(DirFound { pos, elem: e })
+}
+
+bitflags! {
+    pub struct StrOps: u8 {
+        const COMPRESS_WHITESPACE = 1 << 0;
+        const DECODE_ENTITY       = 1 << 1;
+        const CAMEL_CASE          = 1 << 2;
+    }
+}
+
+/// A str for Vue compiler's internal modification.
+/// Instead of returning a Cow<str>, StrOp is recorded in the VStr
+/// and will be processed later in codegen phase.
+pub struct VStr<'a> {
+    pub content: &'a str,
+    pub ops: StrOps,
 }
 
 #[cfg(test)]

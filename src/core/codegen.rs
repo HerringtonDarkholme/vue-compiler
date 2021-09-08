@@ -1,13 +1,7 @@
-use super::{
-    converter::{ConvertInfo, IRNode, IRRoot},
-    util::non_whitespace,
-};
+use super::converter::{ConvertInfo, IRNode, IRRoot};
 use smallvec::{smallvec, SmallVec};
+use std::borrow::Cow;
 use std::fmt::{Result, Write};
-use std::{
-    borrow::Cow,
-    ops::{Add, Deref},
-};
 
 pub trait CodeGenerator {
     type IR;

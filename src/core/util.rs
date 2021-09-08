@@ -127,6 +127,9 @@ impl<'a> VStr<'a> {
             raw: self.raw,
         }
     }
+    pub fn compress_whitespace(&mut self) {
+        self.ops |= StrOps::COMPRESS_WHITESPACE;
+    }
 }
 
 impl<'a> Deref for VStr<'a> {

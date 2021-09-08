@@ -72,7 +72,7 @@ pub struct TextNode<'a> {
 impl<'a> Deref for TextNode<'a> {
     type Target = str;
     fn deref(&self) -> &Self::Target {
-        debug_assert!(self.text.len() == 0);
+        debug_assert!(self.text.len() == 1);
         &self.text[0]
     }
 }
@@ -458,7 +458,7 @@ where
             AstNode::Plain(elem)
         }
     }
-    fn parse_text(&mut self, mut text: VStr<'a>) {
+    fn parse_text(&mut self, text: VStr<'a>) {
         let mut text = smallvec![text];
         while let Some(token) = self.tokens.next() {
             if let Token::Text(ds) = token {
@@ -805,8 +805,10 @@ fn is_element(n: &AstNode) -> bool {
 }
 
 fn compress_text_node(n: &mut AstNode) {
-    if let AstNode::Text(s) = n {
-        todo!("remove whitespace without allocation")
+    if let AstNode::Text(src) = n {
+        for s in src.text.iter_mut() {
+            s.compress_whitespace();
+        }
     } else {
         debug_assert!(false, "impossible");
     }

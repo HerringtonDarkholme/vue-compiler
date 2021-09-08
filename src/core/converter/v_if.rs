@@ -9,13 +9,13 @@ use crate::core::{
 use std::{iter::Peekable, vec::IntoIter};
 
 pub enum PreGroup<'a> {
-    VIfGroup(Vec<Element<'a>>),
+    VIfGroup(Vec<AstNode<'a>>),
     StandAlone(AstNode<'a>),
 }
 
 struct PreGroupIter<'a> {
     inner: Peekable<IntoIter<AstNode<'a>>>,
-    group: Vec<Element<'a>>,
+    group: Vec<AstNode<'a>>,
 }
 
 impl<'a> PreGroupIter<'a> {
@@ -47,15 +47,17 @@ impl<'a> Iterator for PreGroupIter<'a> {
     type Item = PreGroup<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(n) = self.inner.peek() {
-            // collect elements while they have v-if
-            let found_v_if = n
+            // group elements if they have v-if/v-else
+            let found = n
                 .get_element()
-                .and_then(|e| find_dir(e, ["if", "else-if", "else"]))
-                .is_some();
-            if found_v_if {
+                .and_then(|e| find_dir(e, ["if", "else-if", "else"]));
+            if let Some(d) = found {
+                // separate v-if into different groups
+                if d.get_ref().name == "if" && !self.group.is_empty() {
+                    return self.flush_group();
+                }
                 let n = self.inner.next().unwrap(); // must next to advance
-                let e = n.into_element().unwrap();
-                self.group.push(e);
+                self.group.push(n);
             } else if let AstNode::Text(s) = n {
                 if s.is_all_whitespace() {
                     // skip whitespace
@@ -90,7 +92,7 @@ pub fn pre_group_v_if(children: Vec<AstNode>) -> impl Iterator<Item = PreGroup> 
     PreGroupIter::new(children)
 }
 
-pub fn convert_if<'a>(c: &BC, nodes: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
+pub fn convert_if<'a>(c: &BC, nodes: Vec<AstNode<'a>>, key: usize) -> BaseIR<'a> {
     let branches = nodes
         .into_iter()
         .map(|n| convert_if_branch(c, n, key))
@@ -100,15 +102,17 @@ pub fn convert_if<'a>(c: &BC, nodes: Vec<Element<'a>>, key: usize) -> BaseIR<'a>
 
 fn convert_if_branch<'a>(
     c: &BC,
-    mut e: Element<'a>,
+    mut n: AstNode<'a>,
     start_key: usize,
 ) -> IfBranch<BaseConvertInfo<'a>> {
-    let dir = find_dir(&mut e, ["if", "else-if", "else"])
+    let e = n.get_element_mut().expect("v-if must have element.");
+    let dir = find_dir(&mut *e, ["if", "else-if", "else"])
         .expect("the element must have v-if directives")
         .take();
+    report_duplicate_v_if(c, e);
     let condition = convert_if_condition(c, dir);
     IfBranch {
-        children: vec![],
+        children: Box::new(c.dispatch_ast(n)),
         condition,
         info: start_key,
     }
@@ -126,6 +130,14 @@ fn convert_if_condition<'a>(c: &BC, dir: Directive<'a>) -> Option<JsExpr<'a>> {
         return None;
     }
     dir.expression.map(|v| JsExpr::Simple(v.content))
+}
+fn report_duplicate_v_if<'a>(c: &BC, e: &mut Element<'a>) {
+    // https://stackoverflow.com/a/48144226/2198656
+    while let Some(found) = find_dir(&mut *e, ["if", "else-if", "else"]) {
+        let dir = found.take();
+        let error = CompilationError::new(ErrorKind::VIfDuplicateDir).with_location(dir.location);
+        c.emit_error(error);
+    }
 }
 
 #[cfg(test)]

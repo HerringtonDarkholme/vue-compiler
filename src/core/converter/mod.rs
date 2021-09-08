@@ -70,7 +70,7 @@ pub enum IRNode<T: ConvertInfo> {
     If(IfNodeIR<T>),
     /// v-for
     For(ForNodeIR<T>),
-    /// plain element or component
+    /// component/template/plain element
     VNodeCall(T::VNodeType),
     /// <slot> slot outlet
     RenderSlotCall(T::RenderSlotType),
@@ -86,7 +86,7 @@ pub struct IfNodeIR<T: ConvertInfo> {
 }
 struct IfBranch<T: ConvertInfo> {
     condition: Option<T::JsExpression>,
-    children: Vec<IRNode<T>>,
+    children: Box<IRNode<T>>,
     info: T::IfBranchType,
 }
 pub struct ForNodeIR<T: ConvertInfo> {
@@ -182,7 +182,7 @@ where
     fn emit_error(&self, error: CompilationError);
     // core template syntax conversion
     fn convert_directive(&self) -> DirectiveConvertResult<T::JsExpression>;
-    fn convert_if(&self, nodes: Vec<Element<'a>>, key: usize) -> IRNode<T>;
+    fn convert_if(&self, nodes: Vec<AstNode<'a>>, key: usize) -> IRNode<T>;
     fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
     fn convert_slot_outlet(&self) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
@@ -251,7 +251,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     fn convert_directive(&self) -> CoreDirConvRet<'a> {
         todo!()
     }
-    fn convert_if(&self, nodes: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
+    fn convert_if(&self, nodes: Vec<AstNode<'a>>, key: usize) -> BaseIR<'a> {
         v_if::convert_if(self, nodes, key)
     }
     fn convert_for(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {

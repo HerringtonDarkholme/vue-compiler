@@ -45,7 +45,7 @@ impl<'a> AstNode<'a> {
             _ => None,
         }
     }
-    pub fn into_element(self) -> Option<Element<'a>> {
+    pub fn get_element_mut(&mut self) -> Option<&mut Element<'a>> {
         use AstNode as A;
         match self {
             A::Plain(e) => Some(e),

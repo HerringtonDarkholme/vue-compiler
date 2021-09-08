@@ -42,6 +42,7 @@ pub enum CompilationErrorKind {
     // transform errors
     VIfNoExpression,
     VIfSameKey,
+    VIfDuplicateDir,
     VElseNoAdjacentIf,
     VForNoExpression,
     VForMalformedExpression,
@@ -147,6 +148,7 @@ fn msg(kind: &CompilationErrorKind) -> &'static str {
         // transform errors
         k::VIfNoExpression => "v-if/v-else-if is missing expression.",
         k::VIfSameKey => "v-if/else branches must use unique keys.",
+        k::VIfDuplicateDir => "Duplicate v-if/else-if/else. Use v-else-if instead.",
         k::VElseNoAdjacentIf => "v-else/v-else-if has no adjacent v-if.",
         k::VForNoExpression => "v-for is missing expression.",
         k::VForMalformedExpression => "v-for has invalid expression.",

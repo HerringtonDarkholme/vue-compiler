@@ -64,6 +64,7 @@ pub trait TemplateCompiler {}
 pub trait PreambleHelper<Helper> {
     fn collect_helper(&mut self, helper: Helper);
     fn generate_imports(&self) -> String;
+    fn helper_str(&self) -> &'static str;
 }
 
 pub struct CompileOption<E: ErrorHandler> {

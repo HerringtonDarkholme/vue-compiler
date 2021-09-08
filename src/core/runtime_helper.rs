@@ -53,4 +53,10 @@ impl PreambleHelper<RuntimeHelper> for RuntimeHelper {
     fn generate_imports(&self) -> String {
         todo!()
     }
+    fn helper_str(&self) -> &'static str {
+        match *self {
+            RuntimeHelper::CAMELIZE => "",
+            _ => todo!(),
+        }
+    }
 }

@@ -176,7 +176,7 @@ fn convert_if_condition<'a>(c: &BC, dir: Directive<'a>) -> Option<JsExpr<'a>> {
     if dir.name != "else" {
         if let Some(err) = dir.check_empty_expr(ErrorKind::VIfNoExpression) {
             c.emit_error(err);
-            return Some(JsExpr::Lit("true"));
+            return Some(JsExpr::Src("true"));
         }
     } else if let Some(expr) = dir.expression {
         let error =

@@ -104,7 +104,11 @@ struct VNodeIR {}
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
 pub enum JsExpr<'a> {
-    Lit(&'a str),
+    /// Source. output to generated code as is.
+    Src(&'a str),
+    /// String Literal. output after quoted, used by attr/static arg.
+    StrLit(VStr<'a>),
+    /// will be processed like prefixing
     Simple(VStr<'a>),
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),

@@ -1,3 +1,5 @@
+use crate::core::{runtime_helper::RuntimeHelper, PreambleHelper};
+
 use super::{
     super::error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
     super::parser::DirectiveArg,
@@ -36,14 +38,27 @@ pub fn convert_v_bind<'a>(
         }
     };
     let value = if let Some(arg) = argument {
-        let arg = match arg {
-            DirectiveArg::Static(s) => Js::Lit(s),
+        let mut arg = match arg {
+            DirectiveArg::Static(s) => Js::StrLit(VStr::raw(s)),
             DirectiveArg::Dynamic(s) => {
                 let e = Js::Simple(VStr::raw(s));
-                Js::Compound(vec![Js::Lit("("), e, Js::Lit(") || ''")])
+                Js::Compound(vec![Js::Src("("), e, Js::Src(") || ''")])
             }
         };
-        // TODO: handle .attr, .prop, .camel modifiers
+        // TODO: handle .attr, .prop, modifiers in DOM
+        if modifiers.contains(&"camel") {
+            match &mut arg {
+                Js::StrLit(s) => {
+                    s.camelize();
+                }
+                Js::Compound(t) => {
+                    t.insert(0, Js::Src(RuntimeHelper::CAMELIZE.helper_str()));
+                    t.insert(1, Js::Src("("));
+                    t.push(Js::Src(")"));
+                }
+                _ => (),
+            }
+        }
         Js::Props(vec![(arg, expr)])
     } else {
         expr

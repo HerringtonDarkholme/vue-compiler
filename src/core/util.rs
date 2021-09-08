@@ -104,31 +104,30 @@ pub struct VStr<'a> {
 }
 
 impl<'a> VStr<'a> {
+    // adjective is static method
     pub fn raw(raw: &'a str) -> Self {
         Self {
             raw,
             ops: StrOps::empty(),
         }
     }
-    pub fn decode(self, is_attr: bool) -> Self {
-        let new_flag = if is_attr {
+    // verb is instance method
+    pub fn decode(&mut self, is_attr: bool) -> &mut Self {
+        let ops = if is_attr {
             StrOps::DECODE_ENTITY | StrOps::IS_ATTR
         } else {
             StrOps::DECODE_ENTITY
         };
-        Self {
-            ops: self.ops | new_flag,
-            raw: self.raw,
-        }
+        self.ops |= ops;
+        self
     }
-    pub fn camel(self) -> Self {
-        Self {
-            ops: self.ops | StrOps::CAMEL_CASE,
-            raw: self.raw,
-        }
+    pub fn camelize(&mut self) -> &mut Self {
+        self.ops |= StrOps::CAMEL_CASE;
+        self
     }
-    pub fn compress_whitespace(&mut self) {
+    pub fn compress_whitespace(&mut self) -> &mut Self {
         self.ops |= StrOps::COMPRESS_WHITESPACE;
+        self
     }
 }
 

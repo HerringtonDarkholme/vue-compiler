@@ -664,7 +664,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     }
 
     fn decode_text(&self, src: &'a str, is_attr: bool) -> VStr<'a> {
-        VStr::raw(src).decode(is_attr)
+        *VStr::raw(src).decode(is_attr)
     }
 
     /// move tokenizer's internal position forward and return &str

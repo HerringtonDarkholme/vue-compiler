@@ -17,7 +17,7 @@
 use super::{
     error::{CompilationError, CompilationErrorKind as ErrorKind, ErrorHandler},
     tokenizer::{Attribute, AttributeValue, Tag, TextMode, Token, TokenSource},
-    util::{is_core_component, no, non_whitespace, yes, VStr},
+    util::{find_dir, is_core_component, no, non_whitespace, yes, VStr},
     Name, Namespace, SourceLocation,
 };
 use smallvec::{smallvec, SmallVec};
@@ -105,11 +105,16 @@ impl<'a> TextNode<'a> {
 }
 
 #[derive(Debug)]
+pub enum ElemProp<'a> {
+    Attr(Attribute<'a>),
+    Dir(Directive<'a>),
+}
+
+#[derive(Debug)]
 pub struct Element<'a> {
     pub tag_name: Name<'a>,
     pub namespace: Namespace,
-    pub attributes: Vec<Attribute<'a>>,
-    pub directives: Vec<Directive<'a>>,
+    pub properties: Vec<ElemProp<'a>>,
     pub children: Vec<AstNode<'a>>,
     pub location: SourceLocation,
 }
@@ -319,13 +324,12 @@ where
             self_closing,
             attributes,
         } = tag;
-        let (dirs, attrs) = self.parse_attributes(attributes);
+        let props = self.parse_attributes(attributes);
         let ns = (self.option.get_namespace)(name, &self.open_elems);
         let elem = Element {
             tag_name: name,
             namespace: ns,
-            attributes: attrs,
-            directives: dirs,
+            properties: props,
             children: vec![],
             location: SourceLocation {
                 start: self.tokens.last_position(),
@@ -343,36 +347,32 @@ where
             self.set_tokenizer_flag();
         }
     }
-    fn parse_attributes(
-        &mut self,
-        mut attrs: Vec<Attribute<'a>>,
-    ) -> (Vec<Directive<'a>>, Vec<Attribute<'a>>) {
-        let mut dirs = vec![];
+    fn parse_attributes(&mut self, mut attrs: Vec<Attribute<'a>>) -> Vec<ElemProp<'a>> {
         // in v-pre, parse no directive
         if self.v_pre_index.is_some() {
-            return (dirs, attrs);
+            return attrs.into_iter().map(ElemProp::Attr).collect();
         }
         let mut dir_parser = DirectiveParser::new(&self.err_handle);
         // v-pre precedes any other directives
         for i in 0..attrs.len() {
-            if attrs[i].name == "v-pre" {
-                let dir = dir_parser.parse(attrs.remove(i));
-                dirs.push(dir);
-                return (dirs, attrs);
+            if attrs[i].name != "v-pre" {
+                continue;
             }
+            let dir = dir_parser.parse(attrs.remove(i));
+            let mut ret = vec![ElemProp::Dir(dir)];
+            ret.extend(attrs.into_iter().map(ElemProp::Attr));
+            return ret;
         }
-        dirs.reserve(attrs.len());
-        let mut i = 0;
-        // TODO: maybe copy paste a retain_mut to improve perf.
-        while attrs.len() < i {
-            if dir_parser.detect_directive(&attrs[i]) {
-                let attr = attrs.remove(i);
-                dirs.push(dir_parser.parse(attr));
-            } else {
-                i += 1;
-            }
-        }
-        (dirs, attrs)
+        attrs
+            .into_iter()
+            .map(|attr| {
+                if dir_parser.detect_directive(&attr) {
+                    ElemProp::Dir(dir_parser.parse(attr))
+                } else {
+                    ElemProp::Attr(attr)
+                }
+            })
+            .collect()
     }
 
     fn handle_pre_like(&mut self, elem: &Element) {
@@ -565,22 +565,15 @@ where
         {
             return true;
         }
-        for attr in e.attributes.iter() {
-            if attr.name != "is" {
-                continue;
-            }
-            if let Some(v) = &attr.value {
-                if v.content.starts_with("vue:") {
-                    return true;
-                }
-            }
-        }
-        for dir in e.directives.iter() {
-            if dir.name == "is" {
-                return true;
-            }
-        }
-        false
+        e.properties.iter().any(|prop| match prop {
+            ElemProp::Dir(Directive { name: "is", .. }) => true,
+            ElemProp::Attr(Attribute {
+                name: "is",
+                value: Some(v),
+                ..
+            }) => v.content.starts_with("vue:"),
+            _ => false,
+        })
     }
 
     fn need_condense(&self) -> bool {
@@ -831,8 +824,7 @@ fn compress_text_node(n: &mut AstNode) {
     }
 }
 
-fn is_special_template_directive(dir: &Directive) -> bool {
-    let n = dir.name;
+fn is_special_template_directive(n: &str) -> bool {
     // we only have 5 elements to compare. == takes 2ns while phf takes 26ns
     match n.len() {
         2 => n == "if",
@@ -844,7 +836,7 @@ fn is_special_template_directive(dir: &Directive) -> bool {
 }
 
 fn is_template_element(e: &Element) -> bool {
-    e.tag_name == "template" && e.directives.iter().any(is_special_template_directive)
+    e.tag_name == "template" && find_dir(e, is_special_template_directive).is_some()
 }
 
 fn element_matches_end_tag(e: &Element, tag: &str) -> bool {
@@ -852,8 +844,7 @@ fn element_matches_end_tag(e: &Element, tag: &str) -> bool {
 }
 
 fn is_v_pre_boundary(elem: &Element) -> bool {
-    let dirs = &elem.directives;
-    dirs.iter().any(|d| d.name == "pre")
+    find_dir(elem, "pre").is_some()
 }
 
 #[cfg(test)]

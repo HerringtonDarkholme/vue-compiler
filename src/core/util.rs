@@ -1,9 +1,13 @@
 use super::{
-    parser::{Directive, Element},
+    parser::{Directive, ElemProp, Element},
     runtime_helper::RuntimeHelper,
+    tokenizer::Attribute,
 };
 use bitflags::bitflags;
-use std::ops::{Deref, DerefMut};
+use std::{
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
 
 pub fn non_whitespace(c: char) -> bool {
     !c.is_ascii_whitespace()
@@ -40,49 +44,124 @@ impl PropPattern for &str {
     }
 }
 
+impl<F> PropPattern for F
+where
+    F: Fn(&str) -> bool,
+{
+    fn is_match(&self, name: &str) -> bool {
+        self(name)
+    }
+}
+
 impl<const N: usize> PropPattern for [&'static str; N] {
     fn is_match(&self, name: &str) -> bool {
         self.contains(&name)
     }
 }
 
-pub struct DirFound<'a, E>
-where
-    E: Deref<Target = Element<'a>>,
-{
-    elem: E,
-    pos: usize,
+pub trait PropMatcher<'a> {
+    fn get_name(prop: &ElemProp<'a>) -> Option<&'a str>;
+    fn get_ref<'b>(prop: &'b ElemProp<'a>) -> &'b Self;
+    fn take(prop: ElemProp<'a>) -> Self;
 }
-impl<'a, E> DirFound<'a, E>
-where
-    E: Deref<Target = Element<'a>>,
-{
-    pub fn get_ref(&self) -> &Directive<'a> {
-        &self.elem.directives[self.pos]
+
+impl<'a> PropMatcher<'a> for ElemProp<'a> {
+    fn get_name(prop: &ElemProp<'a>) -> Option<&'a str> {
+        match prop {
+            ElemProp::Attr(Attribute { name, .. }) => Some(name),
+            ElemProp::Dir(Directive { name, .. }) => Some(name),
+        }
     }
-}
-// take is only available when access is mutable
-impl<'a, E> DirFound<'a, E>
-where
-    E: DerefMut<Target = Element<'a>>,
-{
-    pub fn take(mut self) -> Directive<'a> {
-        self.elem.directives.remove(self.pos)
+    fn get_ref<'b>(prop: &'b ElemProp<'a>) -> &'b Self {
+        prop
+    }
+    fn take(prop: ElemProp<'a>) -> Self {
+        prop
     }
 }
 
+impl<'a> PropMatcher<'a> for Directive<'a> {
+    fn get_name(prop: &ElemProp<'a>) -> Option<&'a str> {
+        if let ElemProp::Dir(Directive { name, .. }) = prop {
+            Some(name)
+        } else {
+            None
+        }
+    }
+    fn get_ref<'b>(prop: &'b ElemProp<'a>) -> &'b Self {
+        if let ElemProp::Dir(dir) = prop {
+            return dir;
+        }
+        unreachable!("invalid call")
+    }
+    fn take(prop: ElemProp<'a>) -> Self {
+        if let ElemProp::Dir(dir) = prop {
+            return dir;
+        }
+        unreachable!("invalid call")
+    }
+}
+
+pub struct PropFound<'a, E, M = ElemProp<'a>>
+where
+    E: Deref<Target = Element<'a>>,
+    M: PropMatcher<'a>,
+{
+    elem: E,
+    pos: usize,
+    m: PhantomData<M>,
+}
+
+impl<'a, E, M> PropFound<'a, E, M>
+where
+    E: Deref<Target = Element<'a>>,
+    M: PropMatcher<'a>,
+{
+    fn new<P: PropPattern>(elem: E, pat: P) -> Option<Self> {
+        let pos = elem
+            .properties
+            .iter()
+            .position(|p| M::get_name(p).map_or(false, |n| pat.is_match(n)))?;
+        Some(Self {
+            elem,
+            pos,
+            m: PhantomData,
+        })
+    }
+    pub fn get_ref(&self) -> &M {
+        M::get_ref(&self.elem.properties[self.pos])
+    }
+}
+// take is only available when access is mutable
+impl<'a, E, M> PropFound<'a, E, M>
+where
+    E: DerefMut<Target = Element<'a>>,
+    M: PropMatcher<'a>,
+{
+    pub fn take(mut self) -> M {
+        M::take(self.elem.properties.remove(self.pos))
+    }
+}
+
+type DirFound<'a, E> = PropFound<'a, E, Directive<'a>>;
+type AttrFound<'a, E> = PropFound<'a, E, Attribute<'a>>;
+
 // sometimes mutable access to the element is not available so
-// Deref is used to override the DirFound and `take` is optional
+// Deref is used to override the PropFound and `take` is optional
 pub fn find_dir<'a, E, P>(e: E, pattern: P) -> Option<DirFound<'a, E>>
 where
     E: Deref<Target = Element<'a>>,
     P: PropPattern,
 {
-    let pos = e
-        .directives
-        .iter()
-        .position(|dir| pattern.is_match(dir.name))?;
-    Some(DirFound { pos, elem: e })
+    PropFound::new(e, pattern)
+}
+
+pub fn find_prop<'a, E, P>(e: E, pattern: P) -> Option<PropFound<'a, E>>
+where
+    E: Deref<Target = Element<'a>>,
+    P: PropPattern,
+{
+    PropFound::new(e, pattern)
 }
 
 bitflags! {
@@ -147,8 +226,7 @@ mod test {
         Element {
             tag_name: "div",
             namespace: Namespace::Html,
-            attributes: vec![],
-            directives: vec![dir],
+            properties: vec![ElemProp::Dir(dir)],
             children: vec![],
             location: Default::default(),
         }

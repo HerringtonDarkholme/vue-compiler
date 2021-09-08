@@ -1,5 +1,13 @@
-use super::converter::{ConvertInfo, IRNode, IRRoot};
+use super::{
+    converter::{ConvertInfo, IRNode, IRRoot},
+    util::non_whitespace,
+};
+use smallvec::{smallvec, SmallVec};
 use std::fmt::{Result, Write};
+use std::{
+    borrow::Cow,
+    ops::{Add, Deref},
+};
 
 pub trait CodeGenerator {
     type IR;
@@ -14,6 +22,7 @@ pub struct CodeGenerateOption {
     pub source_map: bool,
     // filename for source map
     pub filename: String,
+    pub decode_entities: EntityDecoder,
 }
 
 pub fn generate_root<T: ConvertInfo>(root: IRRoot<T>) {
@@ -62,3 +71,17 @@ pub trait CodeGenWrite: Write {
         Ok(())
     }
 }
+
+/// DecodedStr represents text after decoding html entities.
+/// SmallVec and Cow are used internally for less allocation.
+#[derive(Debug)]
+pub struct DecodedStr<'a>(SmallVec<[Cow<'a, str>; 1]>);
+
+impl<'a> From<&'a str> for DecodedStr<'a> {
+    fn from(decoded: &'a str) -> Self {
+        debug_assert!(!decoded.is_empty());
+        Self(smallvec![Cow::Borrowed(decoded)])
+    }
+}
+
+pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;

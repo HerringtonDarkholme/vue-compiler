@@ -4,67 +4,11 @@
 
 use super::{
     error::{CompilationError, CompilationErrorKind as ErrorKind, ErrorHandler},
+    util::{non_whitespace, VStr},
     Name, Position, SourceLocation,
 };
 use rustc_hash::FxHashSet;
-use smallvec::{smallvec, SmallVec};
-use std::{
-    borrow::Cow,
-    iter::FusedIterator,
-    ops::{Add, Deref},
-    str::Chars,
-};
-
-/// DecodedStr represents text after decoding html entities.
-/// SmallVec and Cow are used internally for less allocation.
-#[derive(Debug)]
-pub struct DecodedStr<'a>(SmallVec<[Cow<'a, str>; 1]>);
-
-impl<'a> DecodedStr<'a> {
-    pub fn is_all_whitespace(&self) -> bool {
-        self.0.iter().all(|s| !s.chars().any(non_whitespace))
-    }
-    pub fn trim_leading_newline(&mut self) {
-        if self.0.is_empty() {
-            return;
-        }
-        let first = &self.0[0];
-        let offset = if first.starts_with('\n') {
-            1
-        } else if first.starts_with("\r\n") {
-            2
-        } else {
-            return;
-        };
-        self.0[0] = match first {
-            Cow::Borrowed(s) => Cow::Borrowed(&s[offset..]),
-            Cow::Owned(s) => Cow::Owned(s[offset..].to_owned()),
-        };
-    }
-}
-
-impl<'a> Deref for DecodedStr<'a> {
-    type Target = str;
-    fn deref(&self) -> &Self::Target {
-        debug_assert!(self.0.len() == 1);
-        self
-    }
-}
-
-impl<'a> Add for DecodedStr<'a> {
-    type Output = Self;
-    fn add(mut self, rhs: Self) -> Self {
-        self.0.extend(rhs.0.into_iter());
-        self
-    }
-}
-
-impl<'a> From<&'a str> for DecodedStr<'a> {
-    fn from(decoded: &'a str) -> Self {
-        debug_assert!(!decoded.is_empty());
-        Self(smallvec![Cow::Borrowed(decoded)])
-    }
-}
+use std::{iter::FusedIterator, str::Chars};
 
 #[derive(Debug)]
 pub struct Attribute<'a> {
@@ -76,7 +20,7 @@ pub struct Attribute<'a> {
 
 #[derive(Debug)]
 pub struct AttributeValue<'a> {
-    pub content: DecodedStr<'a>,
+    pub content: VStr<'a>,
     pub location: SourceLocation,
 }
 
@@ -98,7 +42,7 @@ pub enum Token<'a> {
     // 1. in SSR we don't need to output decoded entities
     // 2. in DOM we can output decoded text during transform
     // 3. parser/IRConverter does not read text content
-    Text(DecodedStr<'a>), // merges chars to one str
+    Text(VStr<'a>), // merges chars to one str
     Comment(&'a str),
     Interpolation(&'a str), // Vue specific token
 }
@@ -106,18 +50,15 @@ pub enum Token<'a> {
 // NB: Token::from only takes decoded str
 impl<'a> From<&'a str> for Token<'a> {
     fn from(decoded: &'a str) -> Self {
-        Token::Text(DecodedStr::from(decoded))
+        Token::Text(VStr::raw(decoded))
     }
 }
-
-pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
 
 /// TokenizeOption defined a list of methods used in scanning
 #[derive(Clone)]
 pub struct TokenizeOption {
     delimiters: (String, String),
     get_text_mode: fn(&str) -> TextMode,
-    decode_entities: EntityDecoder,
 }
 
 impl Default for TokenizeOption {
@@ -125,7 +66,6 @@ impl Default for TokenizeOption {
         Self {
             delimiters: ("{{".into(), "}}".into()),
             get_text_mode: |_| TextMode::Data,
-            decode_entities: |t, _| DecodedStr::from(t),
         }
     }
 }
@@ -446,7 +386,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(double-quoted)-state
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(single-quoted)-state
-    fn scan_quoted_attr_value(&mut self, quote: char) -> Option<DecodedStr<'a>> {
+    fn scan_quoted_attr_value(&mut self, quote: char) -> Option<VStr<'a>> {
         debug_assert!(self.source.starts_with(quote));
         self.move_by(1);
         let src = if let Some(i) = self.source.find(quote) {
@@ -468,7 +408,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         Some(self.decode_text(src, /*is_attr*/ true))
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(unquoted)-state
-    fn scan_unquoted_attr_value(&mut self) -> Option<DecodedStr<'a>> {
+    fn scan_unquoted_attr_value(&mut self) -> Option<VStr<'a>> {
         let val_len = self
             .source
             .chars()
@@ -723,9 +663,8 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         self.err_handle.on_error(err);
     }
 
-    fn decode_text(&self, src: &'a str, is_attr: bool) -> DecodedStr<'a> {
-        let decode = self.option.decode_entities;
-        decode(src, is_attr)
+    fn decode_text(&self, src: &'a str, is_attr: bool) -> VStr<'a> {
+        VStr::raw(src).decode(is_attr)
     }
 
     /// move tokenizer's internal position forward and return &str
@@ -787,10 +726,6 @@ fn semi_valid_unquoted_attr_value(&c: &char) -> bool {
 #[inline]
 fn is_valid_name_char(c: char) -> bool {
     !c.is_ascii_whitespace() && c != '/' && c != '>'
-}
-
-fn non_whitespace(c: char) -> bool {
-    !c.is_ascii_whitespace()
 }
 
 // tag name should begin with [a-zA-Z]

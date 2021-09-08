@@ -5,6 +5,10 @@ use super::{
 use bitflags::bitflags;
 use std::ops::{Deref, DerefMut};
 
+pub fn non_whitespace(c: char) -> bool {
+    !c.is_ascii_whitespace()
+}
+
 pub fn get_core_component(tag: &str) -> Option<RuntimeHelper> {
     use RuntimeHelper as RH;
     Some(match tag {
@@ -86,15 +90,50 @@ bitflags! {
         const COMPRESS_WHITESPACE = 1 << 0;
         const DECODE_ENTITY       = 1 << 1;
         const CAMEL_CASE          = 1 << 2;
+        const IS_ATTR             = 1 << 3;
     }
 }
 
 /// A str for Vue compiler's internal modification.
 /// Instead of returning a Cow<str>, StrOp is recorded in the VStr
 /// and will be processed later in codegen phase.
+#[derive(Debug, Clone, Copy)]
 pub struct VStr<'a> {
-    pub content: &'a str,
+    pub raw: &'a str,
     pub ops: StrOps,
+}
+
+impl<'a> VStr<'a> {
+    pub fn raw(raw: &'a str) -> Self {
+        Self {
+            raw,
+            ops: StrOps::empty(),
+        }
+    }
+    pub fn decode(self, is_attr: bool) -> Self {
+        let new_flag = if is_attr {
+            StrOps::DECODE_ENTITY | StrOps::IS_ATTR
+        } else {
+            StrOps::DECODE_ENTITY
+        };
+        Self {
+            ops: self.ops | new_flag,
+            raw: self.raw,
+        }
+    }
+    pub fn camel(self) -> Self {
+        Self {
+            ops: self.ops | StrOps::CAMEL_CASE,
+            raw: self.raw,
+        }
+    }
+}
+
+impl<'a> Deref for VStr<'a> {
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        self.raw
+    }
 }
 
 #[cfg(test)]

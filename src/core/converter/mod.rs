@@ -24,7 +24,7 @@ use std::marker::PhantomData;
 
 pub use super::error::ErrorHandler;
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
-use super::util::find_dir;
+use super::util::{find_dir, VStr};
 use rustc_hash::FxHashMap;
 
 mod v_bind;
@@ -90,7 +90,7 @@ struct VNodeIR {}
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
 pub enum JsExpr<'a> {
     Lit(&'a str),
-    Simple(&'a str),
+    Simple(VStr<'a>),
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),
     Call(&'static str, Vec<JsExpr<'a>>),

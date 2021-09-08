@@ -51,7 +51,7 @@ impl<'a> Iterator for PreGroupIter<'a> {
                 let e = n.into_element().unwrap();
                 self.group.push(e);
             } else if let AstNode::Text(s) = n {
-                if s.text.is_all_whitespace() {
+                if s.is_all_whitespace() {
                     // skip whitespace
                     self.next().unwrap();
                 } else {

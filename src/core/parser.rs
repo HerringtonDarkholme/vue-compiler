@@ -16,10 +16,12 @@
 
 use super::{
     error::{CompilationError, CompilationErrorKind as ErrorKind, ErrorHandler},
-    tokenizer::{Attribute, AttributeValue, DecodedStr, Tag, TextMode, Token, TokenSource},
-    util::{is_core_component, no, yes},
+    tokenizer::{Attribute, AttributeValue, Tag, TextMode, Token, TokenSource},
+    util::{is_core_component, no, non_whitespace, yes, VStr},
     Name, Namespace, SourceLocation,
 };
+use smallvec::{smallvec, SmallVec};
+use std::ops::Deref;
 
 #[derive(Debug)]
 pub enum AstNode<'a> {
@@ -63,8 +65,43 @@ pub struct SourceNode<'a> {
 
 #[derive(Debug)]
 pub struct TextNode<'a> {
-    pub text: DecodedStr<'a>,
+    pub text: SmallVec<[VStr<'a>; 1]>,
     pub location: SourceLocation,
+}
+
+impl<'a> Deref for TextNode<'a> {
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        debug_assert!(self.text.len() == 0);
+        &self.text[0]
+    }
+}
+
+impl<'a> TextNode<'a> {
+    pub fn is_all_whitespace(&self) -> bool {
+        self.text.iter().all(|s| !s.chars().any(non_whitespace))
+    }
+    pub fn trim_leading_newline(&mut self) {
+        if self.text.is_empty() {
+            return;
+        }
+        let first = &self.text[0];
+        let offset = if first.starts_with('\n') {
+            1
+        } else if first.starts_with("\r\n") {
+            2
+        } else {
+            return;
+        };
+        if first.len() > offset {
+            self.text[0] = VStr {
+                raw: &first.raw[offset..],
+                ops: first.ops,
+            };
+        } else {
+            self.text.remove(0);
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -391,7 +428,7 @@ where
             return;
         }
         if let Some(AstNode::Text(tn)) = elem.children.last_mut() {
-            tn.text.trim_leading_newline();
+            tn.trim_leading_newline();
         }
         self.pre_count -= 1;
     }
@@ -421,10 +458,11 @@ where
             AstNode::Plain(elem)
         }
     }
-    fn parse_text(&mut self, mut text: DecodedStr<'a>) {
+    fn parse_text(&mut self, mut text: VStr<'a>) {
+        let mut text = smallvec![text];
         while let Some(token) = self.tokens.next() {
             if let Token::Text(ds) = token {
-                text = text + ds;
+                text.push(ds);
             } else {
                 // NB: token must not be dropped
                 self.parse_token(token);
@@ -466,7 +504,7 @@ where
         if !elem.tag_name.eq_ignore_ascii_case("script") {
             return;
         }
-        let TextNode { text, .. } = match elem.children.first() {
+        let text = match elem.children.first() {
             Some(AstNode::Text(text)) => text,
             _ => return,
         };
@@ -729,7 +767,7 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, need_condense: bool) {
     while i < nodes.len() {
         let should_remove = if let AstNode::Text(child) = &nodes[i] {
             use AstNode as A;
-            if !child.text.is_all_whitespace() {
+            if !child.is_all_whitespace() {
                 // non empty text node
                 if need_condense {
                     compress_text_node(&mut nodes[i]);
@@ -747,10 +785,7 @@ fn compress_whitespaces(nodes: &mut Vec<AstNode>, need_condense: bool) {
                 let next = &nodes[i + 1];
                 match (prev, next) {
                     (A::Comment(_), A::Comment(_)) => true,
-                    _ if is_element(prev) && is_element(next) => {
-                        child.text.contains(&['\r', '\n'][..])
-                    }
-                    _ => false,
+                    _ => is_element(prev) && is_element(next) && child.contains(&['\r', '\n'][..]),
                 }
             }
         } else {
@@ -770,7 +805,7 @@ fn is_element(n: &AstNode) -> bool {
 }
 
 fn compress_text_node(n: &mut AstNode) {
-    if let AstNode::Text(_) = n {
+    if let AstNode::Text(s) = n {
         todo!("remove whitespace without allocation")
     } else {
         debug_assert!(false, "impossible");

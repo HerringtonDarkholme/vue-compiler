@@ -57,6 +57,7 @@ No support since most features in full build are additional except for browser b
 
 * Plenty of `debug_assert`s to maintain compiler state invariants.
 * The library seeks minimal allocation by using `&str`, `Cow<'_, str>` and `smallvec`.
+* A customized `VStr` is used to minimize string manipulation.
 * `Fxhash` is preferred over default hasher since hash collision is not a concern.
 * The `bitflags` crate is used to represent runtime helper and vnode patch flags.
 * Use [heavily optimized](https://github.com/BurntSushi/memchr) routines for string search primitives. ([Perf reference](https://lise-henry.github.io/articles/optimising_strings.html))

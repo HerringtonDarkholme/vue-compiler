@@ -57,6 +57,7 @@ pub enum CompilationErrorKind {
     VModelMalformedExpression,
     VModelOnScopeVariable,
     InvalidExpression,
+    UnexpectedDirExpression,
     KeepAliveInvalidChildren,
 
     // generic errors
@@ -73,7 +74,7 @@ pub enum CompilationErrorKind {
 #[derive(Debug)]
 pub struct CompilationError {
     pub kind: CompilationErrorKind,
-    pub additional_message: Option<&'static str>,
+    pub additional_message: Option<String>,
     pub location: SourceLocation,
 }
 
@@ -89,7 +90,7 @@ impl CompilationError {
         self.location = loc;
         self
     }
-    pub fn with_additional_message(mut self, msg: &'static str) -> Self {
+    pub fn with_additional_message(mut self, msg: String) -> Self {
         self.additional_message = Some(msg);
         self
     }
@@ -164,6 +165,7 @@ fn msg(kind: &CompilationErrorKind) -> &'static str {
         k::VModelOnScopeVariable =>
             "v-model cannot be used on v-for or v-slot scope variables because they are not writable.",
         k::InvalidExpression => "Error parsing JavaScript expression: ",
+        k::UnexpectedDirExpression => "This directive does not accept any epxression.",
         k::KeepAliveInvalidChildren => "<KeepAlive> expects exactly one child component.",
 
         // generic errors
@@ -179,7 +181,7 @@ fn msg(kind: &CompilationErrorKind) -> &'static str {
 
 impl fmt::Display for CompilationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(additional) = self.additional_message {
+        if let Some(additional) = &self.additional_message {
             write!(f, "{}{}", self.msg(), additional)
         } else {
             write!(f, "{}", self.msg())

@@ -85,7 +85,7 @@ pub struct IfNodeIR<T: ConvertInfo> {
     info: T::IfType,
 }
 struct IfBranch<T: ConvertInfo> {
-    condition: T::JsExpression,
+    condition: Option<T::JsExpression>,
     children: Vec<IRNode<T>>,
     info: T::IfBranchType,
 }

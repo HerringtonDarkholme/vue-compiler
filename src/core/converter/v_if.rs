@@ -1,7 +1,11 @@
 use super::{
-    AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, Element, IRNode, IfBranch, IfNodeIR,
+    super::error::CompilationErrorKind as ErrorKind, AstNode, BaseConvertInfo, BaseConverter as BC,
+    BaseIR, CompilationError, Directive, Element, IRNode, IfBranch, IfNodeIR,
 };
-use crate::core::util::find_dir;
+use crate::core::{
+    converter::{CoreConverter, JsExpr},
+    util::find_dir,
+};
 use std::{iter::Peekable, vec::IntoIter};
 
 pub enum PreGroup<'a> {
@@ -96,18 +100,32 @@ pub fn convert_if<'a>(c: &BC, nodes: Vec<Element<'a>>, key: usize) -> BaseIR<'a>
 
 fn convert_if_branch<'a>(
     c: &BC,
-    mut e: Element,
+    mut e: Element<'a>,
     start_key: usize,
 ) -> IfBranch<BaseConvertInfo<'a>> {
     let dir = find_dir(&mut e, ["if", "else-if", "else"])
         .expect("the element must have v-if directives")
         .take();
-    if dir.name != "else" {}
+    let condition = convert_if_condition(c, dir);
     IfBranch {
         children: vec![],
-        condition: todo!(),
+        condition,
         info: start_key,
     }
+}
+fn convert_if_condition<'a>(c: &BC, dir: Directive<'a>) -> Option<JsExpr<'a>> {
+    if dir.name != "else" {
+        if let Some(err) = dir.check_empty_expr(ErrorKind::VIfNoExpression) {
+            c.emit_error(err);
+            return Some(JsExpr::Lit("true"));
+        }
+    } else if let Some(expr) = dir.expression {
+        let error =
+            CompilationError::new(ErrorKind::UnexpectedDirExpression).with_location(expr.location);
+        c.emit_error(error);
+        return None;
+    }
+    dir.expression.map(|v| JsExpr::Simple(v.content))
 }
 
 #[cfg(test)]
@@ -118,6 +136,8 @@ mod test {
 <p v-if="false">a</p>
 <p v-else v-if="true">b</p>
 <p v-else>c</p>"#,
+            r#"<p v-if="123"/><p v-else="33"/>"#,
+            r#"<p v-if/>"#,
         ];
     }
 }

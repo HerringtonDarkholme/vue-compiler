@@ -58,11 +58,12 @@ pub trait CodeGenWrite: Write {
         for c in s.chars() {
             if !is_boundary && c.is_ascii_uppercase() {
                 self.write_char('-')?;
-                self.write_char((c as u8 - b'A' + b'a') as char)?;
+                self.write_char(c.to_ascii_lowercase())?;
+                is_boundary = false;
             } else {
                 self.write_char(c)?;
+                is_boundary = !c.is_ascii_alphanumeric() && c != '_';
             }
-            is_boundary = !c.is_ascii_alphanumeric() && c != '_';
         }
         Ok(())
     }

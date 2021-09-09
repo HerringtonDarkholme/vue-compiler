@@ -175,16 +175,18 @@ where
             .collect()
     }
 
-    fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<T> {
+    fn dispatch_ast(&self, mut n: AstNode<'a>) -> IRNode<T> {
+        if let Some(dir) = pre_convert_for(&mut n) {
+            return self.convert_for(dir, self.dispatch_ast(n));
+        }
         match n {
             AstNode::Text(t) => self.convert_text(t),
             AstNode::Comment(c) => self.convert_comment(c),
             AstNode::Interpolation(i) => self.convert_interpolation(i),
             // all element like node needs pre-convert structural dirs
-            AstNode::Plain(e) => pre_convert_for(self, e, |e| self.convert_element(e)),
-            AstNode::Component(e) => pre_convert_for(self, e, |e| self.convert_component(e)),
-            AstNode::Template(e) => pre_convert_for(self, e, |e| self.convert_template(e)),
-            // <slot> requires special v-if/v-for handling
+            AstNode::Plain(e) => self.convert_element(e),
+            AstNode::Component(e) => self.convert_component(e),
+            AstNode::Template(e) => self.convert_template(e),
             AstNode::SlotOutlet(e) => self.convert_slot_outlet(e),
         }
     }

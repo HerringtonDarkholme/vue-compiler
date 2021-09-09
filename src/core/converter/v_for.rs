@@ -1,30 +1,19 @@
 use super::{
-    find_dir, BaseConvertInfo, BaseConverter, BaseIR, CompilationError, ConvertInfo, CoreConverter,
-    Directive, Element, ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
+    find_dir, AstNode, BaseConvertInfo, BaseConverter, BaseIR, CompilationError, ConvertInfo,
+    CoreConverter, Directive, ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
 };
 use crate::core::error::CompilationErrorKind as ErrorKind;
-use crate::core::tokenizer::AttributeValue;
 use crate::core::util::VStr;
 
 /// Pre converts v-if or v-for like structural dir
-/// The last argument is a continuation closure for base conversion.
-// continuation is from continuation passing style.
-// TODO: benchmark this monster function.
-pub fn pre_convert_for<'a, T, C, K>(c: &C, mut e: Element<'a>, base_convert: K) -> IRNode<T>
-where
-    T: ConvertInfo,
-    C: CoreConverter<'a, T> + ?Sized,
-    K: FnOnce(Element<'a>) -> IRNode<T>,
-{
+// TODO: benchmark this because we did check element twice
+pub fn pre_convert_for<'a>(node: &mut AstNode<'a>) -> Option<Directive<'a>> {
+    let e = node.get_element_mut()?;
     // convert v-for, v-if is converted elsewhere
-    if let Some(dir) = find_dir(&mut e, "for") {
-        let b = dir.take();
-        debug_assert!(find_dir(&mut e, "for").is_none());
-        let n = base_convert(e);
-        c.convert_for(b, n)
-    } else {
-        base_convert(e)
-    }
+    let dir = find_dir(&mut *e, "for")?;
+    let b = dir.take();
+    debug_assert!(find_dir(&mut *e, "for").is_none());
+    Some(b)
 }
 
 pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {

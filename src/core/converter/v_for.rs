@@ -53,17 +53,21 @@ pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> B
 
 type ParsedFor<'a> = (Js<'a>, ForParseResult<BaseConvertInfo<'a>>);
 
+const PARENS: &[char] = &['(', ')'];
 fn parse_for_expr<'a>(expr: VStr<'a>) -> Option<ParsedFor<'a>> {
     // split source and binding
     let (lhs, rhs) = expr
         .raw
         .split_once(" in ")
         .or_else(|| expr.raw.split_once(" of "))
-        .map(|(l, r)| (l.trim(), r.trim()))?;
+        .map(|(l, r)| (l.trim_matches(PARENS), r.trim()))?;
+    if rhs.is_empty() {
+        return None;
+    }
     // split iterator by ,
     let (val, key, idx) = split_v_for_iter(lhs);
     Some((
-        simple_var(rhs),
+        simple_var(rhs.trim()),
         ForParseResult {
             value: simple_var(val),
             key: key.map(simple_var),
@@ -76,22 +80,22 @@ fn simple_var(v: &str) -> Js {
 }
 
 const DESTRUCTING: &'static [char] = &['}', ']'];
-fn split_v_for_iter(lhs: &str) -> (&str, Option<&str>, Option<&str>) {
-    let mut ret = (lhs, None, None);
-    let mut split: Vec<_> = lhs.rsplitn(3, ',').map(str::trim).collect();
+fn split_v_for_iter(mut lhs: &str) -> (&str, Option<&str>, Option<&str>) {
+    let mut split = Vec::with_capacity(3);
+    while let Some((pre, post)) = lhs.rsplit_once(',') {
+        if post.contains(DESTRUCTING) || split.len() == 2 {
+            break;
+        }
+        lhs = pre;
+        split.push(post.trim());
+    }
+    split.push(lhs.trim());
     split.reverse();
-    if split.iter().skip(1).any(|s| s.contains(DESTRUCTING)) {
-        return ret;
+    match split.len() {
+        2 => (split[0], Some(split[1]), None),
+        3 => (split[0], Some(split[1]), Some(split[2])),
+        _ => (split[0], None, None),
     }
-    if split.len() == 2 {
-        ret.0 = split[0];
-        ret.1 = Some(split[1]);
-    } else if split.len() == 3 {
-        ret.0 = split[0];
-        ret.1 = Some(split[1]);
-        ret.2 = Some(split[2]);
-    }
-    ret
 }
 
 // check <template v-for> key placement
@@ -124,6 +128,11 @@ mod test {
             ("{a, b, c} in p ", ("p", "{a, b, c}", None, None)),
             ("{a, b}, c in p ", ("p", "{a, b}", "c".into(), None)),
             ("[a,] , b in p ", ("p", "[a,]", "b".into(), None)),
+            ("a,b,c,d,e in p ", ("p", "a,b,c", "d".into(), "e".into())),
+            ("(a,b) in p ", ("p", "a", "b".into(), None)),
+            ("(a,b, c, d) in p ", ("p", "a,b", "c".into(), "d".into())),
+            ("(,,,) in p ", ("p", ",", "".into(), "".into())),
+            ("(,,) in p ", ("p", "", "".into(), "".into())),
         ] {
             check_equal(src, expect);
         }
@@ -131,7 +140,7 @@ mod test {
 
     #[test]
     fn test_parse_invalid_for() {
-        for src in vec![""] {
+        for src in vec!["", "           in             "] {
             assert!(parse_for_expr(VStr::raw(src)).is_none());
         }
     }

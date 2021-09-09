@@ -10,7 +10,7 @@ use super::{
 use rustc_hash::FxHashSet;
 use std::{iter::FusedIterator, str::Chars};
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub struct Attribute<'a> {
     pub name: Name<'a>,
     pub value: Option<AttributeValue<'a>>,
@@ -18,14 +18,14 @@ pub struct Attribute<'a> {
     pub location: SourceLocation,
 }
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub struct AttributeValue<'a> {
     pub content: VStr<'a>,
     pub location: SourceLocation,
 }
 
 /// Tag is used only for start tag since end tag is bare
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub struct Tag<'a> {
     pub name: Name<'a>,
     pub attributes: Vec<Attribute<'a>>,
@@ -34,7 +34,7 @@ pub struct Tag<'a> {
 
 /// html token definition is tailored for convenience.
 /// https://html.spec.whatwg.org/multipage/parsing.html#tokenization
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub enum Token<'a> {
     StartTag(Tag<'a>),
     EndTag(Name<'a>), // with no attrs or self_closing flag

@@ -23,7 +23,7 @@ use super::{
 use smallvec::{smallvec, SmallVec};
 use std::ops::Deref;
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub enum AstNode<'a> {
     Plain(Element<'a>),
     Template(Element<'a>),
@@ -57,13 +57,13 @@ impl<'a> AstNode<'a> {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub struct SourceNode<'a> {
     pub source: &'a str,
     pub location: SourceLocation,
 }
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub struct TextNode<'a> {
     pub text: SmallVec<[VStr<'a>; 1]>,
     pub location: SourceLocation,
@@ -104,13 +104,13 @@ impl<'a> TextNode<'a> {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub enum ElemProp<'a> {
     Attr(Attribute<'a>),
     Dir(Directive<'a>),
 }
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub struct Element<'a> {
     pub tag_name: Name<'a>,
     pub namespace: Namespace,
@@ -121,7 +121,7 @@ pub struct Element<'a> {
 
 /// Directive supports two forms
 /// static and dynamic
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub enum DirectiveArg<'a> {
     // :static="val"
     Static(Name<'a>),
@@ -130,7 +130,8 @@ pub enum DirectiveArg<'a> {
 
 /// Directive has the form
 /// v-name:arg.mod1.mod2="expr"
-#[derive(Debug, Default)]
+#[derive(Default)]
+#[cfg_attr(test, derive(Debug))]
 pub struct Directive<'a> {
     pub name: Name<'a>,
     pub argument: Option<DirectiveArg<'a>>,
@@ -157,13 +158,14 @@ impl<'a> Directive<'a> {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub struct AstRoot<'a> {
     pub children: Vec<AstNode<'a>>,
     pub location: SourceLocation,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
 pub enum WhitespaceStrategy {
     Preserve,
     Condense,

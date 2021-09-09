@@ -109,7 +109,7 @@ mod test {
     }
     #[test]
     fn test_parse_for_expr() {
-        for (src, expect) in vec![
+        for &(src, expect) in &[
             ("a in [123]", ("[123]", "a", None, None)),
             ("   in [123]", ("[123]", "", None, None)),
             ("   a      in     [123]    ", ("[123]", "a", None, None)),
@@ -129,7 +129,7 @@ mod test {
 
     #[test]
     fn test_parse_invalid_for() {
-        for src in vec!["", "           in             "] {
+        for src in &["", "           in             "] {
             assert!(parse_for_expr(VStr::raw(src)).is_none());
         }
     }

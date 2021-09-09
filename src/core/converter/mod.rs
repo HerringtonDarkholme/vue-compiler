@@ -27,9 +27,13 @@ pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use super::util::{find_dir, VStr};
 use rustc_hash::FxHashMap;
 
+mod convert_element;
+mod convert_slot_outlet;
 mod v_bind;
 mod v_for;
 mod v_if;
+mod v_slot;
+
 use v_for::pre_convert_for;
 use v_if::{pre_group_v_if, PreGroup};
 
@@ -177,7 +181,7 @@ where
             AstNode::Component(e) => pre_convert_for(self, e, |e| self.convert_component(e)),
             AstNode::Template(e) => pre_convert_for(self, e, |e| self.convert_template(e)),
             // <slot> requires special v-if/v-for handling
-            AstNode::SlotOutlet(..) => self.convert_slot_outlet(),
+            AstNode::SlotOutlet(e) => self.convert_slot_outlet(e),
         }
     }
 
@@ -187,7 +191,7 @@ where
     fn convert_directive(&self) -> DirectiveConvertResult<T::JsExpression>;
     fn convert_if(&self, nodes: Vec<AstNode<'a>>, key: usize) -> IRNode<T>;
     fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
-    fn convert_slot_outlet(&self) -> IRNode<T>;
+    fn convert_slot_outlet(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_component(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_text(&self) -> IRNode<T>;
@@ -258,13 +262,13 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
         v_if::convert_if(self, nodes, key)
     }
     fn convert_for(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
-        todo!()
+        v_for::convert_for(self, d, n)
     }
-    fn convert_slot_outlet(&self) -> BaseIR<'a> {
-        todo!()
+    fn convert_slot_outlet(&self, e: Element<'a>) -> BaseIR<'a> {
+        convert_slot_outlet::convert_slot_outlet(self, e)
     }
     fn convert_element(&self, e: Element<'a>) -> BaseIR<'a> {
-        todo!()
+        convert_element::convert_element(self, e)
     }
     fn convert_component(&self, e: Element<'a>) -> BaseIR<'a> {
         todo!()

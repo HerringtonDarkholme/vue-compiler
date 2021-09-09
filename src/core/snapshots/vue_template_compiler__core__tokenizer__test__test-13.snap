@@ -1,0 +1,43 @@
+---
+source: src/core/tokenizer.rs
+expression: t
+
+---
+StartTag:
+  name: a
+  attributes:
+    - name: b
+      value:
+        content:
+          raw: ""
+          ops:
+            bits: 10
+        location:
+          start:
+            offset: 5
+            line: 1
+            column: 6
+          end:
+            offset: 8
+            line: 1
+            column: 9
+      name_loc:
+        start:
+          offset: 3
+          line: 1
+          column: 4
+        end:
+          offset: 4
+          line: 1
+          column: 5
+      location:
+        start:
+          offset: 3
+          line: 1
+          column: 4
+        end:
+          offset: 8
+          line: 1
+          column: 9
+  self_closing: true
+

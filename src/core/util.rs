@@ -4,6 +4,8 @@ use super::{
     tokenizer::Attribute,
 };
 use bitflags::bitflags;
+#[cfg(test)]
+use serde::Serialize;
 use std::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
@@ -164,6 +166,7 @@ where
 }
 
 bitflags! {
+    #[cfg_attr(test, derive(Serialize))]
     pub struct StrOps: u8 {
         const COMPRESS_WHITESPACE = 1 << 0;
         const DECODE_ENTITY       = 1 << 1;
@@ -176,7 +179,8 @@ bitflags! {
 /// A str for Vue compiler's internal modification.
 /// Instead of returning a Cow<str>, StrOp is recorded in the VStr
 /// and will be processed later in codegen phase.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
+#[cfg_attr(test, derive(Serialize))]
 pub struct VStr<'a> {
     pub raw: &'a str,
     pub ops: StrOps,

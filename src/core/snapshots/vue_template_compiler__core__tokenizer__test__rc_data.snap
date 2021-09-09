@@ -1,0 +1,14 @@
+---
+source: src/core/tokenizer.rs
+expression: ret
+
+---
+- StartTag:
+    name: textarea
+    attributes: []
+    self_closing: false
+- Text:
+    raw: "   "
+    ops:
+      bits: 2
+

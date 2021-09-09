@@ -1,0 +1,12 @@
+---
+source: src/core/tokenizer.rs
+expression: a
+
+---
+- StartTag:
+    name: textarea
+    attributes: []
+    self_closing: false
+- Interpolation: "{{'</textarea>'}}"
+- EndTag: textarea
+

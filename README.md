@@ -93,7 +93,7 @@ Todo tasks grouped by scopes.
 ### [test]
 - [ ] tokenizer test
 - [ ] parser test
-- [ ] Add insta snapshot
+- [x] Add insta snapshot
 ### [bench]
 - [x] Add benchmark framework
 - [ ] Micro benchmarks for compiler components

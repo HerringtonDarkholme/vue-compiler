@@ -8,9 +8,11 @@ use super::{
     Name, Position, SourceLocation,
 };
 use rustc_hash::FxHashSet;
+#[cfg(test)]
+use serde::Serialize;
 use std::{iter::FusedIterator, str::Chars};
 
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub struct Attribute<'a> {
     pub name: Name<'a>,
     pub value: Option<AttributeValue<'a>>,
@@ -18,14 +20,14 @@ pub struct Attribute<'a> {
     pub location: SourceLocation,
 }
 
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub struct AttributeValue<'a> {
     pub content: VStr<'a>,
     pub location: SourceLocation,
 }
 
 /// Tag is used only for start tag since end tag is bare
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub struct Tag<'a> {
     pub name: Name<'a>,
     pub attributes: Vec<Attribute<'a>>,
@@ -34,7 +36,7 @@ pub struct Tag<'a> {
 
 /// html token definition is tailored for convenience.
 /// https://html.spec.whatwg.org/multipage/parsing.html#tokenization
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub enum Token<'a> {
     StartTag(Tag<'a>),
     EndTag(Name<'a>), // with no attrs or self_closing flag
@@ -805,6 +807,7 @@ impl<'a, C> TokenSource<'a> for Tokens<'a, C> where C: ErrorHandler {}
 #[cfg(test)]
 pub mod test {
     use super::{super::error::test::TestErrorHandler, *};
+    use insta::assert_yaml_snapshot;
     #[test]
     fn test_single_delimiter() {
         let a: Vec<_> = base_scan("{ test }").collect();
@@ -842,7 +845,7 @@ pub mod test {
         ];
         for &case in cases.iter() {
             for t in base_scan(case) {
-                println!("{:?}", t);
+                assert_yaml_snapshot!(t);
             }
         }
     }
@@ -863,7 +866,7 @@ pub mod test {
                 ..Default::default()
             };
             for t in scan_with_opt(case, opt) {
-                println!("{:?}", t);
+                assert_yaml_snapshot!(t);
             }
         }
     }
@@ -888,9 +891,8 @@ pub mod test {
                 get_text_mode: |_| TextMode::RcData,
                 ..Default::default()
             };
-            for t in scan_with_opt(case, opt) {
-                println!("{:?}", t);
-            }
+            let a: Vec<_> = scan_with_opt(case, opt).collect();
+            assert_yaml_snapshot!(a);
         }
     }
 

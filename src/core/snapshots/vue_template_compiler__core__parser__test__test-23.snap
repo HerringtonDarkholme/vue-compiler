@@ -1,0 +1,68 @@
+---
+source: src/core/parser.rs
+expression: ast
+
+---
+children:
+  - Plain:
+      tag_name: p
+      namespace: Html
+      properties:
+        - Dir:
+            name: a
+            argument:
+              Static: b
+            modifiers:
+              - ""
+            expression:
+              content:
+                raw: tt
+                ops:
+                  bits: 10
+              location:
+                start:
+                  offset: 10
+                  line: 1
+                  column: 11
+                end:
+                  offset: 14
+                  line: 1
+                  column: 15
+            head_loc:
+              start:
+                offset: 3
+                line: 1
+                column: 4
+              end:
+                offset: 9
+                line: 1
+                column: 10
+            location:
+              start:
+                offset: 3
+                line: 1
+                column: 4
+              end:
+                offset: 14
+                line: 1
+                column: 15
+      children: []
+      location:
+        start:
+          offset: 0
+          line: 1
+          column: 1
+        end:
+          offset: 16
+          line: 1
+          column: 17
+location:
+  start:
+    offset: 0
+    line: 1
+    column: 1
+  end:
+    offset: 16
+    line: 1
+    column: 17
+

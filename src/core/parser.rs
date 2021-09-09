@@ -20,10 +20,12 @@ use super::{
     util::{find_dir, is_core_component, no, non_whitespace, yes, VStr},
     Name, Namespace, SourceLocation,
 };
+#[cfg(test)]
+use serde::Serialize;
 use smallvec::{smallvec, SmallVec};
 use std::ops::Deref;
 
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub enum AstNode<'a> {
     Plain(Element<'a>),
     Template(Element<'a>),
@@ -57,13 +59,13 @@ impl<'a> AstNode<'a> {
     }
 }
 
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub struct SourceNode<'a> {
     pub source: &'a str,
     pub location: SourceLocation,
 }
 
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub struct TextNode<'a> {
     pub text: SmallVec<[VStr<'a>; 1]>,
     pub location: SourceLocation,
@@ -104,13 +106,13 @@ impl<'a> TextNode<'a> {
     }
 }
 
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub enum ElemProp<'a> {
     Attr(Attribute<'a>),
     Dir(Directive<'a>),
 }
 
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub struct Element<'a> {
     pub tag_name: Name<'a>,
     pub namespace: Namespace,
@@ -121,7 +123,7 @@ pub struct Element<'a> {
 
 /// Directive supports two forms
 /// static and dynamic
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub enum DirectiveArg<'a> {
     // :static="val"
     Static(Name<'a>),
@@ -131,7 +133,7 @@ pub enum DirectiveArg<'a> {
 /// Directive has the form
 /// v-name:arg.mod1.mod2="expr"
 #[derive(Default)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub struct Directive<'a> {
     pub name: Name<'a>,
     pub argument: Option<DirectiveArg<'a>>,
@@ -158,14 +160,14 @@ impl<'a> Directive<'a> {
     }
 }
 
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub struct AstRoot<'a> {
     pub children: Vec<AstNode<'a>>,
     pub location: SourceLocation,
 }
 
 #[derive(Clone)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Serialize))]
 pub enum WhitespaceStrategy {
     Preserve,
     Condense,
@@ -853,6 +855,7 @@ fn is_v_pre_boundary(elem: &Element) -> bool {
 mod test {
     use super::super::{error::test::TestErrorHandler, tokenizer};
     use super::*;
+    use insta::assert_yaml_snapshot;
 
     #[test]
     fn test() {
@@ -889,7 +892,7 @@ mod test {
         ];
         for &case in cases.iter() {
             let ast = base_parse(case);
-            println!("{:?}", ast);
+            assert_yaml_snapshot!(ast);
         }
     }
 

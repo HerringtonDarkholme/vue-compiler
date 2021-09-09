@@ -1,0 +1,43 @@
+---
+source: src/core/tokenizer.rs
+expression: t
+
+---
+StartTag:
+  name: p
+  attributes:
+    - name: v-err
+      value:
+        content:
+          raw: 232/
+          ops:
+            bits: 10
+        location:
+          start:
+            offset: 9
+            line: 1
+            column: 10
+          end:
+            offset: 13
+            line: 1
+            column: 14
+      name_loc:
+        start:
+          offset: 3
+          line: 1
+          column: 4
+        end:
+          offset: 8
+          line: 1
+          column: 9
+      location:
+        start:
+          offset: 3
+          line: 1
+          column: 4
+        end:
+          offset: 13
+          line: 1
+          column: 14
+  self_closing: false
+

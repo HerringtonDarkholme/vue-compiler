@@ -1,0 +1,10 @@
+---
+source: src/core/tokenizer.rs
+expression: t
+
+---
+Text:
+  raw: "=123 />"
+  ops:
+    bits: 2
+

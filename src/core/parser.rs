@@ -40,20 +40,14 @@ impl<'a> AstNode<'a> {
     pub fn get_element(&self) -> Option<&Element<'a>> {
         use AstNode as A;
         match self {
-            A::Plain(e) => Some(e),
-            A::Template(e) => Some(e),
-            A::Component(e) => Some(e),
-            A::SlotOutlet(e) => Some(e),
+            A::Plain(e) | A::Template(e) | A::Component(e) | A::SlotOutlet(e) => Some(e),
             _ => None,
         }
     }
     pub fn get_element_mut(&mut self) -> Option<&mut Element<'a>> {
         use AstNode as A;
         match self {
-            A::Plain(e) => Some(e),
-            A::Template(e) => Some(e),
-            A::Component(e) => Some(e),
-            A::SlotOutlet(e) => Some(e),
+            A::Plain(e) | A::Template(e) | A::Component(e) | A::SlotOutlet(e) => Some(e),
             _ => None,
         }
     }
@@ -700,21 +694,18 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
         } else {
             debug_assert!(!prefixed.starts_with(SLOT_CHAR));
             // handle .prop shorthand elsewhere
-            remain
-                .as_bytes()
-                .iter()
-                .position(|&u| u == MOD_CHAR as u8)
+            remain.chars()
+                .position(|u| u == MOD_CHAR )
                 .map(|i| remain.split_at(i))
                 .unwrap_or((remain, ""))
         }
     }
     fn split_dynamic_arg(&self, remain: &'a str) -> (&'a str, &'a str) {
         // dynamic arg
-        let bytes = remain.as_bytes();
-        let end = bytes
-            .iter()
-            .position(|b| *b == b']')
-            .map_or(bytes.len(), |i| i + 1);
+        let remain_length = remain.len();
+        let end = remain.chars()
+            .position(|b| b == ']')
+            .map_or(remain_length, |i| i + 1);
         let (arg, mut mods) = remain.split_at(end);
         if mods.starts_with(|c| c != MOD_CHAR) {
             self.attr_name_err(ErrorKind::UnexpectedContentAfterDynamicDirective);

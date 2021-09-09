@@ -181,14 +181,18 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         let d = self.delimiter_first_char;
         // process html entity & later
         let index = self.source.find(&['<', d][..]);
-        // no tag or interpolation found
-        match index {
-            None => self.scan_text(self.source.len()),
-            Some(i) if i != 0 => self.scan_text(i),
-            Some(_) if self.source.starts_with(&self.option.delimiters.0) => {
-                self.scan_interpolation()
-            }
-            _ => self.scan_tag_open(),
+        // return text if no tag or interpolation found
+        let i = match index {
+            Some(i) => i,
+            None => return self.scan_text(self.source.len()),
+        };
+        if i != 0 {
+            // found non empty text
+            self.scan_text(i)
+        } else if self.source.starts_with(&self.option.delimiters.0) {
+            self.scan_interpolation()
+        } else {
+            self.scan_tag_open()
         }
     }
 

@@ -517,7 +517,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     }
     fn scan_comment_text(&mut self) -> &'a str {
         debug_assert!(self.source.starts_with("<!--"));
-        let comment_end = self.source.find("--!>").or_else(|| self.source.find("-->"));
+        let comment_end = self.source.find("-->").or_else(|| self.source.find("--!>"));
         // NB: we take &str here since we will call move_by later
         let text = if let Some(end) = comment_end {
             debug_assert!(end >= 2, "first two chars must be <!");

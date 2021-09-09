@@ -103,7 +103,7 @@ pub struct ForNodeIR<T: ConvertInfo> {
 }
 // (value, key, index) in source
 struct ForParseResult<T: ConvertInfo> {
-    value: Option<T::JsExpression>,
+    value: T::JsExpression,
     key: Option<T::JsExpression>,
     index: Option<T::JsExpression>,
 }

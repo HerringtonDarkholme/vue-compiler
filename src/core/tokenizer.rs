@@ -179,21 +179,22 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         debug_assert!(self.mode == TextMode::Data);
         debug_assert!(!self.source.is_empty());
         let d = self.delimiter_first_char;
+        let mut offset = 0;
         // process html entity & later
-        let index = self.source.find(&['<', d][..]);
-        // return text if no tag or interpolation found
-        let i = match index {
-            Some(i) => i,
-            None => return self.scan_text(self.source.len()),
-        };
-        if i != 0 {
-            // found non empty text
-            self.scan_text(i)
-        } else if self.source.starts_with(&self.option.delimiters.0) {
-            self.scan_interpolation()
-        } else {
-            self.scan_tag_open()
+        while let Some(i) = self.source[offset..].find(&['<', d][..]) {
+            if i != 0 {
+                // found non empty text
+                return self.scan_text(i);
+            } else if self.source.starts_with('<') {
+                return self.scan_tag_open();
+            } else if self.source.starts_with(&self.option.delimiters.0) {
+                return self.scan_interpolation();
+            } else {
+                offset = i + 1;
+            }
         }
+        // return text if no tag or interpolation found
+        self.scan_text(self.source.len())
     }
 
     // produces an entity_decoded Text token.
@@ -804,6 +805,18 @@ impl<'a, C> TokenSource<'a> for Tokens<'a, C> where C: ErrorHandler {}
 #[cfg(test)]
 pub mod test {
     use super::{super::error::test::TestErrorHandler, *};
+    #[test]
+    fn test_single_delimiter() {
+        let a: Vec<_> = base_scan("{ test }").collect();
+        assert_eq!(a.len(), 1);
+        assert!(matches!(
+            a[0],
+            Token::Text(VStr {
+                raw: "{ test }",
+                ..
+            })
+        ));
+    }
     #[test]
     fn test() {
         let cases = [

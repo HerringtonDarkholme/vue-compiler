@@ -129,7 +129,7 @@ mod test {
 
     #[test]
     fn test_parse_invalid_for() {
-        for src in vec!["", "           in             "] {
+        for src in &["", "           in             "] {
             assert!(parse_for_expr(VStr::raw(src)).is_none());
         }
     }

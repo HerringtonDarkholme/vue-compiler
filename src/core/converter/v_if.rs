@@ -168,7 +168,7 @@ fn convert_if_branch<'a>(c: &BC, mut n: AstNode<'a>, key: usize) -> IfBranch<Bas
     report_duplicate_v_if(c, e);
     let condition = convert_if_condition(c, dir);
     IfBranch {
-        children: Box::new(c.dispatch_ast(n)),
+        child: Box::new(c.dispatch_ast(n)),
         condition,
         info: key,
     }

@@ -1,5 +1,7 @@
 use super::{
-    find_dir, BaseConverter, BaseIR, ConvertInfo, CoreConverter, Directive, Element, IRNode,
+    super::tokenizer::AttributeValue, find_dir, BaseConvertInfo, BaseConverter, BaseIR,
+    ConvertInfo, CoreConverter, Directive, Element, ForNodeIR, ForParseResult, IRNode,
+    JsExpr as Js,
 };
 
 /// Pre converts v-if or v-for like structural dir
@@ -23,5 +25,20 @@ where
 }
 
 pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+    // debug_assert no
+    // on empty v-for expr error
+    // parseFor expr
+    let (source, parse_result) = parse_for_expr(bc, d.expression.unwrap());
+    IRNode::For(ForNodeIR {
+        source,
+        parse_result,
+        child: Box::new(n),
+    })
+}
+
+fn parse_for_expr<'a>(
+    bc: &BaseConverter,
+    expr: AttributeValue<'a>,
+) -> (Js<'a>, ForParseResult<BaseConvertInfo<'a>>) {
     todo!()
 }

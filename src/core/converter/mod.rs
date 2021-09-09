@@ -93,13 +93,13 @@ pub struct IfNodeIR<T: ConvertInfo> {
 }
 struct IfBranch<T: ConvertInfo> {
     condition: Option<T::JsExpression>,
-    children: Box<IRNode<T>>,
+    child: Box<IRNode<T>>,
     info: T::IfBranchType,
 }
 pub struct ForNodeIR<T: ConvertInfo> {
     source: T::JsExpression,
     parse_result: ForParseResult<T>,
-    children: Vec<IRNode<T>>,
+    child: Box<IRNode<T>>,
 }
 // (value, key, index) in source
 struct ForParseResult<T: ConvertInfo> {

@@ -30,7 +30,6 @@ use rustc_hash::FxHashMap;
 mod v_bind;
 mod v_for;
 mod v_if;
-mod v_on;
 use v_for::pre_convert_for;
 use v_if::{pre_group_v_if, PreGroup};
 
@@ -229,7 +228,7 @@ impl<'a> ConvertInfo for BaseConvertInfo<'a> {
     type JsExpression = JsExpr<'a>;
 }
 
-type CoreDirConvRet<'a> = DirectiveConvertResult<JsExpr<'a>>;
+pub type CoreDirConvRet<'a> = DirectiveConvertResult<JsExpr<'a>>;
 /// Returns the conversion of a directive. Value could be props or object.
 // NB: we pass &dyn ErrorHandler to monomorphize the dir converter to pay
 // the minimal cost of dynamism only when error occurs. otherwise we will

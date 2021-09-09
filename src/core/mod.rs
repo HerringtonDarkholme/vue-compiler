@@ -2,9 +2,9 @@
 pub mod codegen;
 pub mod converter;
 pub mod error;
-mod parser;
+pub mod parser;
 pub mod runtime_helper;
-mod tokenizer;
+pub mod tokenizer;
 pub mod transformer;
 pub mod util;
 

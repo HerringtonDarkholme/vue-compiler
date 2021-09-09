@@ -1,11 +1,9 @@
 use crate::core::{runtime_helper::RuntimeHelper, PreambleHelper};
 
 use super::{
-    super::error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
-    super::parser::DirectiveArg,
-    super::util::VStr,
-    CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
-    JsExpr as Js,
+    error::CompilationErrorKind as ErrorKind, parser::DirectiveArg, tokenizer::AttributeValue,
+    util::VStr, CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element,
+    ErrorHandler, JsExpr as Js,
 };
 
 // this module process v-on without arg and with arg.
@@ -15,6 +13,10 @@ pub fn convert_v_on<'a>(
     eh: &dyn ErrorHandler,
 ) -> CoreDirConvRet<'a> {
     if let Some(error) = dir.check_empty_expr(ErrorKind::VOnNoExpression) {
+        // no argument no expr, just return
+        if dir.argument.is_none() {
+            return DirectiveConvertResult::Dropped;
+        }
         // allow @click.stop like
         if dir.modifiers.is_empty() {
             eh.on_error(error);
@@ -39,9 +41,19 @@ pub fn convert_v_on<'a>(
                 ])
             }
         };
-        todo!()
+        let exp = convert_v_on_expr(expression);
+        let exp = add_modifiers(&event_name, exp, modifiers);
+        Js::Props(vec![(event_name, exp)])
     } else {
-        todo!()
+        // bare v-on="" does not have mods
+        let exp = expression.expect("v-on with no expr nor arg should be dropped.");
+        let exp = Js::Simple(exp.content);
+        Js::Compound(vec![
+            Js::Src(RuntimeHelper::TO_HANDLERS.helper_str()),
+            Js::Src("("),
+            exp,
+            Js::Src(")"),
+        ])
     };
     DirectiveConvertResult::Converted {
         value,
@@ -49,4 +61,12 @@ pub fn convert_v_on<'a>(
     }
 }
 
-pub const V_BIND: DirectiveConverter = ("on", convert_v_on);
+pub fn convert_v_on_expr<'a>(expr: Option<AttributeValue<'a>>) -> Js<'a> {
+    todo!()
+}
+
+pub fn add_modifiers<'a>(evt_name: &Js<'a>, expr: Js<'a>, mods: Vec<&'a str>) -> Js<'a> {
+    todo!()
+}
+
+pub const V_ON: DirectiveConverter = ("on", convert_v_on);

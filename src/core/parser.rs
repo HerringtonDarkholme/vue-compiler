@@ -851,42 +851,82 @@ mod test {
     use super::*;
     use insta::assert_yaml_snapshot;
 
+    fn test_dir(case: &str) {
+        let ast = base_parse(case);
+        let elem = ast.children[0].get_element();
+        let dir = &elem.unwrap().properties[0];
+        assert_yaml_snapshot!(dir);
+    }
+
     #[test]
-    fn test() {
+    fn test_custom_dir() {
+        let cases = [
+            r#"<p v-test="tt"/>"#,     // test, N/A,
+            r#"<p v-test.add="tt"/>"#, // test, N/A, add
+        ];
+        for &case in cases.iter() {
+            test_dir(case);
+        }
+    }
+
+    #[test]
+    fn test_bind_dir() {
         let cases = [
             r#"<p :="tt"/>"#,          // bind, N/A,
-            r#"<p @="tt"/>"#,          // on, N/A,
-            r#"<p #="tt"/>"#,          // slot, default,
-            r#"<p #:)="tt"/>"#,        // slot, :),
-            r#"<p #@_@="tt"/>"#,       // slot, @_@,
-            r#"<p #.-.="tt"/>"#,       // slot, .-.,
             r#"<p :^_^="tt"/>"#,       // bind, ^_^
             r#"<p :^_^.prop="tt"/>"#,  // bind, ^_^, prop
             r#"<p :_:.prop="tt"/>"#,   // bind, _:, prop
-            r#"<p @::="tt"/>"#,        // on , :: ,
-            r#"<p @_@="tt"/>"#,        // on , _@ ,
-            r#"<p @_@.stop="tt"/>"#,   // on, _@, stop
-            r#"<p @.stop="tt"/>"#,     // on, N/A, stop
             r#"<p .stop="tt"/>"#,      // bind, stop, prop
             r#"<p .^-^.attr="tt" />"#, // bind, ^-^, attr|prop
-            r#"<p v-="tt"/>"#,         // ERROR,
-            r#"<p v-:="tt"/>"#,        // ERROR,
-            r#"<p v-.="tt"/>"#,        // ERROR,
-            r#"<p v-@="tt"/>"#,        // @, N/A,
-            r#"<p v-#="tt"/>"#,        // #, N/A,
-            r#"<p v-^.stop="tt"/>"#,   // ^, N/A, stop
-            r#"<p v-a:.="tt"/>"#,      // ERROR
-            r#"<p v-a:b.="tt"/>"#,     // ERROR
-            r#"<p v-slot.-="tt"/>"#,   // ERROR: slot, N/A, -
-            r#"<p v-slot@.@="tt"/>"#,  // slot@, N/A, @
             // r#"<p v-🖖:🤘.🤙/>"#, // unicode, VUE in hand sign
             r#"<p :[a.b].stop="tt"/>"#, // bind, [a.b], stop
             r#"<p :[]="tt"/>"#,         // bind, nothing, stop
             r#"<p :[t]err="tt"/>"#,     // bind, nothing, stop
         ];
         for &case in cases.iter() {
-            let ast = base_parse(case);
-            assert_yaml_snapshot!(ast);
+            test_dir(case);
+        }
+    }
+
+    #[test]
+    fn test_on_dir() {
+        let cases = [
+            r#"<p @="tt"/>"#,        // on, N/A,
+            r#"<p @::="tt"/>"#,      // on , :: ,
+            r#"<p @_@="tt"/>"#,      // on , _@ ,
+            r#"<p @_@.stop="tt"/>"#, // on, _@, stop
+            r#"<p @.stop="tt"/>"#,   // on, N/A, stop
+        ];
+        for &case in cases.iter() {
+            test_dir(case);
+        }
+    }
+
+    #[test]
+    fn test_slot_dir() {
+        let cases = [
+            r#"<p #="tt"/>"#,         // slot, default,
+            r#"<p #:)="tt"/>"#,       // slot, :),
+            r#"<p #@_@="tt"/>"#,      // slot, @_@,
+            r#"<p #.-.="tt"/>"#,      // slot, .-.,
+            r#"<p v-slot@.@="tt"/>"#, // slot@, N/A, @
+        ];
+        for &case in cases.iter() {
+            test_dir(case);
+        }
+    }
+    #[test]
+    fn test_dir_parse_error() {
+        let cases = [
+            r#"<p v-="tt"/>"#,       // ERROR,
+            r#"<p v-:="tt"/>"#,      // ERROR,
+            r#"<p v-.="tt"/>"#,      // ERROR,
+            r#"<p v-a:.="tt"/>"#,    // ERROR
+            r#"<p v-a:b.="tt"/>"#,   // ERROR
+            r#"<p v-slot.-="tt"/>"#, // ERROR: slot, N/A, -
+        ];
+        for &case in cases.iter() {
+            test_dir(case);
         }
     }
 

@@ -1,6 +1,6 @@
 use super::{
-    find_dir, AstNode, BaseConvertInfo, BaseConverter, BaseIR, CompilationError, ConvertInfo,
-    CoreConverter, Directive, ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
+    find_dir, AstNode, BaseConvertInfo, BaseConverter, BaseIR, CompilationError, CoreConverter,
+    Directive, ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
 };
 use crate::core::error::CompilationErrorKind as ErrorKind;
 use crate::core::util::VStr;
@@ -68,7 +68,7 @@ fn simple_var(v: &str) -> Js {
     Js::Simple(VStr::raw(v))
 }
 
-const DESTRUCTING: &'static [char] = &['}', ']'];
+const DESTRUCTING: &[char] = &['}', ']'];
 fn split_v_for_iter(mut lhs: &str) -> (&str, Option<&str>, Option<&str>) {
     let mut split = Vec::with_capacity(3);
     while let Some((pre, post)) = lhs.rsplit_once(',') {

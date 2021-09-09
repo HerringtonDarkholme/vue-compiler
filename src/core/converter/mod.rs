@@ -278,7 +278,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
         convert_element::convert_element(self, e)
     }
     fn convert_component(&self, e: Element<'a>) -> BaseIR<'a> {
-        todo!()
+        convert_element::convert_component(self, e)
     }
     fn convert_text(&self, text: TextNode<'a>) -> BaseIR<'a> {
         // TODO: reduce allocation by push to existing
@@ -290,7 +290,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
         IRNode::TextCall(vec![expr])
     }
     fn convert_template(&self, e: Element<'a>) -> BaseIR<'a> {
-        todo!()
+        convert_element::convert_template(self, e)
     }
     fn convert_comment(&self, c: SourceNode<'a>) -> BaseIR<'a> {
         IRNode::CommentCall(c.source)

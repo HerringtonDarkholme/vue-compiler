@@ -208,7 +208,7 @@ impl<'a> VStr<'a> {
         self.ops |= StrOps::COMPRESS_WHITESPACE;
         self
     }
-    pub fn to_handler_key(&mut self) -> &mut Self {
+    pub fn add_handler_key(&mut self) -> &mut Self {
         self.ops |= StrOps::HANDLER_KEY;
         self
     }

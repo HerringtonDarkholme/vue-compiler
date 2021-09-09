@@ -11,6 +11,7 @@ use crate::core::{
 use rustc_hash::FxHashSet;
 use std::{iter::Peekable, vec::IntoIter};
 
+// TODO: reduce vec allocation by using Drain iter
 pub enum PreGroup<'a> {
     VIfGroup(Vec<AstNode<'a>>),
     StandAlone(AstNode<'a>),

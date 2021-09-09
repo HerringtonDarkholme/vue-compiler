@@ -24,6 +24,7 @@ use std::marker::PhantomData;
 
 pub use super::error::{CompilationError, ErrorHandler};
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
+use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
 use rustc_hash::FxHashMap;
 
@@ -56,6 +57,7 @@ pub trait ConvertInfo {
     type VNodeType;
     type RenderSlotType;
     type VSlotType;
+    type CommentType;
     type JsExpression;
 }
 
@@ -68,7 +70,7 @@ pub enum VSlotExpr {
 
 pub enum IRNode<T: ConvertInfo> {
     /// interpolation or text node
-    TextCall(T::TextType),
+    TextCall(Vec<T::TextType>),
     /// v-if, else-if, else
     If(IfNodeIR<T>),
     /// v-for
@@ -79,6 +81,8 @@ pub enum IRNode<T: ConvertInfo> {
     RenderSlotCall(T::RenderSlotType),
     /// v-slot on component or template
     VSlotExpression(T::VSlotType),
+    /// comment
+    CommentCall(T::CommentType),
     /// generic JS expression
     GenericExpression(T::JsExpression),
 }
@@ -173,9 +177,9 @@ where
 
     fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<T> {
         match n {
-            AstNode::Text(..) => self.convert_text(),
-            AstNode::Comment(..) => self.convert_comment(),
-            AstNode::Interpolation(..) => self.convert_interpolation(),
+            AstNode::Text(t) => self.convert_text(t),
+            AstNode::Comment(c) => self.convert_comment(c),
+            AstNode::Interpolation(i) => self.convert_interpolation(i),
             // all element like node needs pre-convert structural dirs
             AstNode::Plain(e) => pre_convert_for(self, e, |e| self.convert_element(e)),
             AstNode::Component(e) => pre_convert_for(self, e, |e| self.convert_component(e)),
@@ -194,10 +198,10 @@ where
     fn convert_slot_outlet(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_component(&self, e: Element<'a>) -> IRNode<T>;
-    fn convert_text(&self) -> IRNode<T>;
-    fn convert_interpolation(&self) -> IRNode<T>;
+    fn convert_text(&self, t: TextNode<'a>) -> IRNode<T>;
+    fn convert_interpolation(&self, i: SourceNode<'a>) -> IRNode<T>;
     fn convert_template(&self, e: Element<'a>) -> IRNode<T>;
-    fn convert_comment(&self) -> IRNode<T>;
+    fn convert_comment(&self, c: SourceNode<'a>) -> IRNode<T>;
 }
 
 /// Directive's prop argument passed to VNodeCall after conversion.
@@ -222,13 +226,14 @@ pub fn no_op_directive_convert<'a>(
 pub struct BaseConvertInfo<'a>(PhantomData<&'a ()>);
 
 impl<'a> ConvertInfo for BaseConvertInfo<'a> {
-    type TextType = &'a str;
+    type TextType = JsExpr<'a>;
     type IfType = ();
     type IfBranchType = usize;
     type ForType = ();
     type VNodeType = ();
     type RenderSlotType = ();
     type VSlotType = ();
+    type CommentType = &'a str;
     type JsExpression = JsExpr<'a>;
 }
 
@@ -273,16 +278,19 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     fn convert_component(&self, e: Element<'a>) -> BaseIR<'a> {
         todo!()
     }
-    fn convert_text(&self) -> BaseIR<'a> {
-        todo!()
+    fn convert_text(&self, text: TextNode<'a>) -> BaseIR<'a> {
+        // TODO: reduce allocation by push to existing
+        let expr = text.text.into_iter().map(JsExpr::StrLit).collect();
+        IRNode::TextCall(expr)
     }
-    fn convert_interpolation(&self) -> BaseIR<'a> {
-        todo!()
+    fn convert_interpolation(&self, interp: SourceNode<'a>) -> BaseIR<'a> {
+        let expr = JsExpr::Simple(VStr::raw(interp.source));
+        IRNode::TextCall(vec![expr])
     }
     fn convert_template(&self, e: Element<'a>) -> BaseIR<'a> {
         todo!()
     }
-    fn convert_comment(&self) -> BaseIR<'a> {
-        todo!()
+    fn convert_comment(&self, c: SourceNode<'a>) -> BaseIR<'a> {
+        IRNode::CommentCall(c.source)
     }
 }

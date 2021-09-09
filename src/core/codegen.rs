@@ -34,6 +34,7 @@ fn generate_node<T: ConvertInfo>(node: IRNode<T>) {
         IR::VNodeCall(..) => generate_vnode(),
         IR::RenderSlotCall(..) => generate_slot_outlet(),
         IR::VSlotExpression(..) => generate_v_slot(),
+        IR::CommentCall(..) => generate_comment(),
         IR::GenericExpression(..) => generate_js_expr(),
     }
 }
@@ -46,6 +47,7 @@ fn generate_vnode() {}
 fn generate_slot_outlet() {}
 fn generate_v_slot() {}
 fn generate_js_expr() {}
+fn generate_comment() {}
 
 pub trait CodeGenWrite: Write {
     fn write_hyphenated(&mut self, s: &str) -> Result {

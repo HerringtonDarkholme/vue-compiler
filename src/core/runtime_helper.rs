@@ -54,9 +54,11 @@ impl PreambleHelper<RuntimeHelper> for RuntimeHelper {
         todo!()
     }
     fn helper_str(&self) -> &'static str {
+        use RuntimeHelper as R;
         match *self {
-            RuntimeHelper::CAMELIZE => "camelize",
-            RuntimeHelper::TO_HANDLER_KEY => "toHandlerKey",
+            R::CAMELIZE => "camelize",
+            R::TO_HANDLER_KEY => "toHandlerKey",
+            R::TO_HANDLERS => "toHandlers",
             _ => todo!(),
         }
     }

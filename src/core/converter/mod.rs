@@ -78,7 +78,7 @@ pub enum IRNode<T: ConvertInfo> {
     /// component/template/plain element
     VNodeCall(T::VNodeType),
     /// <slot> slot outlet
-    RenderSlotCall(T::RenderSlotType),
+    RenderSlotCall(RenderSlotIR<T>),
     /// v-slot on component or template
     VSlotExpression(T::VSlotType),
     /// comment
@@ -106,6 +106,9 @@ struct ForParseResult<T: ConvertInfo> {
     value: T::JsExpression,
     key: Option<T::JsExpression>,
     index: Option<T::JsExpression>,
+}
+pub struct RenderSlotIR<T: ConvertInfo> {
+    slot_args: Vec<T::JsExpression>,
 }
 struct VNodeIR {}
 

@@ -87,7 +87,7 @@ fn split_v_for_iter(mut lhs: &str) -> (&str, Option<&str>, Option<&str>) {
     }
 }
 
-// check <template v-for> key placement
+// TODO: check <template v-for> key placement
 fn check_template_v_for_key() {}
 
 #[cfg(test)]
@@ -129,7 +129,7 @@ mod test {
 
     #[test]
     fn test_parse_invalid_for() {
-        for src in &["", "           in             "] {
+        for src in vec!["", "           in             "] {
             assert!(parse_for_expr(VStr::raw(src)).is_none());
         }
     }

@@ -3,8 +3,9 @@ source: src/core/tokenizer.rs
 expression: t
 
 ---
-Text:
-  raw: "</styl"
-  ops:
-    bits: 0
+- StartTag:
+    name: style
+    attributes: []
+    self_closing: false
+- EndTag: style
 

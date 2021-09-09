@@ -3,5 +3,28 @@ source: src/core/tokenizer.rs
 expression: t
 
 ---
-EndTag: a
+- StartTag:
+    name: tag
+    attributes:
+      - name: "=value"
+        value: ~
+        name_loc:
+          start:
+            offset: 5
+            line: 1
+            column: 6
+          end:
+            offset: 11
+            line: 1
+            column: 12
+        location:
+          start:
+            offset: 5
+            line: 1
+            column: 6
+          end:
+            offset: 12
+            line: 1
+            column: 13
+    self_closing: true
 

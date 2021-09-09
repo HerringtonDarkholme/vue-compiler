@@ -844,9 +844,8 @@ pub mod test {
             r#"<p v-err=232/>"#,
         ];
         for &case in cases.iter() {
-            for t in base_scan(case) {
-                assert_yaml_snapshot!(t);
-            }
+            let t: Vec<_> = base_scan(case).collect();
+            assert_yaml_snapshot!(t);
         }
     }
 
@@ -865,9 +864,8 @@ pub mod test {
                 get_text_mode: |_| TextMode::RawText,
                 ..Default::default()
             };
-            for t in scan_with_opt(case, opt) {
-                assert_yaml_snapshot!(t);
-            }
+            let t: Vec<_> = scan_with_opt(case, opt).collect();
+            assert_yaml_snapshot!(t);
         }
     }
     #[test]

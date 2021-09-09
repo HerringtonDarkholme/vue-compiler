@@ -3,8 +3,86 @@ source: src/core/tokenizer.rs
 expression: t
 
 ---
-Text:
-  raw: "..."
-  ops:
-    bits: 2
+- StartTag:
+    name: a
+    attributes:
+      - name: "v-bind:['foo'"
+        value: ~
+        name_loc:
+          start:
+            offset: 3
+            line: 1
+            column: 4
+          end:
+            offset: 16
+            line: 1
+            column: 17
+        location:
+          start:
+            offset: 3
+            line: 1
+            column: 4
+          end:
+            offset: 17
+            line: 1
+            column: 18
+      - name: +
+        value: ~
+        name_loc:
+          start:
+            offset: 17
+            line: 1
+            column: 18
+          end:
+            offset: 18
+            line: 1
+            column: 19
+        location:
+          start:
+            offset: 17
+            line: 1
+            column: 18
+          end:
+            offset: 19
+            line: 1
+            column: 20
+      - name: "bar]"
+        value:
+          content:
+            raw: value
+            ops:
+              bits: 10
+          location:
+            start:
+              offset: 24
+              line: 1
+              column: 25
+            end:
+              offset: 31
+              line: 1
+              column: 32
+        name_loc:
+          start:
+            offset: 19
+            line: 1
+            column: 20
+          end:
+            offset: 23
+            line: 1
+            column: 24
+        location:
+          start:
+            offset: 19
+            line: 1
+            column: 20
+          end:
+            offset: 31
+            line: 1
+            column: 32
+    self_closing: false
+- Text:
+    raw: "..."
+    ops:
+      bits: 2
+- EndTag: a
 

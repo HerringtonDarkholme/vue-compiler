@@ -4,61 +4,24 @@
 
 use super::{
     error::{CompilationError, CompilationErrorKind as ErrorKind, ErrorHandler},
+    util::{non_whitespace, VStr},
     Name, Position, SourceLocation,
 };
-use smallvec::{smallvec, SmallVec};
-use std::{borrow::Cow, ops::Add, str::Chars};
-
-/// DecodedStr represents text after decoding html entities.
-/// SmallVec and Cow are used internally for less allocation.
-#[derive(Debug)]
-pub struct DecodedStr<'a>(SmallVec<[Cow<'a, str>; 1]>);
-
-impl<'a> DecodedStr<'a> {
-    pub fn is_all_whitespace(&self) -> bool {
-        self.0.iter().all(|s| !s.chars().any(non_whitespace))
-    }
-    pub fn contains(&self, p: &[char]) -> bool {
-        self.0.iter().any(|s| s.contains(p))
-    }
-    pub fn trim_leading_newline(&mut self) {
-        if self.0.is_empty() {
-            return;
-        }
-        let first = &self.0[0];
-        let offset = if first.starts_with('\n') {
-            1
-        } else if first.starts_with("\r\n") {
-            2
-        } else {
-            return;
-        };
-        self.0[0] = match first {
-            Cow::Borrowed(s) => Cow::Borrowed(&s[offset..]),
-            Cow::Owned(s) => Cow::Owned(s[offset..].to_owned()),
-        };
-    }
-}
-
-impl<'a> Add for DecodedStr<'a> {
-    type Output = Self;
-    fn add(mut self, rhs: Self) -> Self {
-        self.0.extend(rhs.0.into_iter());
-        self
-    }
-}
-
-impl<'a> From<&'a str> for DecodedStr<'a> {
-    fn from(decoded: &'a str) -> Self {
-        debug_assert!(!decoded.is_empty());
-        Self(smallvec![Cow::Borrowed(decoded)])
-    }
-}
+use rustc_hash::FxHashSet;
+use std::{iter::FusedIterator, str::Chars};
 
 #[derive(Debug)]
 pub struct Attribute<'a> {
     pub name: Name<'a>,
-    pub value: Option<DecodedStr<'a>>,
+    pub value: Option<AttributeValue<'a>>,
+    pub name_loc: SourceLocation,
+    pub location: SourceLocation,
+}
+
+#[derive(Debug)]
+pub struct AttributeValue<'a> {
+    pub content: VStr<'a>,
+    pub location: SourceLocation,
 }
 
 /// Tag is used only for start tag since end tag is bare
@@ -79,7 +42,7 @@ pub enum Token<'a> {
     // 1. in SSR we don't need to output decoded entities
     // 2. in DOM we can output decoded text during transform
     // 3. parser/IRConverter does not read text content
-    Text(DecodedStr<'a>), // merges chars to one str
+    Text(VStr<'a>), // merges chars to one str
     Comment(&'a str),
     Interpolation(&'a str), // Vue specific token
 }
@@ -87,18 +50,15 @@ pub enum Token<'a> {
 // NB: Token::from only takes decoded str
 impl<'a> From<&'a str> for Token<'a> {
     fn from(decoded: &'a str) -> Self {
-        Token::Text(DecodedStr::from(decoded))
+        Token::Text(VStr::raw(decoded))
     }
 }
-
-pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
 
 /// TokenizeOption defined a list of methods used in scanning
 #[derive(Clone)]
 pub struct TokenizeOption {
     delimiters: (String, String),
     get_text_mode: fn(&str) -> TextMode,
-    decode_entities: EntityDecoder,
 }
 
 impl Default for TokenizeOption {
@@ -106,7 +66,6 @@ impl Default for TokenizeOption {
         Self {
             delimiters: ("{{".into(), "}}".into()),
             get_text_mode: |_| TextMode::Data,
-            decode_entities: |t, _| DecodedStr::from(t),
         }
     }
 }
@@ -173,7 +132,7 @@ impl Tokenizer {
             delimiter_first_char,
         }
     }
-    pub fn scan<'a, E>(&self, source: &'a str, err_handle: E) -> Tokens<'a, E>
+    pub fn scan<'a, E>(&self, source: &'a str, err_handle: E) -> impl TokenSource<'a>
     where
         E: ErrorHandler,
     {
@@ -218,6 +177,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     // NB: & is not handled here but instead in `decode_entities`
     fn scan_data(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::Data);
+        debug_assert!(!self.source.is_empty());
         let d = self.delimiter_first_char;
         // process html entity & later
         let index = self.source.find(&['<', d][..]);
@@ -235,6 +195,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     // produces an entity_decoded Text token.
     fn scan_text(&mut self, size: usize) -> Token<'a> {
         debug_assert!(matches!(self.mode, TextMode::Data | TextMode::RcData));
+        debug_assert_ne!(size, 0);
         let src = self.move_by(size);
         Token::Text(self.decode_text(src, false))
     }
@@ -317,8 +278,9 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     // https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-name-state
     fn scan_attributes(&mut self) -> Vec<Attribute<'a>> {
         let mut attrs = vec![]; // TODO: size hint?
-                                // TODO: forbid infinite loop
+        let mut set = FxHashSet::default();
         loop {
+            // TODO: forbid infinite loop
             self.skip_whitespace();
             if self.is_about_to_close_tag() {
                 return attrs;
@@ -327,24 +289,45 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
                 continue;
             }
             let attr = self.scan_attribute();
+            if set.contains(attr.name) {
+                // new attribute must be removed from the token.
+                // NB: original vue compiler does not remove it.
+                self.emit_error(ErrorKind::DuplicateAttribute);
+                continue;
+            }
+            set.insert(attr.name);
             attrs.push(attr);
         }
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#after-attribute-name-state
     fn scan_attribute(&mut self) -> Attribute<'a> {
         debug_assert!(!self.source.is_empty());
+        let start = self.current_position();
         let name = self.scan_attr_name();
+        let name_loc = self.get_location_from(start.clone());
         // 13.2.5.34 After attribute name state, ignore white spaces
         self.skip_whitespace();
         if self.is_about_to_close_tag()
             || self.did_skip_slash_in_tag()
-            || !self.source.starts_with("=")
+            || !self.source.starts_with('=')
         {
-            return Attribute { name, value: None };
+            let location = self.get_location_from(start);
+            return Attribute {
+                name,
+                location,
+                name_loc,
+                value: None,
+            };
         }
         self.move_by(1); // equal sign
         let value = self.scan_attr_value();
-        Attribute { name, value }
+        let location = self.get_location_from(start);
+        Attribute {
+            name,
+            value,
+            name_loc,
+            location,
+        }
     }
     fn is_about_to_close_tag(&self) -> bool {
         let source = &self.source; // must get fresh source
@@ -364,48 +347,55 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     fn scan_attr_name(&mut self) -> &'a str {
         debug_assert!(self.source.starts_with(is_valid_name_char));
         // case like <tag =="value"/>
-        if self.source.starts_with('=') {
-            let s = self.move_by(1);
+        let offset = if self.source.starts_with('=') {
             self.emit_error(ErrorKind::UnexpectedEqualsSignBeforeAttributeName);
-            debug_assert!(s == "=");
-            return s;
-        }
-        let count = self
-            .source
+            1
+        } else {
+            0
+        };
+        let count = self.source[offset..]
             .chars()
             .take_while(|&c| semi_valid_attr_name(c))
             .count();
-        let src = self.move_by(count);
+        let src = self.move_by(count + offset);
         if src.contains(&['<', '"', '\''][..]) {
             self.emit_error(ErrorKind::UnexpectedCharacterInAttributeName);
         }
         src
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-value-state
-    fn scan_attr_value(&mut self) -> Option<DecodedStr<'a>> {
+    fn scan_attr_value(&mut self) -> Option<AttributeValue<'a>> {
         self.skip_whitespace();
         let source = &self.source;
         if source.starts_with('>') {
             self.emit_error(ErrorKind::MissingAttributeValue);
             return None;
         }
-        if self.source.starts_with(&['"', '\''][..]) {
+        let start = self.current_position();
+        let content = if self.source.starts_with(&['"', '\''][..]) {
             let c = self.source.chars().next().unwrap();
-            return Some(self.scan_quoted_attr_value(c));
-        }
-        self.scan_unquoted_attr_value()
+            self.scan_quoted_attr_value(c)?
+        } else {
+            self.scan_unquoted_attr_value()?
+        };
+        Some(AttributeValue {
+            content,
+            location: self.get_location_from(start),
+        })
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(double-quoted)-state
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(single-quoted)-state
-    fn scan_quoted_attr_value(&mut self, quote: char) -> DecodedStr<'a> {
+    fn scan_quoted_attr_value(&mut self, quote: char) -> Option<VStr<'a>> {
         debug_assert!(self.source.starts_with(quote));
         self.move_by(1);
         let src = if let Some(i) = self.source.find(quote) {
-            let val = self.move_by(i);
+            let val = if i == 0 { "" } else { self.move_by(i) };
             self.move_by(1); // consume quote char
             val
-        } else {
+        } else if !self.source.is_empty() {
             self.move_by(self.source.len())
+        } else {
+            return None;
         };
         // https://html.spec.whatwg.org/multipage/parsing.html#after-attribute-value-(quoted)-state
         if !self.is_about_to_close_tag()
@@ -414,10 +404,10 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         {
             self.emit_error(ErrorKind::MissingWhitespaceBetweenAttributes);
         }
-        self.decode_text(src, /*is_attr*/ true)
+        Some(self.decode_text(src, /*is_attr*/ true))
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(unquoted)-state
-    fn scan_unquoted_attr_value(&mut self) -> Option<DecodedStr<'a>> {
+    fn scan_unquoted_attr_value(&mut self) -> Option<VStr<'a>> {
         let val_len = self
             .source
             .chars()
@@ -524,7 +514,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     }
     fn scan_comment_text(&mut self) -> &'a str {
         debug_assert!(self.source.starts_with("<!--"));
-        let comment_end = self.source.find("--!>").or_else(|| self.source.find("-->"));
+        let comment_end = self.source.find("-->").or_else(|| self.source.find("--!>"));
         // NB: we take &str here since we will call move_by later
         let text = if let Some(end) = comment_end {
             debug_assert!(end >= 2, "first two chars must be <!");
@@ -597,8 +587,8 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     fn scan_cdata(&mut self) -> Token<'a> {
         debug_assert!(self.source.starts_with("<![CDATA["));
         self.move_by(9);
-        let i = self.source.find("]]>").unwrap_or(self.source.len());
-        let text = if i > 0 { self.move_by(i) } else { "" };
+        let i = self.source.find("]]>").unwrap_or_else(|| self.source.len());
+        let text = self.move_by(i); // can be zero
         if self.source.is_empty() {
             self.emit_error(ErrorKind::EofInCdata);
         } else {
@@ -612,15 +602,21 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     // https://html.spec.whatwg.org/multipage/parsing.html#rawtext-state
     fn scan_rawtext(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::RawText);
+        debug_assert!(!self.source.is_empty());
         let end = self.find_appropriate_end();
         // NOTE: rawtext decodes no entity. Don't call scan_text
-        let src = self.move_by(end);
+        let src = if end == 0 { "" } else { self.move_by(end) };
         self.mode = TextMode::Data;
-        Token::from(src)
+        if src.is_empty() {
+            self.scan_data()
+        } else {
+            Token::from(src)
+        }
     }
 
     fn scan_rcdata(&mut self) -> Token<'a> {
         debug_assert!(self.mode == TextMode::RcData);
+        debug_assert!(!self.source.is_empty());
         let delimiter = &self.option.delimiters.0;
         if self.source.starts_with(delimiter) {
             return self.scan_interpolation();
@@ -628,27 +624,31 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         let end = self.find_appropriate_end();
         let interpolation_start = self.source.find(delimiter).unwrap_or(end);
         if interpolation_start < end {
+            debug_assert_ne!(interpolation_start, 0);
             return self.scan_text(interpolation_start);
         }
-        let ret = self.scan_text(end);
+        // scan_text does not read mode so it's safe to put this ahead.
         self.mode = TextMode::Data;
-        ret
+        if end > 0 {
+            self.scan_text(end)
+        } else {
+            self.scan_data()
+        }
     }
 
     /// find first </{last_start_tag_name}
     fn find_appropriate_end(&self) -> usize {
-        debug_assert!(self.last_start_tag_name.is_some());
         let tag_name = self
             .last_start_tag_name
             .expect("RAWTEXT/RCDATA must appear inside a tag");
         let len = tag_name.len();
         let source = self.source; // no mut self, need no &&str
         for (i, _) in source.match_indices("</") {
-            //  match point     non letter separator
-            //      ￬   </  style ￬
-            let e = i + 2 + len + 1;
+            //  match point
+            //      ￬   </  style
+            let e = i + 2 + len;
             // emit text without error per spec
-            if e > source.len() {
+            if e >= source.len() {
                 break;
             }
             // https://html.spec.whatwg.org/multipage/parsing.html#rawtext-end-tag-name-state
@@ -672,9 +672,8 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         self.err_handle.on_error(err);
     }
 
-    fn decode_text(&self, src: &'a str, is_attr: bool) -> DecodedStr<'a> {
-        let decode = self.option.decode_entities;
-        decode(src, is_attr)
+    fn decode_text(&self, src: &'a str, is_attr: bool) -> VStr<'a> {
+        *VStr::raw(src).decode(is_attr)
     }
 
     /// move tokenizer's internal position forward and return &str
@@ -738,10 +737,6 @@ fn is_valid_name_char(c: char) -> bool {
     !c.is_ascii_whitespace() && c != '/' && c != '>'
 }
 
-fn non_whitespace(c: char) -> bool {
-    !c.is_ascii_whitespace()
-}
-
 // tag name should begin with [a-zA-Z]
 // followed by chars except whitespace, / or >
 fn scan_tag_name_length(mut chars: Chars<'_>) -> usize {
@@ -770,6 +765,9 @@ impl<'a, C: ErrorHandler> Iterator for Tokens<'a, C> {
     }
 }
 
+// Parser requires Tokens always yield None when exhausted.
+impl<'a, C: ErrorHandler> FusedIterator for Tokens<'a, C> {}
+
 impl<'a, C: ErrorHandler> FlagCDataNs for Tokens<'a, C> {
     fn set_is_in_html(&mut self, in_html: bool) {
         self.is_in_html_namespace = in_html;
@@ -796,43 +794,96 @@ impl<'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
     }
 }
 
-pub trait TokenSource<'a>: Iterator<Item = Token<'a>> + FlagCDataNs + Locatable {}
+pub trait TokenSource<'a>: FusedIterator<Item = Token<'a>> + FlagCDataNs + Locatable {}
 impl<'a, C> TokenSource<'a> for Tokens<'a, C> where C: ErrorHandler {}
 
 #[cfg(test)]
-mod test {
-    use super::*;
-    #[derive(Clone)]
-    struct TestCtx;
-    impl ErrorHandler for TestCtx {}
+pub mod test {
+    use super::{super::error::test::TestErrorHandler, *};
     #[test]
     fn test() {
         let cases = [
+            r#"<![CDATA["#,
+            r#"{{}}"#,
             r#"{{test}}"#,
             r#"<a test="value">...</a>"#,
             r#"<a v-bind:['foo' + bar]="value">...</a>"#,
             r#"<tag =value />"#,
+            r#"<a =123 />"#,
+            r#"<a ==123 />"#,
+            r#"<a b="" />"#,
+            r#"<a == />"#,
             r#"<a wrong-attr>=123 />"#,
             r#"<a></a < / attr attr=">" >"#,
+            r#"<a attr="1123"#,              // unclosed quote
+            r#"<a attr=""#,                  // unclosed without val
             r#"<!-->"#,                      // abrupt closing
             r#"<!--->"#,                     // abrupt closing
             r#"<!---->"#,                    // ok
             r#"<!-- nested <!--> text -->"#, // ok
-            r#"<textarea><div/></textareas>"#,
-            r#"<textarea>{{test}}</textarea>"#,
-            r#"<textarea>{{'</textarea>'}}</textarea>"#,
+            r#"<p v-err=232/>"#,
+        ];
+        for &case in cases.iter() {
+            for t in base_scan(case) {
+                println!("{:?}", t);
+            }
+        }
+    }
+
+    #[test]
+    fn test_raw_text() {
+        let cases = [
             r#"<style></style"#,
             r#"<style></styl"#,
             r#"<style></styles"#,
             r#"<style></style "#,
+            r#"<style></style>"#,
+            r#"<style>abc</style>"#,
         ];
-        let tokenizer = Tokenizer::new(TokenizeOption::default());
-        let ctx = TestCtx;
         for &case in cases.iter() {
-            let tokens = tokenizer.scan(case, ctx.clone());
-            for t in tokens {
+            let opt = TokenizeOption {
+                get_text_mode: |_| TextMode::RawText,
+                ..Default::default()
+            };
+            for t in scan_with_opt(case, opt) {
                 println!("{:?}", t);
             }
         }
+    }
+    #[test]
+    fn test_rc_data() {
+        let cases = [
+            r#"<textarea>   "#,
+            r#"<textarea></textarea "#,
+            r#"<textarea></textarea"#,
+            r#"<textarea></textareas>"#,
+            r#"<textarea><div/></textarea>"#,
+            r#"<textarea><div/></textareas>"#,
+            r#"<textarea>{{test}}</textarea>"#,
+            r#"<textarea>{{'</textarea>'}}</textarea>"#,
+            r#"<textarea>{{}}</textarea>"#,
+            r#"<textarea>{{</textarea>"#,
+            r#"<textarea>{{"#,
+            r#"<textarea>{{ garbage  {{ }}</textarea>"#,
+        ];
+        for &case in cases.iter() {
+            let opt = TokenizeOption {
+                get_text_mode: |_| TextMode::RcData,
+                ..Default::default()
+            };
+            for t in scan_with_opt(case, opt) {
+                println!("{:?}", t);
+            }
+        }
+    }
+
+    fn scan_with_opt(s: &str, opt: TokenizeOption) -> impl TokenSource {
+        let tokenizer = Tokenizer::new(opt);
+        let ctx = TestErrorHandler;
+        tokenizer.scan(s, ctx)
+    }
+
+    pub fn base_scan(s: &str) -> impl TokenSource {
+        scan_with_opt(s, TokenizeOption::default())
     }
 }

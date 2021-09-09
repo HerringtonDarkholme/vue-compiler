@@ -5,13 +5,13 @@ use std::fmt;
 pub enum CompilationErrorKind {
     AbruptClosingOfEmptyComment,
     CDataInHtmlContent,
-    DuplicateAttribute, // TODO
+    DuplicateAttribute,
     EndTagWithAttributes,
     EndTagWithTrailingSolidus,
     EofBeforeTagName,
     EofInCdata,
     EofInComment,
-    EofInScriptHtmlCommentLikeText, // TODO
+    EofInScriptHtmlCommentLikeText,
     EofInTag,
     IncorrectlyClosedComment,
     IncorrectlyOpenedComment,
@@ -31,12 +31,18 @@ pub enum CompilationErrorKind {
     InvalidEndTag,
     MissingEndTag,
     MissingInterpolationEnd,
-    MissingDynamicDirectiveArgumentEnd, // TODO
+    MissingDynamicDirectiveArgumentEnd,
+    UnexpectedContentAfterDynamicDirective,
+    MissingDirectiveName,
+    MissingDirectiveArg,
+    MissingDirectiveMod,
+    InvalidVSlotModifier,
 
     // TODO
     // transform errors
     VIfNoExpression,
     VIfSameKey,
+    VIfDuplicateDir,
     VElseNoAdjacentIf,
     VForNoExpression,
     VForMalformedExpression,
@@ -52,6 +58,7 @@ pub enum CompilationErrorKind {
     VModelMalformedExpression,
     VModelOnScopeVariable,
     InvalidExpression,
+    UnexpectedDirExpression,
     KeepAliveInvalidChildren,
 
     // generic errors
@@ -68,7 +75,7 @@ pub enum CompilationErrorKind {
 #[derive(Debug)]
 pub struct CompilationError {
     pub kind: CompilationErrorKind,
-    pub additional_message: Option<&'static str>,
+    pub additional_message: Option<String>,
     pub location: SourceLocation,
 }
 
@@ -84,7 +91,7 @@ impl CompilationError {
         self.location = loc;
         self
     }
-    pub fn with_additional_message(mut self, msg: &'static str) -> Self {
+    pub fn with_additional_message(mut self, msg: String) -> Self {
         self.additional_message = Some(msg);
         self
     }
@@ -118,7 +125,7 @@ fn msg(kind: &CompilationErrorKind) -> &'static str {
         MissingWhitespaceBetweenAttributes => "Whitespace was expected.",
         NestedComment => "Unexpected '<!--' in comment.",
         UnexpectedCharacterInAttributeName =>
-            "Attribute name cannot contain U+0022 (\"), U+0027 ('), and U+003C (<).",
+         "Attribute name cannot contain U+0022 (\"), U+0027 ('), and U+003C (<).",
         UnexpectedCharacterInUnquotedAttributeValue =>
             "Unquoted attribute value cannot contain U+0022 (\"), U+0027 (\'), U+003C (<), U+003D (=), and U+0060 (`).",
         UnexpectedQuestionMarkInsteadOfTagName => "'<?' is allowed only in XML context.",
@@ -131,10 +138,17 @@ fn msg(kind: &CompilationErrorKind) -> &'static str {
         MissingInterpolationEnd => "Interpolation end sign was not found.",
         MissingDynamicDirectiveArgumentEnd =>
             "End bracket for dynamic directive argument was not found. Note that dynamic directive argument cannot contain spaces.",
+        UnexpectedContentAfterDynamicDirective =>
+            "Unexpected content was found after a closed dynamic argument. Add a dot as separator if it is a modifier.",
+        MissingDirectiveName => "Legal directive name was expected.",
+        MissingDirectiveArg => "Directive argument was expected.",
+        MissingDirectiveMod => "Directive modifier was expected.",
+        InvalidVSlotModifier => "v-slot does not take modifier.",
 
         // transform errors
         VIfNoExpression => "v-if/v-else-if is missing expression.",
         VIfSameKey => "v-if/else branches must use unique keys.",
+        VIfDuplicateDir => "Duplicate v-if/else-if/else. Use v-else-if instead.",
         VElseNoAdjacentIf => "v-else/v-else-if has no adjacent v-if.",
         VForNoExpression => "v-for is missing expression.",
         VForMalformedExpression => "v-for has invalid expression.",
@@ -153,6 +167,7 @@ fn msg(kind: &CompilationErrorKind) -> &'static str {
         VModelOnScopeVariable =>
             "v-model cannot be used on v-for or v-slot scope variables because they are not writable.",
         InvalidExpression => "Error parsing JavaScript expression: ",
+        UnexpectedDirExpression => "This directive does not accept any epxression.",
         KeepAliveInvalidChildren => "<KeepAlive> expects exactly one child component.",
 
         // generic errors
@@ -163,13 +178,12 @@ fn msg(kind: &CompilationErrorKind) -> &'static str {
             r#""cacheHandlers" option is only supported when the "prefixIdentifiers" option is enabled."#,
         ScopeIdNotSupported => r#""scopeId" option is only supported in module mode."#,
         ExtendPoint => "",
-
     }
 }
 
 impl fmt::Display for CompilationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(additional) = self.additional_message {
+        if let Some(additional) = &self.additional_message {
             write!(f, "{}{}", self.msg(), additional)
         } else {
             write!(f, "{}", self.msg())
@@ -182,8 +196,16 @@ impl fmt::Display for CompilationError {
 /// all requires ownership of a error report.
 /// Rc/RefCell is a good way to implement ErrorHandler if
 /// collecting errors in compilation pass is desired.
-pub trait ErrorHandler: Clone {
+pub trait ErrorHandler {
     // cannot use mut ref due to borrow semantics
     // use RefCell as implementation
     fn on_error(&self, _: CompilationError) {}
+}
+
+#[cfg(test)]
+pub mod test {
+    use super::ErrorHandler;
+    #[derive(Clone)]
+    pub struct TestErrorHandler;
+    impl ErrorHandler for TestErrorHandler {}
 }

@@ -1,43 +1,83 @@
-use super::ir_converter::IRNode;
+use super::converter::{ConvertInfo, IRNode, IRRoot};
+use smallvec::{smallvec, SmallVec};
+use std::borrow::Cow;
+use std::fmt::{Result, Write};
 
 pub trait CodeGenerator {
-    type IRNode;
+    type IR;
     type Output;
     /// generate will take optimized ir node and output
     /// desired code format, either String or Binary code
-    fn generate(&self, node: Self::IRNode) -> Self::Output;
+    fn generate(&self, node: Self::IR) -> Self::Output;
 }
 
-pub fn generate(node: IRNode) {
-    use IRNode::*;
+pub struct CodeGenerateOption {
+    pub is_ts: bool,
+    pub source_map: bool,
+    // filename for source map
+    pub filename: String,
+    pub decode_entities: EntityDecoder,
+}
+
+pub fn generate_root<T: ConvertInfo>(root: IRRoot<T>) {
+    for n in root.body {
+        generate_node(n)
+    }
+}
+
+fn generate_node<T: ConvertInfo>(node: IRNode<T>) {
+    use IRNode as IR;
     match node {
-        Text => generate_text(),
-        Interpolation => generate_interpolation(),
-        Simple => generate_simple(),
-        Compound => generate_compound(),
-        Comment => generate_comment(),
-        VNode => generate_vnode(),
-        Call => generate_call(),
-        Object => generate_object(),
-        Array => generate_array(),
-        Function => generate_function(),
-        Conditional => generate_conditional(),
-        Cache => generate_cache(),
-        Block => generate_block(),
+        IR::TextCall(..) => generate_text(),
+        IR::If(..) => generate_if(),
+        IR::For(..) => generate_for(),
+        IR::VNodeCall(..) => generate_vnode(),
+        IR::RenderSlotCall(..) => generate_slot_outlet(),
+        IR::VSlotExpression(..) => generate_v_slot(),
+        IR::CommentCall(..) => generate_comment(),
+        IR::GenericExpression(..) => generate_js_expr(),
     }
 }
 
 // TODO: implement code gen
 fn generate_text() {}
-fn generate_interpolation() {}
-fn generate_simple() {}
-fn generate_compound() {}
-fn generate_comment() {}
+fn generate_if() {}
+fn generate_for() {}
 fn generate_vnode() {}
-fn generate_call() {}
-fn generate_object() {}
-fn generate_array() {}
-fn generate_function() {}
-fn generate_conditional() {}
-fn generate_cache() {}
-fn generate_block() {}
+fn generate_slot_outlet() {}
+fn generate_v_slot() {}
+fn generate_js_expr() {}
+fn generate_comment() {}
+
+pub trait CodeGenWrite: Write {
+    fn write_hyphenated(&mut self, s: &str) -> Result {
+        // JS word boundary is `\w`: `[a-zA-Z0-9-]`.
+        // https://javascript.info/regexp-boundary
+        // str.replace(/\B([A-Z])/g, '-$1').toLowerCase()
+        let mut is_boundary = true;
+        for c in s.chars() {
+            if !is_boundary && c.is_ascii_uppercase() {
+                self.write_char('-')?;
+                self.write_char((c as u8 - b'A' + b'a') as char)?;
+            } else {
+                self.write_char(c)?;
+            }
+            is_boundary = !c.is_ascii_alphanumeric() && c != '_';
+        }
+        Ok(())
+    }
+}
+
+/// DecodedStr represents text after decoding html entities.
+/// SmallVec and Cow are used internally for less allocation.
+#[derive(Debug)]
+pub struct DecodedStr<'a>(SmallVec<[Cow<'a, str>; 1]>);
+
+impl<'a> From<&'a str> for DecodedStr<'a> {
+    fn from(decoded: &'a str) -> Self {
+        debug_assert!(!decoded.is_empty());
+        Self(smallvec![Cow::Borrowed(decoded)])
+    }
+}
+
+pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;

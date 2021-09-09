@@ -1,15 +1,16 @@
 // TODO: reorg pub
 pub mod codegen;
+pub mod converter;
 pub mod error;
-pub mod ir_converter;
 pub mod parser;
 pub mod runtime_helper;
 pub mod tokenizer;
 pub mod transformer;
+pub mod util;
 
 pub use codegen::CodeGenerator;
+pub use converter::Converter;
 use error::{CompilationError, ErrorHandler};
-pub use ir_converter::IRConverter;
 use parser::{ParseOption, Parser};
 use tokenizer::{TokenizeOption, Tokenizer};
 pub use transformer::Transformer;
@@ -38,7 +39,7 @@ impl Default for Position {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq, Clone)]
 pub struct SourceLocation {
     pub start: Position,
     pub end: Position,
@@ -46,6 +47,7 @@ pub struct SourceLocation {
 
 /// namespace for HTML/SVG/MathML tag
 #[non_exhaustive]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Namespace {
     Html,
     Svg,
@@ -62,6 +64,7 @@ pub trait TemplateCompiler {}
 pub trait PreambleHelper<Helper> {
     fn collect_helper(&mut self, helper: Helper);
     fn generate_imports(&self) -> String;
+    fn helper_str(&self) -> &'static str;
 }
 
 pub struct CompileOption<E: ErrorHandler> {
@@ -70,24 +73,24 @@ pub struct CompileOption<E: ErrorHandler> {
     error_handler: E,
 }
 
-pub fn base_compile<IR, O, E, Conv, Trans, Gen>(
-    source: &str,
+pub fn base_compile<'a, IR, O, E, Conv, Trans, Gen>(
+    source: &'a str,
     opt: CompileOption<E>,
     conv: Conv,
     trans: Trans,
     gen: Gen,
 ) -> Result<O, CompilationError>
 where
-    E: ErrorHandler,
-    Conv: IRConverter<IRNode = IR>,
-    Trans: Transformer<IRNode = IR>,
-    Gen: CodeGenerator<IRNode = IR, Output = O>,
+    E: ErrorHandler + Clone,
+    Conv: Converter<'a, IR = IR>,
+    Trans: Transformer<IR = IR>,
+    Gen: CodeGenerator<IR = IR, Output = O>,
 {
     let eh = opt.error_handler;
     let tokenizer = Tokenizer::new(opt.tokenization);
     let parser = Parser::new(opt.parsing);
     let tokens = tokenizer.scan(source, eh.clone());
-    let ast = parser.parse(tokens, eh.clone());
+    let ast = parser.parse(tokens, eh);
     let mut ir = conv.convert_ir(ast);
     trans.transform(&mut ir);
     Ok(gen.generate(ir))

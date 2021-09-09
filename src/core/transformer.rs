@@ -23,6 +23,10 @@ pub fn merge_text_call() {}
 pub fn prefix_expression() {}
 pub fn transform_memo() {}
 pub fn transform_once() {}
+pub fn post_process_v_for_child() {
+    // 1. inject key to slot
+    // 2. Reuse the child's codegenNode but mark it as a block.
+}
 
 enum NodeChange<T: 'static> {
     Replace(Vec<T>),

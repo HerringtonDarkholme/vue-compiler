@@ -1,7 +1,7 @@
 use super::{
-    super::tokenizer::AttributeValue, find_dir, BaseConvertInfo, BaseConverter, BaseIR,
-    ConvertInfo, CoreConverter, Directive, Element, ForNodeIR, ForParseResult, IRNode,
-    JsExpr as Js,
+    super::error::CompilationErrorKind as ErrorKind, super::tokenizer::AttributeValue, find_dir,
+    BaseConvertInfo, BaseConverter, BaseIR, ConvertInfo, CoreConverter, Directive, Element,
+    ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
 };
 
 /// Pre converts v-if or v-for like structural dir
@@ -17,7 +17,8 @@ where
     // convert v-for, v-if is converted elsewhere
     if let Some(dir) = find_dir(&mut e, "for") {
         let b = dir.take();
-        let n = pre_convert_for(c, e, base_convert);
+        debug_assert!(find_dir(&mut e, "for").is_none());
+        let n = base_convert(e);
         c.convert_for(b, n)
     } else {
         base_convert(e)
@@ -25,10 +26,14 @@ where
 }
 
 pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
-    // debug_assert no
     // on empty v-for expr error
-    // parseFor expr
-    let (source, parse_result) = parse_for_expr(bc, d.expression.unwrap());
+    if let Some(error) = d.check_empty_expr(ErrorKind::VForNoExpression) {
+        bc.emit_error(error);
+        return n;
+    }
+    check_template_v_for_key();
+    let expr = d.expression.expect("v-for must have expression");
+    let (source, parse_result) = parse_for_expr(bc, expr);
     IRNode::For(ForNodeIR {
         source,
         parse_result,
@@ -42,3 +47,6 @@ fn parse_for_expr<'a>(
 ) -> (Js<'a>, ForParseResult<BaseConvertInfo<'a>>) {
     todo!()
 }
+
+// check <template v-for> key placement
+fn check_template_v_for_key() {}

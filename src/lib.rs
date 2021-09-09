@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_variables)]
 //! See README.md
 
 // TODO: reorg pub

@@ -43,7 +43,7 @@ pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> B
 type ParsedFor<'a> = (Js<'a>, ForParseResult<BaseConvertInfo<'a>>);
 
 const PARENS: &[char] = &['(', ')'];
-fn parse_for_expr<'a>(expr: VStr<'a>) -> Option<ParsedFor<'a>> {
+fn parse_for_expr(expr: VStr) -> Option<ParsedFor> {
     // split source and binding
     let (lhs, rhs) = expr
         .raw

@@ -61,7 +61,7 @@ pub fn convert_v_on<'a>(
     }
 }
 
-pub fn convert_v_on_expr<'a>(expr: Option<AttributeValue<'a>>) -> Js<'a> {
+pub fn convert_v_on_expr(expr: Option<AttributeValue>) -> Js {
     todo!()
 }
 

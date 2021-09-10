@@ -6,8 +6,10 @@ expression: dir
 Dir:
   name: bind
   argument:
-    Dynamic: ""
-  modifiers: []
+    Static: ^-^
+  modifiers:
+    - attr
+    - prop
   expression:
     content:
       raw: tt
@@ -15,29 +17,29 @@ Dir:
         bits: 10
     location:
       start:
-        offset: 7
+        offset: 13
         line: 1
-        column: 8
+        column: 14
       end:
-        offset: 11
+        offset: 18
         line: 1
-        column: 12
+        column: 19
   head_loc:
     start:
       offset: 3
       line: 1
       column: 4
     end:
-      offset: 6
+      offset: 12
       line: 1
-      column: 7
+      column: 13
   location:
     start:
       offset: 3
       line: 1
       column: 4
     end:
-      offset: 11
+      offset: 18
       line: 1
-      column: 12
+      column: 19
 

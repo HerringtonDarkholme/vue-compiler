@@ -875,16 +875,24 @@ mod test {
     #[test]
     fn test_bind_dir() {
         let cases = [
-            r#"<p :="tt"/>"#,          // bind, N/A,
-            r#"<p :^_^="tt"/>"#,       // bind, ^_^
-            r#"<p :^_^.prop="tt"/>"#,  // bind, ^_^, prop
-            r#"<p :_:.prop="tt"/>"#,   // bind, _:, prop
-            r#"<p .stop="tt"/>"#,      // bind, stop, prop
-            r#"<p .^-^.attr="tt" />"#, // bind, ^-^, attr|prop
+            r#"<p :="tt"/>"#,         // bind, N/A,
+            r#"<p :^_^="tt"/>"#,      // bind, ^_^
+            r#"<p :^_^.prop="tt"/>"#, // bind, ^_^, prop
+            r#"<p :_:.prop="tt"/>"#,  // bind, _:, prop
             // r#"<p v-🖖:🤘.🤙/>"#, // unicode, VUE in hand sign
             r#"<p :[a.b].stop="tt"/>"#, // bind, [a.b], stop
             r#"<p :[]="tt"/>"#,         // bind, nothing
             r#"<p :[t]err="tt"/>"#,     // bind, nothing,
+        ];
+        for &case in cases.iter() {
+            test_dir(case);
+        }
+    }
+    #[test]
+    fn test_prop_dir() {
+        let cases = [
+            r#"<p .stop="tt"/>"#,      // bind, stop, prop
+            r#"<p .^-^.attr="tt" />"#, // bind, ^-^, attr|prop
         ];
         for &case in cases.iter() {
             test_dir(case);

@@ -622,9 +622,10 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
             .cached
             .or_else(|| self.detect_dir_name(&attr))
             .expect("Parse without detection requires attribute be directive.");
-        let (arg_str, mods_str) = self.split_arg_and_mods(prefixed, name == "slot");
-        let argument = self.parse_directive_arg(arg_str);
         let is_prop = attr.name.starts_with('.');
+        let is_v_slot = name == "slot";
+        let (arg_str, mods_str) = self.split_arg_and_mods(prefixed, is_v_slot, is_prop);
+        let argument = self.parse_directive_arg(arg_str);
         let modifiers = self.parse_directive_mods(mods_str, is_prop);
         self.cached = None; // cleanup
         Directive {
@@ -667,7 +668,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
         Some(ret)
     }
     // Returns arg without shorthand/separator and dot-leading mods
-    fn split_arg_and_mods(&self, prefixed: &'a str, is_v_slot: bool) -> StrPair<'a> {
+    fn split_arg_and_mods(&self, prefixed: &'a str, is_v_slot: bool, is_prop: bool) -> StrPair<'a> {
         // prefixed should either be empty or starts with shorthand.
         debug_assert!(prefixed.is_empty() || prefixed.starts_with(SHORTHANDS));
         if prefixed.is_empty() {
@@ -689,6 +690,8 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
                 debug_assert!(prefixed.starts_with(&[SLOT_CHAR, BIND_CHAR][..]));
                 (remain, "")
             }
+        } else if prefixed.starts_with(MOD_CHAR) && !is_prop {
+            ("", prefixed)
         } else if remain.starts_with('[') {
             self.split_dynamic_arg(remain)
         } else {

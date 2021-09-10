@@ -129,7 +129,7 @@ fn check_same_key<'a>(c: &BC, nodes: &[AstNode<'a>]) {
     let mut attrs = FxHashSet::default();
     for node in nodes {
         let child = node.get_element().unwrap();
-        let prop = find_prop(child, "if");
+        let prop = find_prop(child, "key");
         if prop.is_none() {
             continue;
         }

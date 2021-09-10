@@ -691,6 +691,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
                 (remain, "")
             }
         } else if prefixed.starts_with(MOD_CHAR) && !is_prop {
+            // handle v-dir.arg, only .prop expect argument
             ("", prefixed)
         } else if remain.starts_with('[') {
             self.split_dynamic_arg(remain)
@@ -891,8 +892,10 @@ mod test {
     #[test]
     fn test_prop_dir() {
         let cases = [
-            r#"<p .stop="tt"/>"#,      // bind, stop, prop
-            r#"<p .^-^.attr="tt" />"#, // bind, ^-^, attr|prop
+            r#"<p .stop="tt"/>"#,          // bind, stop, prop
+            r#"<p .^-^.attr="tt" />"#,     // bind, ^-^, attr|prop
+            r#"<p .[dynamic]="tt" />"#,    // bind, dynamic, prop
+            r#"<p v-t.[dynamic]="tt" />"#, // t, N/A, [dynamic]
         ];
         for &case in cases.iter() {
             test_dir(case);

@@ -1,0 +1,43 @@
+---
+source: src/core/parser.rs
+expression: dir
+
+---
+Dir:
+  name: t
+  argument: ~
+  modifiers:
+    - "[dynamic]"
+  expression:
+    content:
+      raw: tt
+      ops:
+        bits: 10
+    location:
+      start:
+        offset: 17
+        line: 1
+        column: 18
+      end:
+        offset: 22
+        line: 1
+        column: 23
+  head_loc:
+    start:
+      offset: 3
+      line: 1
+      column: 4
+    end:
+      offset: 16
+      line: 1
+      column: 17
+  location:
+    start:
+      offset: 3
+      line: 1
+      column: 4
+    end:
+      offset: 22
+      line: 1
+      column: 23
+

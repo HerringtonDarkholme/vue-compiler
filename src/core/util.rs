@@ -67,6 +67,14 @@ pub trait PropMatcher<'a> {
     fn get_name_and_exp(prop: &ElemProp<'a>) -> NameExp<'a>;
     fn get_ref<'b>(prop: &'b ElemProp<'a>) -> &'b Self;
     fn take(prop: ElemProp<'a>) -> Self;
+    fn is_match<P>(p: &ElemProp<'a>, pat: &P, allow_empty: bool) -> bool
+    where
+        P: PropPattern,
+    {
+        Self::get_name_and_exp(p).map_or(false, |(name, exp)| {
+            pat.is_match(name) && (allow_empty || exp.map_or(false, |v| !v.is_empty()))
+        })
+    }
 }
 
 pub fn is_bind_key<'a>(arg: &Option<DirectiveArg<'a>>, name: &str) -> bool {
@@ -214,9 +222,7 @@ where
         }
     }
     fn is_match(&self, p: &ElemProp<'a>) -> bool {
-        M::get_name_and_exp(p).map_or(false, |(name, exp)| {
-            self.pat.is_match(name) && (self.allow_empty || exp.map_or(false, |v| !v.is_empty()))
-        })
+        M::is_match(p, &self.pat, self.allow_empty)
     }
     pub fn find(self) -> Option<PropFound<'a, E, M>> {
         let pos = self
@@ -232,6 +238,27 @@ where
             allow_empty,
             ..self
         }
+    }
+}
+
+impl<'a, P> PropFinder<'a, Element<'a>, P, ElemProp<'a>>
+where
+    P: PropPattern + Copy,
+{
+    pub fn find_all(self) -> impl Iterator<Item = Result<ElemProp<'a>, ElemProp<'a>>> {
+        let PropFinder {
+            elem,
+            pat,
+            allow_empty,
+            ..
+        } = self;
+        elem.properties.into_iter().map(move |p| {
+            if ElemProp::is_match(&p, &pat, allow_empty) {
+                Ok(p)
+            } else {
+                Err(p)
+            }
+        })
     }
 }
 

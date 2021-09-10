@@ -624,7 +624,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
             .expect("Parse without detection requires attribute be directive.");
         let (arg_str, mods_str) = self.split_arg_and_mods(prefixed, name == "slot");
         let argument = self.parse_directive_arg(arg_str);
-        let is_prop = prefixed.starts_with('.');
+        let is_prop = attr.name.starts_with('.');
         let modifiers = self.parse_directive_mods(mods_str, is_prop);
         self.cached = None; // cleanup
         Directive {

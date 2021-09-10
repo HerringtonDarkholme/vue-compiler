@@ -656,9 +656,8 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
         }
         let n = &name[2..];
         let ret = n
-            .as_bytes()
-            .iter()
-            .position(|c| SEP_BYTES.contains(c))
+            .bytes()
+            .position(|c| SEP_BYTES.contains(&c))
             .map(|i| n.split_at(i))
             .unwrap_or((n, ""));
         if ret.0.is_empty() {
@@ -685,7 +684,7 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
             if prefixed.starts_with(MOD_CHAR) {
                 // only . can end dir_name, e.g. v-slot.error
                 self.attr_name_err(ErrorKind::InvalidVSlotModifier);
-                ("", "")
+                ("", prefixed)
             } else {
                 debug_assert!(prefixed.starts_with(&[SLOT_CHAR, BIND_CHAR][..]));
                 (remain, "")
@@ -699,9 +698,8 @@ impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
             debug_assert!(!prefixed.starts_with(SLOT_CHAR));
             // handle .prop shorthand elsewhere
             remain
-                .as_bytes()
-                .iter()
-                .position(|&u| u == MOD_CHAR as u8)
+                .bytes()
+                .position(|u| u == MOD_CHAR as u8)
                 .map(|i| remain.split_at(i))
                 .unwrap_or((remain, ""))
         }

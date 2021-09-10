@@ -6,7 +6,8 @@ expression: dir
 Dir:
   name: slot
   argument: ~
-  modifiers: []
+  modifiers:
+    - "-"
   expression:
     content:
       raw: tt

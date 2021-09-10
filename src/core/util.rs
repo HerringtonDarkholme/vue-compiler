@@ -39,10 +39,10 @@ pub const fn no(_: &str) -> bool {
 }
 
 pub trait PropPattern {
-    fn is_match(&self, name: &str) -> bool;
+    fn matches(&self, name: &str) -> bool;
 }
 impl PropPattern for &str {
-    fn is_match(&self, name: &str) -> bool {
+    fn matches(&self, name: &str) -> bool {
         name == *self
     }
 }
@@ -51,13 +51,13 @@ impl<F> PropPattern for F
 where
     F: Fn(&str) -> bool,
 {
-    fn is_match(&self, name: &str) -> bool {
+    fn matches(&self, name: &str) -> bool {
         self(name)
     }
 }
 
 impl<const N: usize> PropPattern for [&'static str; N] {
-    fn is_match(&self, name: &str) -> bool {
+    fn matches(&self, name: &str) -> bool {
         self.contains(&name)
     }
 }
@@ -72,7 +72,7 @@ pub trait PropMatcher<'a> {
         P: PropPattern,
     {
         Self::get_name_and_exp(p).map_or(false, |(name, exp)| {
-            pat.is_match(name) && (allow_empty || exp.map_or(false, |v| !v.is_empty()))
+            pat.matches(name) && (allow_empty || !exp.map_or(true, |v| v.is_empty()))
         })
     }
 }
@@ -390,5 +390,14 @@ mod test {
         assert!(find_dir(&e, "name").is_none());
         assert!(find_dir(&e, "bind").is_some());
         assert!(find_prop(&e, "name").is_none());
+    }
+    #[test]
+    fn prop_find_all() {
+        let e = mock_element("<p :name=foo name=bar :[name]=baz/>");
+        let a: Vec<_> = prop_finder(e, "name").find_all().collect();
+        assert_eq!(a.len(), 3);
+        assert!(a[0].is_ok());
+        assert!(a[1].is_ok());
+        assert!(a[2].is_err());
     }
 }

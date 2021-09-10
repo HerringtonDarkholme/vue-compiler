@@ -1,6 +1,6 @@
 use super::{
-    BaseConverter, BaseIR, CoreConverter, Directive, Element, IRNode, JsExpr as Js, RenderSlotIR,
-    VStr,
+    build_props::build_props, BaseConverter, BaseIR, CoreConverter, Directive, Element, IRNode,
+    JsExpr as Js, RenderSlotIR, VStr,
 };
 use crate::core::{
     parser::{DirectiveArg, ElemProp},
@@ -89,8 +89,4 @@ fn process_slot_outlet<'a>(e: &mut Element<'a>) -> SlotOutletInfo<'a> {
         slot_name,
         slot_props,
     }
-}
-
-fn build_props<'a, T>(e: &Element<'a>, props: T) -> (Js<'a>, Vec<Directive<'a>>) {
-    todo!()
 }

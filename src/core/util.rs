@@ -212,6 +212,12 @@ where
         let pos = self.elem.properties.iter().position(|p| self.is_match(p))?;
         PropFound::new(self.elem, pos)
     }
+    pub fn allow_empty(self, allow_empty: bool) -> Self {
+        Self {
+            allow_empty,
+            ..self
+        }
+    }
 }
 
 pub fn find_prop<'a, E, P>(elem: E, pat: P) -> Option<PropFound<'a, E, ElemProp<'a>>>
@@ -312,5 +318,27 @@ mod test {
         assert_eq!(found.get_ref().name, "if");
         assert_eq!(found.take().name, "if");
         assert!(e.properties.is_empty());
+    }
+
+    #[test]
+    fn test_find_empty_dir() {
+        let e = mock_element("<p v-if=true v-for>");
+        assert!(find_dir(&e, "if").is_some());
+        assert!(find_dir(&e, "for").is_none());
+        let found = dir_finder(&e, "for").allow_empty(true).find();
+        assert!(found.is_some());
+    }
+
+    #[test]
+    fn test_find_prop() {
+        let mut e = mock_element("<p :name=foo name=bar/>");
+        assert!(find_dir(&e, "name").is_none());
+        assert!(find_dir(&e, "bind").is_some());
+        // prop only looks at attr and v-bind
+        assert!(find_prop(&e, "bind").is_none());
+        find_prop(&mut e, "name").unwrap().take();
+        assert!(find_prop(&e, "bind").is_none());
+        find_prop(&mut e, "name").unwrap().take();
+        assert!(find_prop(&e, "name").is_none());
     }
 }

@@ -20,6 +20,14 @@ pub struct Attribute<'a> {
     pub location: SourceLocation,
 }
 
+impl<'a> Attribute<'a> {
+    pub fn has_empty_val(&self) -> bool {
+        self.value
+            .as_ref()
+            .map_or(true, |v| !v.content.contains(non_whitespace))
+    }
+}
+
 #[cfg_attr(test, derive(Serialize))]
 pub struct AttributeValue<'a> {
     pub content: VStr<'a>,

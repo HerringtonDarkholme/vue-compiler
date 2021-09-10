@@ -1,13 +1,31 @@
-use super::{BaseConverter, BaseIR, Directive, Element, IRNode, JsExpr as Js, RenderSlotIR, VStr};
+use super::{
+    BaseConverter, BaseIR, CoreConverter, Directive, Element, IRNode, JsExpr as Js, RenderSlotIR,
+    VStr,
+};
 use crate::core::{
     parser::{DirectiveArg, ElemProp},
     tokenizer::Attribute,
     util::is_bind_key,
 };
+use std::mem::swap;
 
 pub fn convert_slot_outlet<'a>(bc: &BaseConverter, mut e: Element<'a>) -> BaseIR<'a> {
-    let info = process_slot_outlet(e);
-    IRNode::RenderSlotCall(RenderSlotIR { slot_args: vec![] })
+    let info = process_slot_outlet(&mut e);
+    let fallbacks = bc.convert_children(e.children);
+    let no_slotted = bc.no_slotted();
+    let slot_props = info.slot_props.or({
+        if fallbacks.len() > 0 || no_slotted {
+            Some(Js::Src("{}"))
+        } else {
+            None
+        }
+    });
+    IRNode::RenderSlotCall(RenderSlotIR {
+        slot_name: info.slot_name,
+        slot_props,
+        fallbacks,
+        no_slotted,
+    })
 }
 
 struct SlotOutletInfo<'a> {
@@ -15,7 +33,7 @@ struct SlotOutletInfo<'a> {
     slot_props: Option<Js<'a>>,
 }
 
-fn process_slot_outlet<'a>(mut e: Element<'a>) -> SlotOutletInfo<'a> {
+fn process_slot_outlet<'a>(e: &mut Element<'a>) -> SlotOutletInfo<'a> {
     let mut slot_name = Js::StrLit(VStr::raw("default"));
     let mut slot_props = None;
     let mapper = |mut prop| {
@@ -59,10 +77,20 @@ fn process_slot_outlet<'a>(mut e: Element<'a>) -> SlotOutletInfo<'a> {
             ElemProp::Attr(_) => None,
         }
     };
-    let mut non_name_props = e.properties.into_iter().filter_map(mapper).peekable();
-    if non_name_props.peek().is_some() {}
+
+    let mut props = vec![];
+    swap(&mut props, &mut e.properties);
+    let mut non_name_props = props.into_iter().filter_map(mapper).peekable();
+    if non_name_props.peek().is_some() {
+        let (props, directives) = build_props(e, non_name_props);
+        slot_props = Some(props);
+    }
     SlotOutletInfo {
         slot_name,
         slot_props,
     }
+}
+
+fn build_props<'a, T>(e: &Element<'a>, props: T) -> (Js<'a>, Vec<Directive<'a>>) {
+    todo!()
 }

@@ -108,7 +108,10 @@ struct ForParseResult<T: ConvertInfo> {
     index: Option<T::JsExpression>,
 }
 pub struct RenderSlotIR<T: ConvertInfo> {
-    slot_args: Vec<T::JsExpression>,
+    slot_name: T::JsExpression,
+    slot_props: Option<T::JsExpression>,
+    fallbacks: Vec<IRNode<T>>,
+    no_slotted: bool,
 }
 struct VNodeIR {}
 
@@ -251,7 +254,10 @@ pub type DirConvertFn =
     for<'a> fn(Directive<'a>, &Element<'a>, &dyn ErrorHandler) -> CoreDirConvRet<'a>;
 pub type DirectiveConverter = (&'static str, DirConvertFn);
 
-pub struct BaseConverter {}
+pub struct BaseConverter {
+    scope_id: Option<String>,
+    slotted: bool,
+}
 type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
 impl<'a> Converter<'a> for BaseConverter {
     type IR = IRRoot<BaseConvertInfo<'a>>;
@@ -297,5 +303,11 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     }
     fn convert_comment(&self, c: SourceNode<'a>) -> BaseIR<'a> {
         IRNode::CommentCall(c.source)
+    }
+}
+
+impl BaseConverter {
+    fn no_slotted(&self) -> bool {
+        self.scope_id.is_some() && !self.slotted
     }
 }

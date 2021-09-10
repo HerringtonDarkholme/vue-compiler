@@ -14,7 +14,7 @@ pub fn convert_slot_outlet<'a>(bc: &BaseConverter, mut e: Element<'a>) -> BaseIR
     let fallbacks = bc.convert_children(e.children);
     let no_slotted = bc.no_slotted();
     let slot_props = info.slot_props.or({
-        if fallbacks.len() > 0 || no_slotted {
+        if !fallbacks.is_empty() || no_slotted {
             Some(Js::Src("{}"))
         } else {
             None

@@ -377,7 +377,7 @@ where
         debug_assert!(
             self.open_elems
                 .last()
-                .map_or(false, |e| e.location != elem.location),
+                .map_or(true, |e| e.location != elem.location),
             "element should not be pushed to stack yet.",
         );
         // increment_pre
@@ -848,7 +848,7 @@ fn is_v_pre_boundary(elem: &Element) -> bool {
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::super::{error::test::TestErrorHandler, tokenizer};
     use super::*;
     use insta::assert_yaml_snapshot;
@@ -947,5 +947,21 @@ mod test {
         let parser = Parser::new(ParseOption::default());
         let eh = TestErrorHandler;
         parser.parse(tokens, eh)
+    }
+
+    pub fn mock_element(s: &str) -> Element {
+        let mut e = Element {
+            tag_name: "",
+            namespace: Namespace::Html,
+            children: vec![],
+            properties: vec![],
+            location: Default::default(),
+        };
+        let mut m = base_parse(s).children;
+        let m = m[0]
+            .get_element_mut()
+            .expect("mock_elemnt's source must contain one element root");
+        std::mem::swap(&mut e, m);
+        e
     }
 }

@@ -293,42 +293,22 @@ impl<'a> Deref for VStr<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::core::Namespace;
-
-    fn mock_element(dir: Directive) -> Element {
-        Element {
-            tag_name: "div",
-            namespace: Namespace::Html,
-            properties: vec![ElemProp::Dir(dir)],
-            children: vec![],
-            location: Default::default(),
-        }
-    }
-    fn mock_directive(name: &str) -> Directive {
-        Directive {
-            name,
-            ..Default::default()
-        }
-    }
+    use crate::core::parser::test::mock_element;
 
     #[test]
     fn test_find_dir() {
-        let mut dir = mock_directive("if");
-        let e = mock_element(dir);
-        let found = dir_finder(&e, "if").find();
-        assert!(found.is_some());
-        let found = found.unwrap();
+        let e = mock_element("<p v-if=true/>");
+        let found = find_dir(&e, "if");
+        let found = found.expect("should found directive");
         assert_eq!(found.get_ref().name, "if");
         assert_eq!(e.properties.len(), 1);
     }
 
     #[test]
     fn test_find_dir_mut() {
-        let dir = mock_directive("if");
-        let mut e = mock_element(dir);
-        let found = dir_finder(&mut e, "if").find();
-        assert!(found.is_some());
-        let found = found.unwrap();
+        let mut e = mock_element("<p v-if=true/>");
+        let found = find_dir(&mut e, "if");
+        let found = found.expect("should found directive");
         assert_eq!(found.get_ref().name, "if");
         assert_eq!(found.take().name, "if");
         assert!(e.properties.is_empty());

@@ -7,8 +7,9 @@ use bitflags::bitflags;
 #[cfg(test)]
 use serde::Serialize;
 use std::{
+    borrow::{Borrow, BorrowMut},
     marker::PhantomData,
-    ops::{Deref, DerefMut},
+    ops::Deref,
 };
 
 pub fn non_whitespace(c: char) -> bool {
@@ -131,17 +132,17 @@ impl<'a> PropMatcher<'a> for Directive<'a> {
 
 pub struct PropFound<'a, E, M>
 where
-    E: Deref<Target = Element<'a>>,
+    E: Borrow<Element<'a>>,
     M: PropMatcher<'a>,
 {
     elem: E,
     pos: usize,
-    m: PhantomData<M>,
+    m: PhantomData<&'a M>,
 }
 
 impl<'a, E, M> PropFound<'a, E, M>
 where
-    E: Deref<Target = Element<'a>>,
+    E: Borrow<Element<'a>>,
     M: PropMatcher<'a>,
 {
     fn new(elem: E, pos: usize) -> Option<Self> {
@@ -152,27 +153,27 @@ where
         })
     }
     pub fn get_ref(&self) -> &M {
-        M::get_ref(&self.elem.properties[self.pos])
+        M::get_ref(&self.elem.borrow().properties[self.pos])
     }
 }
 // take is only available when access is mutable
 impl<'a, E, M> PropFound<'a, E, M>
 where
-    E: DerefMut<Target = Element<'a>>,
+    E: BorrowMut<Element<'a>>,
     M: PropMatcher<'a>,
 {
     pub fn take(mut self) -> M {
-        M::take(self.elem.properties.remove(self.pos))
+        M::take(self.elem.borrow_mut().properties.remove(self.pos))
     }
 }
 
 type DirFound<'a, E> = PropFound<'a, E, Directive<'a>>;
 
 // sometimes mutable access to the element is not available so
-// Deref is used to override the PropFound and `take` is optional
+// Borrow is used to refine PropFound so `take` is optional
 pub fn dir_finder<'a, E, P>(elem: E, pat: P) -> PropFinder<'a, E, P, Directive<'a>>
 where
-    E: Deref<Target = Element<'a>>,
+    E: Borrow<Element<'a>>,
     P: PropPattern,
 {
     PropFinder::new(elem, pat)
@@ -180,7 +181,7 @@ where
 
 pub fn find_dir<'a, E, P>(elem: E, pat: P) -> Option<DirFound<'a, E>>
 where
-    E: Deref<Target = Element<'a>>,
+    E: Borrow<Element<'a>>,
     P: PropPattern,
 {
     PropFinder::new(elem, pat).find()
@@ -188,19 +189,19 @@ where
 
 pub struct PropFinder<'a, E, P, M = ElemProp<'a>>
 where
-    E: Deref<Target = Element<'a>>,
+    E: Borrow<Element<'a>>,
     P: PropPattern,
     M: PropMatcher<'a>,
 {
     elem: E,
     pat: P,
     allow_empty: bool,
-    m: PhantomData<M>,
+    m: PhantomData<&'a M>,
 }
 
 impl<'a, E, P, M> PropFinder<'a, E, P, M>
 where
-    E: Deref<Target = Element<'a>>,
+    E: Borrow<Element<'a>>,
     P: PropPattern,
     M: PropMatcher<'a>,
 {
@@ -218,7 +219,12 @@ where
         })
     }
     pub fn find(self) -> Option<PropFound<'a, E, M>> {
-        let pos = self.elem.properties.iter().position(|p| self.is_match(p))?;
+        let pos = self
+            .elem
+            .borrow()
+            .properties
+            .iter()
+            .position(|p| self.is_match(p))?;
         PropFound::new(self.elem, pos)
     }
     pub fn allow_empty(self, allow_empty: bool) -> Self {
@@ -231,7 +237,7 @@ where
 
 pub fn find_prop<'a, E, P>(elem: E, pat: P) -> Option<PropFound<'a, E, ElemProp<'a>>>
 where
-    E: Deref<Target = Element<'a>>,
+    E: Borrow<Element<'a>>,
     P: PropPattern,
 {
     PropFinder::new(elem, pat).find()
@@ -239,7 +245,7 @@ where
 
 pub fn prop_finder<'a, E, P>(elem: E, pat: P) -> PropFinder<'a, E, P>
 where
-    E: Deref<Target = Element<'a>>,
+    E: Borrow<Element<'a>>,
     P: PropPattern,
 {
     PropFinder::new(elem, pat)

@@ -880,8 +880,8 @@ mod test {
             r#"<p .^-^.attr="tt" />"#, // bind, ^-^, attr|prop
             // r#"<p v-🖖:🤘.🤙/>"#, // unicode, VUE in hand sign
             r#"<p :[a.b].stop="tt"/>"#, // bind, [a.b], stop
-            r#"<p :[]="tt"/>"#,         // bind, nothing, stop
-            r#"<p :[t]err="tt"/>"#,     // bind, nothing, stop
+            r#"<p :[]="tt"/>"#,         // bind, nothing
+            r#"<p :[t]err="tt"/>"#,     // bind, nothing,
         ];
         for &case in cases.iter() {
             test_dir(case);

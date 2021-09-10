@@ -1,0 +1,44 @@
+---
+source: src/core/parser.rs
+expression: dir
+
+---
+Dir:
+  name: bind
+  argument:
+    Dynamic: a.b
+  modifiers:
+    - stop
+  expression:
+    content:
+      raw: tt
+      ops:
+        bits: 10
+    location:
+      start:
+        offset: 15
+        line: 1
+        column: 16
+      end:
+        offset: 19
+        line: 1
+        column: 20
+  head_loc:
+    start:
+      offset: 3
+      line: 1
+      column: 4
+    end:
+      offset: 14
+      line: 1
+      column: 15
+  location:
+    start:
+      offset: 3
+      line: 1
+      column: 4
+    end:
+      offset: 19
+      line: 1
+      column: 20
+

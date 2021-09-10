@@ -1,5 +1,5 @@
 use super::{
-    parser::{Directive, ElemProp, Element},
+    parser::{Directive, DirectiveArg, ElemProp, Element},
     runtime_helper::RuntimeHelper,
     tokenizer::Attribute,
 };
@@ -61,17 +61,29 @@ impl<const N: usize> PropPattern for [&'static str; N] {
     }
 }
 
+type NameExp<'a> = Option<(&'a str, Option<VStr<'a>>)>;
 pub trait PropMatcher<'a> {
-    fn get_name(prop: &ElemProp<'a>) -> Option<&'a str>;
+    fn get_name_and_exp(prop: &ElemProp<'a>) -> NameExp<'a>;
     fn get_ref<'b>(prop: &'b ElemProp<'a>) -> &'b Self;
     fn take(prop: ElemProp<'a>) -> Self;
 }
 
 impl<'a> PropMatcher<'a> for ElemProp<'a> {
-    fn get_name(prop: &ElemProp<'a>) -> Option<&'a str> {
+    fn get_name_and_exp(prop: &ElemProp<'a>) -> NameExp<'a> {
         match prop {
-            ElemProp::Attr(Attribute { name, .. }) => Some(name),
-            ElemProp::Dir(Directive { name, .. }) => Some(name),
+            ElemProp::Attr(Attribute { name, value, .. }) => {
+                let exp = value.as_ref().map(|v| v.content);
+                Some((name, exp))
+            }
+            ElemProp::Dir(dir @ Directive { name: "bind", .. }) => {
+                let name = match dir.argument {
+                    Some(DirectiveArg::Static(name)) => name,
+                    _ => return None,
+                };
+                let exp = dir.expression.as_ref().map(|v| v.content);
+                Some((name, exp))
+            }
+            _ => None,
         }
     }
     fn get_ref<'b>(prop: &'b ElemProp<'a>) -> &'b Self {
@@ -83,9 +95,13 @@ impl<'a> PropMatcher<'a> for ElemProp<'a> {
 }
 
 impl<'a> PropMatcher<'a> for Directive<'a> {
-    fn get_name(prop: &ElemProp<'a>) -> Option<&'a str> {
-        if let ElemProp::Dir(Directive { name, .. }) = prop {
-            Some(name)
+    fn get_name_and_exp(prop: &ElemProp<'a>) -> NameExp<'a> {
+        if let ElemProp::Dir(Directive {
+            name, expression, ..
+        }) = prop
+        {
+            let exp = expression.as_ref().map(|v| v.content);
+            Some((name, exp))
         } else {
             None
         }
@@ -104,7 +120,7 @@ impl<'a> PropMatcher<'a> for Directive<'a> {
     }
 }
 
-pub struct PropFound<'a, E, M = ElemProp<'a>>
+pub struct PropFound<'a, E, M>
 where
     E: Deref<Target = Element<'a>>,
     M: PropMatcher<'a>,
@@ -119,11 +135,7 @@ where
     E: Deref<Target = Element<'a>>,
     M: PropMatcher<'a>,
 {
-    fn new<P: PropPattern>(elem: E, pat: P) -> Option<Self> {
-        let pos = elem
-            .properties
-            .iter()
-            .position(|p| M::get_name(p).map_or(false, |n| pat.is_match(n)))?;
+    fn new(elem: E, pos: usize) -> Option<Self> {
         Some(Self {
             elem,
             pos,
@@ -149,20 +161,73 @@ type DirFound<'a, E> = PropFound<'a, E, Directive<'a>>;
 
 // sometimes mutable access to the element is not available so
 // Deref is used to override the PropFound and `take` is optional
-pub fn find_dir<'a, E, P>(e: E, pattern: P) -> Option<DirFound<'a, E>>
+pub fn dir_finder<'a, E, P>(elem: E, pat: P) -> PropFinder<'a, E, P, Directive<'a>>
 where
     E: Deref<Target = Element<'a>>,
     P: PropPattern,
 {
-    PropFound::new(e, pattern)
+    PropFinder::new(elem, pat)
 }
 
-pub fn find_prop<'a, E, P>(e: E, pattern: P) -> Option<PropFound<'a, E>>
+pub fn find_dir<'a, E, P>(elem: E, pat: P) -> Option<DirFound<'a, E>>
 where
     E: Deref<Target = Element<'a>>,
     P: PropPattern,
 {
-    PropFound::new(e, pattern)
+    PropFinder::new(elem, pat).find()
+}
+
+pub struct PropFinder<'a, E, P, M = ElemProp<'a>>
+where
+    E: Deref<Target = Element<'a>>,
+    P: PropPattern,
+    M: PropMatcher<'a>,
+{
+    elem: E,
+    pat: P,
+    allow_empty: bool,
+    m: PhantomData<M>,
+}
+
+impl<'a, E, P, M> PropFinder<'a, E, P, M>
+where
+    E: Deref<Target = Element<'a>>,
+    P: PropPattern,
+    M: PropMatcher<'a>,
+{
+    fn new(elem: E, pat: P) -> Self {
+        Self {
+            elem,
+            pat,
+            allow_empty: false,
+            m: PhantomData,
+        }
+    }
+    fn is_match(&self, p: &ElemProp<'a>) -> bool {
+        M::get_name_and_exp(p).map_or(false, |(name, exp)| {
+            self.pat.is_match(name) && (self.allow_empty || exp.map_or(false, |v| !v.is_empty()))
+        })
+    }
+    pub fn find(self) -> Option<PropFound<'a, E, M>> {
+        let pos = self.elem.properties.iter().position(|p| self.is_match(p))?;
+        PropFound::new(self.elem, pos)
+    }
+}
+
+pub fn find_prop<'a, E, P>(elem: E, pat: P) -> Option<PropFound<'a, E, ElemProp<'a>>>
+where
+    E: Deref<Target = Element<'a>>,
+    P: PropPattern,
+{
+    PropFinder::new(elem, pat).find()
+}
+
+pub fn prop_finder<'a, E, P>(elem: E, pat: P) -> PropFinder<'a, E, P>
+where
+    E: Deref<Target = Element<'a>>,
+    P: PropPattern,
+{
+    PropFinder::new(elem, pat)
 }
 
 bitflags! {
@@ -248,9 +313,9 @@ mod test {
 
     #[test]
     fn test_find_dir() {
-        let dir = mock_directive("if");
+        let mut dir = mock_directive("if");
         let e = mock_element(dir);
-        let found = find_dir(&e, "if");
+        let found = dir_finder(&e, "if").find();
         assert!(found.is_some());
         let found = found.unwrap();
         assert_eq!(found.get_ref().name, "if");
@@ -261,7 +326,7 @@ mod test {
     fn test_find_dir_mut() {
         let dir = mock_directive("if");
         let mut e = mock_element(dir);
-        let found = find_dir(&mut e, "if");
+        let found = dir_finder(&mut e, "if").find();
         assert!(found.is_some());
         let found = found.unwrap();
         assert_eq!(found.get_ref().name, "if");

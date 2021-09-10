@@ -129,7 +129,7 @@ pub enum DirectiveArg<'a> {
 #[derive(Default)]
 #[cfg_attr(test, derive(Serialize))]
 pub struct Directive<'a> {
-    pub name: Name<'a>,
+    pub name: &'a str,
     pub argument: Option<DirectiveArg<'a>>,
     pub modifiers: Vec<&'a str>,
     pub expression: Option<AttributeValue<'a>>,
@@ -138,12 +138,13 @@ pub struct Directive<'a> {
 }
 
 impl<'a> Directive<'a> {
-    pub fn check_empty_expr(&self, kind: ErrorKind) -> Option<CompilationError> {
-        let is_empty_val = self
-            .expression
+    pub fn has_empty_expr(&self) -> bool {
+        self.expression
             .as_ref()
-            .map_or(true, |v| !v.content.contains(non_whitespace));
-        if !is_empty_val {
+            .map_or(true, |v| !v.content.contains(non_whitespace))
+    }
+    pub fn check_empty_expr(&self, kind: ErrorKind) -> Option<CompilationError> {
+        if !self.has_empty_expr() {
             return None;
         }
         let loc = self

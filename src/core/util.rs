@@ -68,6 +68,18 @@ pub trait PropMatcher<'a> {
     fn take(prop: ElemProp<'a>) -> Self;
 }
 
+pub fn is_bind_key<'a>(arg: &Option<DirectiveArg<'a>>, name: &str) -> bool {
+    get_bind_key(arg).map_or(false, |v| v == name)
+}
+
+fn get_bind_key<'a>(arg: &Option<DirectiveArg<'a>>) -> Option<&'a str> {
+    if let DirectiveArg::Static(name) = arg.as_ref()? {
+        Some(name)
+    } else {
+        None
+    }
+}
+
 impl<'a> PropMatcher<'a> for ElemProp<'a> {
     fn get_name_and_exp(prop: &ElemProp<'a>) -> NameExp<'a> {
         match prop {
@@ -76,10 +88,7 @@ impl<'a> PropMatcher<'a> for ElemProp<'a> {
                 Some((name, exp))
             }
             ElemProp::Dir(dir @ Directive { name: "bind", .. }) => {
-                let name = match dir.argument {
-                    Some(DirectiveArg::Static(name)) => name,
-                    _ => return None,
-                };
+                let name = get_bind_key(&dir.argument)?;
                 let exp = dir.expression.as_ref().map(|v| v.content);
                 Some((name, exp))
             }
@@ -339,6 +348,14 @@ mod test {
         find_prop(&mut e, "name").unwrap().take();
         assert!(find_prop(&e, "bind").is_none());
         find_prop(&mut e, "name").unwrap().take();
+        assert!(find_prop(&e, "name").is_none());
+    }
+
+    #[test]
+    fn find_prop_ignore_dynamic_bind() {
+        let e = mock_element("<p :[name]=foo/>");
+        assert!(find_dir(&e, "name").is_none());
+        assert!(find_dir(&e, "bind").is_some());
         assert!(find_prop(&e, "name").is_none());
     }
 }

@@ -961,6 +961,7 @@ pub mod test {
     pub fn mock_element(s: &str) -> Element {
         let mut e = Element {
             tag_name: "",
+            tag_type: ElementType::Plain,
             namespace: Namespace::Html,
             children: vec![],
             properties: vec![],

@@ -91,10 +91,7 @@ fn resolve_dynamic_component<'a>(
             }) => Js::Simple(exp.content),
             _ => panic!("{}", NON_EMPTY_ASSERTION),
         };
-        return Ok(Js::Call(
-            RuntimeHelper::ResolveDynamicComponent.helper_str(),
-            vec![exp],
-        ));
+        return Ok(Js::Call(RuntimeHelper::ResolveDynamicComponent, vec![exp]));
     }
     if let ElemProp::Attr(Attribute {
         value: Some(val), ..

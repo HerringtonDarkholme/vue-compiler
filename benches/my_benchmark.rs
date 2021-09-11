@@ -3,12 +3,6 @@ enum TextMode {
     Data,
     RawText,
     RCData,
-    Data1,
-    RawText1,
-    RCData1,
-    Data2,
-    RawText2,
-    RCData2,
 }
 impl std::fmt::Display for TextMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -29,7 +23,7 @@ use criterion::{criterion_group, criterion_main};
 
 fn test_enum_eq(c: &mut Criterion) {
     use TextMode::*;
-    for name in [Data, RawText, RCData, RawText2].iter() {
+    for name in [Data, RawText, RCData].iter() {
         c.bench_with_input(BenchmarkId::new("test enum match", name), &name, |b, &n| {
             b.iter(|| test_match_data(*n));
         });

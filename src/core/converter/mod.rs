@@ -23,7 +23,7 @@ Convert module roughly corresponds to following transform in vue-next.
 use std::marker::PhantomData;
 
 pub use super::error::{CompilationError, ErrorHandler};
-use super::flags::PatchFlag;
+use super::flags::{PatchFlag, RuntimeHelper};
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
@@ -145,7 +145,8 @@ pub enum JsExpr<'a> {
     Simple(VStr<'a>),
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),
-    Call(&'static str, Vec<JsExpr<'a>>),
+    /// for calling runtime helper, e.g. resolveComponent()
+    Call(RuntimeHelper, Vec<JsExpr<'a>>),
 }
 
 pub enum BindingTypes {

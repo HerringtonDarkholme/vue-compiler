@@ -1,15 +1,15 @@
 use super::{
     build_props::{build_props, BuildProps},
-    BaseConverter, BaseIR, CoreConverter, Element, IRNode, JsExpr as Js, VNodeIR, VStr,
+    BaseConverter as BC, BaseIR, CoreConverter, Element, IRNode, JsExpr as Js, VNodeIR, VStr,
 };
 use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
     parser::{Directive, ElemProp, ElementType},
     tokenizer::Attribute,
-    util::{find_prop, get_core_component},
+    util::{find_dir, find_prop, get_core_component},
 };
 
-pub fn convert_element<'a>(bc: &mut BaseConverter, e: Element<'a>) -> BaseIR<'a> {
+pub fn convert_element<'a>(bc: &mut BC, e: Element<'a>) -> BaseIR<'a> {
     let tag = resolve_element_tag(&e, bc);
     let is_block = should_use_block();
     let BuildProps {
@@ -34,7 +34,7 @@ pub fn convert_element<'a>(bc: &mut BaseConverter, e: Element<'a>) -> BaseIR<'a>
     IRNode::VNodeCall(vnode)
 }
 
-pub fn convert_template<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
+pub fn convert_template<'a>(bc: &BC, e: Element<'a>) -> BaseIR<'a> {
     todo!()
 }
 
@@ -42,7 +42,7 @@ pub fn convert_template<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
 /// 1. Js::Call for dynamic component or user component.
 /// 2. Js::Symbol for builtin component
 /// 3. Js::StrLit for plain element
-pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &mut BaseConverter) -> Js<'a> {
+pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &mut BC) -> Js<'a> {
     if e.tag_type == ElementType::Plain {
         return Js::StrLit(VStr::raw(e.tag_name));
     }
@@ -73,7 +73,7 @@ pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &mut BaseConverter) -> Js<'a
     todo!()
 }
 
-const NON_EMPTY_ASSERTION: &str = "find_prop must return prop with non-empty value";
+const MUST_NON_EMPTY: &str = "find_prop must return prop with non-empty value";
 /// Returns Ok if resolved as dynamic component call, Err if resolved as static string tag
 fn resolve_dynamic_component<'a>(
     e: &Element<'a>,
@@ -93,7 +93,7 @@ fn resolve_dynamic_component<'a>(
                 expression: Some(exp),
                 ..
             }) => Js::Simple(exp.content),
-            _ => panic!("{}", NON_EMPTY_ASSERTION),
+            _ => panic!("{}", MUST_NON_EMPTY),
         };
         return Ok(Js::Call(RuntimeHelper::ResolveDynamicComponent, vec![exp]));
     }
@@ -112,7 +112,20 @@ fn resolve_dynamic_component<'a>(
 
 /// Returns dynamic component call if we found v-is, otherwise None
 fn resolve_v_is_component<'a>(e: &Element<'a>, is_explicit_dynamic: bool) -> Option<Js<'a>> {
-    todo!()
+    if is_explicit_dynamic {
+        return None;
+    }
+    let dir = find_dir(e, "is")?;
+    let exp = dir
+        .get_ref()
+        .expression
+        .as_ref()
+        .expect(MUST_NON_EMPTY)
+        .content;
+    Some(Js::Call(
+        RuntimeHelper::ResolveDynamicComponent,
+        vec![Js::Simple(exp)],
+    ))
 }
 
 fn should_use_block() -> bool {
@@ -121,7 +134,16 @@ fn should_use_block() -> bool {
 fn build_children<'a>(e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
     todo!()
 }
-fn resolve_setup_reference() {
+
+// TODO: externalize this into the CoreConverter trait
+fn resolve_setup_reference<'a>(tag: &'a str, bc: &BC) -> Option<VStr<'a>> {
+    use crate::core::util::{camelize, capitalize, Lazy};
+    let bindings = &bc.binding_metadata;
+    if bindings.is_empty() || !bindings.is_setup() {
+        return None;
+    }
+    let camel_name = Lazy::new(|| camelize(tag));
+    let pascal_name = Lazy::new(|| capitalize(tag));
     todo!()
 }
 

@@ -8,6 +8,7 @@ use bitflags::bitflags;
 use serde::Serialize;
 use std::{
     borrow::{Borrow, BorrowMut},
+    cell::UnsafeCell,
     marker::PhantomData,
     ops::Deref,
 };
@@ -284,8 +285,9 @@ bitflags! {
         const COMPRESS_WHITESPACE = 1 << 0;
         const DECODE_ENTITY       = 1 << 1;
         const CAMEL_CASE          = 1 << 2;
-        const IS_ATTR             = 1 << 3;
-        const HANDLER_KEY         = 1 << 4;
+        const PASCAL_CASE         = 1 << 3;
+        const IS_ATTR             = 1 << 4;
+        const HANDLER_KEY         = 1 << 5;
     }
 }
 
@@ -321,6 +323,10 @@ impl<'a> VStr<'a> {
         self.ops |= StrOps::CAMEL_CASE;
         self
     }
+    pub fn capitalize(&mut self) -> &mut Self {
+        self.ops |= StrOps::PASCAL_CASE;
+        self
+    }
     pub fn compress_whitespace(&mut self) -> &mut Self {
         self.ops |= StrOps::COMPRESS_WHITESPACE;
         self
@@ -335,6 +341,48 @@ impl<'a> Deref for VStr<'a> {
     type Target = str;
     fn deref(&self) -> &Self::Target {
         self.raw
+    }
+}
+
+pub fn camelize(s: &str) -> String {
+    todo!()
+}
+pub fn capitalize(s: &str) -> String {
+    todo!()
+}
+
+// since std::once::Lazy is not stable
+// it is not thread safe, not Sync.
+// it is Send if F and T is Send
+pub struct Lazy<T, F = fn() -> T>(UnsafeCell<Result<T, Option<F>>>)
+where
+    F: FnOnce() -> T;
+
+impl<T, F> Lazy<T, F>
+where
+    F: FnOnce() -> T,
+{
+    pub fn new(f: F) -> Self {
+        Self(UnsafeCell::new(Err(Some(f))))
+    }
+}
+
+impl<T, F> Deref for Lazy<T, F>
+where
+    F: FnOnce() -> T,
+{
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        let m = unsafe { &mut *self.0.get() };
+        let f = match m {
+            Ok(t) => return t,
+            Err(f) => f,
+        };
+        *m = Ok(f.take().unwrap()());
+        match m {
+            Ok(t) => t,
+            _ => panic!("unwrap Ok"),
+        }
     }
 }
 
@@ -399,5 +447,17 @@ mod test {
         assert!(a[0].is_ok());
         assert!(a[1].is_ok());
         assert!(a[2].is_err());
+    }
+
+    #[test]
+    fn layman_lazy() {
+        let mut test = 0;
+        let l = Lazy::new(|| {
+            test += 1;
+            (0..=100).sum::<i32>()
+        });
+        assert_eq!(*l, 5050);
+        assert_eq!(*l, 5050);
+        assert_eq!(test, 1);
     }
 }

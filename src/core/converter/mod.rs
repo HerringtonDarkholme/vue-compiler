@@ -20,8 +20,6 @@ Convert module roughly corresponds to following transform in vue-next.
 * vOn
 */
 
-use std::marker::PhantomData;
-
 pub use super::error::{CompilationError, ErrorHandler};
 use super::flags::{PatchFlag, RuntimeHelper};
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
@@ -169,10 +167,6 @@ pub enum BindingTypes {
     /// declared by other options, e.g. computed, inject
     Options,
 }
-pub struct ConvertOption {
-    pub directive_converters: Vec<DirectiveConverter>,
-    pub binding_metadata: FxHashMap<&'static str, BindingTypes>,
-}
 
 pub struct IRRoot<T: ConvertInfo> {
     pub body: Vec<IRNode<T>>,
@@ -265,7 +259,7 @@ pub fn no_op_directive_convert<'a>(
 
 // Base Converter for DOM and SSR Fallback
 
-pub struct BaseConvertInfo<'a>(PhantomData<&'a ()>);
+pub struct BaseConvertInfo<'a>(std::marker::PhantomData<&'a ()>);
 
 impl<'a> ConvertInfo for BaseConvertInfo<'a> {
     type TextType = JsExpr<'a>;
@@ -288,9 +282,24 @@ pub type DirConvertFn =
     for<'a> fn(Directive<'a>, &Element<'a>, &dyn ErrorHandler) -> CoreDirConvRet<'a>;
 pub type DirectiveConverter = (&'static str, DirConvertFn);
 
+pub struct BindingMetadata(FxHashMap<&'static str, BindingTypes>, bool);
+impl BindingMetadata {
+    pub fn is_setup(&self) -> bool {
+        self.1
+    }
+}
+impl std::ops::Deref for BindingMetadata {
+    type Target = FxHashMap<&'static str, BindingTypes>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 pub struct BaseConverter {
-    scope_id: Option<String>,
-    slotted: bool,
+    pub scope_id: Option<String>,
+    pub slotted: bool,
+    pub directive_converters: Vec<DirectiveConverter>,
+    pub binding_metadata: BindingMetadata,
 }
 type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
 impl<'a> Converter<'a> for BaseConverter {

@@ -1,6 +1,7 @@
 use super::{
-    build_props::build_props, BaseConverter, BaseIR, CoreConverter, Directive, Element, IRNode,
-    JsExpr as Js, RenderSlotIR, VStr,
+    build_props::{build_props, BuildProps},
+    BaseConverter, BaseIR, CoreConverter, Directive, Element, IRNode, JsExpr as Js, RenderSlotIR,
+    VStr,
 };
 use crate::core::{
     parser::{DirectiveArg, ElemProp},
@@ -10,10 +11,10 @@ use crate::core::{
 use std::mem::swap;
 
 pub fn convert_slot_outlet<'a>(bc: &BaseConverter, mut e: Element<'a>) -> BaseIR<'a> {
-    let info = process_slot_outlet(&mut e);
+    let (slot_name, slot_props) = process_slot_outlet(&mut e);
     let fallbacks = bc.convert_children(e.children);
     let no_slotted = bc.no_slotted();
-    let slot_props = info.slot_props.or({
+    let slot_props = slot_props.or({
         if !fallbacks.is_empty() || no_slotted {
             Some(Js::Src("{}"))
         } else {
@@ -21,19 +22,16 @@ pub fn convert_slot_outlet<'a>(bc: &BaseConverter, mut e: Element<'a>) -> BaseIR
         }
     });
     IRNode::RenderSlotCall(RenderSlotIR {
-        slot_name: info.slot_name,
+        slot_name,
         slot_props,
         fallbacks,
         no_slotted,
     })
 }
 
-struct SlotOutletInfo<'a> {
-    slot_name: Js<'a>,
-    slot_props: Option<Js<'a>>,
-}
+type NameAndProps<'a> = (Js<'a>, Option<Js<'a>>);
 
-fn process_slot_outlet<'a>(e: &mut Element<'a>) -> SlotOutletInfo<'a> {
+fn process_slot_outlet<'a>(e: &mut Element<'a>) -> NameAndProps<'a> {
     let mut slot_name = Js::StrLit(VStr::raw("default"));
     let mut slot_props = None;
     let mapper = |mut prop| {
@@ -82,11 +80,11 @@ fn process_slot_outlet<'a>(e: &mut Element<'a>) -> SlotOutletInfo<'a> {
     swap(&mut props, &mut e.properties);
     let mut non_name_props = props.into_iter().filter_map(mapper).peekable();
     if non_name_props.peek().is_some() {
-        let (props, directives) = build_props(e, non_name_props);
-        slot_props = Some(props);
-    }
-    SlotOutletInfo {
-        slot_name,
-        slot_props,
+        let BuildProps {
+            props, directives, ..
+        } = build_props(e, non_name_props);
+        (slot_name, slot_props)
+    } else {
+        (slot_name, None)
     }
 }

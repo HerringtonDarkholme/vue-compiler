@@ -23,6 +23,7 @@ Convert module roughly corresponds to following transform in vue-next.
 use std::marker::PhantomData;
 
 pub use super::error::{CompilationError, ErrorHandler};
+use super::flags::PatchFlag;
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
@@ -77,7 +78,7 @@ pub enum IRNode<T: ConvertInfo> {
     /// v-for
     For(ForNodeIR<T>),
     /// component/template/plain element
-    VNodeCall(T::VNodeType),
+    VNodeCall(VNodeIR<T>),
     /// <slot> slot outlet
     RenderSlotCall(RenderSlotIR<T>),
     /// v-slot on component or template
@@ -114,7 +115,25 @@ pub struct RenderSlotIR<T: ConvertInfo> {
     fallbacks: Vec<IRNode<T>>,
     no_slotted: bool,
 }
-struct VNodeIR {}
+
+pub struct VNodeIR<T: ConvertInfo> {
+    tag: T::JsExpression,
+    props: Option<T::JsExpression>,
+    children: Vec<IRNode<T>>,
+    patch_flag: PatchFlag,
+    dynamic_props: Option<T::JsExpression>,
+    directives: Vec<DirectiveArgument<T>>,
+    is_block: bool,
+    disable_tracking: bool,
+    is_component: bool,
+}
+
+pub struct DirectiveArgument<T: ConvertInfo> {
+    dir: T::JsExpression,
+    exp: Option<T::JsExpression>,
+    arg: Option<T::JsExpression>,
+    mods: Option<T::JsExpression>,
+}
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
 pub enum JsExpr<'a> {

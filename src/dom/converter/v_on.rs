@@ -1,4 +1,4 @@
-use crate::core::{runtime_helper::RuntimeHelper, PreambleHelper};
+use crate::core::{flags::RuntimeHelper, PreambleHelper};
 
 use super::{
     error::CompilationErrorKind as ErrorKind, parser::DirectiveArg, tokenizer::AttributeValue,

@@ -1,6 +1,6 @@
 use super::{
+    flags::RuntimeHelper,
     parser::{Directive, DirectiveArg, ElemProp, Element},
-    runtime_helper::RuntimeHelper,
     tokenizer::Attribute,
 };
 use bitflags::bitflags;

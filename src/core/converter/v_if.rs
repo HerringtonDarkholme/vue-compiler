@@ -13,13 +13,13 @@ use std::{iter::Peekable, vec::IntoIter};
 
 // TODO: reduce vec allocation by using Drain iter
 pub enum PreGroup<'a> {
-    VIfGroup(Vec<AstNode<'a>>),
+    VIfGroup(Vec<Element<'a>>),
     StandAlone(AstNode<'a>),
 }
 
 struct PreGroupIter<'a> {
     inner: Peekable<IntoIter<AstNode<'a>>>,
-    group: Vec<AstNode<'a>>,
+    group: Vec<Element<'a>>,
 }
 
 impl<'a> PreGroupIter<'a> {
@@ -61,7 +61,7 @@ impl<'a> Iterator for PreGroupIter<'a> {
                     return self.flush_group();
                 }
                 let n = self.inner.next().unwrap(); // must next to advance
-                self.group.push(n);
+                self.group.push(n.into_element());
             } else if let AstNode::Text(s) = n {
                 if s.is_all_whitespace() {
                     // skip whitespace
@@ -97,11 +97,11 @@ pub fn pre_group_v_if(children: Vec<AstNode>) -> impl Iterator<Item = PreGroup> 
 }
 
 /// key is Vue-generated default key based on the number of sibling v-if.
-pub fn convert_if<'a>(c: &BC, nodes: Vec<AstNode<'a>>, key: usize) -> BaseIR<'a> {
-    debug_assert!(!nodes.is_empty());
-    check_dangling_else(c, &nodes[0]);
-    check_same_key(c, &nodes);
-    let branches: Vec<_> = nodes
+pub fn convert_if<'a>(c: &BC, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
+    debug_assert!(!elems.is_empty());
+    check_dangling_else(c, &elems[0]);
+    check_same_key(c, &elems);
+    let branches: Vec<_> = elems
         .into_iter()
         .enumerate()
         .map(|(i, n)| convert_if_branch(c, n, key + i))
@@ -109,8 +109,7 @@ pub fn convert_if<'a>(c: &BC, nodes: Vec<AstNode<'a>>, key: usize) -> BaseIR<'a>
     IRNode::If(IfNodeIR { branches, info: () })
 }
 
-pub fn check_dangling_else<'a>(c: &BC, first_node: &AstNode<'a>) {
-    let first_elem = first_node.get_element().unwrap();
+pub fn check_dangling_else<'a>(c: &BC, first_elem: &Element<'a>) {
     if find_dir(first_elem, "if").is_some() {
         return;
     }
@@ -123,12 +122,11 @@ pub fn check_dangling_else<'a>(c: &BC, first_node: &AstNode<'a>) {
     c.emit_error(error);
 }
 
-fn check_same_key<'a>(c: &BC, nodes: &[AstNode<'a>]) {
+fn check_same_key<'a>(c: &BC, elems: &[Element<'a>]) {
     // vue only does this in dev build
     let mut dirs = FxHashSet::default();
     let mut attrs = FxHashSet::default();
-    for node in nodes {
-        let child = node.get_element().unwrap();
+    for child in elems {
         let prop = find_prop(child, "key");
         if prop.is_none() {
             continue;
@@ -160,15 +158,14 @@ fn check_same_key<'a>(c: &BC, nodes: &[AstNode<'a>]) {
     }
 }
 
-fn convert_if_branch<'a>(c: &BC, mut n: AstNode<'a>, key: usize) -> IfBranch<BaseConvertInfo<'a>> {
-    let e = n.get_element_mut().expect("v-if must have element.");
-    let dir = find_dir(&mut *e, ["if", "else-if", "else"])
+fn convert_if_branch<'a>(c: &BC, mut e: Element<'a>, key: usize) -> IfBranch<BaseConvertInfo<'a>> {
+    let dir = find_dir(&mut e, ["if", "else-if", "else"])
         .expect("the element must have v-if directives")
         .take();
-    report_duplicate_v_if(c, e);
+    report_duplicate_v_if(c, &mut e);
     let condition = convert_if_condition(c, dir);
     IfBranch {
-        child: Box::new(c.dispatch_ast(n)),
+        child: Box::new(c.dispatch_element(e)),
         condition,
         info: key,
     }

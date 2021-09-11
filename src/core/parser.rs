@@ -35,17 +35,21 @@ pub enum AstNode<'a> {
 
 impl<'a> AstNode<'a> {
     pub fn get_element(&self) -> Option<&Element<'a>> {
-        use AstNode as A;
         match self {
-            A::Element(e) => Some(e),
+            AstNode::Element(e) => Some(e),
             _ => None,
         }
     }
     pub fn get_element_mut(&mut self) -> Option<&mut Element<'a>> {
-        use AstNode as A;
         match self {
-            A::Element(e) => Some(e),
+            AstNode::Element(e) => Some(e),
             _ => None,
+        }
+    }
+    pub fn into_element(self) -> Element<'a> {
+        match self {
+            AstNode::Element(e) => e,
+            _ => panic!("call into_element on non-element AstNode"),
         }
     }
 }

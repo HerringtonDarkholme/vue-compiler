@@ -141,6 +141,7 @@ pub enum JsExpr<'a> {
     StrLit(VStr<'a>),
     /// will be processed like prefixing
     Simple(VStr<'a>),
+    /// alternative to join string as JsExpr
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),
     /// for calling runtime helper, e.g. resolveComponent()
@@ -283,6 +284,8 @@ pub type DirConvertFn =
     for<'a> fn(Directive<'a>, &Element<'a>, &dyn ErrorHandler) -> CoreDirConvRet<'a>;
 pub type DirectiveConverter = (&'static str, DirConvertFn);
 
+/// stores binding variables exposed by data/prop/setup script.
+/// also stores if the binding is from setup script.
 pub struct BindingMetadata(FxHashMap<&'static str, BindingTypes>, bool);
 impl BindingMetadata {
     pub fn is_setup(&self) -> bool {
@@ -298,8 +301,16 @@ impl std::ops::Deref for BindingMetadata {
 
 pub struct BaseConverter {
     pub scope_id: Option<String>,
+    /// Indicates this SFC template has used :slotted in its styles
+    /// Defaults to `true` for backwards compatibility - SFC tooling should set it
+    /// to `false` if no `:slotted` usage is detected in `<style>`
     pub slotted: bool,
+    /// Compile the function for inlining inside setup().
+    /// This allows the function to directly access setup() local bindings.
+    pub inline: bool,
     pub directive_converters: Vec<DirectiveConverter>,
+    /// Optional binding metadata analyzed from script - used to optimize
+    /// binding access when `prefixIdentifiers` is enabled.
     pub binding_metadata: BindingMetadata,
 }
 type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;

@@ -1,7 +1,7 @@
 use super::{
     build_props::{build_props, BuildProps},
-    BaseConverter as BC, BaseIR, BindingTypes, CoreConverter, Element, IRNode, JsExpr as Js,
-    VNodeIR, VStr,
+    BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes, CoreConverter, Element, IRNode,
+    JsExpr as Js, VNodeIR, VStr,
 };
 use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
@@ -69,6 +69,21 @@ pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &mut BC) -> Js<'a> {
         return Js::Symbol(builtin);
     }
     // 3. user component (from setup bindings)
+    if let Some(from_setup) = resolve_setup_reference(tag, bc) {
+        return from_setup;
+    }
+    // handle <obj.Tag/>
+    let namespaced = tag
+        .find('.')
+        .filter(|&i| i != 0 && i < tag.len() - 1) // exclude .tag or obj.
+        .map(|i| tag.split_at(i))
+        .and_then(|(ns, access)| {
+            let ns = resolve_setup_reference(ns, bc)?;
+            Some(Js::Compound(vec![ns, Js::Src(access)]))
+        });
+    if let Some(namespaced) = namespaced {
+        return namespaced;
+    }
     // 4. Self referencing component (inferred from filename)
     // 5. user component (resolve)
     todo!()
@@ -137,19 +152,55 @@ fn build_children<'a>(e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
 }
 
 // TODO: externalize this into the CoreConverter trait
-fn resolve_setup_reference<'a>(name: &'a str, bc: &BC) -> Option<VStr<'a>> {
-    use crate::core::util::Lazy;
+/// returns the specific name created in script setup, modulo camel/pascal case
+fn resolve_setup_reference<'a>(name: &'a str, bc: &BC) -> Option<Js<'a>> {
     let bindings = &bc.binding_metadata;
     if bindings.is_empty() || !bindings.is_setup() {
         return None;
     }
+    // the returned closure will find the name modulo casing
+    let varienty_by_type = get_variety_from_binding(name, bindings);
+    if let Some(from_const) = varienty_by_type(BindingTypes::SetupConst) {
+        return Some(if bc.inline {
+            Js::Simple(from_const)
+        } else {
+            Js::Compound(vec![
+                Js::Src("$setup["),
+                Js::StrLit(from_const),
+                Js::Src("]"),
+            ])
+        });
+    }
+    let from_maybe_ref = varienty_by_type(BindingTypes::SetupLet)
+        .or_else(|| varienty_by_type(BindingTypes::SetupRef))
+        .or_else(|| varienty_by_type(BindingTypes::SetupMaybeRef));
+    if let Some(maybe_ref) = from_maybe_ref {
+        return Some(if bc.inline {
+            Js::Call(RuntimeHelper::Unref, vec![Js::Simple(maybe_ref)])
+        } else {
+            Js::Compound(vec![
+                Js::Src("$setup["),
+                Js::StrLit(maybe_ref),
+                Js::Src("]"),
+            ])
+        });
+    }
+    None
+}
+
+#[inline(always)]
+fn get_variety_from_binding<'a: 'b, 'b>(
+    name: &'a str,
+    bindings: &'b BindingMetadata,
+) -> impl Fn(BindingTypes) -> Option<VStr<'a>> + 'b {
+    use crate::core::util::Lazy;
     let camel_name = *VStr::raw(name).camelize();
     let pascal_name = *VStr::raw(name).capitalize();
     let name = VStr::raw(name);
     // TODO: remove the lazy using a better VStr instead
-    let camel = Lazy::new(|| camel_name.into_string());
-    let pascal = Lazy::new(|| pascal_name.into_string());
-    let check_type = |tpe: BindingTypes| {
+    let camel = Lazy::new(move || camel_name.into_string());
+    let pascal = Lazy::new(move || pascal_name.into_string());
+    move |tpe: BindingTypes| {
         let is_match = |n: &str| Some(bindings.get(n)? == &tpe);
         if is_match(&name)? {
             Some(name)
@@ -160,8 +211,7 @@ fn resolve_setup_reference<'a>(name: &'a str, bc: &BC) -> Option<VStr<'a>> {
         } else {
             None
         }
-    };
-    todo!()
+    }
 }
 
 fn is_component_tag(tag: &str) -> bool {

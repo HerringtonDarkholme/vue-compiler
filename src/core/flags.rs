@@ -12,6 +12,7 @@ bitflags! {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum RuntimeHelper {
     Fragment,
     Teleport,

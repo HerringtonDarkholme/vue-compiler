@@ -72,7 +72,7 @@ pub struct CompileOption<E: ErrorHandler> {
 pub fn base_compile<'a, IR, O, E, Conv, Trans, Gen>(
     source: &'a str,
     opt: CompileOption<E>,
-    conv: Conv,
+    mut conv: Conv,
     trans: Trans,
     gen: Gen,
 ) -> Result<O, CompilationError>

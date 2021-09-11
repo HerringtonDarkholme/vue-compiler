@@ -1,6 +1,6 @@
 use super::{
     build_props::{build_props, BuildProps},
-    BaseConverter, BaseIR, Element, IRNode, JsExpr as Js, VNodeIR, VStr,
+    BaseConverter, BaseIR, CoreConverter, Element, IRNode, JsExpr as Js, VNodeIR, VStr,
 };
 use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
@@ -9,7 +9,7 @@ use crate::core::{
     util::{find_prop, get_core_component},
 };
 
-pub fn convert_element<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
+pub fn convert_element<'a>(bc: &mut BaseConverter, e: Element<'a>) -> BaseIR<'a> {
     let tag = resolve_element_tag(&e, bc);
     let is_block = should_use_block();
     let BuildProps {
@@ -42,7 +42,7 @@ pub fn convert_template<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
 /// 1. Js::Call for dynamic component or user component.
 /// 2. Js::Symbol for builtin component
 /// 3. Js::StrLit for plain element
-pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &BaseConverter) -> Js<'a> {
+pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &mut BaseConverter) -> Js<'a> {
     if e.tag_type == ElementType::Plain {
         return Js::StrLit(VStr::raw(e.tag_name));
     }
@@ -57,12 +57,16 @@ pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &BaseConverter) -> Js<'a> {
         return call_expr;
     }
     // 2. built-in components (Teleport, Transition, KeepAlive, Suspense...)
-    // if is_core_component(tag) || bc.is_builtin_component(tag) {
-    //     // TODO: make sure SSR helper does nothing since
-    //     // built-ins are simply fallthroughs / have special handling during ssr
-    //     // so we don't need to import their runtime equivalents
-
-    // }
+    let builtin = bc
+        .get_builtin_component(tag)
+        .or_else(|| get_core_component(tag));
+    if let Some(builtin) = builtin {
+        // TODO: make sure SSR helper does nothing since
+        // built-ins are simply fallthroughs / have special handling during ssr
+        // so we don't need to import their runtime equivalents
+        bc.collect_helper(builtin);
+        return Js::Symbol(builtin);
+    }
     // 3. user component (from setup bindings)
     // 4. Self referencing component (inferred from filename)
     // 5. user component (resolve)

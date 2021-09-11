@@ -10,7 +10,7 @@ use crate::core::{
 };
 use std::mem::swap;
 
-pub fn convert_slot_outlet<'a>(bc: &BaseConverter, mut e: Element<'a>) -> BaseIR<'a> {
+pub fn convert_slot_outlet<'a>(bc: &mut BaseConverter, mut e: Element<'a>) -> BaseIR<'a> {
     let (slot_name, slot_props) = process_slot_outlet(&mut e);
     let fallbacks = bc.convert_children(e.children);
     let no_slotted = bc.no_slotted();

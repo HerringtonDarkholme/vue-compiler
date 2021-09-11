@@ -201,30 +201,27 @@ where
             .collect()
     }
 
-    fn dispatch_ast(&self, mut n: AstNode<'a>) -> IRNode<T> {
-        if let Some(dir) = pre_convert_for(&mut n) {
-            return self.convert_for(dir, self.dispatch_ast(n));
-        }
-        use super::parser::ElementType::{SlotOutlet, Template};
+    fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<T> {
         match n {
             AstNode::Text(t) => self.convert_text(t),
             AstNode::Comment(c) => self.convert_comment(c),
             AstNode::Interpolation(i) => self.convert_interpolation(i),
             // all element like node needs pre-convert structural dirs
-            AstNode::Element(
-                e @ Element {
-                    tag_type: Template, ..
-                },
-            ) => self.convert_template(e),
-            AstNode::Element(
-                e
-                @
-                Element {
-                    tag_type: SlotOutlet,
-                    ..
-                },
-            ) => self.convert_slot_outlet(e),
-            AstNode::Element(e) => self.convert_element(e),
+            AstNode::Element(mut e) => {
+                if let Some(dir) = pre_convert_for(&mut e) {
+                    self.convert_for(dir, e)
+                } else {
+                    self.dispatch_element(e)
+                }
+            }
+        }
+    }
+    fn dispatch_element(&self, e: Element<'a>) -> IRNode<T> {
+        use super::parser::ElementType::{SlotOutlet, Template};
+        match e.tag_type {
+            Template => self.convert_template(e),
+            SlotOutlet => self.convert_slot_outlet(e),
+            _ => self.convert_element(e),
         }
     }
 
@@ -233,7 +230,7 @@ where
     // core template syntax conversion
     fn convert_directive(&self) -> DirectiveConvertResult<T::JsExpression>;
     fn convert_if(&self, nodes: Vec<AstNode<'a>>, key: usize) -> IRNode<T>;
-    fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
+    fn convert_for(&self, d: Directive<'a>, e: Element<'a>) -> IRNode<T>;
     fn convert_slot_outlet(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_component(&self, e: Element<'a>) -> IRNode<T>;
@@ -308,8 +305,8 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     fn convert_if(&self, nodes: Vec<AstNode<'a>>, key: usize) -> BaseIR<'a> {
         v_if::convert_if(self, nodes, key)
     }
-    fn convert_for(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
-        v_for::convert_for(self, d, n)
+    fn convert_for(&self, d: Directive<'a>, e: Element<'a>) -> BaseIR<'a> {
+        v_for::convert_for(self, d, e)
     }
     fn convert_slot_outlet(&self, e: Element<'a>) -> BaseIR<'a> {
         convert_slot_outlet::convert_slot_outlet(self, e)

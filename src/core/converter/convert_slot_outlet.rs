@@ -33,7 +33,6 @@ type NameAndProps<'a> = (Js<'a>, Option<Js<'a>>);
 
 fn process_slot_outlet<'a>(e: &mut Element<'a>) -> NameAndProps<'a> {
     let mut slot_name = Js::StrLit(VStr::raw("default"));
-    let mut slot_props = None;
     let mapper = |mut prop| {
         match &mut prop {
             ElemProp::Dir(dir @ Directive { name: "bind", .. })
@@ -83,7 +82,7 @@ fn process_slot_outlet<'a>(e: &mut Element<'a>) -> NameAndProps<'a> {
         let BuildProps {
             props, directives, ..
         } = build_props(e, non_name_props);
-        (slot_name, slot_props)
+        (slot_name, props)
     } else {
         (slot_name, None)
     }

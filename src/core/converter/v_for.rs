@@ -1,22 +1,22 @@
 use super::{
-    find_dir, AstNode, BaseConvertInfo, BaseConverter, BaseIR, CompilationError, CoreConverter,
-    Directive, ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
+    find_dir, BaseConvertInfo, BaseConverter, BaseIR, CompilationError, CoreConverter, Directive,
+    Element, ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
 };
 use crate::core::error::CompilationErrorKind as ErrorKind;
 use crate::core::util::VStr;
 
 /// Pre converts v-if or v-for like structural dir
 // TODO: benchmark this because we did check element twice
-pub fn pre_convert_for<'a>(node: &mut AstNode<'a>) -> Option<Directive<'a>> {
-    let e = node.get_element_mut()?;
+pub fn pre_convert_for<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
     // convert v-for, v-if is converted elsewhere
-    let dir = find_dir(&mut *e, "for")?;
+    let dir = find_dir(&mut *elem, "for")?;
     let b = dir.take();
-    debug_assert!(find_dir(&mut *e, "for").is_none());
+    debug_assert!(find_dir(&mut *elem, "for").is_none());
     Some(b)
 }
 
-pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, e: Element<'a>) -> BaseIR<'a> {
+    let n = bc.dispatch_element(e);
     // on empty v-for expr error
     if let Some(error) = d.check_empty_expr(ErrorKind::VForNoExpression) {
         bc.emit_error(error);

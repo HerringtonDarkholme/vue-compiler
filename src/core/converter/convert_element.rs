@@ -1,6 +1,7 @@
 use super::{
     build_props::{build_props, BuildProps},
-    BaseConverter as BC, BaseIR, CoreConverter, Element, IRNode, JsExpr as Js, VNodeIR, VStr,
+    BaseConverter as BC, BaseIR, BindingTypes, CoreConverter, Element, IRNode, JsExpr as Js,
+    VNodeIR, VStr,
 };
 use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
@@ -136,14 +137,27 @@ fn build_children<'a>(e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
 }
 
 // TODO: externalize this into the CoreConverter trait
-fn resolve_setup_reference<'a>(tag: &'a str, bc: &BC) -> Option<VStr<'a>> {
+fn resolve_setup_reference<'a>(name: &'a str, bc: &BC) -> Option<VStr<'a>> {
     use crate::core::util::{camelize, capitalize, Lazy};
     let bindings = &bc.binding_metadata;
     if bindings.is_empty() || !bindings.is_setup() {
         return None;
     }
-    let camel_name = Lazy::new(|| camelize(tag));
-    let pascal_name = Lazy::new(|| capitalize(tag));
+    let camel_name = Lazy::new(|| camelize(name));
+    let pascal_name = Lazy::new(|| capitalize(name));
+    let check_type = |tpe: BindingTypes| {
+        let is_match = |n: &str| Some(bindings.get(n)? == &tpe);
+        let mut name = VStr::raw(name);
+        if is_match(&name)? {
+            Some(name)
+        } else if is_match(&camel_name)? {
+            Some(*name.camelize())
+        } else if is_match(&pascal_name)? {
+            Some(*name.capitalize())
+        } else {
+            None
+        }
+    };
     todo!()
 }
 

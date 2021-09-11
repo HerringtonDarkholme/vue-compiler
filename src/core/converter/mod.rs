@@ -149,6 +149,7 @@ pub enum JsExpr<'a> {
     Symbol(RuntimeHelper),
 }
 
+#[derive(PartialEq, Eq)]
 pub enum BindingTypes {
     /// returned from data()
     Data,

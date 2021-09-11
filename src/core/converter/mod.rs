@@ -233,7 +233,6 @@ where
     fn convert_for(&self, d: Directive<'a>, e: Element<'a>) -> IRNode<T>;
     fn convert_slot_outlet(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
-    fn convert_component(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_text(&self, t: TextNode<'a>) -> IRNode<T>;
     fn convert_interpolation(&self, i: SourceNode<'a>) -> IRNode<T>;
     fn convert_template(&self, e: Element<'a>) -> IRNode<T>;
@@ -313,9 +312,6 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     }
     fn convert_element(&self, e: Element<'a>) -> BaseIR<'a> {
         convert_element::convert_element(self, e)
-    }
-    fn convert_component(&self, e: Element<'a>) -> BaseIR<'a> {
-        convert_element::convert_component(self, e)
     }
     fn convert_text(&self, text: TextNode<'a>) -> BaseIR<'a> {
         // TODO: reduce allocation by push to existing

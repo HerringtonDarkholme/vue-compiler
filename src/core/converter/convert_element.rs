@@ -2,17 +2,29 @@ use super::{
     build_props::{build_props, BuildProps},
     BaseConverter, BaseIR, Element, IRNode, JsExpr as Js, VNodeIR,
 };
+use crate::core::flags::PatchFlag;
 
 pub fn convert_element<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
+    convert_impl(bc, e)
+}
+pub fn convert_component<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
+    convert_impl(bc, e)
+}
+pub fn convert_template<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
+    todo!()
+}
+
+pub fn convert_impl<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
     let tag = resolve_component_type(&e);
     let is_block = should_use_block();
     let BuildProps {
         props,
         directives,
         dynamic_props,
-        patch_flag,
+        mut patch_flag,
     } = build_props(&e, "TODO");
-    let children = build_children(&e);
+    let (children, more_flags) = build_children(&e);
+    patch_flag |= more_flags;
     let vnode = VNodeIR {
         tag,
         props,
@@ -25,12 +37,6 @@ pub fn convert_element<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
         is_component: false,
     };
     IRNode::VNodeCall(vnode)
-}
-pub fn convert_component<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
-    todo!()
-}
-pub fn convert_template<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
-    todo!()
 }
 
 pub fn resolve_component_type<'a>(e: &Element<'a>) -> Js<'a> {
@@ -46,7 +52,7 @@ pub fn resolve_component_type<'a>(e: &Element<'a>) -> Js<'a> {
 fn should_use_block() -> bool {
     todo!()
 }
-fn build_children<'a>(e: &Element<'a>) -> Vec<BaseIR<'a>> {
+fn build_children<'a>(e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
     todo!()
 }
 fn resolve_setup_reference() {

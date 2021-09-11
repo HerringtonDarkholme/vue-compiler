@@ -13,7 +13,7 @@ Dir:
     content:
       raw: tt
       ops:
-        bits: 10
+        bits: 18
     location:
       start:
         offset: 9

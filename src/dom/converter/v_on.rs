@@ -33,12 +33,7 @@ pub fn convert_v_on<'a>(
             DirectiveArg::Static(s) => Js::StrLit(*VStr::raw(s).add_handler_key()),
             DirectiveArg::Dynamic(s) => {
                 let e = Js::Simple(VStr::raw(s));
-                Js::Compound(vec![
-                    Js::Src(RuntimeHelper::ToHandlerKey.helper_str()),
-                    Js::Src("("),
-                    e,
-                    Js::Src(")"),
-                ])
+                Js::Call(RuntimeHelper::ToHandlerKey.helper_str(), vec![e])
             }
         };
         let exp = convert_v_on_expr(expression);
@@ -48,12 +43,7 @@ pub fn convert_v_on<'a>(
         // bare v-on="" does not have mods
         let exp = expression.expect("v-on with no expr nor arg should be dropped.");
         let exp = Js::Simple(exp.content);
-        Js::Compound(vec![
-            Js::Src(RuntimeHelper::ToHandlers.helper_str()),
-            Js::Src("("),
-            exp,
-            Js::Src(")"),
-        ])
+        Js::Call(RuntimeHelper::ToHandlers.helper_str(), vec![exp])
     };
     DirectiveConvertResult::Converted {
         value,

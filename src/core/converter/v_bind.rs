@@ -47,16 +47,12 @@ pub fn convert_v_bind<'a>(
         };
         // TODO: handle .attr, .prop, modifiers in DOM
         if modifiers.contains(&"camel") {
-            match &mut arg {
-                Js::StrLit(s) => {
+            arg = match arg {
+                Js::StrLit(ref mut s) => {
                     s.camelize();
+                    arg
                 }
-                Js::Compound(t) => {
-                    t.insert(0, Js::Src(RuntimeHelper::Camelize.helper_str()));
-                    t.insert(1, Js::Src("("));
-                    t.push(Js::Src(")"));
-                }
-                _ => (),
+                a => Js::Call(RuntimeHelper::Camelize.helper_str(), vec![a]),
             }
         }
         Js::Props(vec![(arg, expr)])

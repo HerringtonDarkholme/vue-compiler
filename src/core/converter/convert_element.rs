@@ -6,12 +6,11 @@ use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
     parser::{Directive, ElemProp, ElementType},
     tokenizer::Attribute,
-    util::{find_prop, is_core_component},
-    PreambleHelper,
+    util::{find_prop, get_core_component},
 };
 
 pub fn convert_element<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
-    let tag = resolve_element_tag(&e);
+    let tag = resolve_element_tag(&e, bc);
     let is_block = should_use_block();
     let BuildProps {
         props,
@@ -43,7 +42,7 @@ pub fn convert_template<'a>(bc: &BaseConverter, e: Element<'a>) -> BaseIR<'a> {
 /// 1. Js::Call for dynamic component or user component.
 /// 2. Js::Symbol for builtin component
 /// 3. Js::StrLit for plain element
-pub fn resolve_element_tag<'a>(e: &Element<'a>) -> Js<'a> {
+pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &BaseConverter) -> Js<'a> {
     if e.tag_type == ElementType::Plain {
         return Js::StrLit(VStr::raw(e.tag_name));
     }

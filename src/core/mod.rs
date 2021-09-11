@@ -63,16 +63,6 @@ pub enum Namespace {
 
 pub trait TemplateCompiler {}
 
-/// PreambleHelper is a collection of JavaScript imports at the head of output
-/// e.g. v-for needs a list looping helper to make vdom
-/// preamble helper needs collect helper when traversing template ast
-/// and generates corresponding JavaScript imports in compilation output
-pub trait PreambleHelper<Helper> {
-    fn collect_helper(&mut self, helper: Helper);
-    fn generate_imports(&self) -> String;
-    fn helper_str(&self) -> &'static str;
-}
-
 pub struct CompileOption<E: ErrorHandler> {
     tokenization: TokenizeOption,
     parsing: ParseOption,

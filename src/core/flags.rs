@@ -1,4 +1,9 @@
-use super::PreambleHelper;
+//! This module defines a collection of flags used for Vue's runtime.
+//! Currently it includes preamble helper and vnode patch flags.
+//! Ideally we can make flags extensible by extracting them to trait.
+//! But currently it works well enough and adding traits makes compiler
+//! bloated with too many generic parameters.
+
 use bitflags::bitflags;
 
 bitflags! {
@@ -52,14 +57,15 @@ bitflags! {
     }
 }
 
-impl PreambleHelper<RuntimeHelper> for RuntimeHelper {
-    fn collect_helper(&mut self, helper: RuntimeHelper) {
-        *self |= helper;
-    }
-    fn generate_imports(&self) -> String {
+/// PreambleHelper is a collection of JavaScript imports at the head of output
+/// e.g. v-for needs a list looping helper to make vdom
+/// preamble helper needs collect helper when traversing template ast
+/// and generates corresponding JavaScript imports in compilation output
+impl RuntimeHelper {
+    pub fn generate_imports(&self) -> String {
         todo!()
     }
-    fn helper_str(&self) -> &'static str {
+    pub fn helper_str(&self) -> &'static str {
         use RuntimeHelper as R;
         match *self {
             R::CAMELIZE => "camelize",
@@ -69,3 +75,12 @@ impl PreambleHelper<RuntimeHelper> for RuntimeHelper {
         }
     }
 }
+
+/*
+// we can extend helper by extracting trait like below.
+// but it does not pay off now.
+pub trait PreambleHelper {
+    fn generate_imports(&self) -> String;
+    fn helper_str(&self) -> &'static str;
+}
+*/

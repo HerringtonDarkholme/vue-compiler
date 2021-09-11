@@ -227,6 +227,9 @@ where
 
     // emit error
     fn emit_error(&self, error: CompilationError);
+    // platform specific options
+    fn is_builtin_component(tag: &str) -> bool;
+
     // core template syntax conversion
     fn convert_directive(&self) -> DirectiveConvertResult<T::JsExpression>;
     fn convert_if(&self, elems: Vec<Element<'a>>, key: usize) -> IRNode<T>;
@@ -327,6 +330,9 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     }
     fn convert_comment(&self, c: SourceNode<'a>) -> BaseIR<'a> {
         IRNode::CommentCall(c.source)
+    }
+    fn is_builtin_component(tag: &str) -> bool {
+        todo!()
     }
 }
 

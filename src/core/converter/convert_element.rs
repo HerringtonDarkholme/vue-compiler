@@ -92,7 +92,7 @@ fn resolve_dynamic_component<'a>(
             _ => panic!("{}", NON_EMPTY_ASSERTION),
         };
         return Ok(Js::Call(
-            RuntimeHelper::RESOLVE_DYNAMIC_COMPONENT.helper_str(),
+            RuntimeHelper::ResolveDynamicComponent.helper_str(),
             vec![exp],
         ));
     }

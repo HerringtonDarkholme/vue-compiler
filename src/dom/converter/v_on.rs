@@ -34,7 +34,7 @@ pub fn convert_v_on<'a>(
             DirectiveArg::Dynamic(s) => {
                 let e = Js::Simple(VStr::raw(s));
                 Js::Compound(vec![
-                    Js::Src(RuntimeHelper::TO_HANDLER_KEY.helper_str()),
+                    Js::Src(RuntimeHelper::ToHandlerKey.helper_str()),
                     Js::Src("("),
                     e,
                     Js::Src(")"),
@@ -49,7 +49,7 @@ pub fn convert_v_on<'a>(
         let exp = expression.expect("v-on with no expr nor arg should be dropped.");
         let exp = Js::Simple(exp.content);
         Js::Compound(vec![
-            Js::Src(RuntimeHelper::TO_HANDLERS.helper_str()),
+            Js::Src(RuntimeHelper::ToHandlers.helper_str()),
             Js::Src("("),
             exp,
             Js::Src(")"),

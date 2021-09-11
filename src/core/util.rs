@@ -19,10 +19,10 @@ pub fn non_whitespace(c: char) -> bool {
 pub fn get_core_component(tag: &str) -> Option<RuntimeHelper> {
     use RuntimeHelper as RH;
     Some(match tag {
-        "Teleport" | "teleport" => RH::TELEPORT,
-        "Suspense" | "suspense" => RH::SUSPENSE,
-        "KeepAlive" | "keep-alive" => RH::KEEP_ALIVE,
-        "BaseTransition" | "base-transition" => RH::BASE_TRANSITION,
+        "Teleport" | "teleport" => RH::Teleport,
+        "Suspense" | "suspense" => RH::Suspense,
+        "KeepAlive" | "keep-alive" => RH::KeepAlive,
+        "BaseTransition" | "base-transition" => RH::BaseTransition,
         _ => return None,
     })
 }

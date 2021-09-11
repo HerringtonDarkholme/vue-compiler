@@ -52,7 +52,7 @@ pub fn convert_v_bind<'a>(
                     s.camelize();
                 }
                 Js::Compound(t) => {
-                    t.insert(0, Js::Src(RuntimeHelper::CAMELIZE.helper_str()));
+                    t.insert(0, Js::Src(RuntimeHelper::Camelize.helper_str()));
                     t.insert(1, Js::Src("("));
                     t.push(Js::Src(")"));
                 }

@@ -1,64 +1,43 @@
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 enum TextMode {
     Data,
     RawText,
     RCData,
+    Data1,
+    RawText1,
+    RCData1,
+    Data2,
+    RawText2,
+    RCData2,
 }
-
-trait OptionLike {
-    fn skip(&self) -> bool;
-    fn get_name(s: &str) -> TextMode;
-}
-struct Option {
-    skip: bool,
-}
-impl OptionLike for Option {
-    #[inline]
-    fn skip(&self) -> bool {
-        self.skip
-    }
-    fn get_name(s: &str) -> TextMode {
-        get_name(s)
+impl std::fmt::Display for TextMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(self, f)
     }
 }
 
-fn get_name(s: &str) -> TextMode {
-    match s {
-        "script" => TextMode::RawText,
-        "textarea" => TextMode::RCData,
-        _ => TextMode::Data,
-    }
+fn test_eq_data(t: TextMode) -> bool {
+    t == TextMode::Data
 }
-
-fn is_special<O: OptionLike>(s: &str, opt: &O) -> bool {
-    opt.skip() && O::get_name(s) == TextMode::Data
+fn test_match_data(t: TextMode) -> bool {
+    matches!(t, TextMode::Data)
 }
 
 use criterion::BenchmarkId;
 use criterion::Criterion;
 use criterion::{criterion_group, criterion_main};
 
-fn from_elem(c: &mut Criterion) {
-    for name in [
-        (Option { skip: true }, "script"),
-        (Option { skip: true }, "textarea"),
-        (Option { skip: true }, "div"),
-        (Option { skip: false }, "script"),
-        (Option { skip: false }, "textarea"),
-        (Option { skip: false }, "div"),
-    ]
-    .iter()
-    {
-        let n = if name.0.skip {
-            "test opt: skipped"
-        } else {
-            "test opt: no skip"
-        };
-        c.bench_with_input(BenchmarkId::new(n, name.1), &name, |b, &n| {
-            b.iter(|| is_special(n.1, &n.0));
+fn test_enum_eq(c: &mut Criterion) {
+    use TextMode::*;
+    for name in [Data, RawText, RCData, RawText2].iter() {
+        c.bench_with_input(BenchmarkId::new("test enum match", name), &name, |b, &n| {
+            b.iter(|| test_match_data(*n));
+        });
+        c.bench_with_input(BenchmarkId::new("test enum eq", name), &name, |b, &n| {
+            b.iter(|| test_eq_data(*n));
         });
     }
 }
 
-criterion_group!(benches, from_elem);
+criterion_group!(benches, test_enum_eq);
 criterion_main!(benches);

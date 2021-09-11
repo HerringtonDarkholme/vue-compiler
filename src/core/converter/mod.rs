@@ -205,15 +205,26 @@ where
         if let Some(dir) = pre_convert_for(&mut n) {
             return self.convert_for(dir, self.dispatch_ast(n));
         }
+        use super::parser::ElementType::{SlotOutlet, Template};
         match n {
             AstNode::Text(t) => self.convert_text(t),
             AstNode::Comment(c) => self.convert_comment(c),
             AstNode::Interpolation(i) => self.convert_interpolation(i),
             // all element like node needs pre-convert structural dirs
-            AstNode::Plain(e) => self.convert_element(e),
-            AstNode::Component(e) => self.convert_component(e),
-            AstNode::Template(e) => self.convert_template(e),
-            AstNode::SlotOutlet(e) => self.convert_slot_outlet(e),
+            AstNode::Element(
+                e @ Element {
+                    tag_type: Template, ..
+                },
+            ) => self.convert_template(e),
+            AstNode::Element(
+                e
+                @
+                Element {
+                    tag_type: SlotOutlet,
+                    ..
+                },
+            ) => self.convert_slot_outlet(e),
+            AstNode::Element(e) => self.convert_element(e),
         }
     }
 

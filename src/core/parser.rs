@@ -27,10 +27,7 @@ use std::ops::Deref;
 
 #[cfg_attr(test, derive(Serialize))]
 pub enum AstNode<'a> {
-    Plain(Element<'a>),
-    Template(Element<'a>),
-    Component(Element<'a>),
-    SlotOutlet(Element<'a>),
+    Element(Element<'a>),
     Text(TextNode<'a>),
     Interpolation(SourceNode<'a>),
     Comment(SourceNode<'a>),
@@ -40,14 +37,14 @@ impl<'a> AstNode<'a> {
     pub fn get_element(&self) -> Option<&Element<'a>> {
         use AstNode as A;
         match self {
-            A::Plain(e) | A::Template(e) | A::Component(e) | A::SlotOutlet(e) => Some(e),
+            A::Element(e) => Some(e),
             _ => None,
         }
     }
     pub fn get_element_mut(&mut self) -> Option<&mut Element<'a>> {
         use AstNode as A;
         match self {
-            A::Plain(e) | A::Template(e) | A::Component(e) | A::SlotOutlet(e) => Some(e),
+            A::Element(e) => Some(e),
             _ => None,
         }
     }
@@ -106,9 +103,19 @@ pub enum ElemProp<'a> {
     Dir(Directive<'a>),
 }
 
+#[derive(PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize))]
+pub enum ElementType {
+    Plain,
+    Component,
+    Template,
+    SlotOutlet,
+}
+
 #[cfg_attr(test, derive(Serialize))]
 pub struct Element<'a> {
     pub tag_name: Name<'a>,
+    pub tag_type: ElementType,
     pub namespace: Namespace,
     pub properties: Vec<ElemProp<'a>>,
     pub children: Vec<AstNode<'a>>,
@@ -327,6 +334,7 @@ where
         let ns = (self.option.get_namespace)(name, &self.open_elems);
         let elem = Element {
             tag_name: name,
+            tag_type: ElementType::Plain,
             namespace: ns,
             properties: props,
             children: vec![],
@@ -456,23 +464,23 @@ where
             self.v_pre_index = None;
         }
     }
-    fn parse_element(&mut self, elem: Element<'a>) -> AstNode<'a> {
+    fn parse_element(&mut self, mut elem: Element<'a>) -> AstNode<'a> {
+        debug_assert!(elem.tag_type == ElementType::Plain);
         if self.v_pre_index.is_some() {
             debug_assert!({
                 let i = *self.v_pre_index.as_ref().unwrap();
                 i != self.open_elems.len() || is_v_pre_boundary(&elem)
             });
             self.close_v_pre();
-            AstNode::Plain(elem)
+            elem.tag_type = ElementType::Plain;
         } else if elem.tag_name == "slot" {
-            AstNode::SlotOutlet(elem)
+            elem.tag_type = ElementType::SlotOutlet;
         } else if is_template_element(&elem) {
-            AstNode::Template(elem)
+            elem.tag_type = ElementType::Template;
         } else if self.is_component(&elem) {
-            AstNode::Component(elem)
-        } else {
-            AstNode::Plain(elem)
+            elem.tag_type = ElementType::Component;
         }
+        AstNode::Element(elem)
     }
     fn parse_text(&mut self, text: VStr<'a>) {
         let mut text = smallvec![text];

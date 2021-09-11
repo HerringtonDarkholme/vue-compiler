@@ -11,7 +11,7 @@ expression: t
           content:
             raw: "1123"
             ops:
-              bits: 10
+              bits: 18
           location:
             start:
               offset: 8

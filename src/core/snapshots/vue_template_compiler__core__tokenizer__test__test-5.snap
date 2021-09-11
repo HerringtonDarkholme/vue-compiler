@@ -51,7 +51,7 @@ expression: t
           content:
             raw: value
             ops:
-              bits: 10
+              bits: 18
           location:
             start:
               offset: 24

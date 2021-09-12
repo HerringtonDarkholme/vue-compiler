@@ -78,10 +78,22 @@ No support since most features in full build are additional except for browser b
 
 Todo tasks grouped by scopes.
 
+### [util]
+- [x] VStr
+    - [ ] string intern
+    - [ ] camel/pascal cache
+    - [ ] str ops
 ### [core]
 - [x] tokenizer
+    - [ ] UTF8 support
 - [x] parser
 - [ ] IR converter
+    - [x] v-if
+    - [x] v-for
+    - [ ] v-slot
+    - [x] slot outlet
+    - [ ] element
+    - [ ] build props
 - [ ] transformer
 - [ ] code generator
 ### [dom]
@@ -94,6 +106,7 @@ Todo tasks grouped by scopes.
 ### [test]
 - [ ] tokenizer test
 - [ ] parser test
+    - [x] dir parser test
 - [x] Add insta snapshot
 ### [bench]
 - [x] Add benchmark framework

@@ -695,6 +695,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     /// tokenizer's line/column are also updated in the method
     /// NB: it only moves forward, not backward
     /// `advance_to` is a better name but it collides with iter
+    // TODO: size should be byte, not char length
     fn move_by(&mut self, size: usize) -> &'a str {
         debug_assert!(size > 0, "tokenizer must move forward");
         let mut lines = 0;

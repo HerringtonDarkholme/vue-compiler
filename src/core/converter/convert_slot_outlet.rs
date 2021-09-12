@@ -1,17 +1,18 @@
 use super::{
     build_props::{build_props, BuildProps},
-    BaseConverter, BaseIR, CoreConverter, Directive, Element, IRNode, JsExpr as Js, RenderSlotIR,
-    VStr,
+    BaseConverter as BC, BaseIR, CoreConverter, Directive, Element, IRNode, JsExpr as Js,
+    RenderSlotIR, VStr,
 };
 use crate::core::{
+    error::{CompilationError, CompilationErrorKind::VSlotUnexpectedDirectiveOnSlotOutlet},
     parser::{DirectiveArg, ElemProp},
     tokenizer::Attribute,
     util::is_bind_key,
 };
-use std::mem::swap;
+use std::mem;
 
-pub fn convert_slot_outlet<'a>(bc: &mut BaseConverter, mut e: Element<'a>) -> BaseIR<'a> {
-    let (slot_name, slot_props) = process_slot_outlet(&mut e);
+pub fn convert_slot_outlet<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
+    let (slot_name, slot_props) = process_slot_outlet(bc, &mut e);
     let fallbacks = bc.convert_children(e.children);
     let no_slotted = bc.no_slotted();
     let slot_props = slot_props.or({
@@ -31,7 +32,7 @@ pub fn convert_slot_outlet<'a>(bc: &mut BaseConverter, mut e: Element<'a>) -> Ba
 
 type NameAndProps<'a> = (Js<'a>, Option<Js<'a>>);
 
-fn process_slot_outlet<'a>(e: &mut Element<'a>) -> NameAndProps<'a> {
+fn process_slot_outlet<'a>(bc: &mut BC, e: &mut Element<'a>) -> NameAndProps<'a> {
     let mut slot_name = Js::StrLit(VStr::raw("default"));
     let mapper = |mut prop| {
         match &mut prop {
@@ -75,15 +76,18 @@ fn process_slot_outlet<'a>(e: &mut Element<'a>) -> NameAndProps<'a> {
         }
     };
 
-    let mut props = vec![];
-    swap(&mut props, &mut e.properties);
+    let props = mem::take(&mut e.properties);
     let mut non_name_props = props.into_iter().filter_map(mapper).peekable();
-    if non_name_props.peek().is_some() {
-        let BuildProps {
-            props, directives, ..
-        } = build_props(e, non_name_props);
-        (slot_name, props)
-    } else {
-        (slot_name, None)
+    if non_name_props.peek().is_none() {
+        return (slot_name, None);
     }
+    let BuildProps {
+        props, directives, ..
+    } = build_props(e, non_name_props);
+    if !directives.is_empty() {
+        let error = CompilationError::new(VSlotUnexpectedDirectiveOnSlotOutlet)
+            .with_location(directives[0].location.clone());
+        bc.emit_error(error)
+    }
+    (slot_name, props)
 }

@@ -1,7 +1,7 @@
 use super::{
     build_props::{build_props, BuildProps},
-    BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes, CoreConverter, Element, IRNode,
-    JsExpr as Js, VNodeIR, VStr,
+    BaseConvertInfo, BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes, CoreConverter,
+    DirectiveArgument, Element, IRNode, JsExpr as Js, VNodeIR, VStr,
 };
 use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
@@ -9,20 +9,23 @@ use crate::core::{
     tokenizer::Attribute,
     util::{find_dir, get_core_component, prop_finder},
 };
+use std::mem;
 
-pub fn convert_element<'a>(bc: &mut BC, e: Element<'a>) -> BaseIR<'a> {
+pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
     debug_assert!(matches!(
         e.tag_type,
         ElementType::Plain | ElementType::Component
     ));
     let tag = resolve_element_tag(&e, bc);
     let is_block = should_use_block(&e, &tag);
+    let properties = mem::take(&mut e.properties);
     let BuildProps {
         props,
         directives,
         dynamic_props,
         mut patch_flag,
-    } = build_props(&e, "TODO");
+    } = build_props(&e, properties);
+    let directives = build_directive_args(directives);
     let (children, more_flags) = build_children(&e);
     patch_flag |= more_flags;
     let vnode = VNodeIR {
@@ -159,6 +162,10 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
     e.tag_name == "svg" || e.tag_name == "foreinObject" ||
     // vue-next/#938: elements with dynamic keys should be forced into blocks
     prop_finder(e, "key").dynamic_only().find().is_some()
+}
+type DirArg<'a> = DirectiveArgument<BaseConvertInfo<'a>>;
+fn build_directive_args<'a>(dirs: Vec<Directive<'a>>) -> Vec<DirArg<'a>> {
+    todo!()
 }
 fn build_children<'a>(e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
     todo!()

@@ -228,7 +228,7 @@ where
     fn emit_error(&self, error: CompilationError);
     // platform specific options
     fn get_builtin_component(&self, tag: &str) -> Option<RuntimeHelper>;
-    fn collect_helper(&mut self, h: RuntimeHelper);
+    fn add_component(&mut self, tag: VStr<'a>);
 
     // core template syntax conversion
     fn convert_directive(&self) -> DirectiveConvertResult<T::JsExpression>;
@@ -312,6 +312,8 @@ pub struct BaseConverter {
     /// Optional binding metadata analyzed from script - used to optimize
     /// binding access when `prefixIdentifiers` is enabled.
     pub binding_metadata: BindingMetadata,
+    /// current SFC filename for self-referencing
+    pub self_name: String,
 }
 type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
 impl<'a> Converter<'a> for BaseConverter {
@@ -329,7 +331,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     fn get_builtin_component(&self, tag: &str) -> Option<RuntimeHelper> {
         todo!()
     }
-    fn collect_helper(&mut self, h: RuntimeHelper) {
+    fn add_component(&mut self, tag: VStr<'a>) {
         todo!()
     }
 

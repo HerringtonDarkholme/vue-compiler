@@ -1,12 +1,19 @@
 /*!
-Transform IRNode, including these original transformation:
+Transform IRNode.
+This module contains the canonical transformations from vue-next and
+the original ones for the parity of features not implemented in Convert.
 
-hoistStatic
-transformExpression
-mergeText
-vOnce
-vMemo
-trackScopes
+## Canonical
+* hoistStatic
+* transformExpression
+* vOnce
+* vMemo
+* trackScopes
+
+## Original
+* collectHelper: track all helpers used in AST. Vue track it by helper/helperString.
+* mergeText: merge consecutive text call
+
  */
 pub trait Transformer {
     type IR;

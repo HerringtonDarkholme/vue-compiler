@@ -1,11 +1,16 @@
 //! There is still a lot we can optimize VStr
-//! instead of using &str, we can use intern to cache static attr name
-//! we can also cache camelize/capitalize result
+//! * instead of using &str, we can use intern to cache static attr name.
+//! * we can also cache camelize/capitalize result.
+//! * if VStr raw already satisfy StrOps, setting the ops flag is noop.
+//! * interning/cache can be optional, e.g. Text Token can skip it at all.
 use bitflags::bitflags;
 #[cfg(test)]
 use serde::Serialize;
-use std::ops::Deref;
+use std::{fmt::Write, ops::Deref};
+
 bitflags! {
+    /// Represents idempotent string manipulation.
+    // Idempotency is required since op is a bitflag.
     #[cfg_attr(test, derive(Serialize))]
     pub struct StrOps: u8 {
         const COMPRESS_WHITESPACE = 1 << 0;
@@ -14,6 +19,19 @@ bitflags! {
         const PASCAL_CASE         = 1 << 3;
         const IS_ATTR             = 1 << 4;
         const HANDLER_KEY         = 1 << 5;
+        const VALID_ASSET         = 1 << 6;
+        const SELF_SUFFIX         = 1 << 7; // not idempotent but called only once
+    }
+}
+
+impl StrOps {
+    // ideally it should be str.satisfy(op) but adding a trait
+    // to str is too much. Use passive voice.
+    fn is_satisfied_by(&self, s: &str) -> bool {
+        todo!()
+    }
+    fn write_ops<W: Write>(&self, s: &str, w: W) {
+        todo!()
     }
 }
 
@@ -57,8 +75,19 @@ impl<'a> VStr<'a> {
         self.ops |= StrOps::COMPRESS_WHITESPACE;
         self
     }
-    pub fn add_handler_key(&mut self) -> &mut Self {
+    /// convert v-on arg to handler key: click -> onClick
+    pub fn be_handler(&mut self) -> &mut Self {
         self.ops |= StrOps::HANDLER_KEY;
+        self
+    }
+    /// add __self suffix for self referring component
+    pub fn suffix_self(&mut self) -> &mut Self {
+        self.ops |= StrOps::SELF_SUFFIX;
+        self
+    }
+    /// convert into a valid asset id
+    pub fn be_asset(&mut self) -> &mut Self {
+        self.ops |= StrOps::VALID_ASSET;
         self
     }
     pub fn into_string(self) -> String {

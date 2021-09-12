@@ -30,7 +30,7 @@ pub fn convert_v_on<'a>(
     } = dir;
     let value = if let Some(arg) = argument {
         let event_name = match arg {
-            DirectiveArg::Static(s) => Js::StrLit(*VStr::raw(s).add_handler_key()),
+            DirectiveArg::Static(s) => Js::StrLit(*VStr::raw(s).be_handler()),
             DirectiveArg::Dynamic(s) => {
                 let e = Js::Simple(VStr::raw(s));
                 Js::Call(RuntimeHelper::ToHandlerKey, vec![e])

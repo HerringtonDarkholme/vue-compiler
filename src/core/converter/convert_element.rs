@@ -42,7 +42,7 @@ pub fn convert_template<'a>(bc: &BC, e: Element<'a>) -> BaseIR<'a> {
 /// Returns a expression for createVnode's first argument. It can be
 /// 1. Js::Call for dynamic component or user component.
 /// 2. Js::Symbol for builtin component
-/// 3. Js::StrLit for plain element
+/// 3. Js::StrLit for plain element or component
 pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &mut BC) -> Js<'a> {
     if e.tag_type == ElementType::Plain {
         return Js::StrLit(VStr::raw(e.tag_name));
@@ -65,16 +65,22 @@ pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &mut BC) -> Js<'a> {
         // TODO: make sure SSR helper does nothing since
         // built-ins are simply fallthroughs / have special handling during ssr
         // so we don't need to import their runtime equivalents
-        bc.collect_helper(builtin);
         return Js::Symbol(builtin);
     }
     // 3. user component (from setup bindings)
     if let Some(from_setup) = resolve_setup_component(tag, bc) {
         return from_setup;
     }
-    // 4. Self referencing component (inferred from filename)
+    // 4. User component or Self referencing component (inferred from filename)
+    let mut comp = VStr::raw(tag);
+    if VStr::raw(tag).camelize().capitalize().into_string() == bc.self_name {
+        // codegen special checks for __self postfix when generating component imports,
+        // which will pass additional `maybeSelfReference` flag to `resolveComponent`.
+        comp.suffix_self();
+    }
     // 5. user component (resolve)
-    todo!()
+    bc.add_component(comp);
+    Js::StrLit(*comp.clone().be_asset()) // use clone to avoid mutating comp
 }
 
 const MUST_NON_EMPTY: &str = "find_prop must return prop with non-empty value";

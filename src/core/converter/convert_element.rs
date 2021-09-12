@@ -22,12 +22,13 @@ pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
     let BuildProps {
         props,
         directives,
-        dynamic_props,
         mut patch_flag,
+        dynamic_prop_names,
     } = build_props(&e, properties);
     let directives = build_directive_args(directives);
     let (children, more_flags) = build_children(&e);
     patch_flag |= more_flags;
+    let dynamic_props = stringify_dynamic_prop_names(dynamic_prop_names);
     let vnode = VNodeIR {
         tag,
         props,
@@ -168,6 +169,10 @@ fn build_directive_args<'a>(dirs: Vec<Directive<'a>>) -> Vec<DirArg<'a>> {
     todo!()
 }
 fn build_children<'a>(e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
+    todo!()
+}
+
+fn stringify_dynamic_prop_names<'a>(prop_names: Vec<VStr<'a>>) -> Option<Js<'a>> {
     todo!()
 }
 

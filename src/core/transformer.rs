@@ -27,7 +27,7 @@ pub fn hoist_static() {}
 pub fn track_v_for_slot_scopes() {}
 pub fn track_slot_scopes() {}
 pub fn merge_text_call() {}
-pub fn prefix_expression() {}
+pub fn collect_helper() {}
 pub fn transform_memo() {}
 pub fn transform_once() {}
 pub fn post_process_v_for_child() {

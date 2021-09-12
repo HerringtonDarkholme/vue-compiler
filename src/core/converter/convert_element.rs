@@ -16,7 +16,7 @@ pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
         e.tag_type,
         ElementType::Plain | ElementType::Component
     ));
-    let tag = resolve_element_tag(&e, bc);
+    let tag = resolve_element_tag(bc, &e);
     let is_block = should_use_block(&e, &tag);
     let properties = mem::take(&mut e.properties);
     let BuildProps {
@@ -51,7 +51,7 @@ pub fn convert_template<'a>(bc: &BC, e: Element<'a>) -> BaseIR<'a> {
 /// 1. Js::Call for dynamic component or user component.
 /// 2. Js::Symbol for builtin component
 /// 3. Js::StrLit for plain element or component
-pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &mut BC) -> Js<'a> {
+pub fn resolve_element_tag<'a>(bc: &mut BC, e: &Element<'a>) -> Js<'a> {
     if e.tag_type == ElementType::Plain {
         return Js::StrLit(VStr::raw(e.tag_name));
     }
@@ -75,7 +75,7 @@ pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &mut BC) -> Js<'a> {
         return Js::Symbol(builtin);
     }
     // 3. user component (from setup bindings)
-    if let Some(from_setup) = resolve_setup_component(tag, bc) {
+    if let Some(from_setup) = resolve_setup_component(bc, tag) {
         return from_setup;
     }
     // 4. User component or Self referencing component (inferred from filename)
@@ -177,21 +177,21 @@ fn stringify_dynamic_prop_names(prop_names: Vec<VStr>) -> Option<Js> {
     todo!()
 }
 
-fn resolve_setup_component<'a>(tag: &'a str, bc: &BC) -> Option<Js<'a>> {
-    if let Some(from_setup) = resolve_setup_reference(tag, bc) {
+fn resolve_setup_component<'a>(bc: &BC, tag: &'a str) -> Option<Js<'a>> {
+    if let Some(from_setup) = resolve_setup_reference(bc, tag) {
         return Some(from_setup);
     }
     // handle <obj.Tag/>
     let no_leading_trailing = |&i: &usize| i != 0 && i < tag.len() - 1;
     let dot_index = tag.find('.').filter(no_leading_trailing)?; // exclude .tag or obj.
     let (ns, access) = tag.split_at(dot_index);
-    let ns = resolve_setup_reference(ns, bc)?;
+    let ns = resolve_setup_reference(bc, ns)?;
     Some(Js::Compound(vec![ns, Js::Src(access)]))
 }
 
 // TODO: externalize this into the CoreConverter trait
 /// returns the specific name created in script setup, modulo camel/pascal case
-fn resolve_setup_reference<'a>(name: &'a str, bc: &BC) -> Option<Js<'a>> {
+fn resolve_setup_reference<'a>(bc: &BC, name: &'a str) -> Option<Js<'a>> {
     let bindings = &bc.binding_metadata;
     if bindings.is_empty() || !bindings.is_setup() {
         return None;

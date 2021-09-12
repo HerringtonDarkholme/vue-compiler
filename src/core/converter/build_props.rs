@@ -1,7 +1,8 @@
-use super::{Element, JsExpr as Js, Prop, VStr};
+use super::{BaseConverter as BC, Element, JsExpr as Js, Prop, VStr};
 use crate::core::{
     flags::PatchFlag,
     parser::{Directive, ElemProp},
+    tokenizer::Attribute,
 };
 use std::iter::IntoIterator;
 
@@ -12,6 +13,7 @@ pub struct BuildProps<'a> {
     pub dynamic_prop_names: Vec<VStr<'a>>,
 }
 
+#[derive(Default)]
 struct PropFlags {
     has_ref: bool,
     has_class_binding: bool,
@@ -21,6 +23,7 @@ struct PropFlags {
     has_vnode_hook: bool,
 }
 
+#[derive(Default)]
 struct CollectProps<'a> {
     props: Props<'a>,
     merge_args: Args<'a>,
@@ -33,32 +36,30 @@ type Props<'a> = Vec<Prop<'a>>;
 type Args<'a> = Vec<Js<'a>>;
 type Dirs<'a> = Vec<Directive<'a>>;
 
-pub fn build_props<'a, T>(e: &Element<'a>, elm_props: T) -> BuildProps<'a>
+pub fn build_props<'a, T>(bc: &mut BC, e: &Element<'a>, elm_props: T) -> BuildProps<'a>
 where
     T: IntoIterator<Item = ElemProp<'a>>,
 {
-    let CollectProps {
-        props,
-        merge_args,
-        runtime_dirs,
-        dynamic_prop_names,
-        prop_flags,
-    } = collect_props(elm_props);
-    let prop_expr = compute_prop_expr(props, merge_args);
-    let patch_flag = build_patch_flag(prop_flags);
+    let mut cp = CollectProps::default();
+    elm_props.into_iter().for_each(|prop| match prop {
+        ElemProp::Dir(dir) => collect_dir(bc, dir, &mut cp),
+        ElemProp::Attr(attr) => collect_attr(bc, attr, &mut cp),
+    });
+    let prop_expr = compute_prop_expr(cp.props, cp.merge_args);
+    let patch_flag = build_patch_flag(cp.prop_flags);
     let prop_expr = pre_normalize_prop(prop_expr);
     BuildProps {
         props: prop_expr,
-        directives: runtime_dirs,
+        directives: cp.runtime_dirs,
         patch_flag,
-        dynamic_prop_names,
+        dynamic_prop_names: cp.dynamic_prop_names,
     }
 }
 
-fn collect_props<'a, T>(t: T) -> CollectProps<'a>
-where
-    T: IntoIterator<Item = ElemProp<'a>>,
-{
+fn collect_attr<'a>(bc: &mut BC, attr: Attribute<'a>, cp: &mut CollectProps<'a>) {
+    todo!()
+}
+fn collect_dir<'a>(bc: &mut BC, dir: Directive<'a>, cp: &mut CollectProps<'a>) {
     todo!()
 }
 

@@ -24,7 +24,7 @@ pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
         directives,
         mut patch_flag,
         dynamic_prop_names,
-    } = build_props(&e, properties);
+    } = build_props(bc, &e, properties);
     let directives = build_directive_args(directives);
     let (children, more_flags) = build_children(&e);
     patch_flag |= more_flags;

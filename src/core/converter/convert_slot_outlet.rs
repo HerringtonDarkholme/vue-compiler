@@ -83,7 +83,7 @@ fn process_slot_outlet<'a>(bc: &mut BC, e: &mut Element<'a>) -> NameAndProps<'a>
     }
     let BuildProps {
         props, directives, ..
-    } = build_props(e, non_name_props);
+    } = build_props(bc, e, non_name_props);
     if !directives.is_empty() {
         let error = CompilationError::new(VSlotUnexpectedDirectiveOnSlotOutlet)
             .with_location(directives[0].location.clone());

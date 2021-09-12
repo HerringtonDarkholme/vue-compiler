@@ -69,20 +69,8 @@ pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &mut BC) -> Js<'a> {
         return Js::Symbol(builtin);
     }
     // 3. user component (from setup bindings)
-    if let Some(from_setup) = resolve_setup_reference(tag, bc) {
+    if let Some(from_setup) = resolve_setup_component(tag, bc) {
         return from_setup;
-    }
-    // handle <obj.Tag/>
-    let namespaced = tag
-        .find('.')
-        .filter(|&i| i != 0 && i < tag.len() - 1) // exclude .tag or obj.
-        .map(|i| tag.split_at(i))
-        .and_then(|(ns, access)| {
-            let ns = resolve_setup_reference(ns, bc)?;
-            Some(Js::Compound(vec![ns, Js::Src(access)]))
-        });
-    if let Some(namespaced) = namespaced {
-        return namespaced;
     }
     // 4. Self referencing component (inferred from filename)
     // 5. user component (resolve)
@@ -149,6 +137,18 @@ fn should_use_block() -> bool {
 }
 fn build_children<'a>(e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
     todo!()
+}
+
+fn resolve_setup_component<'a>(tag: &'a str, bc: &BC) -> Option<Js<'a>> {
+    if let Some(from_setup) = resolve_setup_reference(tag, bc) {
+        return Some(from_setup);
+    }
+    // handle <obj.Tag/>
+    let no_leading_trailing = |&i: &usize| i != 0 && i < tag.len() - 1;
+    let dot_index = tag.find('.').filter(no_leading_trailing)?; // exclude .tag or obj.
+    let (ns, access) = tag.split_at(dot_index);
+    let ns = resolve_setup_reference(ns, bc)?;
+    Some(Js::Compound(vec![ns, Js::Src(access)]))
 }
 
 // TODO: externalize this into the CoreConverter trait

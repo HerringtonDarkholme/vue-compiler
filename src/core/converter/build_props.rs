@@ -1,9 +1,9 @@
-use super::{BaseConverter as BC, Element, JsExpr as Js, Prop, VStr};
+use super::{BaseConverter as BC, CoreConverter, Element, JsExpr as Js, Prop, VStr};
 use crate::core::{
     flags::PatchFlag,
     parser::{Directive, ElemProp},
     tokenizer::Attribute,
-    util::is_component_tag,
+    util::{is_bind_key, is_component_tag},
 };
 use std::iter::IntoIterator;
 
@@ -43,7 +43,7 @@ where
 {
     let mut cp = CollectProps::default();
     elm_props.into_iter().for_each(|prop| match prop {
-        ElemProp::Dir(dir) => collect_dir(bc, dir, &mut cp),
+        ElemProp::Dir(dir) => collect_dir(bc, e, dir, &mut cp),
         ElemProp::Attr(attr) => collect_attr(bc, e, attr, &mut cp),
     });
     let prop_expr = compute_prop_expr(cp.props, cp.merge_args);
@@ -58,12 +58,7 @@ where
 }
 
 fn collect_attr<'a>(bc: &mut BC, e: &Element<'a>, attr: Attribute<'a>, cp: &mut CollectProps<'a>) {
-    let Attribute {
-        name,
-        value,
-        location,
-        ..
-    } = attr;
+    let Attribute { name, value, .. } = attr;
     let val = match value {
         Some(v) => v.content,
         None => VStr::raw(""),
@@ -81,8 +76,42 @@ fn collect_attr<'a>(bc: &mut BC, e: &Element<'a>, attr: Attribute<'a>, cp: &mut 
     }
     cp.props.push((Js::StrLit(val), value_expr));
 }
-fn collect_dir<'a>(bc: &mut BC, dir: Directive<'a>, cp: &mut CollectProps<'a>) {
-    todo!()
+
+#[inline]
+fn is_pre_convert_dir(s: &str) -> bool {
+    match s.len() {
+        2 => s == "if" || s == "is",
+        4 => ["slot", "memo", "once"].contains(&s),
+        _ => s == "for",
+    }
+}
+
+fn collect_dir<'a>(
+    bc: &mut BC,
+    e: &Element<'a>,
+    mut dir: Directive<'a>,
+    cp: &mut CollectProps<'a>,
+) {
+    use super::DirectiveConvertResult as DirConv;
+    let Directive { name, argument, .. } = &dir;
+    let name = *name;
+    if is_pre_convert_dir(name) {
+        return;
+    }
+    if is_bind_key(&argument, "is") && is_component_tag(e.tag_name) {
+        return;
+    }
+    if (name == "bind" || name == "on") && argument.is_none() {
+        cp.prop_flags.has_dynamic_keys = true;
+    }
+    let (value, need_runtime) = match bc.convert_directive(&mut dir) {
+        DirConv::Converted {
+            value,
+            need_runtime,
+        } => (value, need_runtime),
+        DirConv::Preserve => return cp.runtime_dirs.push(dir),
+        DirConv::Dropped => return,
+    };
 }
 
 fn process_inline_ref(val: VStr) -> Js {

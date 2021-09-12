@@ -1,4 +1,5 @@
 use super::{
+    super::error::{CompilationError, CompilationErrorKind as ErrorKind},
     build_props::{build_props, BuildProps},
     BaseConvertInfo, BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes, CoreConverter,
     DirectiveArgument, Element, IRNode, JsExpr as Js, VNodeIR, VStr,
@@ -18,6 +19,9 @@ pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
     ));
     let tag = resolve_element_tag(bc, &e);
     let is_block = should_use_block(&e, &tag);
+    // curiously, we should first build children instead of props
+    // since we will pre-convert and consume v-slot here.
+    let (children, more_flags) = build_children(bc, &e);
     let properties = mem::take(&mut e.properties);
     let BuildProps {
         props,
@@ -26,7 +30,6 @@ pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
         dynamic_prop_names,
     } = build_props(bc, &e, properties);
     let directives = build_directive_args(directives);
-    let (children, more_flags) = build_children(&e);
     patch_flag |= more_flags;
     let dynamic_props = stringify_dynamic_prop_names(dynamic_prop_names);
     let vnode = VNodeIR {
@@ -169,7 +172,16 @@ fn build_directive_args(dirs: Vec<Directive>) -> Vec<DirectiveArgument<BaseConve
     todo!()
 }
 
-fn build_children<'a>(e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
+fn build_children<'a>(bc: &mut BC, e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
+    if let Some(found) = find_dir(e, "slot") {
+        let dir = found.get_ref();
+        if e.tag_type != ElementType::Component {
+            let error = CompilationError::new(ErrorKind::VSlotMisplaced)
+                .with_location(dir.location.clone());
+            bc.emit_error(error);
+        }
+    }
+    if e.tag_name == "slot" {}
     todo!()
 }
 

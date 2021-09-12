@@ -231,7 +231,7 @@ where
     fn add_component(&mut self, tag: VStr<'a>);
 
     // core template syntax conversion
-    fn convert_directive(&self) -> DirectiveConvertResult<T::JsExpression>;
+    fn convert_directive(&self, dr: &mut Directive<'a>) -> DirectiveConvertResult<T::JsExpression>;
     fn convert_if(&mut self, elems: Vec<Element<'a>>, key: usize) -> IRNode<T>;
     fn convert_for(&mut self, d: Directive<'a>, e: Element<'a>) -> IRNode<T>;
     fn convert_slot_outlet(&mut self, e: Element<'a>) -> IRNode<T>;
@@ -248,11 +248,12 @@ where
 // This design decouples v-bind/on from transform_element.
 pub enum DirectiveConvertResult<Expr> {
     Converted { value: Expr, need_runtime: bool },
+    Preserve,
     Dropped,
 }
 
 pub fn no_op_directive_convert<'a>(
-    _: Directive<'a>,
+    _: &mut Directive<'a>,
     _: &Element<'a>,
     _: &dyn ErrorHandler,
 ) -> DirectiveConvertResult<JsExpr<'a>> {
@@ -281,7 +282,7 @@ pub type CoreDirConvRet<'a> = DirectiveConvertResult<JsExpr<'a>>;
 // the minimal cost of dynamism only when error occurs. otherwise we will
 // incur the overhead of dyn DirectiveConvert in the ConvertOption.
 pub type DirConvertFn =
-    for<'a> fn(Directive<'a>, &Element<'a>, &dyn ErrorHandler) -> CoreDirConvRet<'a>;
+    for<'a> fn(&mut Directive<'a>, &Element<'a>, &dyn ErrorHandler) -> CoreDirConvRet<'a>;
 pub type DirectiveConverter = (&'static str, DirConvertFn);
 
 /// stores binding variables exposed by data/prop/setup script.
@@ -336,7 +337,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     }
 
     // core template syntax conversion
-    fn convert_directive(&self) -> CoreDirConvRet<'a> {
+    fn convert_directive(&self, dr: &mut Directive<'a>) -> CoreDirConvRet<'a> {
         todo!()
     }
     fn convert_if(&mut self, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {

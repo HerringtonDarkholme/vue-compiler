@@ -6,7 +6,6 @@ use crate::core::error::CompilationErrorKind as ErrorKind;
 use crate::core::util::VStr;
 
 /// Pre converts v-if or v-for like structural dir
-// TODO: benchmark this because we did check element twice
 pub fn pre_convert_for<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
     // convert v-for, v-if is converted elsewhere
     let dir = find_dir(&mut *elem, "for")?;

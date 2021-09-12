@@ -10,7 +10,7 @@ use super::{
 
 // this module process v-bind without arg and with arg.
 pub fn convert_v_bind<'a>(
-    dir: Directive<'a>,
+    dir: &mut Directive<'a>,
     _: &Element<'a>,
     eh: &dyn ErrorHandler,
 ) -> CoreDirConvRet<'a> {
@@ -21,10 +21,10 @@ pub fn convert_v_bind<'a>(
         head_loc,
         ..
     } = dir;
-    let (expr_val, err_loc) = if let Some(e) = expression {
+    let (expr_val, err_loc) = if let Some(e) = expression.take() {
         (e.content, e.location)
     } else {
-        (VStr::raw(""), head_loc)
+        (VStr::raw(""), head_loc.clone())
     };
     let expr = if !expr_val.contains(non_whitespace) {
         Js::Simple(expr_val)

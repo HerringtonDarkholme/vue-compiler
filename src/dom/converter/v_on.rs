@@ -8,7 +8,7 @@ use super::{
 
 // this module process v-on without arg and with arg.
 pub fn convert_v_on<'a>(
-    dir: Directive<'a>,
+    dir: &mut Directive<'a>,
     _: &Element<'a>,
     eh: &dyn ErrorHandler,
 ) -> CoreDirConvRet<'a> {
@@ -36,12 +36,14 @@ pub fn convert_v_on<'a>(
                 Js::Call(RuntimeHelper::ToHandlerKey, vec![e])
             }
         };
-        let exp = convert_v_on_expr(expression);
+        let exp = convert_v_on_expr(expression.take());
         let exp = add_modifiers(&event_name, exp, modifiers);
         Js::Props(vec![(event_name, exp)])
     } else {
         // bare v-on="" does not have mods
-        let exp = expression.expect("v-on with no expr nor arg should be dropped.");
+        let exp = expression
+            .take()
+            .expect("v-on with no expr nor arg should be dropped.");
         let exp = Js::Simple(exp.content);
         Js::Call(RuntimeHelper::ToHandlers, vec![exp])
     };
@@ -55,7 +57,7 @@ pub fn convert_v_on_expr(expr: Option<AttributeValue>) -> Js {
     todo!()
 }
 
-pub fn add_modifiers<'a>(evt_name: &Js<'a>, expr: Js<'a>, mods: Vec<&'a str>) -> Js<'a> {
+pub fn add_modifiers<'a>(evt_name: &Js<'a>, expr: Js<'a>, mods: &[&'a str]) -> Js<'a> {
     todo!()
 }
 

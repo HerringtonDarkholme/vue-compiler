@@ -158,8 +158,7 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
     // Technically web-specific, but splitting out of core is too complex
     e.tag_name == "svg" || e.tag_name == "foreinObject" ||
     // vue-next/#938: elements with dynamic keys should be forced into blocks
-    todo!("support dynamic only")
-    // prop_finder(e, "key").dynamic_only(true).find().is_some()
+    prop_finder(e, "key").dynamic_only().find().is_some()
 }
 fn build_children<'a>(e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
     todo!()

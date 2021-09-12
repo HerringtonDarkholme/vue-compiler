@@ -205,6 +205,7 @@ where
     elem: E,
     pat: P,
     allow_empty: bool,
+    filter: fn(&ElemProp<'a>) -> bool,
     m: PhantomData<&'a M>,
 }
 
@@ -219,11 +220,18 @@ where
             elem,
             pat,
             allow_empty: false,
+            filter: |_| true,
             m: PhantomData,
         }
     }
     fn is_match(&self, p: &ElemProp<'a>) -> bool {
         M::is_match(p, &self.pat, self.allow_empty)
+    }
+    pub fn dynamic_only(self) -> Self {
+        Self {
+            filter: |p| matches!(p, ElemProp::Dir(..)),
+            ..self
+        }
     }
     pub fn find(self) -> Option<PropFound<'a, E, M>> {
         let pos = self
@@ -231,12 +239,12 @@ where
             .borrow()
             .properties
             .iter()
-            .position(|p| self.is_match(p))?;
+            .position(|p| self.is_match(p) && (self.filter)(p))?;
         PropFound::new(self.elem, pos)
     }
-    pub fn allow_empty(self, allow_empty: bool) -> Self {
+    pub fn allow_empty(self) -> Self {
         Self {
-            allow_empty,
+            allow_empty: true,
             ..self
         }
     }
@@ -343,7 +351,7 @@ mod test {
         let e = mock_element("<p v-if=true v-for>");
         assert!(find_dir(&e, "if").is_some());
         assert!(find_dir(&e, "for").is_none());
-        let found = dir_finder(&e, "for").allow_empty(true).find();
+        let found = dir_finder(&e, "for").allow_empty().find();
         assert!(found.is_some());
     }
 
@@ -366,6 +374,17 @@ mod test {
         assert!(find_dir(&e, "name").is_none());
         assert!(find_dir(&e, "bind").is_some());
         assert!(find_prop(&e, "name").is_none());
+    }
+    #[test]
+    fn find_dynamic_only_prop() {
+        let e = mock_element("<p name=foo/>");
+        assert!(prop_finder(&e, "name").dynamic_only().find().is_none());
+        let e = mock_element("<p v-bind:name=foo/>");
+        assert!(prop_finder(&e, "name").dynamic_only().find().is_some());
+        let e = mock_element("<p :name=foo/>");
+        assert!(prop_finder(&e, "name").dynamic_only().find().is_some());
+        let e = mock_element("<p :[name]=foo/>");
+        assert!(prop_finder(&e, "name").dynamic_only().find().is_none());
     }
     #[test]
     fn prop_find_all() {

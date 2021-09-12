@@ -32,6 +32,10 @@ pub fn is_core_component(tag: &str) -> bool {
     get_core_component(tag).is_some()
 }
 
+pub fn is_component_tag(tag: &str) -> bool {
+    tag == "component" || tag == "Component"
+}
+
 pub const fn yes(_: &str) -> bool {
     true
 }

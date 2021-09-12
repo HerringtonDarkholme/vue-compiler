@@ -3,6 +3,7 @@ use crate::core::{
     flags::PatchFlag,
     parser::{Directive, ElemProp},
     tokenizer::Attribute,
+    util::is_component_tag,
 };
 use std::iter::IntoIterator;
 
@@ -43,7 +44,7 @@ where
     let mut cp = CollectProps::default();
     elm_props.into_iter().for_each(|prop| match prop {
         ElemProp::Dir(dir) => collect_dir(bc, dir, &mut cp),
-        ElemProp::Attr(attr) => collect_attr(bc, attr, &mut cp),
+        ElemProp::Attr(attr) => collect_attr(bc, e, attr, &mut cp),
     });
     let prop_expr = compute_prop_expr(cp.props, cp.merge_args);
     let patch_flag = build_patch_flag(cp.prop_flags);
@@ -56,11 +57,36 @@ where
     }
 }
 
-fn collect_attr<'a>(bc: &mut BC, attr: Attribute<'a>, cp: &mut CollectProps<'a>) {
-    todo!()
+fn collect_attr<'a>(bc: &mut BC, e: &Element<'a>, attr: Attribute<'a>, cp: &mut CollectProps<'a>) {
+    let Attribute {
+        name,
+        value,
+        location,
+        ..
+    } = attr;
+    let val = match value {
+        Some(v) => v.content,
+        None => VStr::raw(""),
+    };
+    // skip dynamic component is
+    if name == "is" && (is_component_tag(e.tag_name) || val.starts_with("vue:")) {
+        return;
+    }
+    let mut value_expr = Js::StrLit(val);
+    if name == "ref" {
+        cp.prop_flags.has_ref = true;
+        if bc.inline && !val.is_empty() {
+            value_expr = process_inline_ref(val);
+        }
+    }
+    cp.props.push((Js::StrLit(val), value_expr));
 }
 fn collect_dir<'a>(bc: &mut BC, dir: Directive<'a>, cp: &mut CollectProps<'a>) {
     todo!()
+}
+
+fn process_inline_ref(val: VStr) -> Js {
+    todo!("setup binding is pending")
 }
 
 fn compute_prop_expr<'a>(props: Props, args: Args) -> Option<Js<'a>> {

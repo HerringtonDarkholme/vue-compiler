@@ -7,7 +7,7 @@ use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
     parser::{Directive, ElemProp, ElementType},
     tokenizer::Attribute,
-    util::{find_dir, get_core_component, prop_finder},
+    util::{find_dir, get_core_component, is_component_tag, prop_finder},
 };
 use std::mem;
 
@@ -250,8 +250,4 @@ fn get_variety_from_binding<'a: 'b, 'b>(
             None
         }
     }
-}
-
-fn is_component_tag(tag: &str) -> bool {
-    tag == "component" || tag == "Component"
 }

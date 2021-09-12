@@ -7,12 +7,16 @@ use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
     parser::{Directive, ElemProp, ElementType},
     tokenizer::Attribute,
-    util::{find_dir, find_prop, get_core_component},
+    util::{find_dir, get_core_component, prop_finder},
 };
 
 pub fn convert_element<'a>(bc: &mut BC, e: Element<'a>) -> BaseIR<'a> {
+    debug_assert!(matches!(
+        e.tag_type,
+        ElementType::Plain | ElementType::Component
+    ));
     let tag = resolve_element_tag(&e, bc);
-    let is_block = should_use_block();
+    let is_block = should_use_block(&e, &tag);
     let BuildProps {
         props,
         directives,
@@ -62,9 +66,8 @@ pub fn resolve_element_tag<'a>(e: &Element<'a>, bc: &mut BC) -> Js<'a> {
         .get_builtin_component(tag)
         .or_else(|| get_core_component(tag));
     if let Some(builtin) = builtin {
-        // TODO: make sure SSR helper does nothing since
-        // built-ins are simply fallthroughs / have special handling during ssr
-        // so we don't need to import their runtime equivalents
+        // TODO: ensure SSR does not collect this. since built-ins are simply fallthroughs
+        // or have special handling during compilation so we don't need to import their runtime
         return Js::Symbol(builtin);
     }
     // 3. user component (from setup bindings)
@@ -89,7 +92,7 @@ fn resolve_dynamic_component<'a>(
     e: &Element<'a>,
     is_explicit_dynamic: bool,
 ) -> Result<Js<'a>, &'a str> {
-    let is_prop = find_prop(e, "is");
+    let is_prop = prop_finder(e, "is").find();
     let prop = match is_prop {
         Some(prop) => prop,
         None => return Err(e.tag_name),
@@ -138,8 +141,25 @@ fn resolve_v_is_component<'a>(e: &Element<'a>, is_explicit_dynamic: bool) -> Opt
     ))
 }
 
-fn should_use_block() -> bool {
-    todo!()
+fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
+    use RuntimeHelper as H;
+    match tag {
+        // dynamic component may resolve to plain element
+        Js::Call(H::ResolveDynamicComponent, _) => return true,
+        Js::Symbol(H::Teleport) | Js::Symbol(H::Suspense) => return true,
+        _ => {
+            if e.tag_type == ElementType::Component {
+                return false;
+            }
+        }
+    }
+    // <svg> and <foreignObject> must be forced into blocks so that block
+    // updates inside get proper isSVG flag at runtime. (vue-next/#639, #643)
+    // Technically web-specific, but splitting out of core is too complex
+    e.tag_name == "svg" || e.tag_name == "foreinObject" ||
+    // vue-next/#938: elements with dynamic keys should be forced into blocks
+    todo!("support dynamic only")
+    // prop_finder(e, "key").dynamic_only(true).find().is_some()
 }
 fn build_children<'a>(e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
     todo!()

@@ -74,6 +74,6 @@ fn build_patch_flag(info: PropFlags) -> PatchFlag {
     todo!()
 }
 
-fn pre_normalize_prop<'a>(prop_expr: Option<Js<'a>>) -> Option<Js<'a>> {
+fn pre_normalize_prop(prop_expr: Option<Js>) -> Option<Js> {
     todo!("pre-normalize props, SSR should be skipped")
 }

@@ -164,15 +164,16 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
     // vue-next/#938: elements with dynamic keys should be forced into blocks
     prop_finder(e, "key").dynamic_only().find().is_some()
 }
-type DirArg<'a> = DirectiveArgument<BaseConvertInfo<'a>>;
-fn build_directive_args<'a>(dirs: Vec<Directive<'a>>) -> Vec<DirArg<'a>> {
+
+fn build_directive_args(dirs: Vec<Directive>) -> Vec<DirectiveArgument<BaseConvertInfo>> {
     todo!()
 }
+
 fn build_children<'a>(e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
     todo!()
 }
 
-fn stringify_dynamic_prop_names<'a>(prop_names: Vec<VStr<'a>>) -> Option<Js<'a>> {
+fn stringify_dynamic_prop_names(prop_names: Vec<VStr>) -> Option<Js> {
     todo!()
 }
 

@@ -120,17 +120,10 @@ pub struct VNodeIR<T: ConvertInfo> {
     children: Vec<IRNode<T>>,
     patch_flag: PatchFlag,
     dynamic_props: Option<T::JsExpression>,
-    directives: Vec<DirectiveArgument<T>>,
+    directives: Option<T::JsExpression>,
     is_block: bool,
     disable_tracking: bool,
     is_component: bool,
-}
-
-pub struct DirectiveArgument<T: ConvertInfo> {
-    dir: T::JsExpression,
-    exp: Option<T::JsExpression>,
-    arg: Option<T::JsExpression>,
-    mods: Option<T::JsExpression>,
 }
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
@@ -247,7 +240,12 @@ where
 /// NB: this is not 100% translation from TS. `value` accepts both Props and Object.
 // This design decouples v-bind/on from transform_element.
 pub enum DirectiveConvertResult<Expr> {
-    Converted { value: Expr, need_runtime: bool },
+    Converted {
+        value: Expr,
+        /// Ok if it needs builtin runtime helper
+        /// Err(bool) indicates if it is user defined runtime dir
+        runtime: Result<RuntimeHelper, bool>,
+    },
     Preserve,
     Dropped,
 }

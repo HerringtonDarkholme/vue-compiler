@@ -49,7 +49,7 @@ pub fn convert_v_on<'a>(
     };
     DirectiveConvertResult::Converted {
         value,
-        need_runtime: false,
+        runtime: Err(false),
     }
 }
 

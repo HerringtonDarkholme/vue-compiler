@@ -1,8 +1,8 @@
 use super::{
     super::error::{CompilationError, CompilationErrorKind as ErrorKind},
     build_props::{build_props, BuildProps},
-    BaseConvertInfo, BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes, CoreConverter,
-    DirectiveArgument, Element, IRNode, JsExpr as Js, VNodeIR, VStr,
+    BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes, CoreConverter, Element, IRNode,
+    JsExpr as Js, VNodeIR, VStr,
 };
 use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
@@ -168,7 +168,7 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
     prop_finder(e, "key").dynamic_only().find().is_some()
 }
 
-fn build_directive_args(dirs: Vec<Directive>) -> Vec<DirectiveArgument<BaseConvertInfo>> {
+fn build_directive_args(dirs: Vec<(Directive, Option<RuntimeHelper>)>) -> Option<Js> {
     todo!()
 }
 

@@ -34,6 +34,7 @@ pub fn convert_v_bind<'a>(
         if argument.is_none() {
             return DirectiveConvertResult::Dropped;
         } else {
+            // <p :test> returns {test: ""}
             Js::Simple(VStr::raw(""))
         }
     };
@@ -61,7 +62,7 @@ pub fn convert_v_bind<'a>(
     };
     DirectiveConvertResult::Converted {
         value,
-        need_runtime: false,
+        runtime: Err(false),
     }
 }
 

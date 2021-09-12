@@ -1,6 +1,6 @@
 use super::{BaseConverter as BC, CoreConverter, Element, JsExpr as Js, Prop, VStr};
 use crate::core::{
-    flags::PatchFlag,
+    flags::{PatchFlag, RuntimeHelper},
     parser::{Directive, ElemProp},
     tokenizer::Attribute,
     util::{is_bind_key, is_component_tag},
@@ -9,7 +9,7 @@ use std::iter::IntoIterator;
 
 pub struct BuildProps<'a> {
     pub props: Option<Js<'a>>,
-    pub directives: Vec<Directive<'a>>,
+    pub directives: Dirs<'a>,
     pub patch_flag: PatchFlag,
     pub dynamic_prop_names: Vec<VStr<'a>>,
 }
@@ -35,7 +35,7 @@ struct CollectProps<'a> {
 
 type Props<'a> = Vec<Prop<'a>>;
 type Args<'a> = Vec<Js<'a>>;
-type Dirs<'a> = Vec<Directive<'a>>;
+type Dirs<'a> = Vec<(Directive<'a>, Option<RuntimeHelper>)>;
 
 pub fn build_props<'a, T>(bc: &mut BC, e: &Element<'a>, elm_props: T) -> BuildProps<'a>
 where
@@ -104,14 +104,22 @@ fn collect_dir<'a>(
     if (name == "bind" || name == "on") && argument.is_none() {
         cp.prop_flags.has_dynamic_keys = true;
     }
-    let (value, need_runtime) = match bc.convert_directive(&mut dir) {
-        DirConv::Converted {
-            value,
-            need_runtime,
-        } => (value, need_runtime),
-        DirConv::Preserve => return cp.runtime_dirs.push(dir),
+    let (value, runtime) = match bc.convert_directive(&mut dir) {
+        DirConv::Converted { value, runtime } => (value, runtime),
+        DirConv::Preserve => return cp.runtime_dirs.push((dir, None)),
         DirConv::Dropped => return,
     };
+    match runtime {
+        Ok(helper) => cp.runtime_dirs.push((dir, Some(helper))),
+        Err(true) => cp.runtime_dirs.push((dir, None)),
+        Err(false) => (),
+    }
+    if let Js::Props(props) = value {
+        props.iter().for_each(|p| analyze_patch_flag(p));
+        cp.props.extend(props);
+        return;
+    }
+    // TODO flush properties
 }
 
 fn process_inline_ref(val: VStr) -> Js {
@@ -122,7 +130,7 @@ fn compute_prop_expr<'a>(props: Props, args: Args) -> Option<Js<'a>> {
     todo!()
 }
 
-fn analyze_patch_flag() -> PatchFlag {
+fn analyze_patch_flag(p: &Prop) {
     todo!()
 }
 

@@ -21,7 +21,7 @@ Convert module roughly corresponds to following transform in vue-next.
 */
 
 pub use super::error::{CompilationError, ErrorHandler};
-use super::flags::{PatchFlag, RuntimeHelper};
+use super::flags::{self, RuntimeHelper, StaticLevel};
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
@@ -119,7 +119,7 @@ pub struct VNodeIR<T: ConvertInfo> {
     tag: T::JsExpression,
     props: Option<T::JsExpression>,
     children: Vec<IRNode<T>>,
-    patch_flag: PatchFlag,
+    patch_flag: flags::PatchFlag,
     dynamic_props: Option<T::JsExpression>,
     directives: Option<T::JsExpression>,
     is_block: bool,
@@ -144,6 +144,23 @@ pub enum JsExpr<'a> {
     Symbol(RuntimeHelper),
     /// array of JsExpr
     Array(Vec<JsExpr<'a>>),
+}
+
+impl<'a> JsExpr<'a> {
+    pub fn static_level(&self) -> StaticLevel {
+        use JsExpr::*;
+        use StaticLevel as S;
+        match self {
+            Src(_) | StrLit(_) => S::CanStringify,
+            Simple(_) => S::NotStatic,
+            Compound(v) | Array(v) | Call(_, v) => v
+                .iter()
+                .map(Self::static_level)
+                .min()
+                .unwrap_or(S::CanHoist),
+            _ => S::NotStatic,
+        }
+    }
 }
 
 #[derive(PartialEq, Eq)]

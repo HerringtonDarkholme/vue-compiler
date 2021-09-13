@@ -378,6 +378,7 @@ where
             .into_iter()
             .map(|attr| {
                 if dir_parser.detect_directive(&attr) {
+                    // TODO: report duplicate prop
                     ElemProp::Dir(dir_parser.parse(attr))
                 } else {
                     ElemProp::Attr(attr)

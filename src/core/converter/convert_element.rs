@@ -42,7 +42,7 @@ pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
         patch_flag,
         is_block,
         disable_tracking: false,
-        is_component: e.tag_type == ElementType::Component,
+        is_component: e.is_component(),
     };
     IRNode::VNodeCall(vnode)
 }
@@ -156,7 +156,7 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
         Js::Call(H::ResolveDynamicComponent, _) => return true,
         Js::Symbol(H::Teleport) | Js::Symbol(H::Suspense) => return true,
         _ => {
-            if e.tag_type == ElementType::Component {
+            if e.is_component() {
                 return false;
             }
         }
@@ -175,8 +175,9 @@ fn build_directive_args(dirs: Vec<(Directive, Option<RuntimeHelper>)>) -> Option
 
 fn build_children<'a>(bc: &mut BC, e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
     if let Some(found) = find_dir(e, "slot") {
+        debug_assert!(e.tag_type != ElementType::Template);
         let dir = found.get_ref();
-        if e.tag_type != ElementType::Component {
+        if !e.is_component() {
             let error = CompilationError::new(ErrorKind::VSlotMisplaced)
                 .with_location(dir.location.clone());
             bc.emit_error(error);

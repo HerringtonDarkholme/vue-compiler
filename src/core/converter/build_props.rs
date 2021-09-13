@@ -1,7 +1,7 @@
 use super::{BaseConverter as BC, CoreConverter, Element, JsExpr as Js, Prop, VStr};
 use crate::core::{
     flags::{self, PatchFlag, RuntimeHelper},
-    parser::{Directive, ElemProp, ElementType},
+    parser::{Directive, ElemProp},
     tokenizer::Attribute,
     util::{self, is_bind_key, is_component_tag, is_reserved_prop},
 };
@@ -48,7 +48,7 @@ struct CollectProps<'a> {
 impl<'a> CollectProps<'a> {
     fn new(e: &Element<'a>) -> Self {
         let mut s = Self::default();
-        s.prop_flags.is_component = e.tag_type == ElementType::Component;
+        s.prop_flags.is_component = e.is_component();
         s
     }
 }

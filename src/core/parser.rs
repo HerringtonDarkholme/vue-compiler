@@ -126,6 +126,13 @@ pub struct Element<'a> {
     pub location: SourceLocation,
 }
 
+impl<'a> Element<'a> {
+    #[inline]
+    pub fn is_component(&self) -> bool {
+        self.tag_type == ElementType::Component
+    }
+}
+
 /// Directive supports two forms
 /// static and dynamic
 #[cfg_attr(test, derive(Serialize))]

@@ -134,7 +134,7 @@ pub enum JsExpr<'a> {
     /// String Literal. output after quoted, used by attr/static arg.
     StrLit(VStr<'a>),
     /// will be processed like prefixing
-    Simple(VStr<'a>),
+    Simple(VStr<'a>, StaticLevel),
     /// alternative to join string as JsExpr
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),
@@ -147,12 +147,16 @@ pub enum JsExpr<'a> {
 }
 
 impl<'a> JsExpr<'a> {
+    /// a convenient util for creating JsExpr::Simple
+    pub fn simple<V: Into<VStr<'a>>>(v: V) -> Self {
+        JsExpr::Simple(v.into(), StaticLevel::NotStatic)
+    }
     pub fn static_level(&self) -> StaticLevel {
         use JsExpr::*;
         use StaticLevel as S;
         match self {
             Src(_) | StrLit(_) => S::CanStringify,
-            Simple(_) => S::NotStatic,
+            Simple(..) => S::NotStatic,
             Compound(v) | Array(v) | Call(_, v) => v
                 .iter()
                 .map(Self::static_level)
@@ -376,7 +380,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
         IRNode::TextCall(expr)
     }
     fn convert_interpolation(&self, interp: SourceNode<'a>) -> BaseIR<'a> {
-        let expr = JsExpr::Simple(VStr::raw(interp.source));
+        let expr = JsExpr::simple(interp.source);
         IRNode::TextCall(vec![expr])
     }
     fn convert_template(&self, e: Element<'a>) -> BaseIR<'a> {

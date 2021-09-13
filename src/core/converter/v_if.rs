@@ -4,7 +4,7 @@ use super::{
     IfBranch, IfNodeIR,
 };
 use crate::core::{
-    converter::{CoreConverter, JsExpr},
+    converter::{CoreConverter, JsExpr as Js},
     tokenizer::Attribute,
     util::{find_dir, find_prop},
 };
@@ -174,11 +174,11 @@ fn convert_if_branch<'a>(
         info: key,
     }
 }
-fn convert_if_condition<'a>(c: &BC, dir: Directive<'a>) -> Option<JsExpr<'a>> {
+fn convert_if_condition<'a>(c: &BC, dir: Directive<'a>) -> Option<Js<'a>> {
     if dir.name != "else" {
         if let Some(err) = dir.check_empty_expr(ErrorKind::VIfNoExpression) {
             c.emit_error(err);
-            return Some(JsExpr::Src("true"));
+            return Some(Js::Src("true"));
         }
     } else if let Some(expr) = dir.expression {
         let error =
@@ -186,7 +186,7 @@ fn convert_if_condition<'a>(c: &BC, dir: Directive<'a>) -> Option<JsExpr<'a>> {
         c.emit_error(error);
         return None;
     }
-    dir.expression.map(|v| JsExpr::Simple(v.content))
+    dir.expression.map(|v| Js::simple(v.content))
 }
 fn report_duplicate_v_if<'a>(c: &BC, e: &mut Element<'a>) {
     // https://stackoverflow.com/a/48144226/2198656

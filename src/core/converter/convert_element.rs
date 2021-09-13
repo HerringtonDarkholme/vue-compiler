@@ -113,7 +113,7 @@ fn resolve_dynamic_component<'a>(
             ElemProp::Dir(Directive {
                 expression: Some(exp),
                 ..
-            }) => Js::Simple(exp.content),
+            }) => Js::simple(exp.content),
             _ => panic!("{}", MUST_NON_EMPTY),
         };
         return Ok(Js::Call(RuntimeHelper::ResolveDynamicComponent, vec![exp]));
@@ -145,7 +145,7 @@ fn resolve_v_is_component<'a>(e: &Element<'a>, is_explicit_dynamic: bool) -> Opt
         .content;
     Some(Js::Call(
         RuntimeHelper::ResolveDynamicComponent,
-        vec![Js::Simple(exp)],
+        vec![Js::simple(exp)],
     ))
 }
 
@@ -213,7 +213,7 @@ fn resolve_setup_reference<'a>(bc: &BC, name: &'a str) -> Option<Js<'a>> {
     let varienty_by_type = get_variety_from_binding(name, bindings);
     if let Some(from_const) = varienty_by_type(BindingTypes::SetupConst) {
         return Some(if bc.inline {
-            Js::Simple(from_const)
+            Js::simple(from_const)
         } else {
             Js::Compound(vec![
                 Js::Src("$setup["),
@@ -227,7 +227,7 @@ fn resolve_setup_reference<'a>(bc: &BC, name: &'a str) -> Option<Js<'a>> {
         .or_else(|| varienty_by_type(BindingTypes::SetupMaybeRef));
     if let Some(maybe_ref) = from_maybe_ref {
         return Some(if bc.inline {
-            Js::Call(RuntimeHelper::Unref, vec![Js::Simple(maybe_ref)])
+            Js::Call(RuntimeHelper::Unref, vec![Js::simple(maybe_ref)])
         } else {
             Js::Compound(vec![
                 Js::Src("$setup["),

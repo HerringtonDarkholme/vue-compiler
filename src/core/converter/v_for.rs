@@ -55,16 +55,13 @@ fn parse_for_expr(expr: VStr) -> Option<ParsedFor> {
     // split iterator by ,
     let (val, key, idx) = split_v_for_iter(lhs);
     Some((
-        simple_var(rhs.trim()),
+        Js::simple(rhs.trim()),
         ForParseResult {
-            value: simple_var(val),
-            key: key.map(simple_var),
-            index: idx.map(simple_var),
+            value: Js::simple(val),
+            key: key.map(Js::simple),
+            index: idx.map(Js::simple),
         },
     ))
-}
-fn simple_var(v: &str) -> Js {
-    Js::Simple(VStr::raw(v))
 }
 
 const DESTRUCTING: &[char] = &['}', ']'];
@@ -93,7 +90,7 @@ fn check_template_v_for_key() {}
 mod test {
     use super::*;
     fn to_str(e: Js) -> &str {
-        if let Js::Simple(v) = e {
+        if let Js::Simple(v, _) = e {
             v.raw
         } else {
             panic!("invalid js expression");

@@ -40,7 +40,8 @@ fn process_slot_outlet<'a>(bc: &mut BC, e: &mut Element<'a>) -> NameAndProps<'a>
                 if is_bind_key(&dir.argument, "name") =>
             {
                 if !dir.has_empty_expr() {
-                    slot_name = Js::Simple(dir.expression.as_ref().unwrap().content);
+                    let content = dir.expression.as_ref().unwrap().content;
+                    slot_name = Js::simple(content);
                 }
                 None
             }

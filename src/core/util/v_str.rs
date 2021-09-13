@@ -110,3 +110,9 @@ impl<'a> Deref for VStr<'a> {
         self.raw
     }
 }
+
+impl<'a> From<&'a str> for VStr<'a> {
+    fn from(s: &'a str) -> Self {
+        VStr::raw(s)
+    }
+}

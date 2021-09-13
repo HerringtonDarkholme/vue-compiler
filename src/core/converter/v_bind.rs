@@ -27,7 +27,7 @@ pub fn convert_v_bind<'a>(
         (VStr::raw(""), head_loc.clone())
     };
     let expr = if !expr_val.contains(non_whitespace) {
-        Js::Simple(expr_val)
+        Js::simple(expr_val)
     } else {
         let error = Error::new(ErrorKind::VBindNoExpression).with_location(err_loc);
         eh.on_error(error);
@@ -35,14 +35,14 @@ pub fn convert_v_bind<'a>(
             return DirectiveConvertResult::Dropped;
         } else {
             // <p :test> returns {test: ""}
-            Js::Simple(VStr::raw(""))
+            Js::StrLit(VStr::raw(""))
         }
     };
     let value = if let Some(arg) = argument {
         let mut arg = match arg {
             DirectiveArg::Static(s) => Js::StrLit(VStr::raw(s)),
             DirectiveArg::Dynamic(s) => {
-                let e = Js::Simple(VStr::raw(s));
+                let e = Js::simple(VStr::raw(s));
                 Js::Compound(vec![Js::Src("("), e, Js::Src(") || ''")])
             }
         };

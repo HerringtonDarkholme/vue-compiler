@@ -57,7 +57,7 @@ where
         ElemProp::Attr(attr) => collect_attr(bc, e, attr, &mut cp),
     });
     let prop_expr = compute_prop_expr(cp.prop_args);
-    let patch_flag = build_patch_flag(cp.prop_flags);
+    let patch_flag = build_patch_flag(cp.prop_flags, e, &cp.dynamic_prop_names);
     let prop_expr = pre_normalize_prop(prop_expr);
     BuildProps {
         props: prop_expr,
@@ -171,7 +171,15 @@ fn analyze_patch_flag(p: &Prop) {
     todo!()
 }
 
-fn build_patch_flag(info: PropFlags) -> PatchFlag {
+fn build_patch_flag<'a>(
+    flags: PropFlags,
+    e: &Element<'a>,
+    dynamic_names: &[VStr<'a>],
+) -> PatchFlag {
+    let mut patch_flag = PatchFlag::empty();
+    if flags.has_dynamic_keys {
+        patch_flag |= PatchFlag::FULL_PROPS;
+    }
     todo!()
 }
 

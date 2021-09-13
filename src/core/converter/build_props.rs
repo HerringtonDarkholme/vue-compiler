@@ -1,7 +1,7 @@
 use super::{BaseConverter as BC, CoreConverter, Element, JsExpr as Js, Prop, VStr};
 use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
-    parser::{Directive, ElemProp},
+    parser::{Directive, ElemProp, ElementType},
     tokenizer::Attribute,
     util::{is_bind_key, is_component_tag},
 };
@@ -45,7 +45,8 @@ struct CollectProps<'a> {
 
 type Props<'a> = Vec<Prop<'a>>;
 type Args<'a> = Vec<Js<'a>>;
-type Dirs<'a> = Vec<(Directive<'a>, Option<RuntimeHelper>)>;
+type Dir<'a> = (Directive<'a>, Option<RuntimeHelper>);
+type Dirs<'a> = Vec<Dir<'a>>;
 
 pub fn build_props<'a, T>(bc: &mut BC, e: &Element<'a>, elm_props: T) -> BuildProps<'a>
 where
@@ -57,13 +58,18 @@ where
         ElemProp::Attr(attr) => collect_attr(bc, e, attr, &mut cp),
     });
     let prop_expr = compute_prop_expr(cp.prop_args);
-    let patch_flag = build_patch_flag(cp.prop_flags, e, &cp.dynamic_prop_names);
+    let CollectProps {
+        runtime_dirs,
+        dynamic_prop_names,
+        ..
+    } = cp;
+    let patch_flag = build_patch_flag(cp.prop_flags, e, &runtime_dirs, &dynamic_prop_names);
     let prop_expr = pre_normalize_prop(prop_expr);
     BuildProps {
         props: prop_expr,
-        directives: cp.runtime_dirs,
+        directives: runtime_dirs,
         patch_flag,
-        dynamic_prop_names: cp.dynamic_prop_names,
+        dynamic_prop_names,
     }
 }
 
@@ -172,15 +178,34 @@ fn analyze_patch_flag(p: &Prop) {
 }
 
 fn build_patch_flag<'a>(
-    flags: PropFlags,
+    f: PropFlags,
     e: &Element<'a>,
+    runtime_dirs: &[Dir<'a>],
     dynamic_names: &[VStr<'a>],
 ) -> PatchFlag {
-    let mut patch_flag = PatchFlag::empty();
-    if flags.has_dynamic_keys {
-        patch_flag |= PatchFlag::FULL_PROPS;
+    if f.has_dynamic_keys {
+        return PatchFlag::FULL_PROPS;
     }
-    todo!()
+    let mut patch_flag = PatchFlag::empty();
+    // actually element can also be slot
+    let is_plain = e.tag_type != ElementType::Component;
+    if f.has_class_binding && is_plain {
+        patch_flag |= PatchFlag::CLASS;
+    }
+    if f.has_style_binding && is_plain {
+        patch_flag |= PatchFlag::STYLE;
+    }
+    if !dynamic_names.is_empty() {
+        patch_flag |= PatchFlag::PROPS;
+    }
+    if f.has_hydration_event_binding {
+        patch_flag |= PatchFlag::HYDRATE_EVENTS;
+    }
+    let no_prop_patch = patch_flag == PatchFlag::empty() || patch_flag == PatchFlag::HYDRATE_EVENTS;
+    if no_prop_patch && (f.has_ref || f.has_vnode_hook || !runtime_dirs.is_empty()) {
+        patch_flag |= PatchFlag::NEED_PATCH;
+    }
+    patch_flag
 }
 
 fn pre_normalize_prop(prop_expr: Option<Js>) -> Option<Js> {

@@ -3,6 +3,7 @@
 //! * we can also cache camelize/capitalize result.
 //! * if VStr raw already satisfy StrOps, setting the ops flag is noop.
 //! * interning/cache can be optional, e.g. Text Token can skip it at all.
+use super::is_event_prop;
 use bitflags::bitflags;
 #[cfg(test)]
 use serde::Serialize;
@@ -57,9 +58,7 @@ impl<'a> VStr<'a> {
         if s.ops.contains(StrOps::HANDLER_KEY) {
             return true;
         }
-        let bytes = s.raw.as_bytes();
-        // equivalent to /^on[^a-z]/
-        bytes.len() > 2 && bytes.starts_with(b"on") && !bytes[3].is_ascii_lowercase()
+        is_event_prop(s.raw)
     }
 }
 impl<'a> VStr<'a> {

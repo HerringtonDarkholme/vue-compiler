@@ -32,6 +32,16 @@ pub fn is_core_component(tag: &str) -> bool {
     get_core_component(tag).is_some()
 }
 
+fn is_event_prop(prop: &str) -> bool {
+    let bytes = prop.as_bytes();
+    // equivalent to /^on[^a-z]/
+    bytes.len() > 2 && bytes.starts_with(b"on") && !bytes[3].is_ascii_lowercase()
+}
+
+pub fn is_mergeable_prop(prop: &str) -> bool {
+    prop == "class" || prop == "style" || is_event_prop(prop)
+}
+
 // https://github.com/vuejs/rfcs/blob/master/active-rfcs/0008-render-function-api-change.md#special-reserved-props
 const RESERVED: &[&str] = &[
     "key",

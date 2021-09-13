@@ -3,9 +3,9 @@ use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
     parser::{Directive, ElemProp, ElementType},
     tokenizer::Attribute,
-    util::{is_bind_key, is_component_tag, is_reserved_prop},
+    util::{self, is_bind_key, is_component_tag, is_reserved_prop},
 };
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::iter::IntoIterator;
 use std::mem;
 
@@ -147,8 +147,8 @@ fn flush_pending_props(prop_args: &mut PropArgs) {
     if prop_args.pending_props.is_empty() {
         return;
     }
-    let mut arg = mem::take(&mut prop_args.pending_props);
-    dedupe_properties(&mut arg);
+    let arg = mem::take(&mut prop_args.pending_props);
+    let arg = dedupe_properties(arg);
     prop_args.merge_args.push(Js::Props(arg));
 }
 
@@ -156,7 +156,31 @@ fn process_inline_ref(val: VStr) -> Js {
     todo!("setup binding is pending")
 }
 
-fn dedupe_properties(props: &mut Props) {
+fn dedupe_properties(props: Props) -> Props {
+    let mut known_props = FxHashMap::default();
+    let mut ret = vec![];
+    for (key, val) in props {
+        let name = match &key {
+            Js::StrLit(name) => name,
+            _ => {
+                ret.push((key, val));
+                continue;
+            }
+        };
+        if let Some(&i) = known_props.get(name) {
+            if util::is_mergeable_prop(name) {
+                merge_as_array(&mut ret[i], val);
+            }
+            // TODO: should remove by parser
+        } else {
+            known_props.insert(*name, ret.len());
+            ret.push((key, val));
+        }
+    }
+    ret
+}
+
+fn merge_as_array(existing: &mut Prop, incoming: Js) {
     todo!()
 }
 

@@ -1,6 +1,6 @@
 use super::{BaseConverter as BC, CoreConverter, Element, JsExpr as Js, Prop, VStr};
 use crate::core::{
-    flags::{PatchFlag, RuntimeHelper},
+    flags::{self, PatchFlag, RuntimeHelper},
     parser::{Directive, ElemProp, ElementType},
     tokenizer::Attribute,
     util::{self, is_bind_key, is_component_tag, is_reserved_prop},
@@ -235,7 +235,7 @@ fn analyze_patch_flag<'a>(p: &Prop<'a>, cp: &mut CollectProps<'a>) {
     if is_event_handler && is_reserved_prop(name) {
         flags.has_vnode_hook = true;
     }
-    if is_cached_or_static_val() {
+    if val.static_level() > flags::StaticLevel::NotStatic {
         return;
     }
     match name.raw {
@@ -250,10 +250,6 @@ fn analyze_patch_flag<'a>(p: &Prop<'a>, cp: &mut CollectProps<'a>) {
     if is_component && (["class", "style"].contains(&name.raw)) {
         cp.dynamic_prop_names.insert(*name);
     }
-}
-
-fn is_cached_or_static_val() -> bool {
-    todo!()
 }
 
 fn build_patch_flag<'a>(

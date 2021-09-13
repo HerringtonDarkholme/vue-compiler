@@ -91,7 +91,7 @@ bitflags! {
 /// Static level describes how much an IR node can be statically generated.
 /// Higher levels implies lower levels. e.g. a node that can be stringified
 /// can always be hoisted and skipped for patch.
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum StaticLevel {
     NotStatic,
     CanSkipPatch,

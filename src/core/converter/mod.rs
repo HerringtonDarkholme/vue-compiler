@@ -132,8 +132,9 @@ pub enum JsExpr<'a> {
     /// Source. output to generated code as is.
     Src(&'a str),
     /// String Literal. output after quoted, used by attr/static arg.
+    // TODO: StaticLevel + Simple can mock StrLit?
     StrLit(VStr<'a>),
-    /// will be processed like prefixing
+    /// non-string js expression, will be processed like prefixing
     Simple(VStr<'a>, StaticLevel),
     /// alternative to join string as JsExpr
     Compound(Vec<JsExpr<'a>>),
@@ -156,7 +157,7 @@ impl<'a> JsExpr<'a> {
         use StaticLevel as S;
         match self {
             Src(_) | StrLit(_) => S::CanStringify,
-            Simple(..) => S::NotStatic,
+            Simple(_, level) => *level,
             Compound(v) | Array(v) | Call(_, v) => v
                 .iter()
                 .map(Self::static_level)

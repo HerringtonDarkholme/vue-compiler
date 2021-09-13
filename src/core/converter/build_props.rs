@@ -18,6 +18,7 @@ pub struct BuildProps<'a> {
 
 #[derive(Default)]
 struct PropFlags {
+    is_component: bool,
     has_ref: bool,
     has_class_binding: bool,
     has_style_binding: bool,
@@ -44,6 +45,14 @@ struct CollectProps<'a> {
     prop_flags: PropFlags,
 }
 
+impl<'a> CollectProps<'a> {
+    fn new(e: &Element<'a>) -> Self {
+        let mut s = Self::default();
+        s.prop_flags.is_component = e.tag_type == ElementType::Component;
+        s
+    }
+}
+
 type Props<'a> = Vec<Prop<'a>>;
 type Args<'a> = Vec<Js<'a>>;
 type Dir<'a> = (Directive<'a>, Option<RuntimeHelper>);
@@ -53,7 +62,7 @@ pub fn build_props<'a, T>(bc: &mut BC, e: &Element<'a>, elm_props: T) -> BuildPr
 where
     T: IntoIterator<Item = ElemProp<'a>>,
 {
-    let mut cp = CollectProps::default();
+    let mut cp = CollectProps::new(e);
     elm_props.into_iter().for_each(|prop| match prop {
         ElemProp::Dir(dir) => collect_dir(bc, e, dir, &mut cp),
         ElemProp::Attr(attr) => collect_attr(bc, e, attr, &mut cp),
@@ -64,7 +73,7 @@ where
         dynamic_prop_names,
         ..
     } = cp;
-    let patch_flag = build_patch_flag(cp.prop_flags, e, &runtime_dirs, &dynamic_prop_names);
+    let patch_flag = build_patch_flag(cp.prop_flags, &runtime_dirs, &dynamic_prop_names);
     // let prop_expr = pre_normalize_prop(prop_expr);
     BuildProps {
         props: prop_expr,
@@ -132,7 +141,7 @@ fn collect_dir<'a>(
         Err(false) => (),
     }
     if let Js::Props(props) = value {
-        props.iter().for_each(|p| analyze_patch_flag(e, p, cp));
+        props.iter().for_each(|p| analyze_patch_flag(p, cp));
         cp.prop_args.pending_props.extend(props);
         return;
     }
@@ -205,13 +214,13 @@ fn compute_prop_expr(mut prop_args: PropArgs) -> Option<Js> {
     }
 }
 
-fn analyze_patch_flag<'a>(e: &Element, p: &Prop<'a>, cp: &mut CollectProps<'a>) {
+fn analyze_patch_flag<'a>(p: &Prop<'a>, cp: &mut CollectProps<'a>) {
+    let is_component = cp.prop_flags.is_component;
     let flags = &mut cp.prop_flags;
     let (name, val) = match p {
         (Js::StrLit(k), val) => (k, val),
         _ => return flags.has_dynamic_keys = true,
     };
-    let is_component = e.tag_type == ElementType::Component;
     let is_event_handler = VStr::is_handler(name);
     if !is_component &&
         is_event_handler &&
@@ -249,7 +258,6 @@ fn is_cached_or_static_val() -> bool {
 
 fn build_patch_flag<'a>(
     f: PropFlags,
-    e: &Element<'a>,
     runtime_dirs: &[Dir<'a>],
     dynamic_names: &FxHashSet<VStr<'a>>,
 ) -> PatchFlag {
@@ -258,7 +266,7 @@ fn build_patch_flag<'a>(
     }
     let mut patch_flag = PatchFlag::empty();
     // actually element can also be slot
-    let is_plain = e.tag_type != ElementType::Component;
+    let is_plain = !f.is_component;
     if f.has_class_binding && is_plain {
         patch_flag |= PatchFlag::CLASS;
     }

@@ -142,6 +142,8 @@ pub enum JsExpr<'a> {
     Call(RuntimeHelper, Vec<JsExpr<'a>>),
     /// for builtin component called as symbol
     Symbol(RuntimeHelper),
+    /// array of JsExpr
+    Array(Vec<JsExpr<'a>>),
 }
 
 #[derive(PartialEq, Eq)]

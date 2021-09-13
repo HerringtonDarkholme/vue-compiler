@@ -180,8 +180,15 @@ fn dedupe_properties(props: Props) -> Props {
     ret
 }
 
-fn merge_as_array(existing: &mut Prop, incoming: Js) {
-    todo!()
+fn merge_as_array<'a>(existing: &mut Prop<'a>, incoming: Js<'a>) {
+    let val = &mut existing.1;
+    if let Js::Array(arr) = val {
+        arr.push(incoming);
+    } else {
+        let v = mem::replace(val, Js::Src(""));
+        let mut arr = Js::Array(vec![v]);
+        mem::swap(val, &mut arr);
+    }
 }
 
 fn compute_prop_expr(mut prop_args: PropArgs) -> Option<Js> {

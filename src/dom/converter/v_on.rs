@@ -15,6 +15,7 @@ pub fn convert_v_on<'a>(
     if let Some(error) = dir.check_empty_expr(ErrorKind::VOnNoExpression) {
         // no argument no expr, just return
         if dir.argument.is_none() {
+            eh.on_error(error);
             return DirectiveConvertResult::Dropped;
         }
         // allow @click.stop like

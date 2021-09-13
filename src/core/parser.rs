@@ -879,7 +879,7 @@ pub mod test {
             r#"<p v-test="tt"/>"#,     // test, N/A,
             r#"<p v-test.add="tt"/>"#, // test, N/A, add
         ];
-        for &case in cases.iter() {
+        for case in cases {
             test_dir(case);
         }
     }
@@ -896,7 +896,7 @@ pub mod test {
             r#"<p :[]="tt"/>"#,         // bind, nothing
             r#"<p :[t]err="tt"/>"#,     // bind, nothing,
         ];
-        for &case in cases.iter() {
+        for case in cases {
             test_dir(case);
         }
     }
@@ -908,7 +908,7 @@ pub mod test {
             r#"<p .[dynamic]="tt" />"#,    // bind, dynamic, prop
             r#"<p v-t.[dynamic]="tt" />"#, // t, N/A, [dynamic]
         ];
-        for &case in cases.iter() {
+        for case in cases {
             test_dir(case);
         }
     }
@@ -922,7 +922,7 @@ pub mod test {
             r#"<p @_@.stop="tt"/>"#, // on, _@, stop
             r#"<p @.stop="tt"/>"#,   // on, N/A, stop
         ];
-        for &case in cases.iter() {
+        for case in cases {
             test_dir(case);
         }
     }
@@ -936,7 +936,7 @@ pub mod test {
             r#"<p #.-.="tt"/>"#,      // slot, .-.,
             r#"<p v-slot@.@="tt"/>"#, // slot@, N/A, @
         ];
-        for &case in cases.iter() {
+        for case in cases {
             test_dir(case);
         }
     }
@@ -950,7 +950,7 @@ pub mod test {
             r#"<p v-a:b.="tt"/>"#,   // ERROR
             r#"<p v-slot.-="tt"/>"#, // ERROR: slot, N/A, -
         ];
-        for &case in cases.iter() {
+        for case in cases {
             test_dir(case);
         }
     }
@@ -974,7 +974,7 @@ pub mod test {
         let mut m = base_parse(s).children;
         let m = m[0]
             .get_element_mut()
-            .expect("mock_elemnt's source must contain one element root");
+            .expect("mock_element's source must contain one element root");
         std::mem::swap(&mut e, m);
         e
     }

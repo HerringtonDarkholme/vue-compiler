@@ -6,6 +6,7 @@ use crate::core::{
     util::{is_bind_key, is_component_tag},
 };
 use std::iter::IntoIterator;
+use std::mem;
 
 pub struct BuildProps<'a> {
     pub props: Option<Js<'a>>,
@@ -98,11 +99,8 @@ fn collect_dir<'a>(
     if is_pre_convert_dir(name) {
         return;
     }
-    if is_bind_key(&argument, "is") && is_component_tag(e.tag_name) {
+    if is_bind_key(argument, "is") && is_component_tag(e.tag_name) {
         return;
-    }
-    if (name == "bind" || name == "on") && argument.is_none() {
-        cp.prop_flags.has_dynamic_keys = true;
     }
     let (value, runtime) = match bc.convert_directive(&mut dir) {
         DirConv::Converted { value, runtime } => (value, runtime),
@@ -119,7 +117,14 @@ fn collect_dir<'a>(
         cp.props.extend(props);
         return;
     }
-    // TODO flush properties
+    // if dir returns an object, dynamic key must be true
+    cp.prop_flags.has_dynamic_keys = true;
+    // flush existing props to an object
+    if !cp.props.is_empty() {
+        let arg = mem::take(&mut cp.props);
+        cp.merge_args.push(Js::Props(arg));
+    }
+    cp.merge_args.push(value);
 }
 
 fn process_inline_ref(val: VStr) -> Js {

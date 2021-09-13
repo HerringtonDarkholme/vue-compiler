@@ -28,6 +28,7 @@ use super::util::{find_dir, VStr};
 use rustc_hash::FxHashMap;
 
 mod build_props;
+mod cache_dir;
 mod convert_element;
 mod convert_slot_outlet;
 mod v_bind;

@@ -1,8 +1,7 @@
 use super::{
-    super::error::{CompilationError, CompilationErrorKind as ErrorKind},
     build_props::{build_props, BuildProps},
-    BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes, CoreConverter, Element, IRNode,
-    JsExpr as Js, VNodeIR, VStr,
+    v_slot, BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes, CoreConverter, Element,
+    IRNode, JsExpr as Js, VNodeIR, VStr,
 };
 use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
@@ -22,7 +21,7 @@ pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
     let is_block = should_use_block(&e, &tag);
     // curiously, we should first build children instead of props
     // since we will pre-convert and consume v-slot here.
-    let (children, more_flags) = build_children(bc, &e);
+    let (children, more_flags) = build_children(bc, &mut e);
     let properties = mem::take(&mut e.properties);
     let BuildProps {
         props,
@@ -155,6 +154,7 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
         // dynamic component may resolve to plain element
         Js::Call(H::ResolveDynamicComponent, _) => return true,
         Js::Symbol(H::Teleport) | Js::Symbol(H::Suspense) => return true,
+        Js::Symbol(H::KeepAlive) => return !e.children.is_empty(),
         _ => {
             if e.is_component() {
                 return false;
@@ -173,18 +173,22 @@ fn build_directive_args(dirs: Vec<(Directive, Option<RuntimeHelper>)>) -> Option
     todo!()
 }
 
-fn build_children<'a>(bc: &mut BC, e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
-    if let Some(found) = find_dir(e, "slot") {
-        debug_assert!(e.tag_type != ElementType::Template);
-        let dir = found.get_ref();
-        if !e.is_component() {
-            let error = CompilationError::new(ErrorKind::VSlotMisplaced)
-                .with_location(dir.location.clone());
-            bc.emit_error(error);
-        }
+fn build_children<'a>(bc: &mut BC, e: &mut Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
+    let should_build_as_slot = v_slot::check_build_as_slot(bc, e);
+    if e.children.is_empty() {
+        return (vec![], PatchFlag::empty());
     }
-    if e.tag_name == "slot" {}
-    todo!()
+    let children = mem::take(&mut e.children);
+    // NB: convert children should take place first
+    let children = bc.convert_children(children);
+    // if is keep alive
+    if should_build_as_slot {
+        todo!("build_slot fn")
+    } else if false {
+        todo!("handle single element")
+    } else {
+        todo!("generic")
+    }
 }
 
 fn stringify_dynamic_prop_names(prop_names: FxHashSet<VStr>) -> Option<Js> {

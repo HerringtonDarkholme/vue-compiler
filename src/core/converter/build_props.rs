@@ -26,9 +26,18 @@ struct PropFlags {
 }
 
 #[derive(Default)]
-struct CollectProps<'a> {
-    props: Props<'a>,
+/// collecting props object for vnode call. e.g:
+/// <:prop="val" v-bind="obj"/> becomes {prop: val, ...obj}
+struct PropArgs<'a> {
+    /// pending properties, e.g. (prop, val)
+    pending_props: Props<'a>,
+    /// merged prop argument, e.g. obj
     merge_args: Args<'a>,
+}
+
+#[derive(Default)]
+struct CollectProps<'a> {
+    prop_args: PropArgs<'a>,
     runtime_dirs: Dirs<'a>,
     dynamic_prop_names: Vec<VStr<'a>>,
     prop_flags: PropFlags,
@@ -47,7 +56,7 @@ where
         ElemProp::Dir(dir) => collect_dir(bc, e, dir, &mut cp),
         ElemProp::Attr(attr) => collect_attr(bc, e, attr, &mut cp),
     });
-    let prop_expr = compute_prop_expr(cp.props, cp.merge_args);
+    let prop_expr = compute_prop_expr(cp.prop_args);
     let patch_flag = build_patch_flag(cp.prop_flags);
     let prop_expr = pre_normalize_prop(prop_expr);
     BuildProps {
@@ -75,7 +84,9 @@ fn collect_attr<'a>(bc: &mut BC, e: &Element<'a>, attr: Attribute<'a>, cp: &mut 
             value_expr = process_inline_ref(val);
         }
     }
-    cp.props.push((Js::StrLit(val), value_expr));
+    cp.prop_args
+        .pending_props
+        .push((Js::StrLit(val), value_expr));
 }
 
 #[inline]
@@ -87,6 +98,7 @@ fn is_pre_convert_dir(s: &str) -> bool {
     }
 }
 
+// by abstracting DirConvRet we can fully extract out v-on/v-bind!
 fn collect_dir<'a>(
     bc: &mut BC,
     e: &Element<'a>,
@@ -100,7 +112,7 @@ fn collect_dir<'a>(
         return;
     }
     if is_bind_key(argument, "is") && is_component_tag(e.tag_name) {
-        return;
+        return; // skip <component :is="c"/>
     }
     let (value, runtime) = match bc.convert_directive(&mut dir) {
         DirConv::Converted { value, runtime } => (value, runtime),
@@ -114,25 +126,45 @@ fn collect_dir<'a>(
     }
     if let Js::Props(props) = value {
         props.iter().for_each(|p| analyze_patch_flag(p));
-        cp.props.extend(props);
+        cp.prop_args.pending_props.extend(props);
         return;
     }
+    flush_pending_props(&mut cp.prop_args);
     // if dir returns an object, dynamic key must be true
     cp.prop_flags.has_dynamic_keys = true;
+    cp.prop_args.merge_args.push(value);
+}
+
+fn flush_pending_props(prop_args: &mut PropArgs) {
     // flush existing props to an object
-    if !cp.props.is_empty() {
-        let arg = mem::take(&mut cp.props);
-        cp.merge_args.push(Js::Props(arg));
+    if prop_args.pending_props.is_empty() {
+        return;
     }
-    cp.merge_args.push(value);
+    let mut arg = mem::take(&mut prop_args.pending_props);
+    dedupe_properties(&mut arg);
+    prop_args.merge_args.push(Js::Props(arg));
 }
 
 fn process_inline_ref(val: VStr) -> Js {
     todo!("setup binding is pending")
 }
 
-fn compute_prop_expr<'a>(props: Props, args: Args) -> Option<Js<'a>> {
+fn dedupe_properties(props: &mut Props) {
     todo!()
+}
+
+fn compute_prop_expr(mut prop_args: PropArgs) -> Option<Js> {
+    flush_pending_props(&mut prop_args);
+    let PropArgs {
+        pending_props,
+        merge_args,
+    } = prop_args;
+    debug_assert!(pending_props.is_empty());
+    if merge_args.len() <= 1 {
+        merge_args.into_iter().next()
+    } else {
+        Some(Js::Call(RuntimeHelper::MergeProps, merge_args))
+    }
 }
 
 fn analyze_patch_flag(p: &Prop) {

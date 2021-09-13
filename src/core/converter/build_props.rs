@@ -3,8 +3,9 @@ use crate::core::{
     flags::{PatchFlag, RuntimeHelper},
     parser::{Directive, ElemProp, ElementType},
     tokenizer::Attribute,
-    util::{is_bind_key, is_component_tag},
+    util::{is_bind_key, is_component_tag, is_reserved_prop},
 };
+use rustc_hash::FxHashSet;
 use std::iter::IntoIterator;
 use std::mem;
 
@@ -12,7 +13,7 @@ pub struct BuildProps<'a> {
     pub props: Option<Js<'a>>,
     pub directives: Dirs<'a>,
     pub patch_flag: PatchFlag,
-    pub dynamic_prop_names: Vec<VStr<'a>>,
+    pub dynamic_prop_names: FxHashSet<VStr<'a>>,
 }
 
 #[derive(Default)]
@@ -39,7 +40,7 @@ struct PropArgs<'a> {
 struct CollectProps<'a> {
     prop_args: PropArgs<'a>,
     runtime_dirs: Dirs<'a>,
-    dynamic_prop_names: Vec<VStr<'a>>,
+    dynamic_prop_names: FxHashSet<VStr<'a>>,
     prop_flags: PropFlags,
 }
 
@@ -64,7 +65,7 @@ where
         ..
     } = cp;
     let patch_flag = build_patch_flag(cp.prop_flags, e, &runtime_dirs, &dynamic_prop_names);
-    let prop_expr = pre_normalize_prop(prop_expr);
+    // let prop_expr = pre_normalize_prop(prop_expr);
     BuildProps {
         props: prop_expr,
         directives: runtime_dirs,
@@ -131,7 +132,7 @@ fn collect_dir<'a>(
         Err(false) => (),
     }
     if let Js::Props(props) = value {
-        props.iter().for_each(|p| analyze_patch_flag(p));
+        props.iter().for_each(|p| analyze_patch_flag(e, p, cp));
         cp.prop_args.pending_props.extend(props);
         return;
     }
@@ -173,7 +174,45 @@ fn compute_prop_expr(mut prop_args: PropArgs) -> Option<Js> {
     }
 }
 
-fn analyze_patch_flag(p: &Prop) {
+fn analyze_patch_flag<'a>(e: &Element, p: &Prop<'a>, cp: &mut CollectProps<'a>) {
+    let flags = &mut cp.prop_flags;
+    let (name, val) = match p {
+        (Js::StrLit(k), val) => (k, val),
+        _ => return flags.has_dynamic_keys = true,
+    };
+    let is_component = e.tag_type == ElementType::Component;
+    let is_event_handler = VStr::is_handler(name);
+    if !is_component &&
+        is_event_handler &&
+        // omit click because hydration gives click fast path
+        !name.raw.eq_ignore_ascii_case("click") &&
+        name.raw != "onUpdate:modelValue" && // omit v-model
+        !is_reserved_prop(name)
+    // vnode hooks
+    {
+        flags.has_hydration_event_binding = true;
+    }
+    if is_event_handler && is_reserved_prop(name) {
+        flags.has_vnode_hook = true;
+    }
+    if is_cached_or_static_val() {
+        return;
+    }
+    match name.raw {
+        "ref" => flags.has_ref = true,
+        "class" => flags.has_class_binding = true,
+        "style" => flags.has_style_binding = true,
+        "key" => (),
+        n => {
+            cp.dynamic_prop_names.insert(*name);
+        }
+    }
+    if is_component && (["class", "style"].contains(&name.raw)) {
+        cp.dynamic_prop_names.insert(*name);
+    }
+}
+
+fn is_cached_or_static_val() -> bool {
     todo!()
 }
 
@@ -181,7 +220,7 @@ fn build_patch_flag<'a>(
     f: PropFlags,
     e: &Element<'a>,
     runtime_dirs: &[Dir<'a>],
-    dynamic_names: &[VStr<'a>],
+    dynamic_names: &FxHashSet<VStr<'a>>,
 ) -> PatchFlag {
     if f.has_dynamic_keys {
         return PatchFlag::FULL_PROPS;
@@ -208,6 +247,7 @@ fn build_patch_flag<'a>(
     patch_flag
 }
 
-fn pre_normalize_prop(prop_expr: Option<Js>) -> Option<Js> {
-    todo!("pre-normalize props, SSR should be skipped")
+/// extract class/style for faster runtime patching
+pub fn pre_normalize_prop(prop_expr: Option<Js>) -> Option<Js> {
+    todo!("pre-normalize props only in DOM for now. usable in any platform")
 }

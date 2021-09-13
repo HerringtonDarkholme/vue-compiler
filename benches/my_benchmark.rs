@@ -1,20 +1,32 @@
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
-enum TextMode {
-    Data,
-    RawText,
-    RCData,
-}
-impl std::fmt::Display for TextMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(self, f)
-    }
-}
+use phf::phf_set;
 
-fn test_eq_data(t: TextMode) -> bool {
-    t == TextMode::Data
+const KEYWORDS: phf::Set<&'static str> = phf_set! {
+    "key",
+    "ref",
+    "onVnodeMounted",
+    "onVnodeUpdated",
+    "onVnodeUnmounted",
+    "onVnodeBeforeMount",
+    "onVnodeBeforeUpdate",
+    "onVnodeBeforeUnmount",
+};
+
+const KEYS: &[&str] = &[
+    "key",
+    "ref",
+    "onVnodeMounted",
+    "onVnodeUpdated",
+    "onVnodeUnmounted",
+    "onVnodeBeforeMount",
+    "onVnodeBeforeUpdate",
+    "onVnodeBeforeUnmount",
+];
+
+fn test_phf(s: &str) -> bool {
+    KEYWORDS.contains(s)
 }
-fn test_match_data(t: TextMode) -> bool {
-    matches!(t, TextMode::Data)
+fn test_arr(s: &str) -> bool {
+    KEYS.contains(&s)
 }
 
 use criterion::BenchmarkId;
@@ -22,13 +34,12 @@ use criterion::Criterion;
 use criterion::{criterion_group, criterion_main};
 
 fn test_enum_eq(c: &mut Criterion) {
-    use TextMode::*;
-    for name in [Data, RawText, RCData].iter() {
-        c.bench_with_input(BenchmarkId::new("test enum match", name), &name, |b, &n| {
-            b.iter(|| test_match_data(*n));
+    for name in ["key", "onVnodeBeforeUnmount", "not_exist"] {
+        c.bench_with_input(BenchmarkId::new("test phf", name), &name, |b, n| {
+            b.iter(|| test_phf(n));
         });
-        c.bench_with_input(BenchmarkId::new("test enum eq", name), &name, |b, &n| {
-            b.iter(|| test_eq_data(*n));
+        c.bench_with_input(BenchmarkId::new("test arr", name), &name, |b, n| {
+            b.iter(|| test_arr(n));
         });
     }
 }

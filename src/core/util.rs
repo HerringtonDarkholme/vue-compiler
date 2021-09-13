@@ -32,6 +32,22 @@ pub fn is_core_component(tag: &str) -> bool {
     get_core_component(tag).is_some()
 }
 
+// https://github.com/vuejs/rfcs/blob/master/active-rfcs/0008-render-function-api-change.md#special-reserved-props
+const RESERVED: &[&str] = &[
+    "key",
+    "ref",
+    "onVnodeMounted",
+    "onVnodeUpdated",
+    "onVnodeUnmounted",
+    "onVnodeBeforeMount",
+    "onVnodeBeforeUpdate",
+    "onVnodeBeforeUnmount",
+];
+#[inline]
+pub fn is_reserved_prop(tag: &str) -> bool {
+    RESERVED.contains(&tag)
+}
+
 pub fn is_component_tag(tag: &str) -> bool {
     tag == "component" || tag == "Component"
 }

@@ -11,6 +11,7 @@ smallvec = "1.6.1"
 bitflags = "1.3"
 rustc-hash = "1.1.0"
 json = "0.12.4"
+phf = { version = "0.10", features = ["macros"] }
 
 [dev-dependencies]
 criterion = "0.3"

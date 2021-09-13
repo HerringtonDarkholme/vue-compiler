@@ -10,6 +10,7 @@ use crate::core::{
     tokenizer::Attribute,
     util::{find_dir, get_core_component, is_component_tag, prop_finder},
 };
+use rustc_hash::FxHashSet;
 use std::mem;
 
 pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
@@ -185,7 +186,7 @@ fn build_children<'a>(bc: &mut BC, e: &Element<'a>) -> (Vec<BaseIR<'a>>, PatchFl
     todo!()
 }
 
-fn stringify_dynamic_prop_names(prop_names: Vec<VStr>) -> Option<Js> {
+fn stringify_dynamic_prop_names(prop_names: FxHashSet<VStr>) -> Option<Js> {
     todo!()
 }
 

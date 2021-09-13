@@ -38,7 +38,7 @@ impl StrOps {
 /// A str for Vue compiler's internal modification.
 /// Instead of returning a Cow<str>, StrOp is recorded in the VStr
 /// and will be processed later in codegen phase.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(test, derive(Serialize))]
 pub struct VStr<'a> {
     pub raw: &'a str,
@@ -46,13 +46,23 @@ pub struct VStr<'a> {
 }
 
 impl<'a> VStr<'a> {
-    // adjective is static method
+    // adjective and is_xx for static method
     pub fn raw(raw: &'a str) -> Self {
         Self {
             raw,
             ops: StrOps::empty(),
         }
     }
+    pub fn is_handler(s: &VStr) -> bool {
+        if s.ops.contains(StrOps::HANDLER_KEY) {
+            return true;
+        }
+        let bytes = s.raw.as_bytes();
+        // equivalent to /^on[^a-z]/
+        bytes.len() > 2 && bytes.starts_with(b"on") && !bytes[3].is_ascii_lowercase()
+    }
+}
+impl<'a> VStr<'a> {
     // verb is instance method
     pub fn decode(&mut self, is_attr: bool) -> &mut Self {
         let ops = if is_attr {

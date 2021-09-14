@@ -89,7 +89,7 @@ pub fn resolve_element_tag<'a>(bc: &mut BC, e: &Element<'a>) -> Js<'a> {
         comp.suffix_self();
     }
     // 5. user component (resolve)
-    bc.add_component(comp);
+    // TODO: ensure comp will be hoisted bc.add_component(comp);
     Js::StrLit(*comp.clone().be_component()) // use clone to avoid mutating comp
 }
 
@@ -198,7 +198,7 @@ fn build_directive_arg<'a>(
     } else if let Some(from_setup) = resolve_setup_dir() {
         from_setup
     } else {
-        // TODO: should hoist directive
+        // TODO: should hoist directive bc.add_directive(dir)
         let arg = Js::StrLit(VStr::raw(dir.name));
         Js::Call(RuntimeHelper::ResolveDirective, vec![arg])
     };

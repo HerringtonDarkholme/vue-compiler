@@ -92,8 +92,8 @@ Todo tasks grouped by scopes.
     - [x] v-for
     - [ ] v-slot
     - [x] slot outlet
-    - [ ] element
-    - [ ] build props
+    - [x] element
+    - [x] build props
 - [ ] transformer
 - [ ] code generator
 ### [dom]

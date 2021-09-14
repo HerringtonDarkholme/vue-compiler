@@ -12,12 +12,14 @@ Convert module roughly corresponds to following transform in vue-next.
 * vFor
 * vIf
 * vSlot
+* vOnce (noop)
+* vMemo (noop)
 
 # Transform directive
 * noopDirectiveTransform
 * vModel
 * vBind
-* vOn
+* vOn (noop)
 */
 
 pub use super::error::{CompilationError, ErrorHandler};
@@ -252,7 +254,6 @@ where
     fn emit_error(&self, error: CompilationError);
     // platform specific options
     fn get_builtin_component(&self, tag: &str) -> Option<RuntimeHelper>;
-    fn add_component(&mut self, tag: VStr<'a>);
 
     // core template syntax conversion
     fn convert_directive(&self, dr: &mut Directive<'a>) -> DirectiveConvertResult<T::JsExpression>;
@@ -360,9 +361,6 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
 
     // platform specific methods
     fn get_builtin_component(&self, tag: &str) -> Option<RuntimeHelper> {
-        todo!()
-    }
-    fn add_component(&mut self, tag: VStr<'a>) {
         todo!()
     }
 

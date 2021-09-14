@@ -115,14 +115,19 @@ pub struct RenderSlotIR<T: ConvertInfo> {
     fallbacks: Vec<IRNode<T>>,
     no_slotted: bool,
 }
-
+pub struct RuntimeDir<T: ConvertInfo> {
+    name: T::JsExpression,
+    expr: Option<T::JsExpression>,
+    arg: Option<T::JsExpression>,
+    mods: Option<T::JsExpression>,
+}
 pub struct VNodeIR<T: ConvertInfo> {
     tag: T::JsExpression,
     props: Option<T::JsExpression>,
     children: Vec<IRNode<T>>,
     patch_flag: flags::PatchFlag,
     dynamic_props: FxHashSet<T::StrType>,
-    directives: Option<T::JsExpression>,
+    directives: Vec<RuntimeDir<T>>,
     is_block: bool,
     disable_tracking: bool,
     is_component: bool,

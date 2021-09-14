@@ -1,7 +1,7 @@
 use super::{
     build_props::{build_props, BuildProps},
-    v_slot, BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes, CoreConverter, Element,
-    IRNode, JsExpr as Js, VNodeIR, VStr,
+    v_slot, BaseConvertInfo, BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes,
+    CoreConverter, Element, IRNode, JsExpr as Js, RuntimeDir, VNodeIR, VStr,
 };
 use crate::core::{
     error::{CompilationError, CompilationErrorKind as ErrorKind},
@@ -174,7 +174,8 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
     prop_finder(e, "key").dynamic_only().find().is_some()
 }
 
-fn build_directive_args(dirs: Vec<(Directive, Option<RuntimeHelper>)>) -> Option<Js> {
+type BaseDirs<'a> = Vec<RuntimeDir<BaseConvertInfo<'a>>>;
+fn build_directive_args(dirs: Vec<(Directive, Option<RuntimeHelper>)>) -> BaseDirs {
     todo!()
 }
 

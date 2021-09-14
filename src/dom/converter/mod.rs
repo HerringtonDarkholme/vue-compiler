@@ -1,7 +1,9 @@
+mod cache_dir;
 mod v_on;
+
 pub use crate::core::converter::{
-    CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
-    JsExpr,
+    BaseConverter, BaseIR, CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter,
+    Element, ErrorHandler, JsExpr,
 };
 pub use crate::core::{error, parser, tokenizer, util};
 

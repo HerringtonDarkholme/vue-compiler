@@ -363,7 +363,7 @@ pub struct BaseConverter {
     /// current SFC filename for self-referencing
     pub self_name: String,
 }
-type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
+pub type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
 impl<'a> Converter<'a> for BaseConverter {
     type IR = IRRoot<BaseConvertInfo<'a>>;
     fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR {

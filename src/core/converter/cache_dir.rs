@@ -13,11 +13,3 @@ pub fn pre_convert_once<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
     let b = dir.take();
     Some(b)
 }
-
-pub fn convert_v_memo<'a>(bc: &BC, dir: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
-    todo!()
-}
-
-pub fn convert_v_once<'a>(bc: &BC, elem: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
-    todo!()
-}

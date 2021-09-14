@@ -38,6 +38,7 @@ mod v_for;
 mod v_if;
 mod v_slot;
 
+use cache_dir::{pre_convert_memo, pre_convert_once};
 use v_for::pre_convert_for;
 use v_if::{pre_group_v_if, PreGroup};
 
@@ -232,14 +233,26 @@ where
             AstNode::Comment(c) => self.convert_comment(c),
             AstNode::Interpolation(i) => self.convert_interpolation(i),
             // all element like node needs pre-convert structural dirs
-            AstNode::Element(mut e) => {
-                if let Some(dir) = pre_convert_for(&mut e) {
-                    self.convert_for(dir, e)
-                } else {
-                    self.dispatch_element(e)
-                }
-            }
+            AstNode::Element(e) => self.pre_convert_element(e),
         }
+    }
+    fn pre_convert_element(&self, mut e: Element<'a>) -> IRNode<T> {
+        // order is defined as @vue/compiler-core/src/compile.ts
+        let once = pre_convert_once(&mut e);
+        let memo = pre_convert_memo(&mut e);
+        let vfor = pre_convert_for(&mut e);
+        let mut n = self.dispatch_element(e);
+        if let Some(d) = vfor {
+            n = self.convert_for(d, n);
+        }
+        if let Some(d) = memo {
+            n = self.convert_memo(d, n);
+        }
+        if let Some(d) = once {
+            n = self.convert_once(d, n);
+        }
+        // reverse order
+        n
     }
     fn dispatch_element(&self, e: Element<'a>) -> IRNode<T> {
         use super::parser::ElementType::{SlotOutlet, Template};
@@ -259,9 +272,9 @@ where
     fn convert_directive(&self, dir: &mut Directive<'a>)
         -> DirectiveConvertResult<T::JsExpression>;
     fn convert_if(&self, elems: Vec<Element<'a>>, key: usize) -> IRNode<T>;
-    fn convert_v_once(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
-    fn convert_v_memo(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
-    fn convert_for(&self, d: Directive<'a>, e: Element<'a>) -> IRNode<T>;
+    fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
+    fn convert_memo(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
+    fn convert_once(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
     fn convert_slot_outlet(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_text(&self, t: TextNode<'a>) -> IRNode<T>;
@@ -374,14 +387,14 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     fn convert_if(&self, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
         v_if::convert_if(self, elems, key)
     }
-    fn convert_for(&self, d: Directive<'a>, e: Element<'a>) -> BaseIR<'a> {
+    fn convert_for(&self, d: Directive<'a>, e: BaseIR<'a>) -> BaseIR<'a> {
         v_for::convert_for(self, d, e)
     }
     // once/memo are noop on SSR/SSR-fallback. They only work in re-render
-    fn convert_v_once(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+    fn convert_memo(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
         n
     }
-    fn convert_v_memo(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+    fn convert_once(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
         n
     }
     fn convert_slot_outlet(&self, e: Element<'a>) -> BaseIR<'a> {

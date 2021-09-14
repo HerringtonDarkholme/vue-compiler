@@ -14,8 +14,7 @@ pub fn pre_convert_for<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
     Some(b)
 }
 
-pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, e: Element<'a>) -> BaseIR<'a> {
-    let n = bc.dispatch_element(e);
+pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
     // on empty v-for expr error
     if let Some(error) = d.check_empty_expr(ErrorKind::VForNoExpression) {
         bc.emit_error(error);

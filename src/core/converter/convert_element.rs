@@ -30,7 +30,7 @@ pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
         mut patch_flag,
         dynamic_props,
     } = build_props(bc, &e, properties);
-    let directives = build_directive_args(directives);
+    let directives = build_directive_args(bc, directives);
     patch_flag |= more_flags;
     let vnode = VNodeIR {
         tag,
@@ -90,7 +90,7 @@ pub fn resolve_element_tag<'a>(bc: &mut BC, e: &Element<'a>) -> Js<'a> {
     }
     // 5. user component (resolve)
     bc.add_component(comp);
-    Js::StrLit(*comp.clone().be_asset()) // use clone to avoid mutating comp
+    Js::StrLit(*comp.clone().be_component()) // use clone to avoid mutating comp
 }
 
 const MUST_NON_EMPTY: &str = "find_prop must return prop with non-empty value";
@@ -174,9 +174,53 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
     prop_finder(e, "key").dynamic_only().find().is_some()
 }
 
-type BaseDirs<'a> = Vec<RuntimeDir<BaseConvertInfo<'a>>>;
-fn build_directive_args(dirs: Vec<(Directive, Option<RuntimeHelper>)>) -> BaseDirs {
-    todo!()
+type BaseDir<'a> = RuntimeDir<BaseConvertInfo<'a>>;
+fn build_directive_args<'a>(
+    bc: &BC,
+    dirs: Vec<(Directive<'a>, Option<RuntimeHelper>)>,
+) -> Vec<BaseDir<'a>> {
+    dirs.into_iter()
+        .map(|(dir, rh)| build_directive_arg(bc, dir, rh))
+        .collect()
+}
+
+fn build_directive_arg<'a>(
+    bc: &BC,
+    dir: Directive<'a>,
+    helper: Option<RuntimeHelper>,
+) -> BaseDir<'a> {
+    let resolve_setup_dir = || {
+        // TODO: should resolve "v-" + dir.name here
+        resolve_setup_reference(bc, dir.name)
+    };
+    let name = if let Some(rh) = helper {
+        Js::Symbol(rh)
+    } else if let Some(from_setup) = resolve_setup_dir() {
+        from_setup
+    } else {
+        // TODO: should hoist directive
+        let arg = Js::StrLit(VStr::raw(dir.name));
+        Js::Call(RuntimeHelper::ResolveDirective, vec![arg])
+    };
+    use crate::core::parser::DirectiveArg::{Dynamic, Static};
+    let expr = dir.expression.map(|v| Js::simple(v.content));
+    let arg = dir.argument.map(|a| match a {
+        Static(v) => Js::StrLit(VStr::raw(v)),
+        Dynamic(v) => Js::simple(v),
+    });
+    let mods = if dir.modifiers.is_empty() {
+        None
+    } else {
+        let mapper = |v| (Js::simple(v), Js::Src("true"));
+        let props = dir.modifiers.into_iter().map(mapper);
+        Some(Js::Props(props.collect()))
+    };
+    RuntimeDir {
+        name,
+        expr,
+        arg,
+        mods,
+    }
 }
 
 fn build_children<'a>(

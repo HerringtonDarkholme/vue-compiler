@@ -13,15 +13,17 @@ bitflags! {
     /// Represents idempotent string manipulation.
     // Idempotency is required since op is a bitflag.
     #[cfg_attr(test, derive(Serialize))]
-    pub struct StrOps: u8 {
+    pub struct StrOps: u16 {
         const COMPRESS_WHITESPACE = 1 << 0;
         const DECODE_ENTITY       = 1 << 1;
         const CAMEL_CASE          = 1 << 2;
         const PASCAL_CASE         = 1 << 3;
         const IS_ATTR             = 1 << 4;
         const HANDLER_KEY         = 1 << 5;
-        const VALID_ASSET         = 1 << 6;
-        const SELF_SUFFIX         = 1 << 7; // not idempotent but called only once
+        const VALID_DIR           = 1 << 6;
+        const VALID_COMP          = 1 << 7;
+        const SELF_SUFFIX         = 1 << 8; // not idempotent but called only once
+        const V_DIR_PREFIX        = 1 << 9;
     }
 }
 
@@ -95,8 +97,17 @@ impl<'a> VStr<'a> {
         self
     }
     /// convert into a valid asset id
-    pub fn be_asset(&mut self) -> &mut Self {
-        self.ops |= StrOps::VALID_ASSET;
+    pub fn be_component(&mut self) -> &mut Self {
+        self.ops |= StrOps::VALID_COMP;
+        self
+    }
+    pub fn be_directive(&mut self) -> &mut Self {
+        self.ops |= StrOps::VALID_DIR;
+        self
+    }
+    /// convert into a valid asset id
+    pub fn prefix_v_dir(&mut self) -> &mut Self {
+        self.ops |= StrOps::V_DIR_PREFIX;
         self
     }
     pub fn into_string(self) -> String {

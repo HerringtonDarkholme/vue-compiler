@@ -58,7 +58,7 @@ type Args<'a> = Vec<Js<'a>>;
 type Dir<'a> = (Directive<'a>, Option<RuntimeHelper>);
 type Dirs<'a> = Vec<Dir<'a>>;
 
-pub fn build_props<'a, T>(bc: &mut BC, e: &Element<'a>, elm_props: T) -> BuildProps<'a>
+pub fn build_props<'a, T>(bc: &BC, e: &Element<'a>, elm_props: T) -> BuildProps<'a>
 where
     T: IntoIterator<Item = ElemProp<'a>>,
 {
@@ -83,7 +83,7 @@ where
     }
 }
 
-fn collect_attr<'a>(bc: &mut BC, e: &Element<'a>, attr: Attribute<'a>, cp: &mut CollectProps<'a>) {
+fn collect_attr<'a>(bc: &BC, e: &Element<'a>, attr: Attribute<'a>, cp: &mut CollectProps<'a>) {
     let Attribute { name, value, .. } = attr;
     let val = match value {
         Some(v) => v.content,
@@ -115,12 +115,7 @@ fn is_pre_convert_dir(s: &str) -> bool {
 }
 
 // by abstracting DirConvRet we can fully extract out v-on/v-bind!
-fn collect_dir<'a>(
-    bc: &mut BC,
-    e: &Element<'a>,
-    mut dir: Directive<'a>,
-    cp: &mut CollectProps<'a>,
-) {
+fn collect_dir<'a>(bc: &BC, e: &Element<'a>, mut dir: Directive<'a>, cp: &mut CollectProps<'a>) {
     use super::DirectiveConvertResult as DirConv;
     let Directive { name, argument, .. } = &dir;
     let name = *name;

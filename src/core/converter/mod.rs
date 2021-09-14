@@ -47,7 +47,7 @@ use v_if::{pre_group_v_if, PreGroup};
 /// e.g Platfroms other than DOM/SSR can have different IR
 pub trait Converter<'a>: Sized {
     type IR;
-    fn convert_ir(&mut self, ast: AstRoot<'a>) -> Self::IR;
+    fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR;
 }
 
 //
@@ -206,11 +206,11 @@ pub trait CoreConverter<'a, T>
 where
     T: ConvertInfo,
 {
-    fn convert_core_ir(&mut self, ast: AstRoot<'a>) -> IRRoot<T> {
+    fn convert_core_ir(&self, ast: AstRoot<'a>) -> IRRoot<T> {
         let body = self.convert_children(ast.children);
         IRRoot { body }
     }
-    fn convert_children(&mut self, children: Vec<AstNode<'a>>) -> Vec<IRNode<T>> {
+    fn convert_children(&self, children: Vec<AstNode<'a>>) -> Vec<IRNode<T>> {
         let mut key = 0;
         // pre group adjacent v-if here to avoid access siblings
         pre_group_v_if(children)
@@ -226,7 +226,7 @@ where
             .collect()
     }
 
-    fn dispatch_ast(&mut self, n: AstNode<'a>) -> IRNode<T> {
+    fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<T> {
         match n {
             AstNode::Text(t) => self.convert_text(t),
             AstNode::Comment(c) => self.convert_comment(c),
@@ -241,7 +241,7 @@ where
             }
         }
     }
-    fn dispatch_element(&mut self, e: Element<'a>) -> IRNode<T> {
+    fn dispatch_element(&self, e: Element<'a>) -> IRNode<T> {
         use super::parser::ElementType::{SlotOutlet, Template};
         match e.tag_type {
             Template => self.convert_template(e),
@@ -256,11 +256,14 @@ where
     fn get_builtin_component(&self, tag: &str) -> Option<RuntimeHelper>;
 
     // core template syntax conversion
-    fn convert_directive(&self, dr: &mut Directive<'a>) -> DirectiveConvertResult<T::JsExpression>;
-    fn convert_if(&mut self, elems: Vec<Element<'a>>, key: usize) -> IRNode<T>;
-    fn convert_for(&mut self, d: Directive<'a>, e: Element<'a>) -> IRNode<T>;
-    fn convert_slot_outlet(&mut self, e: Element<'a>) -> IRNode<T>;
-    fn convert_element(&mut self, e: Element<'a>) -> IRNode<T>;
+    fn convert_directive(&self, dir: &mut Directive<'a>)
+        -> DirectiveConvertResult<T::JsExpression>;
+    fn convert_if(&self, elems: Vec<Element<'a>>, key: usize) -> IRNode<T>;
+    fn convert_v_once(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
+    fn convert_v_memo(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
+    fn convert_for(&self, d: Directive<'a>, e: Element<'a>) -> IRNode<T>;
+    fn convert_slot_outlet(&self, e: Element<'a>) -> IRNode<T>;
+    fn convert_element(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_text(&self, t: TextNode<'a>) -> IRNode<T>;
     fn convert_interpolation(&self, i: SourceNode<'a>) -> IRNode<T>;
     fn convert_template(&self, e: Element<'a>) -> IRNode<T>;
@@ -350,7 +353,7 @@ pub struct BaseConverter {
 type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
 impl<'a> Converter<'a> for BaseConverter {
     type IR = IRRoot<BaseConvertInfo<'a>>;
-    fn convert_ir(&mut self, ast: AstRoot<'a>) -> Self::IR {
+    fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR {
         self.convert_core_ir(ast)
     }
 }
@@ -368,16 +371,23 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     fn convert_directive(&self, dr: &mut Directive<'a>) -> CoreDirConvRet<'a> {
         todo!()
     }
-    fn convert_if(&mut self, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
+    fn convert_if(&self, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
         v_if::convert_if(self, elems, key)
     }
-    fn convert_for(&mut self, d: Directive<'a>, e: Element<'a>) -> BaseIR<'a> {
+    fn convert_for(&self, d: Directive<'a>, e: Element<'a>) -> BaseIR<'a> {
         v_for::convert_for(self, d, e)
     }
-    fn convert_slot_outlet(&mut self, e: Element<'a>) -> BaseIR<'a> {
+    // once/memo are noop on SSR/SSR-fallback. They only work in re-render
+    fn convert_v_once(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+        n
+    }
+    fn convert_v_memo(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+        n
+    }
+    fn convert_slot_outlet(&self, e: Element<'a>) -> BaseIR<'a> {
         convert_slot_outlet::convert_slot_outlet(self, e)
     }
-    fn convert_element(&mut self, e: Element<'a>) -> BaseIR<'a> {
+    fn convert_element(&self, e: Element<'a>) -> BaseIR<'a> {
         convert_element::convert_element(self, e)
     }
     fn convert_text(&self, text: TextNode<'a>) -> BaseIR<'a> {

@@ -13,7 +13,7 @@ use crate::core::{
 };
 use std::mem;
 
-pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
+pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
     debug_assert!(matches!(
         e.tag_type,
         ElementType::Plain | ElementType::Component
@@ -54,7 +54,7 @@ pub fn convert_template<'a>(bc: &BC, e: Element<'a>) -> BaseIR<'a> {
 /// 1. Js::Call for dynamic component or user component.
 /// 2. Js::Symbol for builtin component
 /// 3. Js::StrLit for plain element or component
-pub fn resolve_element_tag<'a>(bc: &mut BC, e: &Element<'a>) -> Js<'a> {
+pub fn resolve_element_tag<'a>(bc: &BC, e: &Element<'a>) -> Js<'a> {
     if e.tag_type == ElementType::Plain {
         return Js::StrLit(VStr::raw(e.tag_name));
     }
@@ -223,11 +223,7 @@ fn build_directive_arg<'a>(
     }
 }
 
-fn build_children<'a>(
-    bc: &mut BC,
-    e: &mut Element<'a>,
-    tag: &Js<'a>,
-) -> (Vec<BaseIR<'a>>, PatchFlag) {
+fn build_children<'a>(bc: &BC, e: &mut Element<'a>, tag: &Js<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
     // check slot should precede return
     let should_build_as_slot = v_slot::check_build_as_slot(bc, e, tag);
     let mut more_flag = PatchFlag::empty();

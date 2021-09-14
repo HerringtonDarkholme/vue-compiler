@@ -202,6 +202,7 @@ where
     M: PropMatcher<'a>,
 {
     pub fn take(mut self) -> M {
+        // TODO: avoid O(n) behavior
         M::take(self.elem.borrow_mut().properties.remove(self.pos))
     }
 }

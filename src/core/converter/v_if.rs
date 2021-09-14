@@ -97,7 +97,7 @@ pub fn pre_group_v_if(children: Vec<AstNode>) -> impl Iterator<Item = PreGroup> 
 }
 
 /// key is Vue-generated default key based on the number of sibling v-if.
-pub fn convert_if<'a>(c: &mut BC, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
+pub fn convert_if<'a>(c: &BC, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
     debug_assert!(!elems.is_empty());
     check_dangling_else(c, &elems[0]);
     check_same_key(c, &elems);
@@ -158,11 +158,7 @@ fn check_same_key<'a>(c: &BC, elems: &[Element<'a>]) {
     }
 }
 
-fn convert_if_branch<'a>(
-    c: &mut BC,
-    mut e: Element<'a>,
-    key: usize,
-) -> IfBranch<BaseConvertInfo<'a>> {
+fn convert_if_branch<'a>(c: &BC, mut e: Element<'a>, key: usize) -> IfBranch<BaseConvertInfo<'a>> {
     let dir = find_dir(&mut e, ["if", "else-if", "else"])
         .expect("the element must have v-if directives")
         .take();

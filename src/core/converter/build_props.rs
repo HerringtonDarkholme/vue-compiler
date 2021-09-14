@@ -13,7 +13,7 @@ pub struct BuildProps<'a> {
     pub props: Option<Js<'a>>,
     pub directives: Dirs<'a>,
     pub patch_flag: PatchFlag,
-    pub dynamic_prop_names: FxHashSet<VStr<'a>>,
+    pub dynamic_props: FxHashSet<VStr<'a>>,
 }
 
 #[derive(Default)]
@@ -41,7 +41,7 @@ struct PropArgs<'a> {
 struct CollectProps<'a> {
     prop_args: PropArgs<'a>,
     runtime_dirs: Dirs<'a>,
-    dynamic_prop_names: FxHashSet<VStr<'a>>,
+    dynamic_props: FxHashSet<VStr<'a>>,
     prop_flags: PropFlags,
 }
 
@@ -70,16 +70,16 @@ where
     let prop_expr = compute_prop_expr(cp.prop_args);
     let CollectProps {
         runtime_dirs,
-        dynamic_prop_names,
+        dynamic_props,
         ..
     } = cp;
-    let patch_flag = build_patch_flag(cp.prop_flags, &runtime_dirs, &dynamic_prop_names);
+    let patch_flag = build_patch_flag(cp.prop_flags, &runtime_dirs, &dynamic_props);
     // let prop_expr = pre_normalize_prop(prop_expr);
     BuildProps {
         props: prop_expr,
         directives: runtime_dirs,
         patch_flag,
-        dynamic_prop_names,
+        dynamic_props,
     }
 }
 
@@ -244,11 +244,11 @@ fn analyze_patch_flag<'a>(p: &Prop<'a>, cp: &mut CollectProps<'a>) {
         "style" => flags.has_style_binding = true,
         "key" => (),
         n => {
-            cp.dynamic_prop_names.insert(*name);
+            cp.dynamic_props.insert(*name);
         }
     }
     if is_component && (["class", "style"].contains(&name.raw)) {
-        cp.dynamic_prop_names.insert(*name);
+        cp.dynamic_props.insert(*name);
     }
 }
 

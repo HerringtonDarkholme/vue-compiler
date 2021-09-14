@@ -1,4 +1,6 @@
-use super::converter::{ConvertInfo, IRNode, IRRoot};
+use super::converter::{ConvertInfo, IRNode, IRRoot, JsExpr as Js};
+use super::util::VStr;
+use rustc_hash::FxHashSet;
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::fmt::{Result, Write};
@@ -82,3 +84,7 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
 }
 
 pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
+
+fn stringify_dynamic_prop_names(prop_names: FxHashSet<VStr>) -> Option<Js> {
+    todo!()
+}

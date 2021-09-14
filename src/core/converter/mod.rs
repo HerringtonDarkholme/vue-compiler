@@ -25,7 +25,7 @@ use super::flags::{self, RuntimeHelper, StaticLevel};
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 mod build_props;
 mod cache_dir;
@@ -60,6 +60,7 @@ pub trait ConvertInfo {
     type VSlotType;
     type CommentType;
     type JsExpression;
+    type StrType;
 }
 
 pub enum VSlotExpr {
@@ -120,7 +121,7 @@ pub struct VNodeIR<T: ConvertInfo> {
     props: Option<T::JsExpression>,
     children: Vec<IRNode<T>>,
     patch_flag: flags::PatchFlag,
-    dynamic_props: Option<T::JsExpression>,
+    dynamic_props: FxHashSet<T::StrType>,
     directives: Option<T::JsExpression>,
     is_block: bool,
     disable_tracking: bool,
@@ -297,6 +298,7 @@ impl<'a> ConvertInfo for BaseConvertInfo<'a> {
     type VSlotType = ();
     type CommentType = &'a str;
     type JsExpression = JsExpr<'a>;
+    type StrType = VStr<'a>;
 }
 
 pub type CoreDirConvRet<'a> = DirectiveConvertResult<JsExpr<'a>>;

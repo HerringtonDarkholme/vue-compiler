@@ -11,7 +11,6 @@ use crate::core::{
     util::{find_dir, get_core_component, is_component_tag, prop_finder},
     SourceLocation,
 };
-use rustc_hash::FxHashSet;
 use std::mem;
 
 pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
@@ -29,11 +28,10 @@ pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
         props,
         directives,
         mut patch_flag,
-        dynamic_prop_names,
+        dynamic_props,
     } = build_props(bc, &e, properties);
     let directives = build_directive_args(directives);
     patch_flag |= more_flags;
-    let dynamic_props = stringify_dynamic_prop_names(dynamic_prop_names);
     let vnode = VNodeIR {
         tag,
         props,
@@ -235,10 +233,6 @@ fn is_builtin_symbol(tag: &Js, helper: RuntimeHelper) -> bool {
     } else {
         false
     }
-}
-
-fn stringify_dynamic_prop_names(prop_names: FxHashSet<VStr>) -> Option<Js> {
-    todo!()
 }
 
 fn resolve_setup_component<'a>(bc: &BC, tag: &'a str) -> Option<Js<'a>> {

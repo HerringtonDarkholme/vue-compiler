@@ -52,6 +52,14 @@ impl<'a> AstNode<'a> {
             _ => panic!("call into_element on non-element AstNode"),
         }
     }
+    pub fn get_location(&self) -> &SourceLocation {
+        match self {
+            Self::Element(e) => &e.location,
+            Self::Text(t) => &t.location,
+            Self::Interpolation(i) => &i.location,
+            Self::Comment(c) => &c.location,
+        }
+    }
 }
 
 #[cfg_attr(test, derive(Serialize))]

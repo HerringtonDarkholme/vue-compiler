@@ -4,10 +4,12 @@ use super::{
     IRNode, JsExpr as Js, VNodeIR, VStr,
 };
 use crate::core::{
-    flags::{PatchFlag, RuntimeHelper},
+    error::{CompilationError, CompilationErrorKind as ErrorKind},
+    flags::{PatchFlag, RuntimeHelper, StaticLevel},
     parser::{Directive, ElemProp, ElementType},
     tokenizer::Attribute,
     util::{find_dir, get_core_component, is_component_tag, prop_finder},
+    SourceLocation,
 };
 use rustc_hash::FxHashSet;
 use std::mem;
@@ -21,7 +23,7 @@ pub fn convert_element<'a>(bc: &mut BC, mut e: Element<'a>) -> BaseIR<'a> {
     let is_block = should_use_block(&e, &tag);
     // curiously, we should first build children instead of props
     // since we will pre-convert and consume v-slot here.
-    let (children, more_flags) = build_children(bc, &mut e);
+    let (children, more_flags) = build_children(bc, &mut e, &tag);
     let properties = mem::take(&mut e.properties);
     let BuildProps {
         props,
@@ -148,11 +150,16 @@ fn resolve_v_is_component<'a>(e: &Element<'a>, is_explicit_dynamic: bool) -> Opt
     ))
 }
 
+// Builtin component is compiled with raw children instead of slot functions
+// so that it can be used inside Transition or other Transition-wrapping HOCs.
+// To ensure correct updates with block optimizations, we need to handle Builtin Block
 fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
     use RuntimeHelper as H;
     match tag {
         // dynamic component may resolve to plain element
         Js::Call(H::ResolveDynamicComponent, _) => return true,
+        // Builtin Block 1. Force keep-alive/teleport into a block.
+        // This avoids its children being collected by a parent block.
         Js::Symbol(H::Teleport) | Js::Symbol(H::Suspense) => return true,
         Js::Symbol(H::KeepAlive) => return !e.children.is_empty(),
         _ => {
@@ -173,21 +180,60 @@ fn build_directive_args(dirs: Vec<(Directive, Option<RuntimeHelper>)>) -> Option
     todo!()
 }
 
-fn build_children<'a>(bc: &mut BC, e: &mut Element<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
-    let should_build_as_slot = v_slot::check_build_as_slot(bc, e);
-    if e.children.is_empty() {
-        return (vec![], PatchFlag::empty());
-    }
+fn build_children<'a>(
+    bc: &mut BC,
+    e: &mut Element<'a>,
+    tag: &Js<'a>,
+) -> (Vec<BaseIR<'a>>, PatchFlag) {
+    // check slot should precede return
+    let should_build_as_slot = v_slot::check_build_as_slot(bc, e, tag);
+    let mut more_flag = PatchFlag::empty();
     let children = mem::take(&mut e.children);
+    if children.is_empty() {
+        return (vec![], more_flag);
+    }
+    use RuntimeHelper::{KeepAlive, Teleport};
+    if is_builtin_symbol(tag, KeepAlive) {
+        // Builtin Component: 2. Force keep-alive always be updated.
+        more_flag |= PatchFlag::DYNAMIC_SLOTS;
+        if children.len() > 1 {
+            let start = children[0].get_location().start.clone();
+            let end = children.last().unwrap().get_location().end.clone();
+            let error = CompilationError::new(ErrorKind::KeepAliveInvalidChildren)
+                .with_location(SourceLocation { start, end });
+            bc.emit_error(error);
+        }
+    }
     // NB: convert children should take place first
     let children = bc.convert_children(children);
     // if is keep alive
     if should_build_as_slot {
-        todo!("build_slot fn")
-    } else if false {
-        todo!("handle single element")
+        let (slots, dynamic_slots) = v_slot::convert_v_slot(bc, e);
+        if dynamic_slots {
+            more_flag |= PatchFlag::DYNAMIC_SLOTS;
+        }
+        return (vec![slots], more_flag);
+    }
+    if children.len() == 1 && !is_builtin_symbol(tag, Teleport) {
+        let child = &children[0];
+        if let IRNode::TextCall(t) = child {
+            let has_non_static = t
+                .iter()
+                .map(Js::static_level)
+                .any(|f| f == StaticLevel::NotStatic);
+            if has_non_static {
+                more_flag |= PatchFlag::TEXT;
+            }
+        }
+    }
+    (children, more_flag)
+}
+
+fn is_builtin_symbol(tag: &Js, helper: RuntimeHelper) -> bool {
+    if let Js::Symbol(r) = tag {
+        r == &helper
     } else {
-        todo!("generic")
+        false
     }
 }
 

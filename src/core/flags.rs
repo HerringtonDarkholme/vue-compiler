@@ -99,7 +99,7 @@ pub enum StaticLevel {
     CanStringify,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeHelper {
     Fragment,
     Teleport,

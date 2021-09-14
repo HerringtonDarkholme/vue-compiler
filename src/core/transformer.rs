@@ -13,6 +13,7 @@ the original ones for the parity of features not implemented in Convert.
 ## Original
 * collectHelper: track all helpers used in AST. Vue track it by helper/helperString.
 * mergeText: merge consecutive text call
+* patch_flag: seems patch flag can be extracted out
 
  */
 pub trait Transformer {

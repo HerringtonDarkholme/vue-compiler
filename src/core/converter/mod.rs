@@ -317,7 +317,7 @@ impl<'a> ConvertInfo for BaseConvertInfo<'a> {
     type ForType = ();
     type VNodeType = ();
     type RenderSlotType = ();
-    type VSlotType = ();
+    type VSlotType = JsExpr<'a>;
     type CommentType = &'a str;
     type JsExpression = JsExpr<'a>;
     type StrType = VStr<'a>;

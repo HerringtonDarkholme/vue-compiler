@@ -6,6 +6,11 @@ use crate::core::{flags::RuntimeHelper, parser::ElementType, util::find_dir};
 
 pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> (BaseIR<'a>, bool) {
     todo!()
+    // 1. Check for slot with slotProps on component itself. <Comp v-slot="{ prop }"/>
+    // 2. traverse children and check template slots (v-if/v-for)
+    //    output static slots and dynamic ones
+    // 3. create slot properties with default slot props
+    // 4. merge static slot and dynamic ones if available
 }
 
 pub fn check_build_as_slot(bc: &BC, e: &Element, tag: &Js) -> bool {

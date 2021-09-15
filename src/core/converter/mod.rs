@@ -79,6 +79,8 @@ pub enum IRNode<T: ConvertInfo> {
     RenderSlotCall(RenderSlotIR<T>),
     /// v-slot used on component or template
     VSlotUse(VSlotIR<T>),
+    // internal type for v-slot to reuse v-if/for
+    AlterableSlot(Slot<T>),
     /// comment
     CommentCall(T::CommentType),
     /// generic JS expression
@@ -128,15 +130,16 @@ pub struct VNodeIR<T: ConvertInfo> {
     disable_tracking: bool,
     is_component: bool,
 }
-pub enum DynamicVSlot<T: ConvertInfo> {
-    If(IfNodeIR<T>),
-    For(ForNodeIR<T>),
+pub struct Slot<T: ConvertInfo> {
+    name: T::JsExpression,
+    param: Option<T::JsExpression>,
+    body: Vec<IRNode<T>>,
 }
 pub struct VSlotIR<T: ConvertInfo> {
     /// stable v-slots declared statically in the template
-    static_slots: Vec<(T::JsExpression, IRNode<T>)>,
+    static_slots: Vec<Slot<T>>,
     /// v-slots templates dynamically declared with v-if/v-for
-    dynamic_slots: Vec<DynamicVSlot<T>>,
+    dynamic_slots: Vec<IRNode<T>>,
 }
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);

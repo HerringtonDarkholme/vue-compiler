@@ -1,7 +1,6 @@
 use super::{
-    v_if::{pre_group_v_if, PreGroup},
     AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, CoreConverter, Directive, Element,
-    IRNode, JsExpr as Js, VSlotIR,
+    IRNode, JsExpr as Js, Slot, VSlotIR,
 };
 use crate::core::{
     error::{CompilationError, CompilationErrorKind as ErrorKind},
@@ -56,9 +55,14 @@ pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
                 .with_location(first_child.get_location().clone());
             bc.emit_error(error);
         } else {
-            let slot_name = Js::StrLit(VStr::raw("default"));
-            let slot_fn = build_slot_fn(None, implicit_default);
-            v_slot_ir.static_slots.push((slot_name, slot_fn));
+            let name = Js::StrLit(VStr::raw("default"));
+            let body = build_slot_fn(implicit_default);
+            let slot = Slot {
+                name,
+                body,
+                param: None,
+            };
+            v_slot_ir.static_slots.push(slot);
         }
     }
     IRNode::VSlotUse(v_slot_ir)
@@ -83,8 +87,13 @@ fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<
             true
         }
     });
+    let slot = Slot {
+        name: slot_name,
+        param: expr,
+        body: build_slot_fn(children),
+    };
     let v_slot_ir = VSlotIR {
-        static_slots: vec![(slot_name, build_slot_fn(expr, children))],
+        static_slots: vec![slot],
         dynamic_slots: vec![],
     };
     Some(IRNode::VSlotUse(v_slot_ir))
@@ -112,24 +121,14 @@ fn build_explicit_slots<'a>(templates: Vec<AstNode<'a>>) -> BaseVSlot<'a> {
     // b. v-for (need dup name check)
     // c. check dup static name
     // output static slots and dynamic ones
-    let mut dynamic = vec![];
-    for pre_group in pre_group_v_if(templates) {
-        match pre_group {
-            PreGroup::VIfGroup(e) => {
-                dynamic.push(build_one_v_if());
-            }
-            PreGroup::StandAlone(n) => {
-                build_one_slot();
-            }
-        }
-    }
+    // let mut dynamic = vec![];
     todo!()
 }
 
 fn build_one_v_if() {}
 fn build_one_slot() {}
 
-fn build_slot_fn<'a, C>(exp: Option<Js<'a>>, children: C) -> BaseIR<'a>
+fn build_slot_fn<'a, C>(children: C) -> Vec<BaseIR<'a>>
 where
     C: IntoIterator<Item = AstNode<'a>>,
 {
@@ -152,7 +151,7 @@ fn is_template_slot(e: &Element) -> bool {
 }
 
 fn has_named_default(v_slot_ir: &BaseVSlot) -> bool {
-    v_slot_ir.static_slots.iter().any(|p| match p.0 {
+    v_slot_ir.static_slots.iter().any(|p| match p.name {
         Js::StrLit(s) => s.raw == "default",
         _ => false,
     })

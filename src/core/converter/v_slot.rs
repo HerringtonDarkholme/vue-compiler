@@ -46,7 +46,7 @@ pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
     }
     let (implicit_default, explicit_slots) = split_implicit_and_explicit(&mut *e);
     // 2. traverse children and check template slots
-    let mut v_slot_ir = build_explicit_slots(explicit_slots);
+    let mut v_slot_ir = build_explicit_slots(bc, explicit_slots);
     // 3. merge stable slot and alterable ones if available
     if !implicit_default.is_empty() {
         if has_named_default(&v_slot_ir) {
@@ -99,13 +99,13 @@ fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<
     Some(IRNode::VSlotUse(v_slot_ir))
 }
 
-fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Vec<AstNode<'a>>) {
+fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Vec<Element<'a>>) {
     let children = mem::take(&mut e.children);
     let mut implicit_default = vec![];
     let explicit_slots = children
         .into_iter()
-        .filter_map(|n| match &n {
-            AstNode::Element(e) if is_template_slot(e) => return Some(n),
+        .filter_map(|n| match n {
+            AstNode::Element(e) if is_template_slot(&e) => return Some(e),
             _ => {
                 implicit_default.push(n);
                 None
@@ -115,17 +115,47 @@ fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Ve
     (implicit_default, explicit_slots)
 }
 
+const ALTERABLE_DIRS: [&str; 4] = ["if", "else-if", "else", "for"];
 // TODO reduce AstNode rematching overhead
-fn build_explicit_slots<'a>(templates: Vec<AstNode<'a>>) -> BaseVSlot<'a> {
+fn build_explicit_slots<'a>(bc: &BC, templates: Vec<Element<'a>>) -> BaseVSlot<'a> {
     // 1. check dup static name
     // 2. rebuild alterable slots
     // output stable slots and alterable ones
-    // let mut alterable = vec![];
-    todo!()
+    let mut stable_slots = vec![];
+    let mut alterable = vec![];
+    for t in templates {
+        if dir_finder(&t, ALTERABLE_DIRS)
+            .allow_empty()
+            .find()
+            .is_some()
+        {
+            alterable.push(t);
+            continue;
+        }
+        stable_slots.push(build_stable_slot(bc, t));
+    }
+    let alterable_slots = build_alterable_slots(bc, alterable);
+    VSlotIR {
+        stable_slots,
+        alterable_slots,
+    }
 }
 
-fn build_one_v_if() {}
-fn build_one_slot() {}
+fn build_stable_slot<'a>(bc: &BC, mut t: Element<'a>) -> Slot<BaseConvertInfo<'a>> {
+    let dir = dir_finder(&mut t, "slot").allow_empty().find().unwrap();
+    let Directive {
+        argument,
+        expression,
+        ..
+    } = dir.take();
+    let name = get_slot_name(&argument);
+    let param = expression.map(|v| Js::simple(v.content));
+    let body = bc.convert_children(t.children);
+    Slot { name, param, body }
+}
+fn build_alterable_slots<'a>(bc: &BC, t: Vec<Element<'a>>) -> Vec<BaseIR<'a>> {
+    todo!()
+}
 
 fn build_slot_fn<'a, C>(children: C) -> Vec<BaseIR<'a>>
 where

@@ -46,7 +46,8 @@ pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
     IRNode::VNodeCall(vnode)
 }
 
-pub fn convert_template<'a>(bc: &BC, e: Element<'a>) -> BaseIR<'a> {
+// is_slot indicates if the template should be compiled to dynamic slot expr
+pub fn convert_template<'a>(bc: &BC, e: Element<'a>, is_slot: bool) -> BaseIR<'a> {
     debug_assert!(e.tag_type != ElementType::Template);
     if let Some(found) = find_dir(&e, "slot") {
         let dir = found.get_ref();

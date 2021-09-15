@@ -416,7 +416,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
         IRNode::TextCall(vec![expr])
     }
     fn convert_template(&self, e: Element<'a>) -> BaseIR<'a> {
-        convert_element::convert_template(self, e)
+        convert_element::convert_template(self, e, false)
     }
     fn convert_comment(&self, c: SourceNode<'a>) -> BaseIR<'a> {
         IRNode::CommentCall(c.source)

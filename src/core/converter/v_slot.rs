@@ -1,9 +1,9 @@
 use super::{
-    super::error::{CompilationError, CompilationErrorKind as ErrorKind},
     AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, CoreConverter, Directive, Element,
     IRNode, JsExpr as Js, VSlotIR,
 };
 use crate::core::{
+    error::{CompilationError, CompilationErrorKind as ErrorKind},
     flags::RuntimeHelper,
     parser::{DirectiveArg, ElementType},
     util::{dir_finder, VStr},
@@ -31,23 +31,36 @@ pub fn check_build_as_slot(bc: &BC, e: &Element, tag: &Js) -> bool {
     }
 }
 
+type BaseVSlot<'a> = VSlotIR<BaseConvertInfo<'a>>;
+
 // TODO: add has_dynamic_slot
 // we have three forms of slot:
 // 1. On component slot: <comp v-slot="">
 // 2. Full template slot: <template v-slot>
 // 3. implicit default with named: hybrid of 1 and 2
 pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
-    // 0. Check dynamic identifier usage
+    // TODO: Check dynamic identifier usage
     // 1. Check for slot with slotProps on component itself. <Comp v-slot="{ prop }"/>
     if let Some(ret) = convert_on_component_slot(bc, &mut *e) {
         return ret;
     }
-    let (implicit_default, explicit_slots) = split_implicit_and_explcit(&mut *e);
+    let (implicit_default, explicit_slots) = split_implicit_and_explicit(&mut *e);
     // 2. traverse children and check template slots
-    let vslot_ir = build_explicit_slots(explicit_slots);
-    // 3. create slot properties with default slot props
-    // 4. merge static slot and dynamic ones if available
-    IRNode::VSlotUse(vslot_ir)
+    let mut v_slot_ir = build_explicit_slots(explicit_slots);
+    // 3. merge static slot and dynamic ones if available
+    if !implicit_default.is_empty() {
+        if has_named_default(&v_slot_ir) {
+            let first_child = &implicit_default[0];
+            let error = CompilationError::new(ErrorKind::VSlotExtraneousDefaultSlotChildren)
+                .with_location(first_child.get_location().clone());
+            bc.emit_error(error);
+        } else {
+            let slot_name = Js::StrLit(VStr::raw("default"));
+            let slot_fn = build_slot_fn(None, implicit_default);
+            v_slot_ir.static_slots.push((slot_name, slot_fn));
+        }
+    }
+    IRNode::VSlotUse(v_slot_ir)
 }
 
 fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<'a>> {
@@ -69,14 +82,14 @@ fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<
             true
         }
     });
-    let vslot_ir = VSlotIR {
+    let v_slot_ir = VSlotIR {
         static_slots: vec![(slot_name, build_slot_fn(expr, children))],
         dynamic_slots: vec![],
     };
-    Some(IRNode::VSlotUse(vslot_ir))
+    Some(IRNode::VSlotUse(v_slot_ir))
 }
 
-fn split_implicit_and_explcit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Vec<Element<'a>>) {
+fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Vec<Element<'a>>) {
     let children = mem::take(&mut e.children);
     let mut implicit_default = vec![];
     let explicit_slots = children
@@ -92,7 +105,7 @@ fn split_implicit_and_explcit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Vec
     (implicit_default, explicit_slots)
 }
 
-fn build_explicit_slots<'a>(templates: Vec<Element<'a>>) -> VSlotIR<BaseConvertInfo<'a>> {
+fn build_explicit_slots<'a>(templates: Vec<Element<'a>>) -> BaseVSlot<'a> {
     // 2.a. v-if
     // 2.b. v-for (need dup name check)
     // 2.c. check dup static name
@@ -121,4 +134,11 @@ fn is_template_slot(e: &Element) -> bool {
         return false;
     }
     dir_finder(e, "slot").allow_empty().find().is_some()
+}
+
+fn has_named_default(v_slot_ir: &BaseVSlot) -> bool {
+    v_slot_ir.static_slots.iter().any(|p| match p.0 {
+        Js::StrLit(s) => s.raw == "default",
+        _ => false,
+    })
 }

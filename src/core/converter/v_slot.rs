@@ -1,4 +1,5 @@
 use super::{
+    v_if::{pre_group_v_if, PreGroup},
     AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, CoreConverter, Directive, Element,
     IRNode, JsExpr as Js, VSlotIR,
 };
@@ -89,13 +90,13 @@ fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<
     Some(IRNode::VSlotUse(v_slot_ir))
 }
 
-fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Vec<Element<'a>>) {
+fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Vec<AstNode<'a>>) {
     let children = mem::take(&mut e.children);
     let mut implicit_default = vec![];
     let explicit_slots = children
         .into_iter()
-        .filter_map(|n| match n {
-            AstNode::Element(e) if is_template_slot(&e) => return Some(e),
+        .filter_map(|n| match &n {
+            AstNode::Element(e) if is_template_slot(e) => return Some(n),
             _ => {
                 implicit_default.push(n);
                 None
@@ -105,14 +106,28 @@ fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Ve
     (implicit_default, explicit_slots)
 }
 
-fn build_explicit_slots<'a>(templates: Vec<Element<'a>>) -> BaseVSlot<'a> {
-    // 2.a. v-if
-    // 2.b. v-for (need dup name check)
-    // 2.c. check dup static name
+// TODO reduce AstNode rematching overhead
+fn build_explicit_slots<'a>(templates: Vec<AstNode<'a>>) -> BaseVSlot<'a> {
+    // a. v-if
+    // b. v-for (need dup name check)
+    // c. check dup static name
     // output static slots and dynamic ones
-    debug_assert!(templates.iter().all(|e| is_template_slot(e)));
+    let mut dynamic = vec![];
+    for pre_group in pre_group_v_if(templates) {
+        match pre_group {
+            PreGroup::VIfGroup(e) => {
+                dynamic.push(build_one_v_if());
+            }
+            PreGroup::StandAlone(n) => {
+                build_one_slot();
+            }
+        }
+    }
     todo!()
 }
+
+fn build_one_v_if() {}
+fn build_one_slot() {}
 
 fn build_slot_fn<'a, C>(exp: Option<Js<'a>>, children: C) -> BaseIR<'a>
 where

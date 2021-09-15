@@ -35,7 +35,7 @@ fn generate_node<T: ConvertInfo>(node: IRNode<T>) {
         IR::For(..) => generate_for(),
         IR::VNodeCall(..) => generate_vnode(),
         IR::RenderSlotCall(..) => generate_slot_outlet(),
-        IR::VSlotExpression(..) => generate_v_slot(),
+        IR::VSlotUse(..) => generate_v_slot(),
         IR::CommentCall(..) => generate_comment(),
         IR::GenericExpression(..) => generate_js_expr(),
     }

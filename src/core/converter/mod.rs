@@ -66,13 +66,6 @@ pub trait ConvertInfo {
     type StrType;
 }
 
-pub enum VSlotExpr {
-    /// stable v-slots declared statically in the template
-    StableSlotObject,
-    /// v-slots dynamically declared v-slot template with v-if/v-for
-    DynamicSlotCall,
-}
-
 pub enum IRNode<T: ConvertInfo> {
     /// interpolation or text node
     TextCall(Vec<T::TextType>),
@@ -84,8 +77,8 @@ pub enum IRNode<T: ConvertInfo> {
     VNodeCall(VNodeIR<T>),
     /// <slot> slot outlet
     RenderSlotCall(RenderSlotIR<T>),
-    /// v-slot on component or template
-    VSlotExpression(T::VSlotType),
+    /// v-slot used on component or template
+    VSlotUse(VSlotIR<T>),
     /// comment
     CommentCall(T::CommentType),
     /// generic JS expression
@@ -134,6 +127,16 @@ pub struct VNodeIR<T: ConvertInfo> {
     is_block: bool,
     disable_tracking: bool,
     is_component: bool,
+}
+pub enum DynamicVSlot<T: ConvertInfo> {
+    If(IfNodeIR<T>),
+    For(ForNodeIR<T>),
+}
+pub struct VSlotIR<T: ConvertInfo> {
+    /// stable v-slots declared statically in the template
+    static_slots: Vec<(T::JsExpression, IRNode<T>)>,
+    /// v-slots templates dynamically declared with v-if/v-for
+    dynamic_slots: Vec<DynamicVSlot<T>>,
 }
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
@@ -317,7 +320,7 @@ impl<'a> ConvertInfo for BaseConvertInfo<'a> {
     type ForType = ();
     type VNodeType = ();
     type RenderSlotType = ();
-    type VSlotType = JsExpr<'a>;
+    type VSlotType = ();
     type CommentType = &'a str;
     type JsExpression = JsExpr<'a>;
     type StrType = VStr<'a>;

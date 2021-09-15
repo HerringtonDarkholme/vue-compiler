@@ -1,6 +1,7 @@
 use super::{
     super::error::{CompilationError, CompilationErrorKind as ErrorKind},
-    AstNode, BaseConverter as BC, BaseIR, CoreConverter, Directive, Element, IRNode, JsExpr as Js,
+    AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, CoreConverter, Directive, Element,
+    IRNode, JsExpr as Js, VSlotIR,
 };
 use crate::core::{
     flags::RuntimeHelper,
@@ -8,6 +9,27 @@ use crate::core::{
     util::{dir_finder, VStr},
 };
 use std::mem;
+
+pub fn check_wrong_slot(bc: &BC, e: &Element, kind: ErrorKind) -> bool {
+    if let Some(found) = dir_finder(e, "slot").allow_empty().find() {
+        let dir = found.get_ref();
+        let error = CompilationError::new(kind).with_location(dir.location.clone());
+        bc.emit_error(error);
+        true
+    } else {
+        false
+    }
+}
+
+pub fn check_build_as_slot(bc: &BC, e: &Element, tag: &Js) -> bool {
+    debug_assert!(e.tag_type != ElementType::Template);
+    use RuntimeHelper::{KeepAlive, Teleport};
+    match tag {
+        Js::Symbol(KeepAlive) => true,
+        Js::Symbol(Teleport) => true,
+        _ => e.is_component(),
+    }
+}
 
 // TODO: add has_dynamic_slot
 // we have three forms of slot:
@@ -20,25 +42,12 @@ pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
     if let Some(ret) = convert_on_component_slot(bc, &mut *e) {
         return ret;
     }
-    let (implicit_default, explicit_slots) = split_implicit_and_explit(&mut *e);
-    // 2. traverse children and check template slots (v-if/v-for)
-    //   2.a. v-if
-    //   2.b. v-for (need dup name check)
-    //   2.c. check dup static name
-    //   2.d. check nested v-slot
-    //   output static slots and dynamic ones
-
+    let (implicit_default, explicit_slots) = split_implicit_and_explcit(&mut *e);
+    // 2. traverse children and check template slots
+    let vslot_ir = build_explicit_slots(explicit_slots);
     // 3. create slot properties with default slot props
     // 4. merge static slot and dynamic ones if available
-    todo!()
-}
-
-fn get_slot_name<'a>(arg: &Option<DirectiveArg<'a>>) -> Js<'a> {
-    match arg {
-        None => Js::StrLit(VStr::raw("default")),
-        Some(DirectiveArg::Static(s)) => Js::StrLit(VStr::raw(s)),
-        Some(DirectiveArg::Dynamic(s)) => Js::simple(*s),
-    }
+    IRNode::VSlotUse(vslot_ir)
 }
 
 fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<'a>> {
@@ -60,20 +69,14 @@ fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<
             true
         }
     });
-    Some(IRNode::VSlotExpression(Js::Props(vec![(
-        slot_name,
-        build_slot_fn(expr, children),
-    )])))
+    let vslot_ir = VSlotIR {
+        static_slots: vec![(slot_name, build_slot_fn(expr, children))],
+        dynamic_slots: vec![],
+    };
+    Some(IRNode::VSlotUse(vslot_ir))
 }
 
-fn is_template_slot<'a>(e: &Element<'a>) -> bool {
-    if e.tag_type != ElementType::Template {
-        return false;
-    }
-    dir_finder(e, "slot").allow_empty().find().is_some()
-}
-
-fn split_implicit_and_explit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Vec<Element<'a>>) {
+fn split_implicit_and_explcit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Vec<Element<'a>>) {
     let children = mem::take(&mut e.children);
     let mut implicit_default = vec![];
     let explicit_slots = children
@@ -89,30 +92,33 @@ fn split_implicit_and_explit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Vec<
     (implicit_default, explicit_slots)
 }
 
-fn build_slot_fn<'a, C>(exp: Option<Js<'a>>, children: C) -> Js<'a>
+fn build_explicit_slots<'a>(templates: Vec<Element<'a>>) -> VSlotIR<BaseConvertInfo<'a>> {
+    // 2.a. v-if
+    // 2.b. v-for (need dup name check)
+    // 2.c. check dup static name
+    // output static slots and dynamic ones
+    debug_assert!(templates.iter().all(|e| is_template_slot(e)));
+    todo!()
+}
+
+fn build_slot_fn<'a, C>(exp: Option<Js<'a>>, children: C) -> BaseIR<'a>
 where
     C: IntoIterator<Item = AstNode<'a>>,
 {
     todo!()
 }
 
-pub fn check_wrong_slot(bc: &BC, e: &Element, kind: ErrorKind) -> bool {
-    if let Some(found) = dir_finder(e, "slot").allow_empty().find() {
-        let dir = found.get_ref();
-        let error = CompilationError::new(kind).with_location(dir.location.clone());
-        bc.emit_error(error);
-        true
-    } else {
-        false
+fn get_slot_name<'a>(arg: &Option<DirectiveArg<'a>>) -> Js<'a> {
+    match arg {
+        None => Js::StrLit(VStr::raw("default")),
+        Some(DirectiveArg::Static(s)) => Js::StrLit(VStr::raw(s)),
+        Some(DirectiveArg::Dynamic(s)) => Js::simple(*s),
     }
 }
 
-pub fn check_build_as_slot(bc: &BC, e: &Element, tag: &Js) -> bool {
-    debug_assert!(e.tag_type != ElementType::Template);
-    use RuntimeHelper::{KeepAlive, Teleport};
-    match tag {
-        Js::Symbol(KeepAlive) => true,
-        Js::Symbol(Teleport) => true,
-        _ => e.is_component(),
+fn is_template_slot(e: &Element) -> bool {
+    if e.tag_type != ElementType::Template {
+        return false;
     }
+    dir_finder(e, "slot").allow_empty().find().is_some()
 }

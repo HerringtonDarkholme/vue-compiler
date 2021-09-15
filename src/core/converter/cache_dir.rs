@@ -1,5 +1,5 @@
 // v-once / v-memo
-use super::{BaseConverter as BC, BaseIR, Directive, Element};
+use super::{Directive, Element};
 use crate::core::util::find_dir;
 
 pub fn pre_convert_memo<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {

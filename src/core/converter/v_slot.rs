@@ -1,3 +1,7 @@
+use std::mem;
+
+use rustc_hash::FxHashSet;
+
 use super::{
     AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, CoreConverter, Directive, Element,
     IRNode, JsExpr as Js, Slot, VSlotIR,
@@ -7,8 +11,8 @@ use crate::core::{
     flags::RuntimeHelper,
     parser::{DirectiveArg, ElementType},
     util::{dir_finder, VStr},
+    SourceLocation,
 };
-use std::mem;
 
 pub fn check_wrong_slot(bc: &BC, e: &Element, kind: ErrorKind) -> bool {
     if let Some(found) = dir_finder(e, "slot").allow_empty().find() {
@@ -105,7 +109,7 @@ fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Ve
     let explicit_slots = children
         .into_iter()
         .filter_map(|n| match n {
-            AstNode::Element(e) if is_template_slot(&e) => return Some(e),
+            AstNode::Element(e) if is_template_slot(&e) => Some(e),
             _ => {
                 implicit_default.push(n);
                 None
@@ -123,16 +127,27 @@ fn build_explicit_slots<'a>(bc: &BC, templates: Vec<Element<'a>>) -> BaseVSlot<'
     // output stable slots and alterable ones
     let mut stable_slots = vec![];
     let mut alterable = vec![];
+    let mut seen = FxHashSet::default();
     for t in templates {
-        if dir_finder(&t, ALTERABLE_DIRS)
+        let is_alterable = dir_finder(&t, ALTERABLE_DIRS)
             .allow_empty()
             .find()
-            .is_some()
-        {
+            .is_some();
+        if is_alterable {
             alterable.push(t);
             continue;
         }
-        stable_slots.push(build_stable_slot(bc, t));
+        let (stable, loc) = build_stable_slot(bc, t);
+        if let Js::StrLit(n) = stable.name {
+            if !seen.contains(n.raw) {
+                let error =
+                    CompilationError::new(ErrorKind::VSlotDuplicateSlotNames).with_location(loc);
+                bc.emit_error(error);
+                continue;
+            }
+            seen.insert(n.raw);
+        }
+        stable_slots.push(stable);
     }
     let alterable_slots = build_alterable_slots(bc, alterable);
     VSlotIR {
@@ -141,17 +156,21 @@ fn build_explicit_slots<'a>(bc: &BC, templates: Vec<Element<'a>>) -> BaseVSlot<'
     }
 }
 
-fn build_stable_slot<'a>(bc: &BC, mut t: Element<'a>) -> Slot<BaseConvertInfo<'a>> {
+fn build_stable_slot<'a>(
+    bc: &BC,
+    mut t: Element<'a>,
+) -> (Slot<BaseConvertInfo<'a>>, SourceLocation) {
     let dir = dir_finder(&mut t, "slot").allow_empty().find().unwrap();
     let Directive {
         argument,
         expression,
+        location,
         ..
     } = dir.take();
     let name = get_slot_name(&argument);
     let param = expression.map(|v| Js::simple(v.content));
     let body = bc.convert_children(t.children);
-    Slot { name, param, body }
+    (Slot { name, param, body }, location)
 }
 fn build_alterable_slots<'a>(bc: &BC, t: Vec<Element<'a>>) -> Vec<BaseIR<'a>> {
     todo!()

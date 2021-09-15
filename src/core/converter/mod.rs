@@ -135,6 +135,9 @@ pub struct Slot<T: ConvertInfo> {
     param: Option<T::JsExpression>,
     body: Vec<IRNode<T>>,
 }
+// note the diffrence between stable and static, dynamic and alterable.
+// static = static template name, capturing no identifier
+// stable = no if nor for
 pub struct VSlotIR<T: ConvertInfo> {
     /// stable v-slots declared statically in the template
     stable_slots: Vec<Slot<T>>,

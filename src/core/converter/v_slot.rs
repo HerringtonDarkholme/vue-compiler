@@ -33,7 +33,7 @@ pub fn check_build_as_slot(bc: &BC, e: &Element, tag: &Js) -> bool {
 
 type BaseVSlot<'a> = VSlotIR<BaseConvertInfo<'a>>;
 
-// TODO: add has_dynamic_slot
+// TODO: add has_alterable_slot
 // we have three forms of slot:
 // 1. On component slot: <comp v-slot="">
 // 2. Full template slot: <template v-slot>
@@ -47,7 +47,7 @@ pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
     let (implicit_default, explicit_slots) = split_implicit_and_explicit(&mut *e);
     // 2. traverse children and check template slots
     let mut v_slot_ir = build_explicit_slots(explicit_slots);
-    // 3. merge static slot and dynamic ones if available
+    // 3. merge stable slot and alterable ones if available
     if !implicit_default.is_empty() {
         if has_named_default(&v_slot_ir) {
             let first_child = &implicit_default[0];
@@ -62,7 +62,7 @@ pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
                 body,
                 param: None,
             };
-            v_slot_ir.static_slots.push(slot);
+            v_slot_ir.stable_slots.push(slot);
         }
     }
     IRNode::VSlotUse(v_slot_ir)
@@ -93,8 +93,8 @@ fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<
         body: build_slot_fn(children),
     };
     let v_slot_ir = VSlotIR {
-        static_slots: vec![slot],
-        dynamic_slots: vec![],
+        stable_slots: vec![slot],
+        alterable_slots: vec![],
     };
     Some(IRNode::VSlotUse(v_slot_ir))
 }
@@ -117,11 +117,10 @@ fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Ve
 
 // TODO reduce AstNode rematching overhead
 fn build_explicit_slots<'a>(templates: Vec<AstNode<'a>>) -> BaseVSlot<'a> {
-    // a. v-if
-    // b. v-for (need dup name check)
-    // c. check dup static name
-    // output static slots and dynamic ones
-    // let mut dynamic = vec![];
+    // 1. check dup static name
+    // 2. rebuild alterable slots
+    // output stable slots and alterable ones
+    // let mut alterable = vec![];
     todo!()
 }
 
@@ -151,7 +150,7 @@ fn is_template_slot(e: &Element) -> bool {
 }
 
 fn has_named_default(v_slot_ir: &BaseVSlot) -> bool {
-    v_slot_ir.static_slots.iter().any(|p| match p.name {
+    v_slot_ir.stable_slots.iter().any(|p| match p.name {
         Js::StrLit(s) => s.raw == "default",
         _ => false,
     })

@@ -137,9 +137,9 @@ pub struct Slot<T: ConvertInfo> {
 }
 pub struct VSlotIR<T: ConvertInfo> {
     /// stable v-slots declared statically in the template
-    static_slots: Vec<Slot<T>>,
+    stable_slots: Vec<Slot<T>>,
     /// v-slots templates dynamically declared with v-if/v-for
-    dynamic_slots: Vec<IRNode<T>>,
+    alterable_slots: Vec<IRNode<T>>,
 }
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);

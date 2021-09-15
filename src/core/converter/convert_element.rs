@@ -47,6 +47,13 @@ pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
 }
 
 pub fn convert_template<'a>(bc: &BC, e: Element<'a>) -> BaseIR<'a> {
+    debug_assert!(e.tag_type != ElementType::Template);
+    if let Some(found) = find_dir(&e, "slot") {
+        let dir = found.get_ref();
+        let error =
+            CompilationError::new(ErrorKind::VSlotMisplaced).with_location(dir.location.clone());
+        bc.emit_error(error);
+    }
     todo!()
 }
 
@@ -225,12 +232,15 @@ fn build_directive_arg<'a>(
 
 fn build_children<'a>(bc: &BC, e: &mut Element<'a>, tag: &Js<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
     // check slot should precede return
-    let should_build_as_slot = v_slot::check_build_as_slot(bc, e, tag);
+    if !e.is_component() {
+        v_slot::check_wrong_slot(bc, e, ErrorKind::VSlotMisplaced);
+    }
     let mut more_flag = PatchFlag::empty();
     let children = mem::take(&mut e.children);
     if children.is_empty() {
         return (vec![], more_flag);
     }
+    let should_build_as_slot = v_slot::check_build_as_slot(bc, e, tag);
     use RuntimeHelper::{KeepAlive, Teleport};
     if is_builtin_symbol(tag, KeepAlive) {
         // Builtin Component: 2. Force keep-alive always be updated.
@@ -247,10 +257,11 @@ fn build_children<'a>(bc: &BC, e: &mut Element<'a>, tag: &Js<'a>) -> (Vec<BaseIR
     let children = bc.convert_children(children);
     // if is keep alive
     if should_build_as_slot {
-        let (slots, dynamic_slots) = v_slot::convert_v_slot(bc, e);
-        if dynamic_slots {
-            more_flag |= PatchFlag::DYNAMIC_SLOTS;
-        }
+        let slots = v_slot::convert_v_slot(bc, e);
+        // TODO: add dynamic_slots
+        // if dynamic_slots {
+        //     more_flag |= PatchFlag::DYNAMIC_SLOTS;
+        // }
         return (vec![slots], more_flag);
     }
     if children.len() == 1 && !is_builtin_symbol(tag, Teleport) {

@@ -54,6 +54,7 @@ pub enum CompilationErrorKind {
     VOnNoExpression,
     VSlotUnexpectedDirectiveOnSlotOutlet,
     VSlotMixedSlotUsage,
+    VSlotTemplateMisplaced,
     VSlotDuplicateSlotNames,
     VSlotExtraneousDefaultSlotChildren,
     VSlotMisplaced,
@@ -165,6 +166,7 @@ fn msg(kind: &CompilationErrorKind) -> &'static str {
         VSlotExtraneousDefaultSlotChildren =>
             r#"Extraneous children found when component already has explicitly named "default slot. These children will be ignored."#,
         VSlotMisplaced => "v-slot can only be used on components or <template> tags.",
+        VSlotTemplateMisplaced => "<template v-slot> can only be used as a component's direct child.",
         VModelNoExpression => "v-model is missing expression.",
         VModelMalformedExpression => "v-model value must be a valid JavaScript member expression.",
         VModelOnScopeVariable =>

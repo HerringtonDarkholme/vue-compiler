@@ -7,6 +7,7 @@ use crate::core::{
     parser::{DirectiveArg, ElementType},
     util::{dir_finder, find_dir, VStr},
 };
+use std::mem;
 
 // TODO: add has_dynamic_slot
 pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
@@ -15,15 +16,16 @@ pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
     if let Some(ret) = convert_on_component_slot(bc, e) {
         return ret;
     }
-    todo!()
     // 2. traverse children and check template slots (v-if/v-for)
-    //    a. v-if
-    //    b. v-for (need dup name check)
-    //    c. check dup static name
-    //    d. check nested v-slot
-    //    output static slots and dynamic ones
+    //   2.a. v-if
+    //   2.b. v-for (need dup name check)
+    //   2.c. check dup static name
+    //   2.d. check nested v-slot
+    //   output static slots and dynamic ones
+
     // 3. create slot properties with default slot props
     // 4. merge static slot and dynamic ones if available
+    todo!()
 }
 
 fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<'a>> {
@@ -39,15 +41,26 @@ fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<
         Some(DirectiveArg::Dynamic(s)) => Js::simple(s),
     };
     let expr = expression.map(|v| Js::simple(v.content));
-    let children = std::mem::take(&mut e.children);
-    // TODO check nested <template v-slot/>
+    let children = mem::take(&mut e.children);
+    //  check nested <template v-slot/>
+    let children = children.into_iter().filter(|n| {
+        if let AstNode::Element(e) = n {
+            e.tag_type != ElementType::Template
+                || !check_wrong_slot(bc, e, ErrorKind::VSlotMixedSlotUsage)
+        } else {
+            true
+        }
+    });
     Some(IRNode::VSlotExpression(Js::Props(vec![(
         slot_name,
         build_slot_fn(expr, children),
     )])))
 }
 
-fn build_slot_fn<'a>(exp: Option<Js<'a>>, children: Vec<AstNode<'a>>) -> Js<'a> {
+fn build_slot_fn<'a, C>(exp: Option<Js<'a>>, children: C) -> Js<'a>
+where
+    C: IntoIterator<Item = AstNode<'a>>,
+{
     todo!()
 }
 

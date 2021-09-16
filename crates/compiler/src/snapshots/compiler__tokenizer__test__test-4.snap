@@ -1,0 +1,48 @@
+---
+source: crates/compiler/src/tokenizer.rs
+expression: t
+
+---
+- StartTag:
+    name: a
+    attributes:
+      - name: test
+        value:
+          content:
+            raw: value
+            ops:
+              bits: 18
+          location:
+            start:
+              offset: 8
+              line: 1
+              column: 9
+            end:
+              offset: 15
+              line: 1
+              column: 16
+        name_loc:
+          start:
+            offset: 3
+            line: 1
+            column: 4
+          end:
+            offset: 7
+            line: 1
+            column: 8
+        location:
+          start:
+            offset: 3
+            line: 1
+            column: 4
+          end:
+            offset: 15
+            line: 1
+            column: 16
+    self_closing: false
+- Text:
+    raw: "..."
+    ops:
+      bits: 2
+- EndTag: a
+

@@ -1,0 +1,43 @@
+---
+source: crates/compiler/src/parser.rs
+expression: dir
+
+---
+Dir:
+  name: "on"
+  argument:
+    Static: _@
+  modifiers: []
+  expression:
+    content:
+      raw: tt
+      ops:
+        bits: 18
+    location:
+      start:
+        offset: 7
+        line: 1
+        column: 8
+      end:
+        offset: 11
+        line: 1
+        column: 12
+  head_loc:
+    start:
+      offset: 3
+      line: 1
+      column: 4
+    end:
+      offset: 6
+      line: 1
+      column: 7
+  location:
+    start:
+      offset: 3
+      line: 1
+      column: 4
+    end:
+      offset: 11
+      line: 1
+      column: 12
+

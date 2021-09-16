@@ -1,0 +1,7 @@
+---
+source: crates/compiler/src/tokenizer.rs
+expression: t
+
+---
+- Comment: "[CDATA["
+

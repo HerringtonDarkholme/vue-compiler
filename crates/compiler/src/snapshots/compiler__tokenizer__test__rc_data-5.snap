@@ -1,0 +1,15 @@
+---
+source: crates/compiler/src/tokenizer.rs
+expression: a
+
+---
+- StartTag:
+    name: textarea
+    attributes: []
+    self_closing: false
+- Text:
+    raw: "<div/>"
+    ops:
+      bits: 2
+- EndTag: textarea
+

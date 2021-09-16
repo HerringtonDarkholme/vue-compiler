@@ -1,0 +1,30 @@
+---
+source: crates/compiler/src/tokenizer.rs
+expression: t
+
+---
+- StartTag:
+    name: a
+    attributes:
+      - name: "=123"
+        value: ~
+        name_loc:
+          start:
+            offset: 3
+            line: 1
+            column: 4
+          end:
+            offset: 7
+            line: 1
+            column: 8
+        location:
+          start:
+            offset: 3
+            line: 1
+            column: 4
+          end:
+            offset: 8
+            line: 1
+            column: 9
+    self_closing: true
+

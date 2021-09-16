@@ -1,0 +1,14 @@
+---
+source: crates/compiler/src/tokenizer.rs
+expression: t
+
+---
+- StartTag:
+    name: style
+    attributes: []
+    self_closing: false
+- Text:
+    raw: "</styles"
+    ops:
+      bits: 0
+

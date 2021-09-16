@@ -1,0 +1,45 @@
+---
+source: crates/compiler/src/parser.rs
+expression: dir
+
+---
+Dir:
+  name: bind
+  argument:
+    Static: ^-^
+  modifiers:
+    - attr
+    - prop
+  expression:
+    content:
+      raw: tt
+      ops:
+        bits: 18
+    location:
+      start:
+        offset: 13
+        line: 1
+        column: 14
+      end:
+        offset: 18
+        line: 1
+        column: 19
+  head_loc:
+    start:
+      offset: 3
+      line: 1
+      column: 4
+    end:
+      offset: 12
+      line: 1
+      column: 13
+  location:
+    start:
+      offset: 3
+      line: 1
+      column: 4
+    end:
+      offset: 18
+      line: 1
+      column: 19
+

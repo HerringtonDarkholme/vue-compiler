@@ -227,6 +227,14 @@ where
     PropFinder::new(elem, pat).find()
 }
 
+pub fn find_dir_empty<'a, E, P>(elem: E, pat: P) -> Option<DirFound<'a, E>>
+where
+    E: Borrow<Element<'a>>,
+    P: PropPattern,
+{
+    PropFinder::new(elem, pat).allow_empty().find()
+}
+
 pub struct PropFinder<'a, E, P, M = ElemProp<'a>>
 where
     E: Borrow<Element<'a>>,

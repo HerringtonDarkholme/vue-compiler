@@ -6,7 +6,7 @@ use super::{
 use crate::core::{
     converter::{CoreConverter, JsExpr as Js},
     tokenizer::Attribute,
-    util::{find_dir, find_prop},
+    util::{find_dir_empty, find_prop},
 };
 use rustc_hash::FxHashSet;
 use std::{iter::Peekable, vec::IntoIter};
@@ -55,7 +55,7 @@ impl<'a> Iterator for PreGroupIter<'a> {
             // group elements if they have v-if/v-else
             let found = n
                 .get_element()
-                .and_then(|e| find_dir(e, ["if", "else-if", "else"]));
+                .and_then(|e| find_dir_empty(e, ["if", "else-if", "else"]));
             if let Some(d) = found {
                 // separate v-if into different groups
                 if d.get_ref().name == "if" && !self.group.is_empty() {
@@ -111,10 +111,10 @@ pub fn convert_if<'a>(c: &BC, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a>
 }
 
 pub fn check_dangling_else<'a>(c: &BC, first_elem: &Element<'a>) {
-    if find_dir(first_elem, "if").is_some() {
+    if find_dir_empty(first_elem, "if").is_some() {
         return;
     }
-    let loc = find_dir(first_elem, ["else-if", "else"])
+    let loc = find_dir_empty(first_elem, ["else-if", "else"])
         .expect("must have other v-if dir")
         .get_ref()
         .location
@@ -160,7 +160,7 @@ fn check_same_key<'a>(c: &BC, elems: &[Element<'a>]) {
 }
 
 fn convert_if_branch<'a>(c: &BC, mut e: Element<'a>, key: usize) -> IfBranch<BaseConvertInfo<'a>> {
-    let dir = find_dir(&mut e, ["if", "else-if", "else"])
+    let dir = find_dir_empty(&mut e, ["if", "else-if", "else"])
         .expect("the element must have v-if directives")
         .take();
     report_duplicate_v_if(c, &mut e);
@@ -187,7 +187,7 @@ fn convert_if_condition<'a>(c: &BC, dir: Directive<'a>) -> Option<Js<'a>> {
 }
 fn report_duplicate_v_if<'a>(c: &BC, e: &mut Element<'a>) {
     // https://stackoverflow.com/a/48144226/2198656
-    while let Some(found) = find_dir(&mut *e, ["if", "else-if", "else"]) {
+    while let Some(found) = find_dir_empty(&mut *e, ["if", "else-if", "else"]) {
         let dir = found.take();
         let error = CompilationError::new(ErrorKind::VIfDuplicateDir).with_location(dir.location);
         c.emit_error(error);

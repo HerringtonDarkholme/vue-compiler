@@ -343,6 +343,7 @@ pub type DirectiveConverter = (&'static str, DirConvertFn);
 
 /// stores binding variables exposed by data/prop/setup script.
 /// also stores if the binding is from setup script.
+#[cfg_attr(test, derive(Default))]
 pub struct BindingMetadata(FxHashMap<&'static str, BindingTypes>, bool);
 impl BindingMetadata {
     pub fn is_setup(&self) -> bool {
@@ -372,9 +373,10 @@ pub struct BaseConverter {
     /// current SFC filename for self-referencing
     pub self_name: String,
 }
+pub type BaseRoot<'a> = IRRoot<BaseConvertInfo<'a>>;
 pub type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
 impl<'a> Converter<'a> for BaseConverter {
-    type IR = IRRoot<BaseConvertInfo<'a>>;
+    type IR = BaseRoot<'a>;
     fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR {
         self.convert_core_ir(ast)
     }
@@ -432,5 +434,32 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
 impl BaseConverter {
     fn no_slotted(&self) -> bool {
         self.scope_id.is_some() && !self.slotted
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::core::parser::test::base_parse;
+    use BaseConverter as BC;
+
+    #[test]
+    fn test_simplest() {
+        let body = base_convert("<p/>").body;
+        assert_eq!(body.len(), 1);
+        assert!(matches!(body[0], IRNode::VNodeCall(_)));
+    }
+
+    pub fn base_convert(s: &str) -> BaseRoot {
+        let bc = BC {
+            scope_id: None,
+            slotted: false,
+            inline: true,
+            directive_converters: vec![],
+            binding_metadata: Default::default(),
+            self_name: "".into(),
+        };
+        let ast = base_parse(s);
+        bc.convert_ir(ast)
     }
 }

@@ -186,8 +186,8 @@ fn build_alterable_slots<'a>(bc: &BC, mut templates: Vec<Element<'a>>) -> Vec<Ba
     ir_nodes
 }
 
-// NB: get_child must be elevated to a fn pointer instead of closure to avoid
-// recusion limit of rustc's polymorphic code instantiation
+// NB: get_child must be elevated to a fn pointer instead of closure
+// to avoid recusion limit of rustc's polymorphic code instantiation
 use super::IfBranch;
 fn get_child<'a, 'b>(b: &'b mut IfBranch<BaseConvertInfo<'a>>) -> &'b mut BaseIR<'a> {
     &mut *b.child

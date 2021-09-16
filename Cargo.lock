@@ -70,6 +70,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "compiler"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "criterion",
+ "insta",
+ "json",
+ "phf",
+ "rustc-hash",
+ "serde",
+ "smallvec",
+]
+
+[[package]]
 name = "console"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -182,6 +196,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b2466559f260f48ad25fe6317b3c8dac77b5bdb5763ac7d9d6103530663bc90"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "dom"
+version = "0.1.0"
+dependencies = [
+ "compiler",
 ]
 
 [[package]]
@@ -640,6 +661,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sfc"
+version = "0.1.0"
+dependencies = [
+ "compiler",
+]
+
+[[package]]
 name = "similar"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -719,17 +747,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 
 [[package]]
-name = "vue-template-compiler"
+name = "vue-compiler-core"
 version = "0.1.0"
 dependencies = [
- "bitflags",
- "criterion",
- "insta",
- "json",
- "phf",
- "rustc-hash",
- "serde",
- "smallvec",
+ "compiler",
 ]
 
 [[package]]

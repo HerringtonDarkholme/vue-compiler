@@ -31,6 +31,6 @@ pub struct SfcParseResult<'a> {
     pub errors: Vec<SfcError>,
 }
 
-pub fn parse_sfc(source: &str) -> SfcParseResult<'_> {
+pub fn parse_sfc(_source: &str) -> SfcParseResult<'_> {
     todo!()
 }

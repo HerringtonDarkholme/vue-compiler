@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::mem;
 
 use rustc_hash::FxHashSet;
@@ -11,7 +12,6 @@ use crate::core::{
     flags::RuntimeHelper,
     parser::{DirectiveArg, ElementType},
     util::{dir_finder, VStr},
-    SourceLocation,
 };
 
 pub fn check_wrong_slot(bc: &BC, e: &Element, kind: ErrorKind) -> bool {
@@ -120,7 +120,6 @@ fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Ve
 }
 
 const ALTERABLE_DIRS: [&str; 4] = ["if", "else-if", "else", "for"];
-// TODO reduce AstNode rematching overhead
 fn build_explicit_slots<'a>(bc: &BC, templates: Vec<Element<'a>>) -> BaseVSlot<'a> {
     // 1. check dup static name
     // 2. rebuild alterable slots
@@ -153,13 +152,12 @@ fn build_stable_slot<'a>(
     mut t: Element<'a>,
     seen: &mut FxHashSet<&'a str>,
 ) -> Option<Slot<BaseConvertInfo<'a>>> {
-    let dir = dir_finder(&mut t, "slot").allow_empty().find().unwrap();
     let Directive {
         argument,
         expression,
         location: loc,
         ..
-    } = dir.take();
+    } = get_slot_dir(&mut t);
     let name = get_slot_name(&argument);
     if let Js::StrLit(n) = &name {
         if seen.contains(n.raw) {
@@ -174,8 +172,48 @@ fn build_stable_slot<'a>(
     let body = bc.convert_children(t.children);
     Some(Slot { name, param, body })
 }
-fn build_alterable_slots<'a>(bc: &BC, t: Vec<Element<'a>>) -> Vec<BaseIR<'a>> {
-    todo!()
+fn build_alterable_slots<'a>(bc: &BC, mut templates: Vec<Element<'a>>) -> Vec<BaseIR<'a>> {
+    // strip v-slot dirs to reuse convert_children
+    let mut dirs = templates
+        .iter_mut()
+        .map(get_slot_dir)
+        .collect::<VecDeque<_>>();
+    let templates = templates.into_iter().map(AstNode::Element);
+    let mut ir_nodes = bc.convert_children(templates.collect());
+    // re-assign name to slot
+    assign_slot_names(ir_nodes.iter_mut(), &mut dirs);
+    debug_assert!(dirs.is_empty(), "all v-slot should be consumed");
+    ir_nodes
+}
+
+fn assign_slot_names<'a, 'b, I>(ir_nodes: I, dirs: &'b mut VecDeque<Directive<'a>>)
+where
+    I: Iterator<Item = &'b mut BaseIR<'a>>,
+{
+    for ir in ir_nodes {
+        match ir {
+            IRNode::If(i) => {
+                let branches = i.branches.iter_mut().map(|b| &mut *b.child);
+                assign_slot_names(branches, dirs);
+            }
+            IRNode::For(f) => {
+                let child = std::iter::once(&mut *f.child);
+                assign_slot_names(child, dirs);
+            }
+            IRNode::VNodeCall(vnode) => {
+                let body = mem::take(&mut vnode.children);
+                let dir = dirs.pop_front().expect("should be non empty");
+                let name = get_slot_name(&dir.argument);
+                let param = dir.expression.map(|v| Js::simple(v.content));
+                *ir = IRNode::AlterableSlot(Slot { name, param, body });
+            }
+            _ => panic!("alterable slot only contains if/for/vnode call"),
+        };
+    }
+}
+
+fn get_slot_dir<'a>(t: &mut Element<'a>) -> Directive<'a> {
+    dir_finder(t, "slot").allow_empty().find().unwrap().take()
 }
 
 fn get_slot_name<'a>(arg: &Option<DirectiveArg<'a>>) -> Js<'a> {

@@ -59,9 +59,14 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
     fn generate_text(&mut self, t: Vec<Js<'a>>) -> io::Result<()> {
         let mut texts = t.into_iter();
         match texts.next() {
-            Some(t) => self.generate_one_str(t),
-            None => Ok(()),
+            Some(t) => self.generate_js_expr(t)?,
+            None => return Ok(()),
         }
+        for t in texts {
+            self.writer.write_all(b" + ")?;
+            self.generate_js_expr(t)?;
+        }
+        Ok(())
     }
     fn generate_if(&mut self, i: BaseIf<'a>) -> io::Result<()> {
         todo!()
@@ -108,32 +113,15 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
     }
     fn generate_one_str(&mut self, e: Js<'a>) -> io::Result<()> {
         match e {
-            Js::StrLit(s) => s.write_to(&mut self.writer),
+            Js::StrLit(mut s) => s.be_js_str().write_to(&mut self.writer),
             Js::Simple(s, _) => s.write_to(&mut self.writer),
+            Js::Call(..) => self.generate_js_expr(e),
             _ => panic!("wrong text call type"),
         }
     }
 }
 
-pub trait CodeGenWrite: fmt::Write {
-    fn write_hyphenated(&mut self, s: &str) -> fmt::Result {
-        // JS word boundary is `\w`: `[a-zA-Z0-9-]`.
-        // https://javascript.info/regexp-boundary
-        // str.replace(/\B([A-Z])/g, '-$1').toLowerCase()
-        let mut is_boundary = true;
-        for c in s.chars() {
-            if !is_boundary && c.is_ascii_uppercase() {
-                self.write_char('-')?;
-                self.write_char(c.to_ascii_lowercase())?;
-                is_boundary = false;
-            } else {
-                self.write_char(c)?;
-                is_boundary = !c.is_ascii_alphanumeric() && c != '_';
-            }
-        }
-        Ok(())
-    }
-}
+pub trait CodeGenWrite: fmt::Write {}
 
 /// DecodedStr represents text after decoding html entities.
 /// SmallVec and Cow are used internally for less allocation.

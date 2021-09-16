@@ -27,7 +27,32 @@ bitflags! {
         const VALID_COMP          = 1 << 7;
         const SELF_SUFFIX         = 1 << 8; // not idempotent but called only once
         const V_DIR_PREFIX        = 1 << 9;
+        const JS_STRING           = 1 << 10;
     }
+}
+
+fn write_hyphenated<W: Write>(s: &str, mut w: W) -> io::Result<()> {
+    // JS word boundary is `\w`: `[a-zA-Z0-9-]`.
+    // https://javascript.info/regexp-boundary
+    // str.replace(/\B([A-Z])/g, '-$1').toLowerCase()
+    let mut is_boundary = true;
+    for c in s.chars() {
+        if !is_boundary && c.is_ascii_uppercase() {
+            w.write_all(b"-")?;
+            write!(w, "{}", c.to_ascii_lowercase())?;
+            is_boundary = false;
+        } else {
+            write!(w, "{}", c)?;
+            is_boundary = !c.is_ascii_alphanumeric() && c != '_';
+        }
+    }
+    Ok(())
+}
+
+fn write_json_string<W: Write>(s: &str, w: &mut W) -> io::Result<()> {
+    use json::codegen::{Generator, WriterGenerator};
+    let mut gen = WriterGenerator::new(w);
+    gen.write_string(s)
 }
 
 impl StrOps {
@@ -112,6 +137,10 @@ impl<'a> VStr<'a> {
     /// convert into a valid asset id
     pub fn prefix_v_dir(&mut self) -> &mut Self {
         self.ops |= StrOps::V_DIR_PREFIX;
+        self
+    }
+    pub fn be_js_str(&mut self) -> &mut Self {
+        self.ops |= StrOps::JS_STRING;
         self
     }
     pub fn into_string(self) -> String {

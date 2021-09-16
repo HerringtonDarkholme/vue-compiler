@@ -74,7 +74,7 @@ pub fn base_compile<'a, IR, O, E, Conv, Trans, Gen>(
     opt: CompileOption<E>,
     conv: Conv,
     trans: Trans,
-    gen: Gen,
+    mut gen: Gen,
 ) -> Result<O, CompilationError>
 where
     E: ErrorHandler + Clone,

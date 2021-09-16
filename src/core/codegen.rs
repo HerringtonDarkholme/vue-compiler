@@ -1,16 +1,17 @@
-use super::converter::{ConvertInfo, IRNode, IRRoot, JsExpr as Js};
+use super::converter::{BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js};
 use super::util::VStr;
 use rustc_hash::FxHashSet;
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
-use std::fmt::{Result, Write};
+use std::fmt;
+use std::io;
 
 pub trait CodeGenerator {
     type IR;
     type Output;
     /// generate will take optimized ir node and output
     /// desired code format, either String or Binary code
-    fn generate(&self, node: Self::IR) -> Self::Output;
+    fn generate(&mut self, node: Self::IR) -> Self::Output;
 }
 
 pub struct CodeGenerateOption {
@@ -21,39 +22,82 @@ pub struct CodeGenerateOption {
     pub decode_entities: EntityDecoder,
 }
 
-pub fn generate_root<T: ConvertInfo>(root: IRRoot<T>) {
-    for n in root.body {
-        generate_node(n)
+use super::converter as C;
+trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
+    fn generate_root(&mut self, root: IRRoot<T>) {
+        use IRNode as IR;
+        for node in root.body {
+            match node {
+                IR::TextCall(t) => self.generate_text(t),
+                IR::If(v_if) => self.generate_if(v_if),
+                IR::For(v_for) => self.generate_for(v_for),
+                IR::VNodeCall(vnode) => self.generate_vnode(vnode),
+                IR::RenderSlotCall(r) => self.generate_slot_outlet(r),
+                IR::VSlotUse(s) => self.generate_v_slot(s),
+                IR::CommentCall(c) => self.generate_comment(c),
+                IR::GenericExpression(e) => self.generate_js_expr(e),
+                IR::AlterableSlot(..) => panic!("alterable slots should be generated inline"),
+            }
+        }
+    }
+    fn generate_text(&mut self, t: Vec<T::TextType>);
+    fn generate_if(&mut self, i: C::IfNodeIR<T>);
+    fn generate_for(&mut self, f: C::ForNodeIR<T>);
+    fn generate_vnode(&mut self, v: C::VNodeIR<T>);
+    fn generate_slot_outlet(&mut self, r: C::RenderSlotIR<T>);
+    fn generate_v_slot(&mut self, s: C::VSlotIR<T>);
+    fn generate_js_expr(&mut self, e: T::JsExpression);
+    fn generate_comment(&mut self, c: T::CommentType);
+}
+
+struct CodeWriter<'a, T: io::Write> {
+    writer: T,
+    option: CodeGenerateOption,
+    p: std::marker::PhantomData<&'a ()>,
+}
+impl<'a, T: io::Write> CodeGenerator for CodeWriter<'a, T> {
+    type IR = BaseRoot<'a>;
+    type Output = ();
+    fn generate(&mut self, root: Self::IR) -> Self::Output {
+        self.generate_root(root)
     }
 }
 
-fn generate_node<T: ConvertInfo>(node: IRNode<T>) {
-    use IRNode as IR;
-    match node {
-        IR::TextCall(..) => generate_text(),
-        IR::If(..) => generate_if(),
-        IR::For(..) => generate_for(),
-        IR::VNodeCall(..) => generate_vnode(),
-        IR::RenderSlotCall(..) => generate_slot_outlet(),
-        IR::VSlotUse(..) => generate_v_slot(),
-        IR::AlterableSlot(..) => (),
-        IR::CommentCall(..) => generate_comment(),
-        IR::GenericExpression(..) => generate_js_expr(),
+type BaseIf<'a> = C::IfNodeIR<BaseConvertInfo<'a>>;
+type BaseFor<'a> = C::ForNodeIR<BaseConvertInfo<'a>>;
+type BaseVNode<'a> = C::VNodeIR<BaseConvertInfo<'a>>;
+type BaseRenderSlot<'a> = C::RenderSlotIR<BaseConvertInfo<'a>>;
+type BaseVSlot<'a> = C::VSlotIR<BaseConvertInfo<'a>>;
+
+impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
+    fn generate_text(&mut self, t: Vec<Js<'a>>) {
+        todo!()
+    }
+    fn generate_if(&mut self, i: BaseIf<'a>) {
+        todo!()
+    }
+    fn generate_for(&mut self, f: BaseFor<'a>) {
+        todo!()
+    }
+    fn generate_vnode(&mut self, v: BaseVNode<'a>) {
+        todo!()
+    }
+    fn generate_slot_outlet(&mut self, r: BaseRenderSlot<'a>) {
+        todo!()
+    }
+    fn generate_v_slot(&mut self, s: BaseVSlot<'a>) {
+        todo!()
+    }
+    fn generate_js_expr(&mut self, e: Js<'a>) {
+        todo!()
+    }
+    fn generate_comment(&mut self, c: &'a str) {
+        todo!()
     }
 }
 
-// TODO: implement code gen
-fn generate_text() {}
-fn generate_if() {}
-fn generate_for() {}
-fn generate_vnode() {}
-fn generate_slot_outlet() {}
-fn generate_v_slot() {}
-fn generate_js_expr() {}
-fn generate_comment() {}
-
-pub trait CodeGenWrite: Write {
-    fn write_hyphenated(&mut self, s: &str) -> Result {
+pub trait CodeGenWrite: fmt::Write {
+    fn write_hyphenated(&mut self, s: &str) -> fmt::Result {
         // JS word boundary is `\w`: `[a-zA-Z0-9-]`.
         // https://javascript.info/regexp-boundary
         // str.replace(/\B([A-Z])/g, '-$1').toLowerCase()

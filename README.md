@@ -91,6 +91,7 @@ Todo tasks grouped by scopes.
     - [x] v-if
     - [x] v-for
     - [x] v-slot
+    - [ ] v-model
     - [x] slot outlet
     - [x] element
     - [x] build props

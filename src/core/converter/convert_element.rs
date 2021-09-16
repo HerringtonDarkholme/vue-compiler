@@ -4,6 +4,7 @@ use super::{
     CoreConverter, Element, IRNode, JsExpr as Js, RuntimeDir, VNodeIR, VStr,
 };
 use crate::core::{
+    converter::v_slot::check_wrong_slot,
     error::{CompilationError, CompilationErrorKind as ErrorKind},
     flags::{PatchFlag, RuntimeHelper, StaticLevel},
     parser::{Directive, ElemProp, ElementType},
@@ -49,12 +50,7 @@ pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
 // is_slot indicates if the template should be compiled to dynamic slot expr
 pub fn convert_template<'a>(bc: &BC, e: Element<'a>, is_slot: bool) -> BaseIR<'a> {
     debug_assert!(e.tag_type != ElementType::Template);
-    if let Some(found) = find_dir(&e, "slot") {
-        let dir = found.get_ref();
-        let error =
-            CompilationError::new(ErrorKind::VSlotMisplaced).with_location(dir.location.clone());
-        bc.emit_error(error);
-    }
+    check_wrong_slot(bc, &e, ErrorKind::VSlotTemplateMisplaced);
     todo!()
 }
 

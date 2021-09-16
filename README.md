@@ -90,13 +90,17 @@ Todo tasks grouped by scopes.
 - [ ] IR converter
     - [x] v-if
     - [x] v-for
-    - [ ] v-slot
+    - [x] v-slot
     - [x] slot outlet
     - [x] element
     - [x] build props
 - [ ] transformer
 - [ ] code generator
 ### [dom]
+- [ ] IR converter
+    - [ ] v-on
+    - [ ] v-once
+    - [ ] v-memo
 - [ ] transformer
 - [ ] code generator
 ### [ssr]

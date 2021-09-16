@@ -186,6 +186,13 @@ fn build_alterable_slots<'a>(bc: &BC, mut templates: Vec<Element<'a>>) -> Vec<Ba
     ir_nodes
 }
 
+// NB: get_child must be elevated to a fn pointer instead of closure to avoid
+// recusion limit of rustc's polymorphic code instantiation
+use super::IfBranch;
+fn get_child<'a, 'b>(b: &'b mut IfBranch<BaseConvertInfo<'a>>) -> &'b mut BaseIR<'a> {
+    &mut *b.child
+}
+
 fn assign_slot_names<'a, 'b, I>(ir_nodes: I, dirs: &'b mut VecDeque<Directive<'a>>)
 where
     I: Iterator<Item = &'b mut BaseIR<'a>>,
@@ -193,7 +200,7 @@ where
     for ir in ir_nodes {
         match ir {
             IRNode::If(i) => {
-                let branches = i.branches.iter_mut().map(|b| &mut *b.child);
+                let branches = i.branches.iter_mut().map(get_child);
                 assign_slot_names(branches, dirs);
             }
             IRNode::For(f) => {

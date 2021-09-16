@@ -23,6 +23,16 @@ pub trait Transformer {
     fn transform(&self, node: &mut Self::IR);
 }
 
+use std::marker::PhantomData;
+struct NoopTransformer<T>(PhantomData<T>);
+
+impl<T> Transformer for NoopTransformer<T> {
+    type IR = T;
+    fn transform(&self, node: &mut Self::IR) {
+        // noop
+    }
+}
+
 // default transforms
 pub fn hoist_static() {}
 pub fn track_v_for_slot_scopes() {}
@@ -35,10 +45,3 @@ pub fn post_process_v_for_child() {
     // 1. inject key to slot
     // 2. Reuse the child's codegenNode but mark it as a block.
 }
-
-enum NodeChange<T: 'static> {
-    Replace(Vec<T>),
-    Delete,
-}
-
-trait TransformOp {}

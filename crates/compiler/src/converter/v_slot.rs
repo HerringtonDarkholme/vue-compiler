@@ -7,7 +7,7 @@ use super::{
     AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, CoreConverter, Directive, Element,
     IRNode, JsExpr as Js, Slot, VSlotIR,
 };
-use crate::core::{
+use crate::{
     error::{CompilationError, CompilationErrorKind as ErrorKind},
     flags::RuntimeHelper,
     parser::{DirectiveArg, ElementType},

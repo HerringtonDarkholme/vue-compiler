@@ -2,8 +2,8 @@ use super::{
     find_dir, BaseConvertInfo, BaseConverter, BaseIR, CompilationError, CoreConverter, Directive,
     Element, ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
 };
-use crate::core::error::CompilationErrorKind as ErrorKind;
-use crate::core::util::VStr;
+use crate::error::CompilationErrorKind as ErrorKind;
+use crate::util::VStr;
 
 /// Pre converts v-if or v-for like structural dir
 pub fn pre_convert_for<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {

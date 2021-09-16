@@ -3,7 +3,7 @@ use super::{
     v_slot, BaseConvertInfo, BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes,
     CoreConverter, Element, IRNode, JsExpr as Js, RuntimeDir, VNodeIR, VStr,
 };
-use crate::core::{
+use crate::{
     converter::v_slot::check_wrong_slot,
     error::{CompilationError, CompilationErrorKind as ErrorKind},
     flags::{PatchFlag, RuntimeHelper, StaticLevel},
@@ -218,7 +218,7 @@ fn build_directive_arg<'a>(
         let arg = Js::StrLit(VStr::raw(dir.name));
         Js::Call(RuntimeHelper::ResolveDirective, vec![arg])
     };
-    use crate::core::parser::DirectiveArg::{Dynamic, Static};
+    use crate::parser::DirectiveArg::{Dynamic, Static};
     let expr = dir.expression.map(|v| Js::simple(v.content));
     let arg = dir.argument.map(|a| match a {
         Static(v) => Js::StrLit(VStr::raw(v)),
@@ -350,7 +350,7 @@ fn get_variety_from_binding<'a: 'b, 'b>(
     name: &'a str,
     bindings: &'b BindingMetadata,
 ) -> impl Fn(BindingTypes) -> Option<VStr<'a>> + 'b {
-    use crate::core::util::Lazy;
+    use crate::util::Lazy;
     let camel_name = *VStr::raw(name).camelize();
     let pascal_name = *VStr::raw(name).capitalize();
     let name = VStr::raw(name);

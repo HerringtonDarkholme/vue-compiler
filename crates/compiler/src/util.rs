@@ -364,7 +364,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::core::parser::test::mock_element;
+    use crate::parser::test::mock_element;
 
     #[test]
     fn test_find_dir() {

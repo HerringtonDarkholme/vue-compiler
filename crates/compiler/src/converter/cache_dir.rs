@@ -1,6 +1,6 @@
 // v-once / v-memo
 use super::{Directive, Element};
-use crate::core::util::find_dir;
+use crate::util::find_dir;
 
 pub fn pre_convert_memo<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
     let dir = find_dir(&mut *elem, "memo")?;

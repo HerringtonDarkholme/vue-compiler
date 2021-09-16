@@ -440,7 +440,7 @@ impl BaseConverter {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::core::parser::test::base_parse;
+    use crate::parser::test::base_parse;
     use BaseConverter as BC;
     use JsExpr as Js;
 

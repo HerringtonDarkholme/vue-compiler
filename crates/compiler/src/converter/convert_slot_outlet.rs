@@ -3,7 +3,7 @@ use super::{
     BaseConverter as BC, BaseIR, CoreConverter, Directive, Element, IRNode, JsExpr as Js,
     RenderSlotIR, VStr,
 };
-use crate::core::{
+use crate::{
     error::{CompilationError, CompilationErrorKind::VSlotUnexpectedDirectiveOnSlotOutlet},
     parser::{DirectiveArg, ElemProp},
     tokenizer::Attribute,

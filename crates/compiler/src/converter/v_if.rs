@@ -3,7 +3,7 @@ use super::{
     BaseConvertInfo, BaseConverter as BC, BaseIR, CompilationError, Directive, Element, IRNode,
     IfBranch, IfNodeIR,
 };
-use crate::core::{
+use crate::{
     converter::{CoreConverter, JsExpr as Js},
     tokenizer::Attribute,
     util::{find_dir_empty, find_prop},

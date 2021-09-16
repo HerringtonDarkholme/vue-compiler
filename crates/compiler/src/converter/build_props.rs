@@ -1,5 +1,5 @@
 use super::{BaseConverter as BC, CoreConverter, Element, JsExpr as Js, Prop, VStr};
-use crate::core::{
+use crate::{
     flags::{self, PatchFlag, RuntimeHelper},
     parser::{Directive, ElemProp},
     tokenizer::Attribute,

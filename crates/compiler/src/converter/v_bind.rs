@@ -1,4 +1,4 @@
-use crate::core::flags::RuntimeHelper;
+use crate::flags::RuntimeHelper;
 
 use super::{
     super::error::{CompilationError as Error, CompilationErrorKind as ErrorKind},

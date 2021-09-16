@@ -1,3 +1,6 @@
+#![allow(dead_code, unused_variables)]
+//! See README.md
+
 // TODO: reorg pub
 pub mod codegen;
 pub mod converter;

@@ -24,30 +24,15 @@ pub struct CodeGenerateOption {
 
 use super::converter as C;
 trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
-    fn generate_root(&mut self, root: IRRoot<T>) {
-        use IRNode as IR;
-        for node in root.body {
-            match node {
-                IR::TextCall(t) => self.generate_text(t),
-                IR::If(v_if) => self.generate_if(v_if),
-                IR::For(v_for) => self.generate_for(v_for),
-                IR::VNodeCall(vnode) => self.generate_vnode(vnode),
-                IR::RenderSlotCall(r) => self.generate_slot_outlet(r),
-                IR::VSlotUse(s) => self.generate_v_slot(s),
-                IR::CommentCall(c) => self.generate_comment(c),
-                IR::GenericExpression(e) => self.generate_js_expr(e),
-                IR::AlterableSlot(..) => panic!("alterable slots should be generated inline"),
-            }
-        }
-    }
-    fn generate_text(&mut self, t: Vec<T::TextType>);
-    fn generate_if(&mut self, i: C::IfNodeIR<T>);
-    fn generate_for(&mut self, f: C::ForNodeIR<T>);
-    fn generate_vnode(&mut self, v: C::VNodeIR<T>);
-    fn generate_slot_outlet(&mut self, r: C::RenderSlotIR<T>);
-    fn generate_v_slot(&mut self, s: C::VSlotIR<T>);
-    fn generate_js_expr(&mut self, e: T::JsExpression);
-    fn generate_comment(&mut self, c: T::CommentType);
+    type Written;
+    fn generate_text(&mut self, t: Vec<T::TextType>) -> Self::Written;
+    fn generate_if(&mut self, i: C::IfNodeIR<T>) -> Self::Written;
+    fn generate_for(&mut self, f: C::ForNodeIR<T>) -> Self::Written;
+    fn generate_vnode(&mut self, v: C::VNodeIR<T>) -> Self::Written;
+    fn generate_slot_outlet(&mut self, r: C::RenderSlotIR<T>) -> Self::Written;
+    fn generate_v_slot(&mut self, s: C::VSlotIR<T>) -> Self::Written;
+    fn generate_js_expr(&mut self, e: T::JsExpression) -> Self::Written;
+    fn generate_comment(&mut self, c: T::CommentType) -> Self::Written;
 }
 
 struct CodeWriter<'a, T: io::Write> {
@@ -57,7 +42,7 @@ struct CodeWriter<'a, T: io::Write> {
 }
 impl<'a, T: io::Write> CodeGenerator for CodeWriter<'a, T> {
     type IR = BaseRoot<'a>;
-    type Output = ();
+    type Output = io::Result<()>;
     fn generate(&mut self, root: Self::IR) -> Self::Output {
         self.generate_root(root)
     }
@@ -70,29 +55,63 @@ type BaseRenderSlot<'a> = C::RenderSlotIR<BaseConvertInfo<'a>>;
 type BaseVSlot<'a> = C::VSlotIR<BaseConvertInfo<'a>>;
 
 impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
-    fn generate_text(&mut self, t: Vec<Js<'a>>) {
+    type Written = io::Result<()>;
+    fn generate_text(&mut self, t: Vec<Js<'a>>) -> io::Result<()> {
+        let mut texts = t.into_iter();
+        match texts.next() {
+            Some(t) => self.generate_one_str(t),
+            None => Ok(()),
+        }
+    }
+    fn generate_if(&mut self, i: BaseIf<'a>) -> io::Result<()> {
         todo!()
     }
-    fn generate_if(&mut self, i: BaseIf<'a>) {
+    fn generate_for(&mut self, f: BaseFor<'a>) -> io::Result<()> {
         todo!()
     }
-    fn generate_for(&mut self, f: BaseFor<'a>) {
+    fn generate_vnode(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
         todo!()
     }
-    fn generate_vnode(&mut self, v: BaseVNode<'a>) {
+    fn generate_slot_outlet(&mut self, r: BaseRenderSlot<'a>) -> io::Result<()> {
         todo!()
     }
-    fn generate_slot_outlet(&mut self, r: BaseRenderSlot<'a>) {
+    fn generate_v_slot(&mut self, s: BaseVSlot<'a>) -> io::Result<()> {
         todo!()
     }
-    fn generate_v_slot(&mut self, s: BaseVSlot<'a>) {
+    fn generate_js_expr(&mut self, e: Js<'a>) -> io::Result<()> {
         todo!()
     }
-    fn generate_js_expr(&mut self, e: Js<'a>) {
+    fn generate_comment(&mut self, c: &'a str) -> io::Result<()> {
         todo!()
     }
-    fn generate_comment(&mut self, c: &'a str) {
-        todo!()
+}
+
+impl<'a, T: io::Write> CodeWriter<'a, T> {
+    fn generate_root(&mut self, root: BaseRoot<'a>) -> io::Result<()> {
+        use IRNode as IR;
+        for node in root.body {
+            match node {
+                IR::TextCall(t) => self.generate_text(t)?,
+                IR::If(v_if) => self.generate_if(v_if)?,
+                IR::For(v_for) => self.generate_for(v_for)?,
+                IR::VNodeCall(vnode) => self.generate_vnode(vnode)?,
+                IR::RenderSlotCall(r) => self.generate_slot_outlet(r)?,
+                IR::VSlotUse(s) => self.generate_v_slot(s)?,
+                IR::CommentCall(c) => self.generate_comment(c)?,
+                IR::GenericExpression(e) => self.generate_js_expr(e)?,
+                IR::AlterableSlot(..) => {
+                    panic!("alterable slot should be compiled");
+                }
+            };
+        }
+        Ok(())
+    }
+    fn generate_one_str(&mut self, e: Js<'a>) -> io::Result<()> {
+        match e {
+            Js::StrLit(s) => s.write_to(&mut self.writer),
+            Js::Simple(s, _) => s.write_to(&mut self.writer),
+            _ => panic!("wrong text call type"),
+        }
     }
 }
 

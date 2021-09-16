@@ -7,7 +7,10 @@ use super::is_event_prop;
 use bitflags::bitflags;
 #[cfg(test)]
 use serde::Serialize;
-use std::{fmt::Write, ops::Deref};
+use std::{
+    io::{self, Write},
+    ops::Deref,
+};
 
 bitflags! {
     /// Represents idempotent string manipulation.
@@ -33,8 +36,9 @@ impl StrOps {
     fn is_satisfied_by(&self, s: &str) -> bool {
         todo!()
     }
-    fn write_ops<W: Write>(&self, s: &str, w: W) {
-        todo!()
+    fn write_ops<W: Write>(&self, s: &str, mut w: W) -> io::Result<()> {
+        // TODO: add real impl
+        w.write_all(s.as_bytes())
     }
 }
 
@@ -111,7 +115,13 @@ impl<'a> VStr<'a> {
         self
     }
     pub fn into_string(self) -> String {
-        todo!()
+        let mut ret = vec![];
+        self.write_to(&mut ret).expect("string should never fail");
+        String::from_utf8(ret).expect("vstr should write valid utf8")
+    }
+
+    pub fn write_to<W: Write>(&self, w: W) -> io::Result<()> {
+        self.ops.write_ops(self.raw, w)
     }
 }
 

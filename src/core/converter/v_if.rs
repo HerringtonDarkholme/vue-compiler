@@ -41,10 +41,13 @@ impl<'a> PreGroupIter<'a> {
     }
 
     fn next_standalone(&mut self) -> Option<PreGroup<'a>> {
+        // either iter is empty or has no if/else/else-if
         debug_assert!(self
             .inner
             .peek()
-            .map_or(true, |n| { n.get_element().is_none() }));
+            .and_then(|n| n.get_element())
+            .and_then(|e| find_dir_empty(e, ["if", "else", "else-if"]))
+            .is_none());
         self.inner.next().map(PreGroup::StandAlone)
     }
 }
@@ -196,8 +199,11 @@ fn report_duplicate_v_if<'a>(c: &BC, e: &mut Element<'a>) {
 
 #[cfg(test)]
 mod test {
-    fn test() {
-        let cases = vec![
+    use super::super::test::*;
+    use super::*;
+
+    fn test_no_panic() {
+        let cases = [
             r#"
 <p v-if="false">a</p>
 <p v-else v-if="true">b</p>
@@ -206,5 +212,21 @@ mod test {
             r#"<p v-if/>"#,
             r#"<p v-if="1"/><p v-else-if="2"/><comp v-else/>"#, // key = 1, 2, 3
         ];
+        for case in cases {
+            base_convert(case);
+        }
+    }
+
+    #[test]
+    fn test_v_if() {
+        let body = base_convert("<p v-if='true'/>").body;
+        assert_eq!(body.len(), 1);
+        let v_if = match &body[0] {
+            IRNode::If(ir) => ir,
+            _ => panic!("wrong ir"),
+        };
+        assert_eq!(v_if.branches.len(), 1);
+        let condition = v_if.branches[0].condition.as_ref().unwrap();
+        assert_simple(condition, "true");
     }
 }

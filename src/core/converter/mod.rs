@@ -442,12 +442,30 @@ mod test {
     use super::*;
     use crate::core::parser::test::base_parse;
     use BaseConverter as BC;
+    use JsExpr as Js;
+
+    pub fn assert_str_lit(expr: &Js, s: &str) {
+        match expr {
+            Js::StrLit(v) => assert_eq!(v.raw, s),
+            _ => panic!("expr is not string literal"),
+        }
+    }
+    pub fn assert_simple(expr: &Js, s: &str) {
+        match expr {
+            Js::Simple(v, _) => assert_eq!(v.raw, s),
+            _ => panic!("expr is not string literal"),
+        }
+    }
 
     #[test]
     fn test_simplest() {
         let body = base_convert("<p/>").body;
         assert_eq!(body.len(), 1);
-        assert!(matches!(body[0], IRNode::VNodeCall(_)));
+        if let IRNode::VNodeCall(VNodeIR { tag, .. }) = &body[0] {
+            assert_str_lit(tag, "p");
+        } else {
+            panic!("wrong parsing");
+        }
     }
 
     pub fn base_convert(s: &str) -> BaseRoot {

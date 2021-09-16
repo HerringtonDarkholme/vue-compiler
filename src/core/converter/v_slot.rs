@@ -60,7 +60,7 @@ pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
             bc.emit_error(error);
         } else {
             let name = Js::StrLit(VStr::raw("default"));
-            let body = build_slot_fn(implicit_default);
+            let body = bc.convert_children(implicit_default);
             let slot = Slot {
                 name,
                 body,
@@ -94,7 +94,7 @@ fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<
     let slot = Slot {
         name: slot_name,
         param: expr,
-        body: build_slot_fn(children),
+        body: bc.convert_children(children.collect()),
     };
     let v_slot_ir = VSlotIR {
         stable_slots: vec![slot],
@@ -137,17 +137,9 @@ fn build_explicit_slots<'a>(bc: &BC, templates: Vec<Element<'a>>) -> BaseVSlot<'
             alterable.push(t);
             continue;
         }
-        let (stable, loc) = build_stable_slot(bc, t);
-        if let Js::StrLit(n) = stable.name {
-            if !seen.contains(n.raw) {
-                let error =
-                    CompilationError::new(ErrorKind::VSlotDuplicateSlotNames).with_location(loc);
-                bc.emit_error(error);
-                continue;
-            }
-            seen.insert(n.raw);
+        if let Some(stable) = build_stable_slot(bc, t, &mut seen) {
+            stable_slots.push(stable);
         }
-        stable_slots.push(stable);
     }
     let alterable_slots = build_alterable_slots(bc, alterable);
     VSlotIR {
@@ -159,27 +151,30 @@ fn build_explicit_slots<'a>(bc: &BC, templates: Vec<Element<'a>>) -> BaseVSlot<'
 fn build_stable_slot<'a>(
     bc: &BC,
     mut t: Element<'a>,
-) -> (Slot<BaseConvertInfo<'a>>, SourceLocation) {
+    seen: &mut FxHashSet<&'a str>,
+) -> Option<Slot<BaseConvertInfo<'a>>> {
     let dir = dir_finder(&mut t, "slot").allow_empty().find().unwrap();
     let Directive {
         argument,
         expression,
-        location,
+        location: loc,
         ..
     } = dir.take();
     let name = get_slot_name(&argument);
+    if let Js::StrLit(n) = &name {
+        if seen.contains(n.raw) {
+            let error =
+                CompilationError::new(ErrorKind::VSlotDuplicateSlotNames).with_location(loc);
+            bc.emit_error(error);
+            return None;
+        }
+        seen.insert(n.raw);
+    }
     let param = expression.map(|v| Js::simple(v.content));
     let body = bc.convert_children(t.children);
-    (Slot { name, param, body }, location)
+    Some(Slot { name, param, body })
 }
 fn build_alterable_slots<'a>(bc: &BC, t: Vec<Element<'a>>) -> Vec<BaseIR<'a>> {
-    todo!()
-}
-
-fn build_slot_fn<'a, C>(children: C) -> Vec<BaseIR<'a>>
-where
-    C: IntoIterator<Item = AstNode<'a>>,
-{
     todo!()
 }
 

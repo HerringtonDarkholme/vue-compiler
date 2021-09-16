@@ -12,6 +12,7 @@ use rustc_hash::FxHashSet;
 use std::{iter::Peekable, vec::IntoIter};
 
 // TODO: reduce vec allocation by using Drain iter
+// but using drain need GAT
 pub enum PreGroup<'a> {
     VIfGroup(Vec<Element<'a>>),
     StandAlone(AstNode<'a>),

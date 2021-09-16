@@ -12,6 +12,7 @@ use crate::core::{
     util::{find_dir, get_core_component, is_component_tag, prop_finder},
     SourceLocation,
 };
+use rustc_hash::FxHashSet;
 use std::mem;
 
 pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
@@ -49,9 +50,20 @@ pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
 
 // is_slot indicates if the template should be compiled to dynamic slot expr
 pub fn convert_template<'a>(bc: &BC, e: Element<'a>, is_slot: bool) -> BaseIR<'a> {
-    debug_assert!(e.tag_type != ElementType::Template);
+    debug_assert!(e.tag_type == ElementType::Template);
     check_wrong_slot(bc, &e, ErrorKind::VSlotTemplateMisplaced);
-    todo!()
+    // template here is purely a fragment that groups element.
+    IRNode::VNodeCall(VNodeIR {
+        tag: Js::Symbol(RuntimeHelper::Fragment),
+        children: bc.convert_children(e.children),
+        props: None,
+        directives: vec![],
+        dynamic_props: FxHashSet::default(),
+        patch_flag: PatchFlag::empty(),
+        is_block: false,
+        disable_tracking: false,
+        is_component: false,
+    })
 }
 
 /// Returns a expression for createVnode's first argument. It can be

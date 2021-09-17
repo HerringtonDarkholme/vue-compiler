@@ -7,6 +7,6 @@ expression: "<textarea>{{ garbage  {{ }}</textarea>"
     name: textarea
     attributes: []
     self_closing: false
-- Interpolation: "{{ garbage  {{ }}"
+- Interpolation: " garbage  {{ "
 - EndTag: textarea
 

@@ -7,5 +7,5 @@ expression: "<textarea>{{"
     name: textarea
     attributes: []
     self_closing: false
-- Interpolation: "{{"
+- Interpolation: ""
 

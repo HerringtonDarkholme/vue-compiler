@@ -216,10 +216,10 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         if index.is_none() {
             let src = self.move_by(self.source.len());
             self.emit_error(ErrorKind::MissingInterpolationEnd);
-            return Token::Interpolation(src);
+            return Token::Interpolation(&src[2..]);
         }
-        let step = index.unwrap() + delimiters.1.len();
-        let src = self.move_by(step);
+        let src = &self.move_by(index.unwrap())[2..];
+        self.move_by(self.option.delimiters.1.len());
         Token::Interpolation(src)
     }
 

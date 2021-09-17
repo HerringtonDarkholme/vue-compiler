@@ -7,6 +7,6 @@ expression: "<textarea>{{test}}</textarea>"
     name: textarea
     attributes: []
     self_closing: false
-- Interpolation: "{{test}}"
+- Interpolation: test
 - EndTag: textarea
 

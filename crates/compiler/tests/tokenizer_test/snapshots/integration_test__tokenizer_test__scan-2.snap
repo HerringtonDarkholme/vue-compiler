@@ -3,5 +3,5 @@ source: crates/compiler/tests/tokenizer_test/mod.rs
 expression: "{{}}"
 
 ---
-- Interpolation: "{{}}"
+- Interpolation: ""
 

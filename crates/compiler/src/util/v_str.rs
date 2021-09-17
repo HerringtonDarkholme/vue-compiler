@@ -3,7 +3,7 @@
 //! * we can also cache camelize/capitalize result.
 //! * if VStr raw already satisfy StrOps, setting the ops flag is noop.
 //! * interning/cache can be optional, e.g. Text Token can skip it at all.
-use super::is_event_prop;
+use super::{is_event_prop, non_whitespace};
 use bitflags::bitflags;
 use std::{
     io::{self, Write},
@@ -52,6 +52,21 @@ fn write_json_string<W: Write>(s: &str, w: &mut W) -> io::Result<()> {
     gen.write_string(s)
 }
 
+/// compress consecutive whitespaces into one.
+fn write_compressed<W: Write>(mut s: &str, mut w: W) -> io::Result<()> {
+    while let Some(p) = s.find(|c: char| c.is_ascii_whitespace()) {
+        let (prev, after) = s.split_at(p);
+        w.write_all(prev.as_bytes())?;
+        w.write_all(b" ")?;
+        if let Some(p) = after.find(non_whitespace) {
+            s = s.split_at(p).1;
+        } else {
+            s = "";
+        }
+    }
+    w.write_all(s.as_bytes())
+}
+
 impl StrOps {
     // ideally it should be str.satisfy(op) but adding a trait
     // to str is too much. Use passive voice.
@@ -80,6 +95,7 @@ impl StrOps {
     fn write_one_op<W: Write>(op: Self, s: &str, mut w: W) -> io::Result<()> {
         debug_assert!(op.bits().count_ones() == 1);
         match op {
+            StrOps::COMPRESS_WHITESPACE => write_compressed(s, w),
             StrOps::JS_STRING => write_json_string(s, &mut w),
             StrOps::SELF_SUFFIX => {
                 w.write_all(s.as_bytes())?;
@@ -89,7 +105,7 @@ impl StrOps {
                 w.write_all(b"v-")?;
                 w.write_all(s.as_bytes())
             }
-            _ => todo!("other strops"),
+            _ => todo!("{:?} not implemented", op),
         }
     }
     fn iter(&self) -> StrOpIter {

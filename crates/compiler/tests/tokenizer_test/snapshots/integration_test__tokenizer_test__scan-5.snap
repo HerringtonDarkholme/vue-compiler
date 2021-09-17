@@ -1,0 +1,40 @@
+---
+source: crates/compiler/tests/tokenizer_test/mod.rs
+expression: "<a v-bind:['foo' + bar]=\"value\">...</a>"
+
+---
+- StartTag:
+    name: a
+    attributes:
+      - name: "v-bind:['foo'"
+        value: ~
+        name_loc:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 16, Ln: 1, Col: 17"
+        location:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 17, Ln: 1, Col: 18"
+      - name: +
+        value: ~
+        name_loc:
+          start: "Pos: 17, Ln: 1, Col: 18"
+          end: "Pos: 18, Ln: 1, Col: 19"
+        location:
+          start: "Pos: 17, Ln: 1, Col: 18"
+          end: "Pos: 19, Ln: 1, Col: 20"
+      - name: "bar]"
+        value:
+          content: value
+          location:
+            start: "Pos: 24, Ln: 1, Col: 25"
+            end: "Pos: 31, Ln: 1, Col: 32"
+        name_loc:
+          start: "Pos: 19, Ln: 1, Col: 20"
+          end: "Pos: 23, Ln: 1, Col: 24"
+        location:
+          start: "Pos: 19, Ln: 1, Col: 20"
+          end: "Pos: 31, Ln: 1, Col: 32"
+    self_closing: false
+- Text: "..."
+- EndTag: a
+

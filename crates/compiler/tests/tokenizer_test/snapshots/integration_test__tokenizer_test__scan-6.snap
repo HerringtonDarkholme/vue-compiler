@@ -1,0 +1,18 @@
+---
+source: crates/compiler/tests/tokenizer_test/mod.rs
+expression: "<tag =value />"
+
+---
+- StartTag:
+    name: tag
+    attributes:
+      - name: "=value"
+        value: ~
+        name_loc:
+          start: "Pos: 5, Ln: 1, Col: 6"
+          end: "Pos: 11, Ln: 1, Col: 12"
+        location:
+          start: "Pos: 5, Ln: 1, Col: 6"
+          end: "Pos: 12, Ln: 1, Col: 13"
+    self_closing: true
+

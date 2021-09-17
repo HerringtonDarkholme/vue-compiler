@@ -1,0 +1,21 @@
+---
+source: crates/compiler/tests/parser_test/mod.rs
+expression: "<p @=\"tt\"/>"
+
+---
+Dir:
+  name: "on"
+  argument: ~
+  modifiers: []
+  expression:
+    content: tt
+    location:
+      start: "Pos: 5, Ln: 1, Col: 6"
+      end: "Pos: 9, Ln: 1, Col: 10"
+  head_loc:
+    start: "Pos: 3, Ln: 1, Col: 4"
+    end: "Pos: 4, Ln: 1, Col: 5"
+  location:
+    start: "Pos: 3, Ln: 1, Col: 4"
+    end: "Pos: 9, Ln: 1, Col: 10"
+

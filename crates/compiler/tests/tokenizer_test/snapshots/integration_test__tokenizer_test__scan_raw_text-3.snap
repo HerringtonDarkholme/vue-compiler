@@ -1,0 +1,11 @@
+---
+source: crates/compiler/tests/tokenizer_test/mod.rs
+expression: "<style></styles"
+
+---
+- StartTag:
+    name: style
+    attributes: []
+    self_closing: false
+- Text: "</styles"
+

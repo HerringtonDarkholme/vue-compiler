@@ -1,0 +1,22 @@
+---
+source: crates/compiler/tests/parser_test/mod.rs
+expression: "<p :[t]err=\"tt\"/>"
+
+---
+Dir:
+  name: bind
+  argument:
+    Dynamic: t
+  modifiers: []
+  expression:
+    content: tt
+    location:
+      start: "Pos: 11, Ln: 1, Col: 12"
+      end: "Pos: 15, Ln: 1, Col: 16"
+  head_loc:
+    start: "Pos: 3, Ln: 1, Col: 4"
+    end: "Pos: 10, Ln: 1, Col: 11"
+  location:
+    start: "Pos: 3, Ln: 1, Col: 4"
+    end: "Pos: 15, Ln: 1, Col: 16"
+

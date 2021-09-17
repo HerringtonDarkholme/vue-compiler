@@ -1,0 +1,22 @@
+---
+source: crates/compiler/tests/parser_test/mod.rs
+expression: "<p v-slot@.@=\"tt\"/>"
+
+---
+Dir:
+  name: slot@
+  argument: ~
+  modifiers:
+    - "@"
+  expression:
+    content: tt
+    location:
+      start: "Pos: 13, Ln: 1, Col: 14"
+      end: "Pos: 17, Ln: 1, Col: 18"
+  head_loc:
+    start: "Pos: 3, Ln: 1, Col: 4"
+    end: "Pos: 12, Ln: 1, Col: 13"
+  location:
+    start: "Pos: 3, Ln: 1, Col: 4"
+    end: "Pos: 17, Ln: 1, Col: 18"
+

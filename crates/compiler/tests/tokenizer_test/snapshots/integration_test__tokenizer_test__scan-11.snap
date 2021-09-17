@@ -1,0 +1,19 @@
+---
+source: crates/compiler/tests/tokenizer_test/mod.rs
+expression: "<a wrong-attr>=123 />"
+
+---
+- StartTag:
+    name: a
+    attributes:
+      - name: wrong-attr
+        value: ~
+        name_loc:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 13, Ln: 1, Col: 14"
+        location:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 13, Ln: 1, Col: 14"
+    self_closing: false
+- Text: "=123 />"
+

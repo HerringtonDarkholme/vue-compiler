@@ -1,0 +1,12 @@
+---
+source: crates/compiler/tests/tokenizer_test/mod.rs
+expression: "<textarea><div/></textarea>"
+
+---
+- StartTag:
+    name: textarea
+    attributes: []
+    self_closing: false
+- Text: "<div/>"
+- EndTag: textarea
+

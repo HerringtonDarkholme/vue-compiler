@@ -420,7 +420,8 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     }
     fn convert_interpolation(&self, interp: SourceNode<'a>) -> BaseIR<'a> {
         let expr = JsExpr::simple(interp.source);
-        IRNode::TextCall(vec![expr])
+        let call = JsExpr::Call(RuntimeHelper::ToDisplayString, vec![expr]);
+        IRNode::TextCall(vec![call])
     }
     fn convert_template(&self, e: Element<'a>) -> BaseIR<'a> {
         convert_element::convert_template(self, e, false)

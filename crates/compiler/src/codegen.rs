@@ -21,6 +21,16 @@ pub struct CodeGenerateOption {
     pub filename: String,
     pub decode_entities: EntityDecoder,
 }
+impl Default for CodeGenerateOption {
+    fn default() -> Self {
+        Self {
+            is_ts: false,
+            source_map: false,
+            filename: String::new(),
+            decode_entities: |s, _| DecodedStr::from(s),
+        }
+    }
+}
 
 use super::converter as C;
 trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
@@ -59,12 +69,12 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
     fn generate_text(&mut self, t: Vec<Js<'a>>) -> io::Result<()> {
         let mut texts = t.into_iter();
         match texts.next() {
-            Some(t) => self.generate_js_expr(t)?,
+            Some(t) => self.generate_one_str(t)?,
             None => return Ok(()),
         }
         for t in texts {
             self.writer.write_all(b" + ")?;
-            self.generate_js_expr(t)?;
+            self.generate_one_str(t)?;
         }
         Ok(())
     }
@@ -139,4 +149,23 @@ pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
 
 fn stringify_dynamic_prop_names(prop_names: FxHashSet<VStr>) -> Option<Js> {
     todo!()
+}
+
+#[cfg(test)]
+mod test {
+    use super::super::converter::test::base_convert;
+    use super::*;
+    #[test]
+    fn test_text() {
+        let mut writer = CodeWriter {
+            writer: vec![],
+            option: CodeGenerateOption::default(),
+            p: std::marker::PhantomData,
+        };
+        let ir = base_convert("hello world");
+        writer.generate_root(ir).unwrap();
+        let s = String::from_utf8(writer.writer).unwrap();
+        println!("{}", s);
+        panic!("test");
+    }
 }

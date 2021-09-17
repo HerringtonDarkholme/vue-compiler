@@ -437,7 +437,7 @@ impl BaseConverter {
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::*;
     use crate::parser::test::base_parse;
     use BaseConverter as BC;
@@ -462,6 +462,12 @@ mod test {
         assert_eq!(body.len(), 1);
         if let IRNode::VNodeCall(VNodeIR { tag, .. }) = &body[0] {
             assert_str_lit(tag, "p");
+        } else {
+            panic!("wrong parsing");
+        }
+        let body = base_convert("hello world").body;
+        if let IRNode::TextCall(texts) = &body[0] {
+            assert_str_lit(&texts[0], "hello world");
         } else {
             panic!("wrong parsing");
         }

@@ -59,8 +59,45 @@ impl StrOps {
         todo!()
     }
     fn write_ops<W: Write>(&self, s: &str, mut w: W) -> io::Result<()> {
+        let flag_count = self.bits().count_ones();
+        if flag_count == 0 {
+            return w.write_all(s.as_bytes());
+        }
+        if flag_count == 1 {
+            return self.write_ops(s, w);
+        }
+        let mut src = s;
+        let mut temp = vec![];
+        let mut dest = vec![];
+        let ops = self.clone();
+        for op in ops {
+            Self::write_one_op(op, src, &mut dest)?;
+            std::mem::swap(&mut temp, &mut dest);
+            dest.clear();
+            src = std::str::from_utf8(&temp).expect("must be valid string");
+        }
+        w.write_all(src.as_bytes())
+    }
+    fn write_one_op<W: Write>(op: Self, s: &str, mut w: W) -> io::Result<()> {
         // TODO: add real impl
+        if op == StrOps::JS_STRING {
+            return write_json_string(s, &mut w);
+        }
         w.write_all(s.as_bytes())
+    }
+}
+
+impl Iterator for StrOps {
+    type Item = Self;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.is_empty() {
+            None
+        } else {
+            let bits = 1 << self.bits.trailing_zeros();
+            let r = StrOps { bits };
+            self.remove(r);
+            Some(r)
+        }
     }
 }
 

@@ -171,6 +171,7 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
         self.generate_epilogue()
     }
     fn generate_epilogue(&mut self) -> io::Result<()> {
+        self.deindent(true)?;
         for &s in self.epilogue.iter() {
             self.writer.write_all(s.as_bytes())?;
         }
@@ -251,9 +252,9 @@ mod test {
             ident_level: 0,
             epilogue: vec![],
         };
-        let ir = base_convert("hello world");
+        let ir = base_convert("hello       world");
         writer.generate_root(ir).unwrap();
         let s = String::from_utf8(writer.writer).unwrap();
-        assert_eq!(s, stringify!("hello world"));
+        assert!(s.contains("hello world"));
     }
 }

@@ -59,12 +59,20 @@ fn write_compressed<W: Write>(mut s: &str, mut w: W) -> io::Result<()> {
         w.write_all(prev.as_bytes())?;
         w.write_all(b" ")?;
         if let Some(p) = after.find(non_whitespace) {
-            s = s.split_at(p).1;
+            s = after.split_at(p).1;
         } else {
             s = "";
         }
     }
     w.write_all(s.as_bytes())
+}
+
+/// decode html entity before writing.
+fn write_decoded<W: Write>(s: &str, mut w: W) -> io::Result<()> {
+    if !s.contains('&') {
+        return w.write_all(s.as_bytes());
+    }
+    todo!()
 }
 
 impl StrOps {
@@ -96,7 +104,9 @@ impl StrOps {
         debug_assert!(op.bits().count_ones() == 1);
         match op {
             StrOps::COMPRESS_WHITESPACE => write_compressed(s, w),
+            StrOps::DECODE_ENTITY => write_decoded(s, w),
             StrOps::JS_STRING => write_json_string(s, &mut w),
+            StrOps::IS_ATTR => w.write_all(s.as_bytes()), // NOOP
             StrOps::SELF_SUFFIX => {
                 w.write_all(s.as_bytes())?;
                 w.write_all(b"__self")

@@ -473,7 +473,7 @@ mod test {
             slotted: false,
             inline: true,
             directive_converters: vec![],
-            binding_metadata: Default::default(),
+            binding_metadata: BindingMetadata(FxHashMap::default(), false),
             self_name: "".into(),
         };
         let ast = base_parse(s);

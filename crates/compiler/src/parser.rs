@@ -493,11 +493,12 @@ where
     fn parse_text(&mut self, text: VStr<'a>) {
         let mut text = smallvec![text];
         let mut next_token = None;
-        while let Some(token) = self.tokens.next() {
+        for token in &mut self.tokens {
             if let Token::Text(ds) = token {
                 text.push(ds);
             } else {
                 next_token = Some(token);
+                break;
             }
         }
         let start = self.tokens.last_position();
@@ -875,10 +876,12 @@ pub mod test {
 
     #[test]
     fn test_parse_text() {
-        let case = "hello {{world}}";
+        let case = "hello {{world}}<p/><p/>";
         let ast = base_parse(case);
         let mut children = ast.children;
-        assert_eq!(children.len(), 2);
+        assert_eq!(children.len(), 4);
+        children.pop();
+        children.pop();
         let world = children.pop().unwrap();
         let hello = children.pop().unwrap();
         match hello {
@@ -887,7 +890,7 @@ pub mod test {
         }
         match world {
             AstNode::Interpolation(v) => assert_eq!(v.source, "world"),
-            _ => panic!("wrong text"),
+            _ => panic!("wrong interp"),
         }
     }
 

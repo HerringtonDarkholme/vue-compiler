@@ -64,13 +64,12 @@ impl StrOps {
             return w.write_all(s.as_bytes());
         }
         if flag_count == 1 {
-            return self.write_ops(s, w);
+            return Self::write_one_op(*self, s, w);
         }
         let mut src = s;
         let mut temp = vec![];
         let mut dest = vec![];
-        let ops = self.clone();
-        for op in ops {
+        for op in self.iter() {
             Self::write_one_op(op, src, &mut dest)?;
             std::mem::swap(&mut temp, &mut dest);
             dest.clear();
@@ -79,23 +78,36 @@ impl StrOps {
         w.write_all(src.as_bytes())
     }
     fn write_one_op<W: Write>(op: Self, s: &str, mut w: W) -> io::Result<()> {
-        // TODO: add real impl
-        if op == StrOps::JS_STRING {
-            return write_json_string(s, &mut w);
+        debug_assert!(op.bits().count_ones() == 1);
+        match op {
+            StrOps::JS_STRING => write_json_string(s, &mut w),
+            StrOps::SELF_SUFFIX => {
+                w.write_all(s.as_bytes())?;
+                w.write_all(b"__self")
+            }
+            StrOps::V_DIR_PREFIX => {
+                w.write_all(b"v-")?;
+                w.write_all(s.as_bytes())
+            }
+            _ => todo!("other strops"),
         }
-        w.write_all(s.as_bytes())
+    }
+    fn iter(&self) -> StrOpIter {
+        StrOpIter(*self)
     }
 }
 
-impl Iterator for StrOps {
-    type Item = Self;
+struct StrOpIter(StrOps);
+impl Iterator for StrOpIter {
+    type Item = StrOps;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.is_empty() {
+        let ops = &mut self.0;
+        if ops.is_empty() {
             None
         } else {
-            let bits = 1 << self.bits.trailing_zeros();
+            let bits = 1 << ops.bits().trailing_zeros();
             let r = StrOps { bits };
-            self.remove(r);
+            ops.remove(r);
             Some(r)
         }
     }
@@ -197,5 +209,50 @@ impl<'a> Deref for VStr<'a> {
 impl<'a> From<&'a str> for VStr<'a> {
     fn from(s: &'a str) -> Self {
         VStr::raw(s)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    // TODO: proptest can test invariant
+    #[test]
+    fn test_str_ops_iter() {
+        let a = StrOps::all();
+        let v: Vec<_> = a.iter().collect();
+        assert_eq!(v.len() as u32, a.bits().count_ones());
+        assert!(v.iter().all(|op| op.bits().count_ones() == 1));
+        let a = StrOps::empty();
+        let v: Vec<_> = a.iter().collect();
+        assert_eq!(v.len(), 0);
+        let a = StrOps::V_DIR_PREFIX | StrOps::VALID_COMP;
+        let v: Vec<_> = a.iter().collect();
+        assert_eq!(v[0], StrOps::VALID_COMP);
+        assert_eq!(v[1], StrOps::V_DIR_PREFIX);
+        assert_eq!(v.len(), 2);
+    }
+
+    fn write_string(ops: StrOps, s: &str) -> String {
+        let mut w = vec![];
+        ops.write_ops(s, &mut w).unwrap();
+        String::from_utf8(w).unwrap()
+    }
+
+    #[test]
+    fn test_str_ops_write() {
+        let src = "test";
+        let cases = [
+            (StrOps::empty(), "test"),
+            (StrOps::V_DIR_PREFIX, "v-test"),
+            (StrOps::SELF_SUFFIX, "test__self"),
+            (StrOps::JS_STRING, stringify!("test")),
+            (StrOps::SELF_SUFFIX | StrOps::V_DIR_PREFIX, "v-test__self"),
+        ];
+        for (ops, expect) in cases {
+            let origin = ops.clone();
+            assert_eq!(write_string(ops, src), expect);
+            assert_eq!(ops, origin);
+        }
     }
 }

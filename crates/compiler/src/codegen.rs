@@ -165,7 +165,6 @@ mod test {
         let ir = base_convert("hello world");
         writer.generate_root(ir).unwrap();
         let s = String::from_utf8(writer.writer).unwrap();
-        println!("{}", s);
-        panic!("test");
+        assert_eq!(s, stringify!("hello world"));
     }
 }

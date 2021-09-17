@@ -120,6 +120,6 @@ Todo tasks grouped by scopes.
 ### [infra]
 - [x] Add [pre-commit](https://pre-commit.com/) hooks.
 - [x] Add Github Actions for various checks.
-- [ ] Change single lib to cargo workspaces.
+- [x] Change single lib to cargo workspaces.
 ### [community]
 - [ ] TODO. not ready for contribution for now.

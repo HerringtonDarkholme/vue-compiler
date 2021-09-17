@@ -257,8 +257,7 @@ fn stringify_dynamic_prop_names(prop_names: FxHashSet<VStr>) -> Option<Js> {
 mod test {
     use super::super::converter::test::base_convert;
     use super::*;
-    #[test]
-    fn test_text() {
+    fn base_gen(s: &str) -> String {
         let mut writer = CodeWriter {
             writer: vec![],
             option: CodeGenerateOption::default(),
@@ -266,9 +265,15 @@ mod test {
             closing_brackets: 0,
             p: PhantomData,
         };
-        let ir = base_convert("hello       world");
+        let ir = base_convert(s);
         writer.generate_root(ir).unwrap();
-        let s = String::from_utf8(writer.writer).unwrap();
-        assert!(s.contains("hello world"));
+        String::from_utf8(writer.writer).unwrap()
+    }
+    #[test]
+    fn test_text() {
+        let s = base_gen("hello       world");
+        assert!(s.contains(stringify!("hello world")));
+        // let s = base_gen("hello {{world}}");
+        // assert!(s.contains("\"hello\" + world"), "{}", s);
     }
 }

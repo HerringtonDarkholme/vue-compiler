@@ -239,8 +239,8 @@ where
     fn dispatch_ast(&self, n: AstNode<'a>) -> IRNode<T> {
         match n {
             AstNode::Text(t) => self.convert_text(t),
-            AstNode::Comment(c) => self.convert_comment(c),
             AstNode::Interpolation(i) => self.convert_interpolation(i),
+            AstNode::Comment(c) => self.convert_comment(c),
             // all element like node needs pre-convert structural dirs
             AstNode::Element(e) => self.pre_convert_element(e),
         }

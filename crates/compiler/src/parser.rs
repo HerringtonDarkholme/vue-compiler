@@ -492,18 +492,22 @@ where
     }
     fn parse_text(&mut self, text: VStr<'a>) {
         let mut text = smallvec![text];
+        let mut next_token = None;
         while let Some(token) = self.tokens.next() {
             if let Token::Text(ds) = token {
                 text.push(ds);
             } else {
-                // NB: token must not be dropped
-                self.parse_token(token);
+                next_token = Some(token);
             }
         }
         let start = self.tokens.last_position();
         let location = self.tokens.get_location_from(start);
         let text_node = TextNode { text, location };
-        self.insert_node(AstNode::Text(text_node))
+        self.insert_node(AstNode::Text(text_node));
+        // NB: token must not be dropped
+        if let Some(token) = next_token {
+            self.parse_token(token);
+        }
     }
     fn parse_comment(&mut self, c: &'a str) {
         // Remove comments if desired by configuration.
@@ -868,6 +872,25 @@ fn is_v_pre_boundary(elem: &Element) -> bool {
 pub mod test {
     use super::*;
     use crate::{error::test::TestErrorHandler, tokenizer::test::base_scan};
+
+    #[test]
+    fn test_parse_text() {
+        let case = "hello {{world}}";
+        let ast = base_parse(case);
+        let mut children = ast.children;
+        assert_eq!(children.len(), 2);
+        let world = children.pop().unwrap();
+        let hello = children.pop().unwrap();
+        match hello {
+            AstNode::Text(v) => assert_eq!(v.text[0].raw, "hello "),
+            _ => panic!("wrong text"),
+        }
+        match world {
+            AstNode::Interpolation(v) => assert_eq!(v.source, "world"),
+            _ => panic!("wrong text"),
+        }
+    }
+
     pub fn base_parse(s: &str) -> AstRoot {
         let tokens = base_scan(s);
         let parser = Parser::new(ParseOption::default());

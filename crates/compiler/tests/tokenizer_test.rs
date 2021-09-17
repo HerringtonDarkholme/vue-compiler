@@ -1,7 +1,8 @@
 mod common;
-use common::{SourceLocation, TestErrorHandler};
+
+use common::{serialize_yaml, SourceLocation, TestErrorHandler};
 use compiler::tokenizer::{self, TextMode, TokenizeOption, Tokenizer};
-use insta::assert_yaml_snapshot;
+use insta::{assert_snapshot, assert_yaml_snapshot};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -76,6 +77,12 @@ pub fn base_scan(s: &str) -> impl Iterator<Item = Token> + '_ {
     scan_with_opt(s, TokenizeOption::default())
 }
 
+fn assert_yaml<S: Serialize>(val: S, expr: &str) {
+    let name = insta::_macro_support::AutoName;
+    let val = serialize_yaml(val);
+    assert_snapshot!(name, val, expr);
+}
+
 #[test]
 fn should_scan() {
     let cases = [
@@ -99,9 +106,9 @@ fn should_scan() {
         r#"<!-- nested <!--> text -->"#, // ok
         r#"<p v-err=232/>"#,
     ];
-    for &case in cases.iter() {
-        let t: Vec<_> = base_scan(case).collect();
-        assert_yaml_snapshot!(t);
+    for case in cases {
+        let val: Vec<_> = base_scan(case).collect();
+        assert_yaml(val, case);
     }
 }
 
@@ -121,7 +128,7 @@ fn should_scan_raw_text() {
             ..Default::default()
         };
         let t: Vec<_> = scan_with_opt(case, opt).collect();
-        assert_yaml_snapshot!(t);
+        assert_yaml(t, case);
     }
 }
 #[test]
@@ -146,6 +153,6 @@ fn should_scan_rc_data() {
             ..Default::default()
         };
         let a: Vec<_> = scan_with_opt(case, opt).collect();
-        assert_yaml_snapshot!(a);
+        assert_yaml(a, case);
     }
 }

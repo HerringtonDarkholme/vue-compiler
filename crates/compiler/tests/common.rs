@@ -1,15 +1,30 @@
 use compiler::error::ErrorHandler;
-use serde::Serialize;
+use serde::{ser::SerializeTupleStruct, Serialize};
 
 #[derive(Clone)]
 pub struct TestErrorHandler;
 impl ErrorHandler for TestErrorHandler {}
 
-#[derive(Serialize)]
 pub struct Position {
     pub offset: usize,
     pub line: usize,
     pub column: usize,
+}
+
+impl Serialize for Position {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let s = format!(
+            // Position, Line, Column
+            "Pos: {}, Ln: {}, Col: {}",
+            self.offset,
+            self.line,
+            self.column,
+        );
+        serializer.serialize_str(&s)
+    }
 }
 
 #[derive(Serialize)]
@@ -35,4 +50,13 @@ impl From<compiler::SourceLocation> for SourceLocation {
             },
         }
     }
+}
+
+// insta does not support yaml with customized expr :(
+// https://github.com/mitsuhiko/insta/issues/177
+// WARNING: insta private API usage.
+/// serialize object to yaml string
+pub fn serialize_yaml<T: Serialize>(t: T) -> String {
+    use insta::_macro_support::{serialize_value, SerializationFormat, SnapshotLocation};
+    serialize_value(&t, SerializationFormat::Yaml, SnapshotLocation::File)
 }

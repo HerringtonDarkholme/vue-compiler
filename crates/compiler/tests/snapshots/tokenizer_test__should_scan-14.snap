@@ -1,0 +1,18 @@
+---
+source: crates/compiler/tests/tokenizer_test.rs
+expression: "<a attr=\""
+
+---
+- StartTag:
+    name: a
+    attributes:
+      - name: attr
+        value: ~
+        name_loc:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 7, Ln: 1, Col: 8"
+        location:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 9, Ln: 1, Col: 10"
+    self_closing: false
+

@@ -1,0 +1,8 @@
+---
+source: crates/compiler/tests/tokenizer_test.rs
+expression: "<!-- nested <!--> text -->"
+
+---
+- Comment: " nested <!"
+- Text: " text -->"
+

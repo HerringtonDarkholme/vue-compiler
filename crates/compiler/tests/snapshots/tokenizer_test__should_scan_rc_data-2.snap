@@ -1,0 +1,11 @@
+---
+source: crates/compiler/tests/tokenizer_test.rs
+expression: "<textarea></textarea "
+
+---
+- StartTag:
+    name: textarea
+    attributes: []
+    self_closing: false
+- EndTag: textarea
+

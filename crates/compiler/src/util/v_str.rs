@@ -250,8 +250,8 @@ mod test {
         assert_eq!(v.len() as u32, a.bits().count_ones());
         assert!(v.iter().all(|op| op.bits().count_ones() == 1));
         let a = StrOps::empty();
-        let v: Vec<_> = a.iter().collect();
-        assert_eq!(v.len(), 0);
+        let v = a.iter().count();
+        assert_eq!(v, 0);
         let a = StrOps::V_DIR_PREFIX | StrOps::VALID_COMP;
         let v: Vec<_> = a.iter().collect();
         assert_eq!(v[0], StrOps::VALID_COMP);
@@ -276,7 +276,7 @@ mod test {
             (StrOps::SELF_SUFFIX | StrOps::V_DIR_PREFIX, "v-test__self"),
         ];
         for (ops, expect) in cases {
-            let origin = ops.clone();
+            let origin = ops;
             assert_eq!(write_string(ops, src), expect);
             assert_eq!(ops, origin);
         }

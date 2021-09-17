@@ -49,6 +49,7 @@ struct CodeWriter<'a, T: io::Write> {
     writer: T,
     option: CodeGenerateOption,
     p: std::marker::PhantomData<&'a ()>,
+    ident_level: usize,
 }
 impl<'a, T: io::Write> CodeGenerator for CodeWriter<'a, T> {
     type IR = BaseRoot<'a>;
@@ -173,7 +174,23 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
     }
 
     fn newline(&mut self) -> io::Result<()> {
-        self.writer.write_all(b"\n")
+        self.writer.write_all(b"\n")?;
+        for _ in 0..self.ident_level {
+            self.writer.write_all(b"  ")?;
+        }
+        Ok(())
+    }
+    fn indent(&mut self) -> io::Result<()> {
+        self.ident_level += 1;
+        self.newline()
+    }
+    fn deindent(&mut self, with_new_line: bool) -> io::Result<()> {
+        self.ident_level -= 1;
+        if with_new_line {
+            self.newline()
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -206,6 +223,7 @@ mod test {
         let mut writer = CodeWriter {
             writer: vec![],
             option: CodeGenerateOption::default(),
+            ident_level: 0,
             p: std::marker::PhantomData,
         };
         let ir = base_convert("hello world");

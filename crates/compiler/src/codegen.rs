@@ -93,8 +93,37 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
     fn generate_v_slot(&mut self, s: BaseVSlot<'a>) -> io::Result<()> {
         todo!()
     }
-    fn generate_js_expr(&mut self, e: Js<'a>) -> io::Result<()> {
-        todo!()
+    fn generate_js_expr(&mut self, expr: Js<'a>) -> io::Result<()> {
+        match expr {
+            Js::Src(s) => self.writer.write_all(s.as_bytes()),
+            Js::StrLit(mut l) => l.be_js_str().write_to(&mut self.writer),
+            Js::Simple(e, _) => e.write_to(&mut self.writer),
+            Js::Symbol(s) => {
+                self.writer.write_all(b"_")?;
+                self.writer.write_all(s.helper_str().as_bytes())
+            }
+            Js::Props(p) => {
+                todo!()
+            }
+            Js::Compound(v) => {
+                for e in v {
+                    self.generate_js_expr(e)?;
+                }
+                Ok(())
+            }
+            Js::Array(a) => {
+                self.writer.write_all(b"[")?;
+                self.gen_comma_separated(a)?;
+                self.writer.write_all(b"]")
+            }
+            Js::Call(c, args) => {
+                self.writer.write_all(b"_")?;
+                self.writer.write_all(c.helper_str().as_bytes())?;
+                self.writer.write_all(b"(")?;
+                self.gen_comma_separated(args)?;
+                self.writer.write_all(b")")
+            }
+        }
     }
     fn generate_comment(&mut self, c: &'a str) -> io::Result<()> {
         todo!()
@@ -128,6 +157,23 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
             Js::Call(..) => self.generate_js_expr(e),
             _ => panic!("wrong text call type"),
         }
+    }
+    fn gen_comma_separated(&mut self, exprs: Vec<Js<'a>>) -> io::Result<()> {
+        let mut exprs = exprs.into_iter();
+        if let Some(e) = exprs.next() {
+            self.generate_js_expr(e)?;
+        } else {
+            return Ok(());
+        }
+        for e in exprs {
+            self.writer.write_all(b", ")?;
+            self.generate_js_expr(e)?;
+        }
+        Ok(())
+    }
+
+    fn newline(&mut self) -> io::Result<()> {
+        self.writer.write_all(b"\n")
     }
 }
 

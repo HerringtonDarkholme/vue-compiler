@@ -72,16 +72,10 @@ type BaseVSlot<'a> = C::VSlotIR<BaseConvertInfo<'a>>;
 impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
     type Written = io::Result<()>;
     fn generate_prologue(&mut self, root: &BaseRoot<'a>) -> io::Result<()> {
-        // 1. generate function
-        self.writer.write_all(b"function render(_ctx, _cache) {")?;
-        self.closing_brackets += 1;
-        self.indent()?;
-        // 2. generate with block
-        self.writer.write_all(b"with (_ctx) {")?;
-        self.closing_brackets += 1;
-        self.indent()?;
-        // 3. generate assets/temps
-        // TODO
+        self.generate_preamble()?;
+        self.generate_function_signature()?;
+        self.generate_with_block()?;
+        self.generate_assets()?;
         self.writer.write_all(b"return ")
     }
     fn generate_epilogue(&mut self) -> io::Result<()> {
@@ -95,12 +89,12 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
     fn generate_text(&mut self, t: Vec<Js<'a>>) -> io::Result<()> {
         let mut texts = t.into_iter();
         match texts.next() {
-            Some(t) => self.generate_one_str(t)?,
+            Some(t) => self.generate_js_expr(t)?,
             None => return Ok(()),
         }
         for t in texts {
             self.writer.write_all(b" + ")?;
-            self.generate_one_str(t)?;
+            self.generate_js_expr(t)?;
         }
         Ok(())
     }
@@ -181,13 +175,28 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
         }
         self.generate_epilogue()
     }
-    fn generate_one_str(&mut self, e: Js<'a>) -> io::Result<()> {
-        match e {
-            Js::StrLit(mut s) => s.be_js_str().write_to(&mut self.writer),
-            Js::Simple(s, _) => s.write_to(&mut self.writer),
-            Js::Call(..) => self.generate_js_expr(e),
-            _ => panic!("wrong text call type"),
-        }
+    /// for import helpers or hoist that not in function
+    fn generate_preamble(&mut self) -> io::Result<()> {
+        self.writer.write_all(b"return ")
+    }
+    /// render() or ssrRender() or IIFE for inline mode
+    fn generate_function_signature(&mut self) -> io::Result<()> {
+        // TODO: add more params, add more modes
+        self.writer.write_all(b"function render(_ctx, _cache) {")?;
+        self.closing_brackets += 1;
+        self.indent()
+    }
+    /// with (ctx) for not prefixIdentifier
+    fn generate_with_block(&mut self) -> io::Result<()> {
+        // TODO: add helpers
+        self.writer.write_all(b"with (_ctx) {")?;
+        self.closing_brackets += 1;
+        self.indent()
+    }
+    /// component/directive resolotuion inside render
+    fn generate_assets(&mut self) -> io::Result<()> {
+        // TODO
+        Ok(())
     }
     fn gen_comma_separated(&mut self, exprs: Vec<Js<'a>>) -> io::Result<()> {
         let mut exprs = exprs.into_iter();

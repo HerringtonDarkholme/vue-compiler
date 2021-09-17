@@ -5,6 +5,7 @@ use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::fmt;
 use std::io;
+use std::marker::PhantomData;
 
 pub trait CodeGenerator {
     type IR;
@@ -36,6 +37,7 @@ use super::converter as C;
 trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
     type Written;
     fn generate_prologue(&mut self, t: &IRRoot<T>) -> Self::Written;
+    fn generate_epilogue(&mut self) -> Self::Written;
     fn generate_text(&mut self, t: Vec<T::TextType>) -> Self::Written;
     fn generate_if(&mut self, i: C::IfNodeIR<T>) -> Self::Written;
     fn generate_for(&mut self, f: C::ForNodeIR<T>) -> Self::Written;
@@ -49,8 +51,9 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
 struct CodeWriter<'a, T: io::Write> {
     writer: T,
     option: CodeGenerateOption,
-    ident_level: usize,
-    epilogue: Vec<&'a str>,
+    indent_level: usize,
+    closing_brackets: usize,
+    p: PhantomData<&'a ()>,
 }
 impl<'a, T: io::Write> CodeGenerator for CodeWriter<'a, T> {
     type IR = BaseRoot<'a>;
@@ -71,15 +74,23 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
     fn generate_prologue(&mut self, root: &BaseRoot<'a>) -> io::Result<()> {
         // 1. generate function
         self.writer.write_all(b"function render(_ctx, _cache) {")?;
-        self.epilogue.push("}");
+        self.closing_brackets += 1;
         self.indent()?;
         // 2. generate with block
         self.writer.write_all(b"with (_ctx) {")?;
-        self.epilogue.push("}");
+        self.closing_brackets += 1;
         self.indent()?;
         // 3. generate assets/temps
         // TODO
         self.writer.write_all(b"return ")
+    }
+    fn generate_epilogue(&mut self) -> io::Result<()> {
+        for _ in 0..self.closing_brackets {
+            self.deindent(true)?;
+            self.writer.write_all(b"}")?;
+        }
+        debug_assert_eq!(self.indent_level, 0);
+        Ok(())
     }
     fn generate_text(&mut self, t: Vec<Js<'a>>) -> io::Result<()> {
         let mut texts = t.into_iter();
@@ -170,13 +181,6 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
         }
         self.generate_epilogue()
     }
-    fn generate_epilogue(&mut self) -> io::Result<()> {
-        self.deindent(true)?;
-        for &s in self.epilogue.iter() {
-            self.writer.write_all(s.as_bytes())?;
-        }
-        Ok(())
-    }
     fn generate_one_str(&mut self, e: Js<'a>) -> io::Result<()> {
         match e {
             Js::StrLit(mut s) => s.be_js_str().write_to(&mut self.writer),
@@ -201,17 +205,17 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
 
     fn newline(&mut self) -> io::Result<()> {
         self.writer.write_all(b"\n")?;
-        for _ in 0..self.ident_level {
+        for _ in 0..self.indent_level {
             self.writer.write_all(b"  ")?;
         }
         Ok(())
     }
     fn indent(&mut self) -> io::Result<()> {
-        self.ident_level += 1;
+        self.indent_level += 1;
         self.newline()
     }
     fn deindent(&mut self, with_new_line: bool) -> io::Result<()> {
-        self.ident_level -= 1;
+        self.indent_level -= 1;
         if with_new_line {
             self.newline()
         } else {
@@ -249,8 +253,9 @@ mod test {
         let mut writer = CodeWriter {
             writer: vec![],
             option: CodeGenerateOption::default(),
-            ident_level: 0,
-            epilogue: vec![],
+            indent_level: 0,
+            closing_brackets: 0,
+            p: PhantomData,
         };
         let ir = base_convert("hello       world");
         writer.generate_root(ir).unwrap();

@@ -18,15 +18,11 @@ use parser::{ParseOption, Parser};
 use tokenizer::{TokenizeOption, Tokenizer};
 pub use transformer::Transformer;
 
-#[cfg(test)]
-use serde::Serialize;
-
 // use plain &str here for now
 // may change to tendril
 pub type Name<'a> = &'a str;
 
 #[derive(PartialEq, Eq, Clone)]
-#[cfg_attr(test, derive(Serialize))]
 pub struct Position {
     /// the 0-indexed offset in the source str modulo newline
     pub offset: usize,
@@ -47,7 +43,6 @@ impl Default for Position {
 }
 
 #[derive(Default, PartialEq, Eq, Clone)]
-#[cfg_attr(test, derive(Serialize))]
 pub struct SourceLocation {
     pub start: Position,
     pub end: Position,
@@ -56,7 +51,6 @@ pub struct SourceLocation {
 /// namespace for HTML/SVG/MathML tag
 #[non_exhaustive]
 #[derive(Eq, PartialEq)]
-#[cfg_attr(test, derive(Serialize))]
 pub enum Namespace {
     Html,
     Svg,

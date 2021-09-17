@@ -113,6 +113,7 @@ Todo tasks grouped by scopes.
 - [ ] parser test
     - [x] dir parser test
 - [x] Add insta snapshot
+- [x] Move snapshot outside of src
 ### [bench]
 - [x] Add benchmark framework
 - [ ] Micro benchmarks for compiler components

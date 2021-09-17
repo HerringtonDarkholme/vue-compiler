@@ -343,7 +343,6 @@ pub type DirectiveConverter = (&'static str, DirConvertFn);
 
 /// stores binding variables exposed by data/prop/setup script.
 /// also stores if the binding is from setup script.
-#[cfg_attr(test, derive(Default))]
 pub struct BindingMetadata(FxHashMap<&'static str, BindingTypes>, bool);
 impl BindingMetadata {
     pub fn is_setup(&self) -> bool {

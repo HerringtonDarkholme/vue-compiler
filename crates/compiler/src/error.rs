@@ -1,10 +1,7 @@
 use super::SourceLocation;
-#[cfg(test)]
-use serde::Serialize;
 use std::fmt;
 
 #[derive(PartialEq, Eq)]
-#[cfg_attr(test, derive(Serialize))]
 pub enum CompilationErrorKind {
     AbruptClosingOfEmptyComment,
     CDataInHtmlContent,
@@ -76,7 +73,6 @@ pub enum CompilationErrorKind {
     ExtendPoint,
 }
 
-#[cfg_attr(test, derive(Serialize))]
 pub struct CompilationError {
     pub kind: CompilationErrorKind,
     pub additional_message: Option<String>,

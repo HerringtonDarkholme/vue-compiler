@@ -1,5 +1,5 @@
 use compiler::error::ErrorHandler;
-use serde::{ser::SerializeTupleStruct, Serialize};
+use serde::Serialize;
 
 #[derive(Clone)]
 pub struct TestErrorHandler;

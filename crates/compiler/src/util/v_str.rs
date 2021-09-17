@@ -5,8 +5,6 @@
 //! * interning/cache can be optional, e.g. Text Token can skip it at all.
 use super::is_event_prop;
 use bitflags::bitflags;
-#[cfg(test)]
-use serde::Serialize;
 use std::{
     io::{self, Write},
     ops::Deref,
@@ -15,7 +13,6 @@ use std::{
 bitflags! {
     /// Represents idempotent string manipulation.
     // Idempotency is required since op is a bitflag.
-    #[cfg_attr(test, derive(Serialize))]
     pub struct StrOps: u16 {
         const COMPRESS_WHITESPACE = 1 << 0;
         const DECODE_ENTITY       = 1 << 1;
@@ -71,7 +68,6 @@ impl StrOps {
 /// Instead of returning a Cow<str>, StrOp is recorded in the VStr
 /// and will be processed later in codegen phase.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(test, derive(Serialize))]
 pub struct VStr<'a> {
     pub raw: &'a str,
     pub ops: StrOps,

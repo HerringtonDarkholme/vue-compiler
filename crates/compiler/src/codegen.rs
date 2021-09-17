@@ -35,6 +35,7 @@ impl Default for CodeGenerateOption {
 use super::converter as C;
 trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
     type Written;
+    fn generate_prologue(&mut self, t: &IRRoot<T>) -> Self::Written;
     fn generate_text(&mut self, t: Vec<T::TextType>) -> Self::Written;
     fn generate_if(&mut self, i: C::IfNodeIR<T>) -> Self::Written;
     fn generate_for(&mut self, f: C::ForNodeIR<T>) -> Self::Written;
@@ -48,8 +49,8 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
 struct CodeWriter<'a, T: io::Write> {
     writer: T,
     option: CodeGenerateOption,
-    p: std::marker::PhantomData<&'a ()>,
     ident_level: usize,
+    epilogue: Vec<&'a str>,
 }
 impl<'a, T: io::Write> CodeGenerator for CodeWriter<'a, T> {
     type IR = BaseRoot<'a>;
@@ -67,6 +68,19 @@ type BaseVSlot<'a> = C::VSlotIR<BaseConvertInfo<'a>>;
 
 impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
     type Written = io::Result<()>;
+    fn generate_prologue(&mut self, root: &BaseRoot<'a>) -> io::Result<()> {
+        // 1. generate function
+        self.writer.write_all(b"function render(_ctx, _cache) {")?;
+        self.epilogue.push("}");
+        self.indent()?;
+        // 2. generate with block
+        self.writer.write_all(b"with (_ctx) {")?;
+        self.epilogue.push("}");
+        self.indent()?;
+        // 3. generate assets/temps
+        // TODO
+        self.writer.write_all(b"return ")
+    }
     fn generate_text(&mut self, t: Vec<Js<'a>>) -> io::Result<()> {
         let mut texts = t.into_iter();
         match texts.next() {
@@ -134,20 +148,31 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
 impl<'a, T: io::Write> CodeWriter<'a, T> {
     fn generate_root(&mut self, root: BaseRoot<'a>) -> io::Result<()> {
         use IRNode as IR;
-        for node in root.body {
-            match node {
-                IR::TextCall(t) => self.generate_text(t)?,
-                IR::If(v_if) => self.generate_if(v_if)?,
-                IR::For(v_for) => self.generate_for(v_for)?,
-                IR::VNodeCall(vnode) => self.generate_vnode(vnode)?,
-                IR::RenderSlotCall(r) => self.generate_slot_outlet(r)?,
-                IR::VSlotUse(s) => self.generate_v_slot(s)?,
-                IR::CommentCall(c) => self.generate_comment(c)?,
-                IR::GenericExpression(e) => self.generate_js_expr(e)?,
-                IR::AlterableSlot(..) => {
-                    panic!("alterable slot should be compiled");
-                }
-            };
+        self.generate_prologue(&root)?;
+        if root.body.is_empty() {
+            self.writer.write_all(b"null")?;
+        } else {
+            for node in root.body {
+                match node {
+                    IR::TextCall(t) => self.generate_text(t)?,
+                    IR::If(v_if) => self.generate_if(v_if)?,
+                    IR::For(v_for) => self.generate_for(v_for)?,
+                    IR::VNodeCall(vnode) => self.generate_vnode(vnode)?,
+                    IR::RenderSlotCall(r) => self.generate_slot_outlet(r)?,
+                    IR::VSlotUse(s) => self.generate_v_slot(s)?,
+                    IR::CommentCall(c) => self.generate_comment(c)?,
+                    IR::GenericExpression(e) => self.generate_js_expr(e)?,
+                    IR::AlterableSlot(..) => {
+                        panic!("alterable slot should be compiled");
+                    }
+                };
+            }
+        }
+        self.generate_epilogue()
+    }
+    fn generate_epilogue(&mut self) -> io::Result<()> {
+        for &s in self.epilogue.iter() {
+            self.writer.write_all(s.as_bytes())?;
         }
         Ok(())
     }
@@ -224,7 +249,7 @@ mod test {
             writer: vec![],
             option: CodeGenerateOption::default(),
             ident_level: 0,
-            p: std::marker::PhantomData,
+            epilogue: vec![],
         };
         let ir = base_convert("hello world");
         writer.generate_root(ir).unwrap();

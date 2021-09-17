@@ -67,8 +67,8 @@ impl<'a> From<&'a str> for Token<'a> {
 /// TokenizeOption defined a list of methods used in scanning
 #[derive(Clone)]
 pub struct TokenizeOption {
-    delimiters: (String, String),
-    get_text_mode: fn(&str) -> TextMode,
+    pub delimiters: (String, String),
+    pub get_text_mode: fn(&str) -> TextMode,
 }
 
 impl Default for TokenizeOption {
@@ -816,7 +816,6 @@ impl<'a, C> TokenSource<'a> for Tokens<'a, C> where C: ErrorHandler {}
 #[cfg(test)]
 pub mod test {
     use super::{super::error::test::TestErrorHandler, *};
-    use insta::assert_yaml_snapshot;
     #[test]
     fn test_single_delimiter() {
         let a: Vec<_> = base_scan("{ test }").collect();
@@ -828,79 +827,6 @@ pub mod test {
                 ..
             })
         ));
-    }
-    #[test]
-    fn test() {
-        let cases = [
-            r#"<![CDATA["#,
-            r#"{{}}"#,
-            r#"{{test}}"#,
-            r#"<a test="value">...</a>"#,
-            r#"<a v-bind:['foo' + bar]="value">...</a>"#,
-            r#"<tag =value />"#,
-            r#"<a =123 />"#,
-            r#"<a ==123 />"#,
-            r#"<a b="" />"#,
-            r#"<a == />"#,
-            r#"<a wrong-attr>=123 />"#,
-            r#"<a></a < / attr attr=">" >"#,
-            r#"<a attr="1123"#,              // unclosed quote
-            r#"<a attr=""#,                  // unclosed without val
-            r#"<!-->"#,                      // abrupt closing
-            r#"<!--->"#,                     // abrupt closing
-            r#"<!---->"#,                    // ok
-            r#"<!-- nested <!--> text -->"#, // ok
-            r#"<p v-err=232/>"#,
-        ];
-        for &case in cases.iter() {
-            let t: Vec<_> = base_scan(case).collect();
-            assert_yaml_snapshot!(t);
-        }
-    }
-
-    #[test]
-    fn test_raw_text() {
-        let cases = [
-            r#"<style></style"#,
-            r#"<style></styl"#,
-            r#"<style></styles"#,
-            r#"<style></style "#,
-            r#"<style></style>"#,
-            r#"<style>abc</style>"#,
-        ];
-        for &case in cases.iter() {
-            let opt = TokenizeOption {
-                get_text_mode: |_| TextMode::RawText,
-                ..Default::default()
-            };
-            let t: Vec<_> = scan_with_opt(case, opt).collect();
-            assert_yaml_snapshot!(t);
-        }
-    }
-    #[test]
-    fn test_rc_data() {
-        let cases = [
-            r#"<textarea>   "#,
-            r#"<textarea></textarea "#,
-            r#"<textarea></textarea"#,
-            r#"<textarea></textareas>"#,
-            r#"<textarea><div/></textarea>"#,
-            r#"<textarea><div/></textareas>"#,
-            r#"<textarea>{{test}}</textarea>"#,
-            r#"<textarea>{{'</textarea>'}}</textarea>"#,
-            r#"<textarea>{{}}</textarea>"#,
-            r#"<textarea>{{</textarea>"#,
-            r#"<textarea>{{"#,
-            r#"<textarea>{{ garbage  {{ }}</textarea>"#,
-        ];
-        for &case in cases.iter() {
-            let opt = TokenizeOption {
-                get_text_mode: |_| TextMode::RcData,
-                ..Default::default()
-            };
-            let a: Vec<_> = scan_with_opt(case, opt).collect();
-            assert_yaml_snapshot!(a);
-        }
     }
 
     fn scan_with_opt(s: &str, opt: TokenizeOption) -> impl TokenSource {

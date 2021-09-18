@@ -94,12 +94,12 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
         self.generate_function_signature()?;
         self.generate_with_block()?;
         self.generate_assets()?;
-        self.writer.write_all(b"return ")
+        self.write_str("return ")
     }
     fn generate_epilogue(&mut self) -> io::Result<()> {
         for _ in 0..self.closing_brackets {
             self.deindent(true)?;
-            self.writer.write_all(b"}")?;
+            self.write_str("}")?;
         }
         debug_assert_eq!(self.indent_level, 0);
         Ok(())
@@ -111,7 +111,7 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
             None => return Ok(()),
         }
         for t in texts {
-            self.writer.write_all(b" + ")?;
+            self.write_str(" + ")?;
             self.generate_js_expr(t)?;
         }
         Ok(())
@@ -146,12 +146,12 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
     }
     fn generate_js_expr(&mut self, expr: Js<'a>) -> io::Result<()> {
         match expr {
-            Js::Src(s) => self.writer.write_all(s.as_bytes()),
+            Js::Src(s) => self.write_str(s),
             Js::StrLit(mut l) => l.be_js_str().write_to(&mut self.writer),
             Js::Simple(e, _) => e.write_to(&mut self.writer),
             Js::Symbol(s) => {
-                self.writer.write_all(b"_")?;
-                self.writer.write_all(s.helper_str().as_bytes())
+                self.write_str("_")?;
+                self.write_str(s.helper_str())
             }
             Js::Props(p) => {
                 todo!()
@@ -163,16 +163,16 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
                 Ok(())
             }
             Js::Array(a) => {
-                self.writer.write_all(b"[")?;
+                self.write_str("[")?;
                 self.gen_comma_separated(a)?;
-                self.writer.write_all(b"]")
+                self.write_str("]")
             }
             Js::Call(c, args) => {
-                self.writer.write_all(b"_")?;
-                self.writer.write_all(c.helper_str().as_bytes())?;
-                self.writer.write_all(b"(")?;
+                self.write_str("_")?;
+                self.write_str(c.helper_str())?;
+                self.write_str("(")?;
                 self.gen_comma_separated(args)?;
-                self.writer.write_all(b")")
+                self.write_str(")")
             }
         }
     }
@@ -188,7 +188,7 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
     fn generate_root(&mut self, mut root: BaseRoot<'a>) -> io::Result<()> {
         self.generate_prologue(&root)?;
         if root.body.is_empty() {
-            self.writer.write_all(b"null")?;
+            self.write_str("null")?;
         } else {
             let ir = if root.body.len() == 1 {
                 root.body.pop().unwrap()
@@ -205,19 +205,19 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
     }
     /// for import helpers or hoist that not in function
     fn generate_preamble(&mut self) -> io::Result<()> {
-        self.writer.write_all(b"return ")
+        self.write_str("return ")
     }
     /// render() or ssrRender() or IIFE for inline mode
     fn generate_function_signature(&mut self) -> io::Result<()> {
         // TODO: add more params, add more modes
-        self.writer.write_all(b"function render(_ctx, _cache) {")?;
+        self.write_str("function render(_ctx, _cache) {")?;
         self.closing_brackets += 1;
         self.indent()
     }
     /// with (ctx) for not prefixIdentifier
     fn generate_with_block(&mut self) -> io::Result<()> {
         // TODO: add helpers
-        self.writer.write_all(b"with (_ctx) {")?;
+        self.write_str("with (_ctx) {")?;
         self.closing_brackets += 1;
         self.indent()
     }
@@ -234,16 +234,16 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
             return Ok(());
         }
         for e in exprs {
-            self.writer.write_all(b", ")?;
+            self.write_str(", ")?;
             self.generate_js_expr(e)?;
         }
         Ok(())
     }
 
     fn newline(&mut self) -> io::Result<()> {
-        self.writer.write_all(b"\n")?;
+        self.write_str("\n")?;
         for _ in 0..self.indent_level {
-            self.writer.write_all(b"  ")?;
+            self.write_str("  ")?;
         }
         Ok(())
     }
@@ -260,6 +260,7 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
         }
     }
 
+    #[inline(always)]
     fn write_str(&mut self, s: &str) -> io::Result<()> {
         self.writer.write_all(s.as_bytes())
     }

@@ -1,4 +1,7 @@
-use super::converter::{BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js};
+use super::converter::{
+    BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, VNodeIR,
+};
+use super::flags::RuntimeHelper;
 use super::util::VStr;
 use rustc_hash::FxHashSet;
 use smallvec::{smallvec, SmallVec};
@@ -36,6 +39,19 @@ impl Default for CodeGenerateOption {
 use super::converter as C;
 trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
     type Written;
+    fn generate_ir(&mut self, ir: IRNode<T>) -> Self::Written {
+        use IRNode as IR;
+        match ir {
+            IR::TextCall(t) => self.generate_text(t),
+            IR::If(v_if) => self.generate_if(v_if),
+            IR::For(v_for) => self.generate_for(v_for),
+            IR::VNodeCall(vnode) => self.generate_vnode(vnode),
+            IR::RenderSlotCall(r) => self.generate_slot_outlet(r),
+            IR::VSlotUse(s) => self.generate_v_slot(s),
+            IR::CommentCall(c) => self.generate_comment(c),
+            IR::AlterableSlot(a) => self.generate_alterable_slot(a),
+        }
+    }
     fn generate_prologue(&mut self, t: &IRRoot<T>) -> Self::Written;
     fn generate_epilogue(&mut self) -> Self::Written;
     fn generate_text(&mut self, t: T::TextType) -> Self::Written;
@@ -44,6 +60,7 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
     fn generate_vnode(&mut self, v: C::VNodeIR<T>) -> Self::Written;
     fn generate_slot_outlet(&mut self, r: C::RenderSlotIR<T>) -> Self::Written;
     fn generate_v_slot(&mut self, s: C::VSlotIR<T>) -> Self::Written;
+    fn generate_alterable_slot(&mut self, s: C::Slot<T>) -> Self::Written;
     fn generate_js_expr(&mut self, e: T::JsExpression) -> Self::Written;
     fn generate_comment(&mut self, c: T::CommentType) -> Self::Written;
 }
@@ -68,6 +85,7 @@ type BaseFor<'a> = C::ForNodeIR<BaseConvertInfo<'a>>;
 type BaseVNode<'a> = C::VNodeIR<BaseConvertInfo<'a>>;
 type BaseRenderSlot<'a> = C::RenderSlotIR<BaseConvertInfo<'a>>;
 type BaseVSlot<'a> = C::VSlotIR<BaseConvertInfo<'a>>;
+type BaseAlterable<'a> = C::Slot<BaseConvertInfo<'a>>;
 
 impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
     type Written = io::Result<()>;
@@ -145,32 +163,30 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
             }
         }
     }
+    fn generate_alterable_slot(&mut self, s: BaseAlterable<'a>) -> io::Result<()> {
+        todo!()
+    }
     fn generate_comment(&mut self, c: &'a str) -> io::Result<()> {
         todo!()
     }
 }
 
 impl<'a, T: io::Write> CodeWriter<'a, T> {
-    fn generate_root(&mut self, root: BaseRoot<'a>) -> io::Result<()> {
-        use IRNode as IR;
+    fn generate_root(&mut self, mut root: BaseRoot<'a>) -> io::Result<()> {
         self.generate_prologue(&root)?;
         if root.body.is_empty() {
             self.writer.write_all(b"null")?;
         } else {
-            for node in root.body {
-                match node {
-                    IR::TextCall(t) => self.generate_text(t)?,
-                    IR::If(v_if) => self.generate_if(v_if)?,
-                    IR::For(v_for) => self.generate_for(v_for)?,
-                    IR::VNodeCall(vnode) => self.generate_vnode(vnode)?,
-                    IR::RenderSlotCall(r) => self.generate_slot_outlet(r)?,
-                    IR::VSlotUse(s) => self.generate_v_slot(s)?,
-                    IR::CommentCall(c) => self.generate_comment(c)?,
-                    IR::AlterableSlot(..) => {
-                        panic!("alterable slot should be compiled");
-                    }
-                };
-            }
+            let ir = if root.body.len() == 1 {
+                root.body.pop().unwrap()
+            } else {
+                IRNode::VNodeCall(VNodeIR {
+                    tag: Js::Symbol(RuntimeHelper::Fragment),
+                    children: root.body,
+                    ..VNodeIR::default()
+                })
+            };
+            self.generate_ir(ir)?;
         }
         self.generate_epilogue()
     }

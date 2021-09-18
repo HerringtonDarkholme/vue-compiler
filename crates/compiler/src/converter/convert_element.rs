@@ -52,12 +52,6 @@ pub fn convert_template<'a>(bc: &BC, e: Element<'a>, is_slot: bool) -> BaseIR<'a
     debug_assert!(e.tag_type == ElementType::Template);
     check_wrong_slot(bc, &e, ErrorKind::VSlotTemplateMisplaced);
     // template here is purely a fragment that groups element.
-    if e.children.len() == 1 {
-        // we need to hand
-        let mut converted = bc.convert_children(e.children);
-        debug_assert_eq!(converted.len(), 1);
-        return converted.pop().unwrap();
-    }
     IRNode::VNodeCall(VNodeIR {
         tag: Js::Symbol(RuntimeHelper::Fragment),
         children: bc.convert_children(e.children),

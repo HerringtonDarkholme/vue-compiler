@@ -28,6 +28,7 @@ pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
 use rustc_hash::{FxHashMap, FxHashSet};
+use smallvec::{smallvec, SmallVec};
 
 mod build_props;
 mod cache_dir;
@@ -68,7 +69,7 @@ pub trait ConvertInfo {
 
 pub enum IRNode<T: ConvertInfo> {
     /// interpolation or text node
-    TextCall(Vec<T::TextType>),
+    TextCall(T::TextType),
     /// v-if, else-if, else
     If(IfNodeIR<T>),
     /// v-for
@@ -320,7 +321,7 @@ pub fn no_op_directive_convert<'a>(
 pub struct BaseConvertInfo<'a>(std::marker::PhantomData<&'a ()>);
 
 impl<'a> ConvertInfo for BaseConvertInfo<'a> {
-    type TextType = JsExpr<'a>;
+    type TextType = SmallVec<[JsExpr<'a>; 1]>;
     type IfType = ();
     type IfBranchType = usize;
     type ForType = ();
@@ -421,7 +422,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     fn convert_interpolation(&self, interp: SourceNode<'a>) -> BaseIR<'a> {
         let expr = JsExpr::simple(interp.source);
         let call = JsExpr::Call(RuntimeHelper::ToDisplayString, vec![expr]);
-        IRNode::TextCall(vec![call])
+        IRNode::TextCall(smallvec![call])
     }
     fn convert_template(&self, e: Element<'a>) -> BaseIR<'a> {
         convert_element::convert_template(self, e, false)

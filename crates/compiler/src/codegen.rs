@@ -38,7 +38,7 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
     type Written;
     fn generate_prologue(&mut self, t: &IRRoot<T>) -> Self::Written;
     fn generate_epilogue(&mut self) -> Self::Written;
-    fn generate_text(&mut self, t: Vec<T::TextType>) -> Self::Written;
+    fn generate_text(&mut self, t: T::TextType) -> Self::Written;
     fn generate_if(&mut self, i: C::IfNodeIR<T>) -> Self::Written;
     fn generate_for(&mut self, f: C::ForNodeIR<T>) -> Self::Written;
     fn generate_vnode(&mut self, v: C::VNodeIR<T>) -> Self::Written;
@@ -86,7 +86,7 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
         debug_assert_eq!(self.indent_level, 0);
         Ok(())
     }
-    fn generate_text(&mut self, t: Vec<Js<'a>>) -> io::Result<()> {
+    fn generate_text(&mut self, t: SmallVec<[Js<'a>; 1]>) -> io::Result<()> {
         let mut texts = t.into_iter();
         match texts.next() {
             Some(t) => self.generate_js_expr(t)?,

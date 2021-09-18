@@ -18,12 +18,14 @@ the original ones for the parity of features not implemented in Convert.
 
  */
 
-use super::converter::{self as C, BaseConvertInfo, ConvertInfo, IRNode, RuntimeDir};
+use super::converter::{
+    self as C, BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, RuntimeDir,
+};
 pub trait Transformer {
     type IR;
     /// transform will change ir node inplace
     /// usually transform will have multiple passes
-    fn transform(&self, node: &mut Self::IR);
+    fn transform(&mut self, root: &mut Self::IR);
 }
 
 use std::marker::PhantomData;
@@ -31,7 +33,7 @@ struct NoopTransformer<T>(PhantomData<T>);
 
 impl<T> Transformer for NoopTransformer<T> {
     type IR = T;
-    fn transform(&self, node: &mut Self::IR) {
+    fn transform(&mut self, _root: &mut Self::IR) {
         // noop
     }
 }
@@ -56,6 +58,7 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
             f(pass);
         }
     }
+    fn transform_root(&mut self, root: &mut IRRoot<T>);
     fn transform_ir(&mut self, ir: &mut IRNode<T>) {
         use IRNode as I;
         match ir {
@@ -172,18 +175,29 @@ trait CoreTransformPass<T: ConvertInfo> {
     fn exit_comment(&mut self, c: &mut T::CommentType) {}
 }
 
-struct BaseTransformer {}
+type BaseTransformPass<'a> = dyn CoreTransformPass<BaseConvertInfo<'a>>;
+struct BaseTransformer<'a, const N: usize> {
+    passes: [Box<BaseTransformPass<'a>>; N],
+}
 
-impl<'a> CoreTransformPass<BaseConvertInfo<'a>> for BaseTransformer {}
+impl<'a, const N: usize> Transformer for BaseTransformer<'a, N> {
+    type IR = BaseRoot<'a>;
+    fn transform(&mut self, node: &mut Self::IR) {
+        self.transform_root(node);
+    }
+}
+
+impl<'a, const N: usize> CoreTransformer<BaseConvertInfo<'a>> for BaseTransformer<'a, N> {
+    fn get_passes(&mut self) -> &mut [Box<dyn CoreTransformPass<BaseConvertInfo<'a>>>] {
+        &mut self.passes
+    }
+
+    fn transform_root(&mut self, root: &mut IRRoot<BaseConvertInfo<'a>>) {
+        todo!()
+    }
+}
 
 // default transforms
-pub fn hoist_static() {}
-pub fn track_v_for_slot_scopes() {}
-pub fn track_slot_scopes() {}
-pub fn merge_text_call() {}
-pub fn collect_helper() {}
-pub fn collect_asset() {}
-pub fn patch_flag() {}
 pub fn post_process_v_for_child() {
     // 1. inject key to slot
     // 2. Reuse the child's codegenNode but mark it as a block.

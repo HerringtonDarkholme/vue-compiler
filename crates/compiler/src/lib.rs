@@ -70,7 +70,7 @@ pub fn base_compile<'a, IR, O, E, Conv, Trans, Gen>(
     source: &'a str,
     opt: CompileOption<E>,
     conv: Conv,
-    trans: Trans,
+    mut trans: Trans,
     mut gen: Gen,
 ) -> Result<O, CompilationError>
 where

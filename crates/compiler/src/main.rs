@@ -7,7 +7,10 @@ use compiler::{
 fn main() {
     let file = r#"
     <template>
-        <div aaa="true">test {{result}}</div>
+        <div aaa="true">
+            test {{result}}
+            <!-- comment -->
+        </div>
     </template>
     "#;
     let tokenizer = tokenizer::Tokenizer::new(TokenizeOption::default());

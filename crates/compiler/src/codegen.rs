@@ -1,7 +1,7 @@
 use super::converter::{
-    BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, VNodeIR,
+    BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir, VNodeIR,
 };
-use super::flags::RuntimeHelper;
+use super::flags::RuntimeHelper as RH;
 use super::util::VStr;
 use rustc_hash::FxHashSet;
 use smallvec::{smallvec, SmallVec};
@@ -123,20 +123,7 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
         todo!()
     }
     fn generate_vnode(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
-        let gen_node = || {};
-        let gen_block = || {
-            if !v.is_block {
-                return gen_node();
-            }
-            todo!();
-        };
-        let gen_dir = || {
-            if v.directives.is_empty() {
-                return gen_block();
-            }
-            todo!();
-        };
-        todo!()
+        self.gen_vnode_with_dir(v)
     }
     fn generate_slot_outlet(&mut self, r: BaseRenderSlot<'a>) -> io::Result<()> {
         todo!()
@@ -149,10 +136,7 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
             Js::Src(s) => self.write_str(s),
             Js::StrLit(mut l) => l.be_js_str().write_to(&mut self.writer),
             Js::Simple(e, _) => e.write_to(&mut self.writer),
-            Js::Symbol(s) => {
-                self.write_str("_")?;
-                self.write_str(s.helper_str())
-            }
+            Js::Symbol(s) => self.write_helper(s),
             Js::Props(p) => {
                 todo!()
             }
@@ -168,8 +152,7 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
                 self.write_str("]")
             }
             Js::Call(c, args) => {
-                self.write_str("_")?;
-                self.write_str(c.helper_str())?;
+                self.write_helper(c)?;
                 self.write_str("(")?;
                 self.gen_comma_separated(args)?;
                 self.write_str(")")
@@ -194,7 +177,7 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
                 root.body.pop().unwrap()
             } else {
                 IRNode::VNodeCall(VNodeIR {
-                    tag: Js::Symbol(RuntimeHelper::Fragment),
+                    tag: Js::Symbol(RH::Fragment),
                     children: root.body,
                     ..VNodeIR::default()
                 })
@@ -239,6 +222,36 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
         }
         Ok(())
     }
+    fn gen_vnode_with_dir(&mut self, mut v: BaseVNode<'a>) -> io::Result<()> {
+        if v.directives.is_empty() {
+            return self.gen_vnode_with_block(v);
+        }
+        let dirs = std::mem::take(&mut v.directives);
+        self.write_helper(RH::WithDirectives)?;
+        self.write_str("(")?;
+        self.gen_vnode_with_block(v)?;
+        self.write_str(", ")?;
+        let dir_arr = runtime_dirs_to_js_arr(dirs);
+        self.generate_js_expr(dir_arr)?;
+        self.write_str(")")
+    }
+    fn gen_vnode_with_block(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
+        if !v.is_block {
+            return self.gen_vnode_real(v);
+        }
+        self.write_str("(")?;
+        self.write_helper(RH::OpenBlock)?;
+        self.write_str("(")?;
+        if v.disable_tracking {
+            self.write_str("true")?;
+        }
+        self.write_str("), ")?;
+        self.gen_vnode_real(v)?;
+        self.write_str(")")
+    }
+    fn gen_vnode_real(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
+        todo!()
+    }
 
     fn newline(&mut self) -> io::Result<()> {
         self.write_str("\n")?;
@@ -264,6 +277,11 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
     fn write_str(&mut self, s: &str) -> io::Result<()> {
         self.writer.write_all(s.as_bytes())
     }
+    #[inline(always)]
+    fn write_helper(&mut self, h: RH) -> io::Result<()> {
+        self.write_str("_")?;
+        self.write_str(h.helper_str())
+    }
 }
 
 pub trait CodeGenWrite: fmt::Write {}
@@ -283,6 +301,10 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
 pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
 
 fn stringify_dynamic_prop_names(prop_names: FxHashSet<VStr>) -> Option<Js> {
+    todo!()
+}
+
+fn runtime_dirs_to_js_arr<'a>(_: Vec<RuntimeDir<BaseConvertInfo<'a>>>) -> Js<'a> {
     todo!()
 }
 

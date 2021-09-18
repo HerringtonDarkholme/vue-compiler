@@ -304,7 +304,7 @@ fn stringify_dynamic_prop_names(prop_names: FxHashSet<VStr>) -> Option<Js> {
     todo!()
 }
 
-fn runtime_dirs_to_js_arr<'a>(_: Vec<RuntimeDir<BaseConvertInfo<'a>>>) -> Js<'a> {
+fn runtime_dirs_to_js_arr(_: Vec<RuntimeDir<BaseConvertInfo>>) -> Js {
     todo!()
 }
 

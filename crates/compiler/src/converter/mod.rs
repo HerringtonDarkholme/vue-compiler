@@ -63,7 +63,7 @@ pub trait ConvertInfo {
     type RenderSlotType;
     type VSlotType;
     type CommentType;
-    type JsExpression;
+    type JsExpression: Default;
     type StrType;
 }
 
@@ -118,6 +118,7 @@ pub struct RuntimeDir<T: ConvertInfo> {
     pub arg: Option<T::JsExpression>,
     pub mods: Option<T::JsExpression>,
 }
+#[derive(Default)]
 pub struct VNodeIR<T: ConvertInfo> {
     pub tag: T::JsExpression,
     pub props: Option<T::JsExpression>,
@@ -162,6 +163,12 @@ pub enum JsExpr<'a> {
     Symbol(RuntimeHelper),
     /// array of JsExpr
     Array(Vec<JsExpr<'a>>),
+}
+
+impl<'a> Default for JsExpr<'a> {
+    fn default() -> Self {
+        Self::Src("")
+    }
 }
 
 impl<'a> JsExpr<'a> {
@@ -315,7 +322,7 @@ pub fn no_op_directive_convert<'a>(
 }
 
 // Base Converter for DOM and SSR Fallback
-
+#[derive(Default)]
 pub struct BaseConvertInfo<'a>(std::marker::PhantomData<&'a ()>);
 
 impl<'a> ConvertInfo for BaseConvertInfo<'a> {

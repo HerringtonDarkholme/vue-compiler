@@ -123,6 +123,19 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
         todo!()
     }
     fn generate_vnode(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
+        let gen_node = || {};
+        let gen_block = || {
+            if !v.is_block {
+                return gen_node();
+            }
+            todo!();
+        };
+        let gen_dir = || {
+            if v.directives.is_empty() {
+                return gen_block();
+            }
+            todo!();
+        };
         todo!()
     }
     fn generate_slot_outlet(&mut self, r: BaseRenderSlot<'a>) -> io::Result<()> {
@@ -245,6 +258,10 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
         } else {
             Ok(())
         }
+    }
+
+    fn write_str(&mut self, s: &str) -> io::Result<()> {
+        self.writer.write_all(s.as_bytes())
     }
 }
 

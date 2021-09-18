@@ -1,13 +1,13 @@
 use super::converter::{
     BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir, VNodeIR,
 };
-use super::flags::RuntimeHelper as RH;
+use super::flags::{PatchFlag, RuntimeHelper as RH};
 use super::util::VStr;
 use rustc_hash::FxHashSet;
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::fmt;
-use std::io;
+use std::io::{self, Write};
 use std::marker::PhantomData;
 
 pub trait CodeGenerator {
@@ -65,14 +65,14 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
     fn generate_comment(&mut self, c: T::CommentType) -> Self::Written;
 }
 
-struct CodeWriter<'a, T: io::Write> {
+struct CodeWriter<'a, T: Write> {
     writer: T,
     option: CodeGenerateOption,
     indent_level: usize,
     closing_brackets: usize,
     p: PhantomData<&'a ()>,
 }
-impl<'a, T: io::Write> CodeGenerator for CodeWriter<'a, T> {
+impl<'a, T: Write> CodeGenerator for CodeWriter<'a, T> {
     type IR = BaseRoot<'a>;
     type Output = io::Result<()>;
     fn generate(&mut self, root: Self::IR) -> Self::Output {
@@ -87,7 +87,7 @@ type BaseRenderSlot<'a> = C::RenderSlotIR<BaseConvertInfo<'a>>;
 type BaseVSlot<'a> = C::VSlotIR<BaseConvertInfo<'a>>;
 type BaseAlterable<'a> = C::Slot<BaseConvertInfo<'a>>;
 
-impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
+impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
     type Written = io::Result<()>;
     fn generate_prologue(&mut self, root: &BaseRoot<'a>) -> io::Result<()> {
         self.generate_preamble()?;
@@ -148,13 +148,13 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
             }
             Js::Array(a) => {
                 self.write_str("[")?;
-                self.gen_comma_separated(a)?;
+                self.gen_list(a)?;
                 self.write_str("]")
             }
             Js::Call(c, args) => {
                 self.write_helper(c)?;
                 self.write_str("(")?;
-                self.gen_comma_separated(args)?;
+                self.gen_list(args)?;
                 self.write_str(")")
             }
         }
@@ -167,7 +167,7 @@ impl<'a, T: io::Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a,
     }
 }
 
-impl<'a, T: io::Write> CodeWriter<'a, T> {
+impl<'a, T: Write> CodeWriter<'a, T> {
     fn generate_root(&mut self, mut root: BaseRoot<'a>) -> io::Result<()> {
         self.generate_prologue(&root)?;
         if root.body.is_empty() {
@@ -209,7 +209,8 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
         // TODO
         Ok(())
     }
-    fn gen_comma_separated(&mut self, exprs: Vec<Js<'a>>) -> io::Result<()> {
+    /// generate a comma separated list
+    fn gen_list(&mut self, exprs: Vec<Js<'a>>) -> io::Result<()> {
         let mut exprs = exprs.into_iter();
         if let Some(e) = exprs.next() {
             self.generate_js_expr(e)?;
@@ -250,7 +251,23 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
         self.write_str(")")
     }
     fn gen_vnode_real(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
-        todo!()
+        let call_helper = if v.is_block {
+            if v.is_component {
+                RH::CreateBlock
+            } else {
+                RH::CreateElementBlock
+            }
+        } else {
+            if v.is_component {
+                RH::CreateVnode
+            } else {
+                RH::CreateElementVnode
+            }
+        };
+        self.write_helper(call_helper)?;
+        self.write_str("(")?;
+        gen_vnode_call_args(self, v)?;
+        self.write_str(")")
     }
 
     fn newline(&mut self) -> io::Result<()> {
@@ -284,8 +301,6 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
     }
 }
 
-pub trait CodeGenWrite: fmt::Write {}
-
 /// DecodedStr represents text after decoding html entities.
 /// SmallVec and Cow are used internally for less allocation.
 #[derive(Debug)]
@@ -299,6 +314,79 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
 }
 
 pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
+
+// no, repeating myself is good. macro is bad
+/// Takes generator and, condition/generation code pairs.
+/// It first finds the last index to write.
+/// then generate code for each arg, filling null if empty
+/// util the last index to write is reached.
+macro_rules! gen_vnode_args {
+    (
+    $gen:ident,
+    $(
+        $condition: expr, { $($generate: tt)* }
+    )*) => {
+        // 1. find the last index to write
+        let mut i = 0;
+        let mut j = 0;
+        $(
+            j += 1;
+            if $condition {
+                i = j;
+            }
+        )*
+        // 2. write code
+        j = -1;
+        $(
+            j += 1;
+            if $condition {
+                // write comma separator
+                if j > 0 {
+                    $gen.write_str(", ")?;
+                }
+                $($generate)*
+            } else if i > j {
+                // fill null, add comma since first condition must be true
+                $gen.write_str(", null")?;
+            } else {
+                return Ok(())
+            }
+        )*
+    }
+
+}
+/// Generate variadic vnode call argument list separated by comma.
+/// VNode arg is a heterogeneous list we need hard code the generation.
+fn gen_vnode_call_args<'a, T: Write>(
+    gen: &mut CodeWriter<'a, T>,
+    v: BaseVNode<'a>,
+) -> io::Result<()> {
+    let VNodeIR {
+        tag,
+        props,
+        children,
+        patch_flag,
+        dynamic_props,
+        ..
+    } = v;
+
+    gen_vnode_args!(
+        gen,
+        true, { gen.generate_js_expr(tag)?; }
+        props.is_some(), { gen.generate_js_expr(props.unwrap())?; }
+        !children.is_empty(), {
+            for child in children { gen.generate_ir(child)?; }
+        }
+        patch_flag != PatchFlag::empty(), {
+            write!(gen.writer, "{} /*{:?}*/", patch_flag.bits(), patch_flag)?;
+        }
+        !dynamic_props.is_empty(), {
+            let dps = dynamic_props.into_iter().map(Js::StrLit).collect();
+            gen.generate_js_expr(Js::Array(dps))?;
+        }
+    );
+    Ok(())
+}
 
 fn stringify_dynamic_prop_names(prop_names: FxHashSet<VStr>) -> Option<Js> {
     todo!()

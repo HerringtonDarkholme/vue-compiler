@@ -50,9 +50,9 @@ pub struct SourceLocation {
     pub end: Position,
 }
 
-impl Into<Range<usize>> for SourceLocation {
-    fn into(self) -> Range<usize> {
-        self.start.offset..self.end.offset
+impl From<SourceLocation> for Range<usize> {
+    fn from(location: SourceLocation) -> Self {
+        location.start.offset..location.end.offset
     }
 }
 

@@ -17,7 +17,8 @@ the original ones for the parity of features not implemented in Convert.
 * patch_flag: seems patch flag can be extracted out
 
  */
-use super::converter::{self as C, BaseConvertInfo, ConvertInfo, IRNode};
+
+use super::converter::{self as C, BaseConvertInfo, ConvertInfo, IRNode, RuntimeDir};
 pub trait Transformer {
     type IR;
     /// transform will change ir node inplace
@@ -84,12 +85,72 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
         }
         self.exit(|p| p.exit_if(i));
     }
-    fn transform_for(&mut self, f: &mut C::ForNodeIR<T>);
-    fn transform_vnode(&mut self, v: &mut C::VNodeIR<T>);
-    fn transform_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>);
-    fn transform_v_slot(&mut self, s: &mut C::VSlotIR<T>);
-    fn transform_js_expr(&mut self, e: &mut T::JsExpression);
-    fn transform_comment(&mut self, c: &mut T::CommentType);
+    fn transform_for(&mut self, f: &mut C::ForNodeIR<T>) {
+        self.enter(|p| p.enter_for(f));
+        self.transform_js_expr(&mut f.source);
+        // TODO val, key, index should not counted as expr?
+        self.transform_ir(&mut f.child);
+        self.exit(|p| p.exit_for(f));
+    }
+    fn transform_vnode(&mut self, v: &mut C::VNodeIR<T>) {
+        self.enter(|p| p.enter_vnode(v));
+        self.transform_js_expr(&mut v.tag);
+        if let Some(props) = v.props.as_mut() {
+            self.transform_js_expr(props);
+        }
+        for child in v.children.iter_mut() {
+            self.transform_ir(child);
+        }
+        for dir in v.directives.iter_mut() {
+            self.transform_runtime_dir(dir);
+        }
+        self.exit(|p| p.exit_vnode(v));
+    }
+    fn transform_runtime_dir(&mut self, dir: &mut RuntimeDir<T>) {
+        self.transform_js_expr(&mut dir.name);
+        if let Some(expr) = dir.expr.as_mut() {
+            self.transform_js_expr(expr);
+        }
+        if let Some(arg) = dir.arg.as_mut() {
+            self.transform_js_expr(arg);
+        }
+        if let Some(mods) = dir.mods.as_mut() {
+            self.transform_js_expr(mods);
+        }
+    }
+    fn transform_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>) {
+        self.enter(|p| p.enter_slot_outlet(r));
+        self.transform_js_expr(&mut r.slot_name);
+        if let Some(props) = r.slot_props.as_mut() {
+            self.transform_js_expr(props);
+        }
+        for node in r.fallbacks.iter_mut() {
+            self.transform_ir(node);
+        }
+        self.exit(|p| p.exit_slot_outlet(r));
+    }
+    fn transform_v_slot(&mut self, s: &mut C::VSlotIR<T>) {
+        self.enter(|p| p.enter_v_slot(s));
+        // TODO slot param should not counted as expr?
+        for slot in s.stable_slots.iter_mut() {
+            self.transform_js_expr(&mut slot.name);
+            for node in slot.body.iter_mut() {
+                self.transform_ir(node);
+            }
+        }
+        for slot in s.alterable_slots.iter_mut() {
+            self.transform_ir(slot);
+        }
+        self.exit(|p| p.exit_v_slot(s));
+    }
+    fn transform_js_expr(&mut self, e: &mut T::JsExpression) {
+        self.enter(|p| p.enter_js_expr(e));
+        self.exit(|p| p.exit_js_expr(e));
+    }
+    fn transform_comment(&mut self, c: &mut T::CommentType) {
+        self.enter(|p| p.enter_comment(c));
+        self.exit(|p| p.exit_comment(c));
+    }
 }
 
 trait CoreTransformPass<T: ConvertInfo> {

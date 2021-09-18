@@ -96,52 +96,52 @@ pub struct IfBranch<T: ConvertInfo> {
     pub info: T::IfBranchType,
 }
 pub struct ForNodeIR<T: ConvertInfo> {
-    source: T::JsExpression,
-    parse_result: ForParseResult<T>,
-    child: Box<IRNode<T>>,
+    pub source: T::JsExpression,
+    pub parse_result: ForParseResult<T>,
+    pub child: Box<IRNode<T>>,
 }
 // (value, key, index) in source
-struct ForParseResult<T: ConvertInfo> {
-    value: T::JsExpression,
-    key: Option<T::JsExpression>,
-    index: Option<T::JsExpression>,
+pub struct ForParseResult<T: ConvertInfo> {
+    pub value: T::JsExpression,
+    pub key: Option<T::JsExpression>,
+    pub index: Option<T::JsExpression>,
 }
 pub struct RenderSlotIR<T: ConvertInfo> {
-    slot_name: T::JsExpression,
-    slot_props: Option<T::JsExpression>,
-    fallbacks: Vec<IRNode<T>>,
-    no_slotted: bool,
+    pub slot_name: T::JsExpression,
+    pub slot_props: Option<T::JsExpression>,
+    pub fallbacks: Vec<IRNode<T>>,
+    pub no_slotted: bool,
 }
 pub struct RuntimeDir<T: ConvertInfo> {
-    name: T::JsExpression,
-    expr: Option<T::JsExpression>,
-    arg: Option<T::JsExpression>,
-    mods: Option<T::JsExpression>,
+    pub name: T::JsExpression,
+    pub expr: Option<T::JsExpression>,
+    pub arg: Option<T::JsExpression>,
+    pub mods: Option<T::JsExpression>,
 }
 pub struct VNodeIR<T: ConvertInfo> {
-    tag: T::JsExpression,
-    props: Option<T::JsExpression>,
-    children: Vec<IRNode<T>>,
-    patch_flag: flags::PatchFlag,
-    dynamic_props: FxHashSet<T::StrType>,
-    directives: Vec<RuntimeDir<T>>,
-    is_block: bool,
-    disable_tracking: bool,
-    is_component: bool,
+    pub tag: T::JsExpression,
+    pub props: Option<T::JsExpression>,
+    pub children: Vec<IRNode<T>>,
+    pub patch_flag: flags::PatchFlag,
+    pub dynamic_props: FxHashSet<T::StrType>,
+    pub directives: Vec<RuntimeDir<T>>,
+    pub is_block: bool,
+    pub disable_tracking: bool,
+    pub is_component: bool,
 }
 pub struct Slot<T: ConvertInfo> {
-    name: T::JsExpression,
-    param: Option<T::JsExpression>,
-    body: Vec<IRNode<T>>,
+    pub name: T::JsExpression,
+    pub param: Option<T::JsExpression>,
+    pub body: Vec<IRNode<T>>,
 }
 // note the diffrence between stable and static, dynamic and alterable.
 // static = static template name, capturing no identifier
 // stable = no if nor for
 pub struct VSlotIR<T: ConvertInfo> {
     /// stable v-slots declared statically in the template
-    stable_slots: Vec<Slot<T>>,
+    pub stable_slots: Vec<Slot<T>>,
     /// v-slots templates dynamically declared with v-if/v-for
-    alterable_slots: Vec<IRNode<T>>,
+    pub alterable_slots: Vec<IRNode<T>>,
 }
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);

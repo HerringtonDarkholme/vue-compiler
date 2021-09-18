@@ -316,8 +316,8 @@ fn resolve_setup_reference<'a>(bc: &BC, name: &'a str) -> Option<Js<'a>> {
         return None;
     }
     // the returned closure will find the name modulo casing
-    let varienty_by_type = get_variety_from_binding(name, bindings);
-    if let Some(from_const) = varienty_by_type(BindingTypes::SetupConst) {
+    let variety_by_type = get_variety_from_binding(name, bindings);
+    if let Some(from_const) = variety_by_type(BindingTypes::SetupConst) {
         return Some(if bc.inline {
             Js::simple(from_const)
         } else {
@@ -328,9 +328,9 @@ fn resolve_setup_reference<'a>(bc: &BC, name: &'a str) -> Option<Js<'a>> {
             ])
         });
     }
-    let from_maybe_ref = varienty_by_type(BindingTypes::SetupLet)
-        .or_else(|| varienty_by_type(BindingTypes::SetupRef))
-        .or_else(|| varienty_by_type(BindingTypes::SetupMaybeRef));
+    let from_maybe_ref = variety_by_type(BindingTypes::SetupLet)
+        .or_else(|| variety_by_type(BindingTypes::SetupRef))
+        .or_else(|| variety_by_type(BindingTypes::SetupMaybeRef));
     if let Some(maybe_ref) = from_maybe_ref {
         return Some(if bc.inline {
             Js::Call(RuntimeHelper::Unref, vec![Js::simple(maybe_ref)])

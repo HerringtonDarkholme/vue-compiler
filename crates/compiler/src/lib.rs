@@ -11,6 +11,8 @@ pub mod tokenizer;
 pub mod transformer;
 pub mod util;
 
+use std::ops::Range;
+
 pub use codegen::CodeGenerator;
 pub use converter::Converter;
 use error::{CompilationError, ErrorHandler};
@@ -46,6 +48,12 @@ impl Default for Position {
 pub struct SourceLocation {
     pub start: Position,
     pub end: Position,
+}
+
+impl Into<Range<usize>> for SourceLocation {
+    fn into(self) -> Range<usize> {
+        self.start.offset..self.end.offset
+    }
 }
 
 /// namespace for HTML/SVG/MathML tag

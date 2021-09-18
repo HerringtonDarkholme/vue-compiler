@@ -84,18 +84,16 @@ pub enum IRNode<T: ConvertInfo> {
     AlterableSlot(Slot<T>),
     /// comment
     CommentCall(T::CommentType),
-    /// generic JS expression
-    GenericExpression(T::JsExpression),
 }
 
 pub struct IfNodeIR<T: ConvertInfo> {
-    branches: Vec<IfBranch<T>>,
-    info: T::IfType,
+    pub branches: Vec<IfBranch<T>>,
+    pub info: T::IfType,
 }
-struct IfBranch<T: ConvertInfo> {
-    condition: Option<T::JsExpression>,
-    child: Box<IRNode<T>>,
-    info: T::IfBranchType,
+pub struct IfBranch<T: ConvertInfo> {
+    pub condition: Option<T::JsExpression>,
+    pub child: Box<IRNode<T>>,
+    pub info: T::IfBranchType,
 }
 pub struct ForNodeIR<T: ConvertInfo> {
     source: T::JsExpression,

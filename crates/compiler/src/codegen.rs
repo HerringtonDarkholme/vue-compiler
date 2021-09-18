@@ -166,7 +166,6 @@ impl<'a, T: io::Write> CodeWriter<'a, T> {
                     IR::RenderSlotCall(r) => self.generate_slot_outlet(r)?,
                     IR::VSlotUse(s) => self.generate_v_slot(s)?,
                     IR::CommentCall(c) => self.generate_comment(c)?,
-                    IR::GenericExpression(e) => self.generate_js_expr(e)?,
                     IR::AlterableSlot(..) => {
                         panic!("alterable slot should be compiled");
                     }

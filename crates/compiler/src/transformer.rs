@@ -6,8 +6,8 @@ the original ones for the parity of features not implemented in Convert.
 ## Canonical
 * hoistStatic
 * transformExpression
-* vOnce
-* vMemo
+* ~~vOnce (moved to convert)~~
+* ~~vMemo (moved to convert)~~
 * trackScopes
 
 ## Original
@@ -17,6 +17,7 @@ the original ones for the parity of features not implemented in Convert.
 * patch_flag: seems patch flag can be extracted out
 
  */
+use super::converter::{self as C, BaseConvertInfo, ConvertInfo, IRNode};
 pub trait Transformer {
     type IR;
     /// transform will change ir node inplace
@@ -34,14 +35,94 @@ impl<T> Transformer for NoopTransformer<T> {
     }
 }
 
+trait CoreTransformer<T: ConvertInfo>: Transformer {
+    fn get_passes(&mut self) -> &mut [Box<dyn CoreTransformPass<T>>];
+    #[inline(always)]
+    fn enter<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut Box<dyn CoreTransformPass<T>>),
+    {
+        for pass in self.get_passes() {
+            f(pass);
+        }
+    }
+    #[inline(always)]
+    fn exit<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut Box<dyn CoreTransformPass<T>>),
+    {
+        for pass in self.get_passes().iter_mut().rev() {
+            f(pass);
+        }
+    }
+    fn transform_ir(&mut self, ir: &mut IRNode<T>) {
+        use IRNode as I;
+        match ir {
+            I::TextCall(t) => self.transform_text(t),
+            I::If(i) => self.transform_if(i),
+            I::For(f) => self.transform_for(f),
+            I::VNodeCall(v) => self.transform_vnode(v),
+            I::RenderSlotCall(r) => self.transform_slot_outlet(r),
+            I::CommentCall(c) => self.transform_comment(c),
+            I::VSlotUse(s) => self.transform_v_slot(s),
+            I::AlterableSlot(_) => {
+                panic!("should not call");
+            }
+        }
+    }
+    fn transform_text(&mut self, t: &mut T::TextType) {
+        self.enter(|p| p.enter_text(t));
+        self.exit(|p| p.exit_text(t));
+    }
+    fn transform_if(&mut self, i: &mut C::IfNodeIR<T>) {
+        self.enter(|p| p.enter_if(i));
+        for branch in i.branches.iter_mut() {
+            if let Some(c) = branch.condition.as_mut() {
+                self.transform_js_expr(c);
+            }
+            self.transform_ir(&mut branch.child);
+        }
+        self.exit(|p| p.exit_if(i));
+    }
+    fn transform_for(&mut self, f: &mut C::ForNodeIR<T>);
+    fn transform_vnode(&mut self, v: &mut C::VNodeIR<T>);
+    fn transform_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>);
+    fn transform_v_slot(&mut self, s: &mut C::VSlotIR<T>);
+    fn transform_js_expr(&mut self, e: &mut T::JsExpression);
+    fn transform_comment(&mut self, c: &mut T::CommentType);
+}
+
+trait CoreTransformPass<T: ConvertInfo> {
+    fn enter_text(&mut self, t: &mut T::TextType) {}
+    fn exit_text(&mut self, t: &mut T::TextType) {}
+    fn enter_if(&mut self, i: &mut C::IfNodeIR<T>) {}
+    fn exit_if(&mut self, i: &mut C::IfNodeIR<T>) {}
+    fn enter_for(&mut self, f: &mut C::ForNodeIR<T>) {}
+    fn exit_for(&mut self, f: &mut C::ForNodeIR<T>) {}
+    fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>) {}
+    fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>) {}
+    fn enter_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>) {}
+    fn exit_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>) {}
+    fn enter_v_slot(&mut self, s: &mut C::VSlotIR<T>) {}
+    fn exit_v_slot(&mut self, s: &mut C::VSlotIR<T>) {}
+    fn enter_js_expr(&mut self, e: &mut T::JsExpression) {}
+    fn exit_js_expr(&mut self, e: &mut T::JsExpression) {}
+    fn enter_comment(&mut self, c: &mut T::CommentType) {}
+    fn exit_comment(&mut self, c: &mut T::CommentType) {}
+}
+
+struct BaseTransformer {}
+
+impl<'a> CoreTransformPass<BaseConvertInfo<'a>> for BaseTransformer {}
+
 // default transforms
 pub fn hoist_static() {}
 pub fn track_v_for_slot_scopes() {}
 pub fn track_slot_scopes() {}
 pub fn merge_text_call() {}
 pub fn collect_helper() {}
-pub fn transform_memo() {}
-pub fn transform_once() {}
+pub fn collect_asset() {}
+pub fn patch_flag() {}
 pub fn post_process_v_for_child() {
     // 1. inject key to slot
     // 2. Reuse the child's codegenNode but mark it as a block.

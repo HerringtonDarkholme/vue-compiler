@@ -6,7 +6,6 @@ use super::util::VStr;
 use rustc_hash::FxHashSet;
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
-use std::fmt;
 use std::io::{self, Write};
 use std::marker::PhantomData;
 
@@ -251,19 +250,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.write_str(")")
     }
     fn gen_vnode_real(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
-        let call_helper = if v.is_block {
-            if v.is_component {
-                RH::CreateBlock
-            } else {
-                RH::CreateElementBlock
-            }
-        } else {
-            if v.is_component {
-                RH::CreateVnode
-            } else {
-                RH::CreateElementVnode
-            }
-        };
+        let call_helper = get_vnode_call_helper(&v);
         self.write_helper(call_helper)?;
         self.write_str("(")?;
         gen_vnode_call_args(self, v)?;
@@ -298,6 +285,21 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     fn write_helper(&mut self, h: RH) -> io::Result<()> {
         self.write_str("_")?;
         self.write_str(h.helper_str())
+    }
+}
+
+fn get_vnode_call_helper(v: &VNodeIR<BaseConvertInfo>) -> RH {
+    if v.is_block {
+        return if v.is_component {
+            RH::CreateBlock
+        } else {
+            RH::CreateElementBlock
+        };
+    }
+    if v.is_component {
+        RH::CreateVnode
+    } else {
+        RH::CreateElementVnode
     }
 }
 
@@ -355,6 +357,7 @@ macro_rules! gen_vnode_args {
     }
 
 }
+// TODO: unit test this monster
 /// Generate variadic vnode call argument list separated by comma.
 /// VNode arg is a heterogeneous list we need hard code the generation.
 fn gen_vnode_call_args<'a, T: Write>(

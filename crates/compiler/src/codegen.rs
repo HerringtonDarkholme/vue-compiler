@@ -375,7 +375,14 @@ fn gen_vnode_call_args<'a, T: Write>(
         true, { gen.generate_js_expr(tag)?; }
         props.is_some(), { gen.generate_js_expr(props.unwrap())?; }
         !children.is_empty(), {
-            for child in children { gen.generate_ir(child)?; }
+            gen.write_str("[")?;
+            gen.indent()?;
+            for child in children {
+                gen.generate_ir(child)?;
+                gen.write_str(", ")?;
+            }
+            gen.deindent(true)?;
+            gen.write_str("]")?;
         }
         patch_flag != PatchFlag::empty(), {
             write!(gen.writer, "{} /*{:?}*/", patch_flag.bits(), patch_flag)?;

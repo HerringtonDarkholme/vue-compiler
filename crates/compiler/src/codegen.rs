@@ -1,5 +1,8 @@
+use crate::converter::RenderSlotIR;
+
 use super::converter::{
-    BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir, VNodeIR,
+    BaseConvertInfo, BaseIR, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir,
+    VNodeIR,
 };
 use super::flags::{PatchFlag, RuntimeHelper as RH};
 use super::util::VStr;
@@ -125,7 +128,10 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.gen_vnode_with_dir(v)
     }
     fn generate_slot_outlet(&mut self, r: BaseRenderSlot<'a>) -> io::Result<()> {
-        todo!()
+        self.write_helper(RH::RenderSlot)?;
+        self.write_str("(")?;
+        gen_render_slot_args(self, r)?;
+        self.write_str(")")
     }
     fn generate_v_slot(&mut self, s: BaseVSlot<'a>) -> io::Result<()> {
         todo!()
@@ -207,6 +213,17 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     fn generate_assets(&mut self) -> io::Result<()> {
         // TODO
         Ok(())
+    }
+
+    fn generate_children(&mut self, children: Vec<BaseIR<'a>>) -> io::Result<()> {
+        self.write_str("[")?;
+        self.indent()?;
+        for child in children {
+            self.generate_ir(child)?;
+            self.write_str(", ")?;
+        }
+        self.deindent(true)?;
+        self.write_str("]")
     }
     /// generate a comma separated list
     fn gen_list(&mut self, exprs: Vec<Js<'a>>) -> io::Result<()> {
@@ -377,16 +394,7 @@ fn gen_vnode_call_args<'a, T: Write>(
         gen,
         true, { gen.generate_js_expr(tag)?; }
         props.is_some(), { gen.generate_js_expr(props.unwrap())?; }
-        !children.is_empty(), {
-            gen.write_str("[")?;
-            gen.indent()?;
-            for child in children {
-                gen.generate_ir(child)?;
-                gen.write_str(", ")?;
-            }
-            gen.deindent(true)?;
-            gen.write_str("]")?;
-        }
+        !children.is_empty(), { gen.generate_children(children)?; }
         patch_flag != PatchFlag::empty(), {
             write!(gen.writer, "{} /*{:?}*/", patch_flag.bits(), patch_flag)?;
         }
@@ -396,6 +404,43 @@ fn gen_vnode_call_args<'a, T: Write>(
         }
     );
     Ok(())
+}
+
+fn gen_render_slot_args<'a, T: Write>(
+    gen: &mut CodeWriter<'a, T>,
+    r: BaseRenderSlot<'a>,
+) -> io::Result<()> {
+    let RenderSlotIR {
+        slot_obj,
+        slot_name,
+        slot_props,
+        fallbacks,
+        no_slotted,
+    } = r;
+    gen.generate_js_expr(slot_obj)?;
+    gen.write_str(", ")?;
+    gen.generate_js_expr(slot_name)?;
+    if let Some(prop) = slot_props {
+        gen.write_str(", ")?;
+        gen.generate_js_expr(prop)?;
+    } else {
+        debug_assert!(fallbacks.is_empty() && !no_slotted);
+        return Ok(());
+    }
+    if !fallbacks.is_empty() {
+        gen.write_str(", ")?;
+        gen.write_str("() => ")?;
+        gen.generate_children(fallbacks)?;
+    } else if no_slotted {
+        gen.write_str(", ")?;
+        gen.write_str("undefined")?;
+    }
+    if no_slotted {
+        gen.write_str(", ")?;
+        gen.write_str("true")
+    } else {
+        Ok(())
+    }
 }
 
 fn stringify_dynamic_prop_names(prop_names: FxHashSet<VStr>) -> Option<Js> {

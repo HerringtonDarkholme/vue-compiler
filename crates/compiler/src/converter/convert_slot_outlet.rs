@@ -23,6 +23,7 @@ pub fn convert_slot_outlet<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
         }
     });
     IRNode::RenderSlotCall(RenderSlotIR {
+        slot_obj: Js::simple("$slots"),
         slot_name,
         slot_props,
         fallbacks,

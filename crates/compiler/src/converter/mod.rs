@@ -107,6 +107,7 @@ pub struct ForParseResult<T: ConvertInfo> {
     pub index: Option<T::JsExpression>,
 }
 pub struct RenderSlotIR<T: ConvertInfo> {
+    pub slot_obj: T::JsExpression,
     pub slot_name: T::JsExpression,
     pub slot_props: Option<T::JsExpression>,
     pub fallbacks: Vec<IRNode<T>>,

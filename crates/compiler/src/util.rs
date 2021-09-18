@@ -11,6 +11,7 @@ use std::{
 };
 
 mod v_str;
+pub mod ast_print;
 pub use v_str::VStr;
 
 pub fn non_whitespace(c: char) -> bool {

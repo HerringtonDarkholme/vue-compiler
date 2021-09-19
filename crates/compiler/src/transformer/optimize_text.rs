@@ -56,13 +56,13 @@ mod test {
         assert_eq!(must_text(&mut ir.body[0]).len(), 2);
     }
 
-    // #[test]
-    // fn test_merge_text_with_element() {
-    //     let mut transformer = get_transformer(OptimizeText);
-    //     let mut ir = base_convert("hello <p/> {{world}}");
-    //     assert_eq!(ir.body.len(), 4);
-    //     transformer.transform(&mut ir);
-    //     assert_eq!(ir.body.len(), 3);
-    //     assert_eq!(must_text(&mut ir.body[2]).len(), 2);
-    // }
+    #[test]
+    fn test_merge_text_with_element() {
+        let mut transformer = get_transformer(OptimizeText);
+        let mut ir = base_convert("hello <p/> {{world}}");
+        assert_eq!(ir.body.len(), 4);
+        transformer.transform(&mut ir);
+        assert_eq!(ir.body.len(), 3);
+        assert_eq!(must_text(&mut ir.body[2]).len(), 2);
+    }
 }

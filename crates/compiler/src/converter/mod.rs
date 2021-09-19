@@ -492,6 +492,11 @@ pub mod test {
         }
     }
 
+    #[test]
+    fn test_abort() {
+        base_convert("hello <p/> {{world}}");
+    }
+
     pub fn base_convert(s: &str) -> BaseRoot {
         let mut convs = FxHashMap::default();
         for (n, f) in [v_bind::V_BIND, ("on", no_op_directive_convert)] {

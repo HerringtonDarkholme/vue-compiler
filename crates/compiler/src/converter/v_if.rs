@@ -67,13 +67,13 @@ impl<'a> Iterator for PreGroupIter<'a> {
                 let n = self.inner.next().unwrap(); // must next to advance
                 self.group.push(n.into_element());
             } else if let AstNode::Text(s) = n {
-                if s.is_all_whitespace() {
-                    // skip whitespace
-                    self.next().unwrap();
-                } else {
+                if self.group.is_empty() || !s.is_all_whitespace() {
                     // break if text is not whitespaces
+                    // or no preceding v-if
                     break;
                 }
+                // skip whitespace when v-if precedes
+                self.inner.next().unwrap();
             } else if matches!(n, &AstNode::Comment(_)) {
                 // ignore comments for now. #3619
                 return self.next_standalone();

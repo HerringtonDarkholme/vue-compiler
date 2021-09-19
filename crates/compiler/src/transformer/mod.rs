@@ -74,6 +74,13 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
             }
         }
     }
+    fn transform_children(&mut self, children: &mut Vec<IRNode<T>>) {
+        self.enter(|p| p.enter_children(children));
+        for child in children.iter_mut() {
+            self.transform_ir(child);
+        }
+        self.exit(|p| p.exit_children(children));
+    }
     fn transform_text(&mut self, t: &mut T::TextType) {
         self.enter(|p| p.enter_text(t));
         self.exit(|p| p.exit_text(t));
@@ -101,9 +108,7 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
         if let Some(props) = v.props.as_mut() {
             self.transform_js_expr(props);
         }
-        for child in v.children.iter_mut() {
-            self.transform_ir(child);
-        }
+        self.transform_children(&mut v.children);
         for dir in v.directives.iter_mut() {
             self.transform_runtime_dir(dir);
         }
@@ -127,9 +132,7 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
         if let Some(props) = r.slot_props.as_mut() {
             self.transform_js_expr(props);
         }
-        for node in r.fallbacks.iter_mut() {
-            self.transform_ir(node);
-        }
+        self.transform_children(&mut r.fallbacks);
         self.exit(|p| p.exit_slot_outlet(r));
     }
     fn transform_v_slot(&mut self, s: &mut C::VSlotIR<T>) {
@@ -137,9 +140,7 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
         // TODO slot param should not counted as expr?
         for slot in s.stable_slots.iter_mut() {
             self.transform_js_expr(&mut slot.name);
-            for node in slot.body.iter_mut() {
-                self.transform_ir(node);
-            }
+            self.transform_children(&mut slot.body);
         }
         for slot in s.alterable_slots.iter_mut() {
             self.transform_ir(slot);
@@ -157,6 +158,8 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
 }
 
 trait CoreTransformPass<T: ConvertInfo> {
+    fn enter_children(&mut self, cs: &mut Vec<IRNode<T>>) {}
+    fn exit_children(&mut self, cs: &mut Vec<IRNode<T>>) {}
     fn enter_text(&mut self, t: &mut T::TextType) {}
     fn exit_text(&mut self, t: &mut T::TextType) {}
     fn enter_if(&mut self, i: &mut C::IfNodeIR<T>) {}

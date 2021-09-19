@@ -682,6 +682,7 @@ mod test {
         let s = base_gen("<p :a='a' :b='b' />");
         assert!(s.contains("a: a,"), "{}", s);
         assert!(s.contains("b: b,"), "{}", s);
+        assert!(s.contains("PROPS"), "{}", s);
         let s = base_gen("<p :prop />");
         assert!(s.contains(r#"prop: """#), "{}", s);
     }
@@ -693,9 +694,11 @@ mod test {
         // the below is only in the dom build
         // assert!(s.contains("_normalizeProps(_guardReactiveProps(prop))"), "{}", s);
         assert!(s.contains(", prop, null,"), "{}", s);
+        assert!(s.contains("FULL_PROPS"), "{}", s);
         let s = base_gen("<p v-bind=prop class=test />");
         assert!(s.contains("_mergeProps(prop"), "{}", s);
         assert!(s.contains(r#"class: "test""#), "{}", s);
+        assert!(s.contains("FULL_PROPS"), "{}", s);
     }
 
     #[test]

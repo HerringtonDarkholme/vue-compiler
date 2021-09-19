@@ -289,7 +289,11 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
     // TODO: add newline
     fn gen_func_expr(&mut self, params: Vec<Option<Js<'a>>>, body: BaseIR<'a>) -> io::Result<()> {
-        let last = params.iter().rposition(Option::is_some).unwrap_or(0);
+        let last = params
+            .iter()
+            .rposition(Option::is_some)
+            .map(|i| i + 1)
+            .unwrap_or(0);
         let normalized_params = params
             .into_iter()
             .take(last)
@@ -615,7 +619,11 @@ fn gen_slot_fn<'a, T: Write>(
 
 fn runtime_dir(dir: RuntimeDir<BaseConvertInfo>) -> Js {
     let arr = vec![Some(dir.name), dir.expr, dir.arg, dir.mods];
-    let last = arr.iter().rposition(Option::is_some).unwrap_or(0);
+    let last = arr
+        .iter()
+        .rposition(Option::is_some)
+        .map(|i| i + 1)
+        .unwrap_or(0);
     let arr = arr
         .into_iter()
         .take(last)
@@ -655,15 +663,25 @@ mod test {
     #[test]
     fn test_v_element() {
         let s = base_gen("<p/>");
-        assert!(s.contains("p"), "{}", s);
+        assert!(s.contains("\"p\""), "{}", s);
         assert!(s.contains("createElementVNode"), "{}", s);
     }
     #[test]
     fn test_v_if() {
         let s = base_gen("<p v-if='condition'/>");
-        assert!(s.contains("p"), "{}", s);
+        assert!(s.contains("\"p\""), "{}", s);
         assert!(s.contains("condition"), "{}", s);
-        assert!(s.contains("?"), "{}", s);
+        assert!(s.contains("? "), "{}", s);
         assert!(s.contains("createCommentVNode"), "{}", s);
+    }
+    #[test]
+    fn test_v_for() {
+        let s = base_gen("<p v-for='a in b'/>");
+        assert!(s.contains("\"p\""), "{}", s);
+        assert!(s.contains("(a) =>"), "{}", s);
+        assert!(s.contains("_createElementBlock"), "{}", s);
+        let s = base_gen("<p v-for='(a, b, c) in d'/>");
+        assert!(s.contains("\"p\""), "{}", s);
+        assert!(s.contains("(a, b, c) =>"), "{}", s);
     }
 }

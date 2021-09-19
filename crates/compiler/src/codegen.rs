@@ -676,11 +676,26 @@ mod test {
         assert!(s.contains(r#""aria-label": "close""#), "{}", s);
     }
     #[test]
-    fn test_v_bind() {
+    fn test_v_bind_shorthand() {
         let s = base_gen("<p :prop='id'/>");
         assert!(s.contains("prop: id"), "{}", s);
+        let s = base_gen("<p :a='a' :b='b' />");
+        assert!(s.contains("a: a,"), "{}", s);
+        assert!(s.contains("b: b,"), "{}", s);
         let s = base_gen("<p :prop />");
         assert!(s.contains(r#"prop: """#), "{}", s);
+    }
+    #[test]
+    fn test_v_bind_dir() {
+        let s = base_gen("<p v-bind:prop='id'/>");
+        assert!(s.contains("prop: id"), "{}", s);
+        let s = base_gen("<p v-bind=prop />");
+        // the below is only in the dom build
+        // assert!(s.contains("_normalizeProps(_guardReactiveProps(prop))"), "{}", s);
+        assert!(s.contains(", prop, null,"), "{}", s);
+        let s = base_gen("<p v-bind=prop class=test />");
+        assert!(s.contains("_mergeProps(prop"), "{}", s);
+        assert!(s.contains(r#"class: "test""#), "{}", s);
     }
 
     #[test]

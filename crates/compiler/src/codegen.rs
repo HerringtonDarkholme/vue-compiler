@@ -206,7 +206,16 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         }
     }
     fn generate_alterable_slot(&mut self, s: BaseAlterable<'a>) -> io::Result<()> {
-        todo!()
+        self.write_str("{")?;
+        self.indent()?;
+        self.write_str("name: ")?;
+        self.generate_js_expr(s.name)?;
+        self.write_str(",")?;
+        self.newline()?;
+        self.write_str("fn: ")?;
+        gen_slot_fn(self, (s.param, s.body))?;
+        self.deindent(true)?;
+        self.write_str("}")
     }
     fn generate_comment(&mut self, c: &'a str) -> io::Result<()> {
         todo!()

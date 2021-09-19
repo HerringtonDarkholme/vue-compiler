@@ -117,7 +117,32 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         Ok(())
     }
     fn generate_if(&mut self, i: BaseIf<'a>) -> io::Result<()> {
-        todo!()
+        let mut indent = 0;
+        for branch in i.branches {
+            if branch.condition.is_none() {
+                // should use into_inner but it's unstable
+                self.generate_ir(*branch.child)?;
+                return self.flush_deindent(indent);
+            }
+            indent += 1;
+            let condition = branch.condition.unwrap();
+            self.write_str("(")?;
+            self.generate_js_expr(condition)?;
+            self.write_str(")")?;
+            self.indent()?;
+            self.write_str("? ")?;
+            self.generate_ir(*branch.child)?;
+            self.newline()?;
+            self.write_str(": ")?;
+        }
+        // generate default v-else comment
+        let comment = Js::Call(
+            RH::CreateComment,
+            // TODO: add DEV flag
+            vec![Js::Src("'v-if'"), Js::Src("true")],
+        );
+        self.generate_js_expr(comment)?;
+        self.flush_deindent(indent)
     }
     fn generate_for(&mut self, f: BaseFor<'a>) -> io::Result<()> {
         todo!()
@@ -293,6 +318,13 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         } else {
             Ok(())
         }
+    }
+    fn flush_deindent(&mut self, mut indent: usize) -> io::Result<()> {
+        while indent > 0 {
+            self.deindent(false)?;
+            indent -= 1;
+        }
+        Ok(())
     }
 
     #[inline(always)]
@@ -478,5 +510,13 @@ mod test {
         let s = base_gen("<p/>");
         assert!(s.contains("p"), "{}", s);
         assert!(s.contains("createElementVNode"), "{}", s);
+    }
+    #[test]
+    fn test_v_if() {
+        let s = base_gen("<p v-if='condition'/>");
+        assert!(s.contains("p"), "{}", s);
+        assert!(s.contains("condition"), "{}", s);
+        assert!(s.contains("?"), "{}", s);
+        assert!(s.contains("createCommentVNode"), "{}", s);
     }
 }

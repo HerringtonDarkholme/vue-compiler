@@ -92,7 +92,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
     fn generate_prologue(&mut self, root: &BaseRoot<'a>) -> io::Result<()> {
         self.generate_preamble()?;
         self.generate_function_signature()?;
-        self.generate_with_block()?;
+        self.generate_with_scope()?;
         self.generate_assets()?;
         self.write_str("return ")
     }
@@ -232,7 +232,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.indent()
     }
     /// with (ctx) for not prefixIdentifier
-    fn generate_with_block(&mut self) -> io::Result<()> {
+    fn generate_with_scope(&mut self) -> io::Result<()> {
         // TODO: add helpers
         self.write_str("with (_ctx) {")?;
         self.closing_brackets += 1;
@@ -253,6 +253,32 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         }
         self.deindent(true)?;
         self.write_str("]")
+    }
+    fn generate_render_list(&mut self, f: BaseFor<'a>) -> io::Result<()> {
+        self.write_helper(RH::RenderList)?;
+        self.write_str("(")?;
+        self.generate_js_expr(f.source)?;
+        self.write_str(", ")?;
+        let p = f.parse_result;
+        let params = vec![Some(p.value), p.key, p.index];
+        self.gen_func_expr(params, *f.child)?;
+        self.write_str(")")
+    }
+    // TODO: add newline
+    fn gen_func_expr(&mut self, params: Vec<Option<Js<'a>>>, body: BaseIR<'a>) -> io::Result<()> {
+        let last = params.iter().rposition(Option::is_some).unwrap_or(0);
+        let normalized_params = params
+            .into_iter()
+            .take(last)
+            .map(|o| o.unwrap_or(Js::Src("_")));
+        self.write_str("(")?;
+        self.gen_list(normalized_params)?;
+        self.write_str(") => {")?;
+        self.indent()?;
+        self.write_str("return ")?;
+        self.generate_ir(body)?;
+        self.deindent(true)?;
+        self.write_str("}")
     }
     /// generate a comma separated list
     fn gen_list<I>(&mut self, exprs: I) -> io::Result<()>
@@ -455,13 +481,13 @@ fn gen_vnode_call_args<'a, T: Write>(
 }
 
 fn gen_v_for_args<'a, T: Write>(gen: &mut CodeWriter<'a, T>, f: BaseFor<'a>) -> io::Result<()> {
+    let flag = f.fragment_flag;
     gen_vnode_args!(
         gen,
         true, { gen.write_helper(RH::Fragment)?; }
         false, {  }
-        true, { todo!(); }
+        true, { gen.generate_render_list(f)?; }
         true, {
-            let flag = f.fragment_flag;
             write!(gen.writer, "{} /*{:?}*/", flag.bits(), flag)?;
         }
     );

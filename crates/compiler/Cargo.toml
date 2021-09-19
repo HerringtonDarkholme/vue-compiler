@@ -16,3 +16,8 @@ json = "0.12.4"
 insta = "1.8.0"
 serde = { version = "1.0", features = ["derive"] }
 smallvec = {version="1.2.0", features = ["serde"]}
+
+
+[features]
+default = []
+debug = []

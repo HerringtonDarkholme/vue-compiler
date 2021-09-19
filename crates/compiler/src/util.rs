@@ -11,6 +11,7 @@ use std::{
 };
 
 mod v_str;
+#[cfg(feature = "debug")]
 pub mod ast_print;
 pub use v_str::VStr;
 

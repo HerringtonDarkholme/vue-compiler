@@ -335,13 +335,13 @@ impl<'a, T: Write> CodeWriter<'a, T> {
             return self.write_str("{}");
         }
         self.write_str("{")?;
-        self.indent()?;
+        self.indent_level += 1; // don't call newline
         for (key, val) in props {
+            self.newline()?;
             self.gen_obj_key(key)?;
             self.write_str(": ")?;
             cont(self, val)?;
             self.write_str(",")?;
-            self.newline()?;
         }
         self.deindent(true)?;
         self.write_str("}")
@@ -667,6 +667,23 @@ mod test {
         assert!(s.contains("createElementVNode"), "{}", s);
     }
     #[test]
+    fn test_attr() {
+        let s = base_gen("<p class='test' id='id'/>");
+        assert!(s.contains("\"p\""), "{}", s);
+        assert!(s.contains(r#"class: "test""#), "{}", s);
+        assert!(s.contains(r#"id: "id""#), "{}", s);
+        let s = base_gen("<button aria-label='close'/>");
+        assert!(s.contains(r#""aria-label": "close""#), "{}", s);
+    }
+    // #[test]
+    // fn test_v_bind() {
+    //     let s = base_gen("<p :prop='id'/>");
+    //     assert!(s.contains("prop: id"), "{}", s);
+    //     let s = base_gen("<p :prop />");
+    //     assert!(s.contains(r#"prop: """#), "{}", s);
+    // }
+
+    #[test]
     fn test_v_if() {
         let s = base_gen("<p v-if='condition'/>");
         assert!(s.contains("\"p\""), "{}", s);
@@ -695,4 +712,9 @@ mod test {
         assert!(s.contains("() => ["), "{}", s);
         assert!(s.contains(r#""fallback""#), "{}", s);
     }
+    // #[test]
+    // fn test_implicit_slot() {
+    //     let s = base_gen("<component is='test'>test</component>");
+    //     assert!(s.contains("_withCtx"), "{}", s);
+    // }
 }

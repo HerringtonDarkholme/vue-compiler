@@ -5,8 +5,6 @@ use super::converter::{
     VNodeIR,
 };
 use super::flags::{PatchFlag, RuntimeHelper as RH};
-use super::util::VStr;
-use rustc_hash::FxHashSet;
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::io::{self, Write};
@@ -317,9 +315,9 @@ fn get_vnode_call_helper(v: &VNodeIR<BaseConvertInfo>) -> RH {
         };
     }
     if v.is_component {
-        RH::CreateVnode
+        RH::CreateVNode
     } else {
-        RH::CreateElementVnode
+        RH::CreateElementVNode
     }
 }
 
@@ -474,5 +472,11 @@ mod test {
         assert!(s.contains(stringify!("hello world")));
         // let s = base_gen("hello {{world}}");
         // assert!(s.contains("\"hello\" + world"), "{}", s);
+    }
+    #[test]
+    fn test_v_element() {
+        let s = base_gen("<p/>");
+        assert!(s.contains("p"), "{}", s);
+        assert!(s.contains("createElementVNode"), "{}", s);
     }
 }

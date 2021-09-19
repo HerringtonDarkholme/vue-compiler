@@ -5,6 +5,7 @@ use super::converter::{
     VNodeIR,
 };
 use super::flags::{PatchFlag, RuntimeHelper as RH};
+use crate::util::is_simple_identifier;
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::io::{self, Write};
@@ -139,7 +140,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         let comment = Js::Call(
             RH::CreateComment,
             // TODO: add DEV flag
-            vec![Js::Src("'v-if'"), Js::Src("true")],
+            vec![Js::Src("''"), Js::Src("true")],
         );
         self.generate_js_expr(comment)?;
         self.flush_deindent(indent)
@@ -296,6 +297,41 @@ impl<'a, T: Write> CodeWriter<'a, T> {
             self.generate_js_expr(e)?;
         }
         Ok(())
+    }
+    fn gen_obj_props<V, E, P, K>(&mut self, props: P, cont: K) -> io::Result<()>
+    where
+        E: ExactSizeIterator<Item = (Js<'a>, V)>,
+        P: IntoIterator<Item = (Js<'a>, V), IntoIter = E>,
+        K: Fn(&mut Self, V) -> io::Result<()>,
+    {
+        let props = props.into_iter();
+        if props.len() == 0 {
+            return self.write_str("{}");
+        }
+        self.write_str("{")?;
+        self.indent()?;
+        for (key, val) in props {
+            self.gen_obj_key(key)?;
+            self.write_str(": ")?;
+            cont(self, val)?;
+            self.write_str(",")?;
+            self.newline()?;
+        }
+        self.deindent(true)?;
+        self.write_str("}")
+    }
+    fn gen_obj_key(&mut self, key: Js<'a>) -> io::Result<()> {
+        if let Js::StrLit(mut k) = key {
+            if is_simple_identifier(k) {
+                k.write_to(&mut self.writer)
+            } else {
+                k.be_js_str().write_to(&mut self.writer)
+            }
+        } else {
+            self.write_str("[")?;
+            self.generate_js_expr(key)?;
+            self.write_str("]")
+        }
     }
     fn gen_vnode_with_dir(&mut self, mut v: BaseVNode<'a>) -> io::Result<()> {
         if v.directives.is_empty() {

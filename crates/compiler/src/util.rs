@@ -42,6 +42,11 @@ pub fn is_mergeable_prop(prop: &str) -> bool {
     prop == "class" || prop == "style" || is_event_prop(prop)
 }
 
+pub fn is_simple_identifier(s: VStr) -> bool {
+    s.raw
+        .starts_with(|c: char| c.is_ascii_alphabetic() || c == '$' || c == '_')
+}
+
 // https://github.com/vuejs/rfcs/blob/master/active-rfcs/0008-render-function-api-change.md#special-reserved-props
 const RESERVED: &[&str] = &[
     "key",

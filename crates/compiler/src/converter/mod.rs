@@ -284,8 +284,11 @@ pub trait CoreConverter<'a, T: ConvertInfo> {
     fn get_builtin_component(&self, tag: &str) -> Option<RuntimeHelper>;
 
     // core template syntax conversion
-    fn convert_directive(&self, dir: &mut Directive<'a>, e: &mut Element<'a>)
-        -> DirectiveConvertResult<T::JsExpression>;
+    fn convert_directive(
+        &self,
+        dir: &mut Directive<'a>,
+        e: &mut Element<'a>,
+    ) -> DirectiveConvertResult<T::JsExpression>;
     fn convert_if(&self, elems: Vec<Element<'a>>, key: usize) -> IRNode<T>;
     fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
     fn convert_memo(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
@@ -398,7 +401,11 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     }
 
     // core template syntax conversion
-    fn convert_directive(&self, dir: &mut Directive<'a>, e: &mut Element<'a>) -> CoreDirConvRet<'a> {
+    fn convert_directive(
+        &self,
+        dir: &mut Directive<'a>,
+        e: &mut Element<'a>,
+    ) -> CoreDirConvRet<'a> {
         if let Some(convert) = self.directive_converters.get(dir.name) {
             convert(dir, e, self.err_handle.as_ref())
         } else {
@@ -497,7 +504,7 @@ pub mod test {
             directive_converters: convs,
             binding_metadata: BindingMetadata(FxHashMap::default(), false),
             self_name: "".into(),
-            err_handle: Box::new(TestErrorHandler)
+            err_handle: Box::new(TestErrorHandler),
         };
         let ast = base_parse(s);
         bc.convert_ir(ast)

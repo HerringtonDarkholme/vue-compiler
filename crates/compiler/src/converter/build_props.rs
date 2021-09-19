@@ -115,7 +115,12 @@ fn is_pre_convert_dir(s: &str) -> bool {
 }
 
 // by abstracting DirConvRet we can fully extract out v-on/v-bind!
-fn collect_dir<'a>(bc: &BC, e: &mut Element<'a>, mut dir: Directive<'a>, cp: &mut CollectProps<'a>) {
+fn collect_dir<'a>(
+    bc: &BC,
+    e: &mut Element<'a>,
+    mut dir: Directive<'a>,
+    cp: &mut CollectProps<'a>,
+) {
     use super::DirectiveConvertResult as DirConv;
     let Directive { name, argument, .. } = &dir;
     let name = *name;

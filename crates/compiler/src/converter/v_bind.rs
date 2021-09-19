@@ -26,7 +26,7 @@ pub fn convert_v_bind<'a>(
     } else {
         (VStr::raw(""), head_loc.clone())
     };
-    let expr = if !expr_val.contains(non_whitespace) {
+    let expr = if expr_val.contains(non_whitespace) {
         Js::simple(expr_val)
     } else {
         let error = Error::new(ErrorKind::VBindNoExpression).with_location(err_loc);

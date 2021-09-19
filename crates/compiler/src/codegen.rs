@@ -684,4 +684,15 @@ mod test {
         assert!(s.contains("\"p\""), "{}", s);
         assert!(s.contains("(a, b, c) =>"), "{}", s);
     }
+    #[test]
+    fn test_slot_outlet() {
+        let s = base_gen("<slot name=test />");
+        assert!(s.contains("_renderSlot"), "{}", s);
+        assert!(s.contains(r#", "test""#), "{}", s);
+        let s = base_gen("<slot :name=test />");
+        assert!(s.contains(", test"), "{}", s);
+        let s = base_gen("<slot>fallback</slot>");
+        assert!(s.contains("() => ["), "{}", s);
+        assert!(s.contains(r#""fallback""#), "{}", s);
+    }
 }

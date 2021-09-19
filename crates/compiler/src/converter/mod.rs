@@ -23,7 +23,7 @@ Convert module roughly corresponds to following transform in vue-next.
 */
 
 pub use super::error::{CompilationError, ErrorHandler};
-use super::flags::{self, RuntimeHelper, StaticLevel};
+use super::flags::{self, PatchFlag, RuntimeHelper, StaticLevel};
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
@@ -99,6 +99,8 @@ pub struct ForNodeIR<T: ConvertInfo> {
     pub source: T::JsExpression,
     pub parse_result: ForParseResult<T>,
     pub child: Box<IRNode<T>>,
+    pub is_stable: bool,
+    pub fragment_flag: PatchFlag,
 }
 // (value, key, index) in source
 pub struct ForParseResult<T: ConvertInfo> {
@@ -124,7 +126,7 @@ pub struct VNodeIR<T: ConvertInfo> {
     pub tag: T::JsExpression,
     pub props: Option<T::JsExpression>,
     pub children: Vec<IRNode<T>>,
-    pub patch_flag: flags::PatchFlag,
+    pub patch_flag: PatchFlag,
     pub dynamic_props: FxHashSet<T::StrType>,
     pub directives: Vec<RuntimeDir<T>>,
     pub is_block: bool,

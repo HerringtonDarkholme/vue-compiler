@@ -3,6 +3,7 @@ use super::{
     Element, ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
 };
 use crate::error::CompilationErrorKind as ErrorKind;
+use crate::flags::PatchFlag;
 use crate::util::VStr;
 
 /// Pre converts v-if or v-for like structural dir
@@ -11,6 +12,8 @@ pub fn pre_convert_for<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
     let dir = find_dir(&mut *elem, "for")?;
     let b = dir.take();
     debug_assert!(find_dir(&mut *elem, "for").is_none());
+    check_template_v_for_key();
+    // TODO: inject key props
     Some(b)
 }
 
@@ -20,7 +23,6 @@ pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> B
         bc.emit_error(error);
         return n;
     }
-    check_template_v_for_key();
     let expr = d.expression.expect("v-for must have expression");
     let (source, parse_result) = match parse_for_expr(expr.content) {
         Some(parsed) => parsed,
@@ -35,6 +37,8 @@ pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> B
         source,
         parse_result,
         child: Box::new(n),
+        is_stable: false,                  // TODO
+        fragment_flag: PatchFlag::empty(), // TODO
     })
 }
 

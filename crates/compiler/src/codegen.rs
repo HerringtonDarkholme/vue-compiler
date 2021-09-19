@@ -145,7 +145,13 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.flush_deindent(indent)
     }
     fn generate_for(&mut self, f: BaseFor<'a>) -> io::Result<()> {
-        todo!()
+        // write open block
+        self.gen_open_block(f.is_stable, move |gen| {
+            gen.write_helper(RH::CreateElementBlock)?;
+            gen.write_str("(")?;
+            gen_v_for_args(gen, f)?;
+            gen.write_str(")")
+        })
     }
     fn generate_vnode(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
         self.gen_vnode_with_dir(v)
@@ -280,23 +286,22 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
     fn gen_vnode_with_block(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
         if !v.is_block {
-            return self.gen_vnode_real(v);
+            return gen_vnode_real(self, v);
         }
+        self.gen_open_block(v.disable_tracking, move |gen| gen_vnode_real(gen, v))
+    }
+    fn gen_open_block<K>(&mut self, no_track: bool, cont: K) -> io::Result<()>
+    where
+        K: FnOnce(&mut Self) -> io::Result<()>,
+    {
         self.write_str("(")?;
         self.write_helper(RH::OpenBlock)?;
         self.write_str("(")?;
-        if v.disable_tracking {
+        if no_track {
             self.write_str("true")?;
         }
         self.write_str("), ")?;
-        self.gen_vnode_real(v)?;
-        self.write_str(")")
-    }
-    fn gen_vnode_real(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
-        let call_helper = get_vnode_call_helper(&v);
-        self.write_helper(call_helper)?;
-        self.write_str("(")?;
-        gen_vnode_call_args(self, v)?;
+        cont(self)?;
         self.write_str(")")
     }
 
@@ -367,6 +372,14 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
 
 pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
 
+fn gen_vnode_real<'a, T: Write>(gen: &mut CodeWriter<'a, T>, v: BaseVNode<'a>) -> io::Result<()> {
+    let call_helper = get_vnode_call_helper(&v);
+    gen.write_helper(call_helper)?;
+    gen.write_str("(")?;
+    gen_vnode_call_args(gen, v)?;
+    gen.write_str(")")
+}
+
 // no, repeating myself is good. macro is bad
 /// Takes generator and, condition/generation code pairs.
 /// It first finds the last index to write.
@@ -436,6 +449,20 @@ fn gen_vnode_call_args<'a, T: Write>(
             gen.write_str("[")?;
             gen.gen_list(dps)?;
             gen.write_str("]")?;
+        }
+    );
+    Ok(())
+}
+
+fn gen_v_for_args<'a, T: Write>(gen: &mut CodeWriter<'a, T>, f: BaseFor<'a>) -> io::Result<()> {
+    gen_vnode_args!(
+        gen,
+        true, { gen.write_helper(RH::Fragment)?; }
+        false, {  }
+        true, { todo!(); }
+        true, {
+            let flag = f.fragment_flag;
+            write!(gen.writer, "{} /*{:?}*/", flag.bits(), flag)?;
         }
     );
     Ok(())

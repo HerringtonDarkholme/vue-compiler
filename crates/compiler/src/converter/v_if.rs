@@ -167,6 +167,7 @@ fn convert_if_branch<'a>(c: &BC, mut e: Element<'a>, key: usize) -> IfBranch<Bas
         .expect("the element must have v-if directives")
         .take();
     report_duplicate_v_if(c, &mut e);
+    // TODO: inject key prop
     let condition = convert_if_condition(c, dir);
     IfBranch {
         child: Box::new(c.dispatch_element(e)),

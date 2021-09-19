@@ -613,8 +613,20 @@ fn gen_slot_fn<'a, T: Write>(
     gen.write_str(")")
 }
 
-fn runtime_dirs_to_js_arr(_: Vec<RuntimeDir<BaseConvertInfo>>) -> Js {
-    todo!()
+fn runtime_dir(dir: RuntimeDir<BaseConvertInfo>) -> Js {
+    let arr = vec![Some(dir.name), dir.expr, dir.arg, dir.mods];
+    let last = arr.iter().rposition(Option::is_some).unwrap_or(0);
+    let arr = arr
+        .into_iter()
+        .take(last)
+        .map(|o| o.unwrap_or(Js::Src("void 0")))
+        .collect();
+    Js::Array(arr)
+}
+
+fn runtime_dirs_to_js_arr(dirs: Vec<RuntimeDir<BaseConvertInfo>>) -> Js {
+    let dirs = dirs.into_iter().map(runtime_dir).collect();
+    Js::Array(dirs)
 }
 
 #[cfg(test)]

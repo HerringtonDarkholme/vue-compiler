@@ -675,13 +675,13 @@ mod test {
         let s = base_gen("<button aria-label='close'/>");
         assert!(s.contains(r#""aria-label": "close""#), "{}", s);
     }
-    // #[test]
-    // fn test_v_bind() {
-    //     let s = base_gen("<p :prop='id'/>");
-    //     assert!(s.contains("prop: id"), "{}", s);
-    //     let s = base_gen("<p :prop />");
-    //     assert!(s.contains(r#"prop: """#), "{}", s);
-    // }
+    #[test]
+    fn test_v_bind() {
+        let s = base_gen("<p :prop='id'/>");
+        assert!(s.contains("prop: id"), "{}", s);
+        let s = base_gen("<p :prop />");
+        assert!(s.contains(r#"prop: """#), "{}", s);
+    }
 
     #[test]
     fn test_v_if() {

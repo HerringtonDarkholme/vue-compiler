@@ -221,10 +221,7 @@ pub struct IRRoot<T: ConvertInfo> {
 
 /// Default implementation  sketch can be used in DOM/SSR.
 /// Other platform might invent and use their own IR.
-pub trait CoreConverter<'a, T>
-where
-    T: ConvertInfo,
-{
+pub trait CoreConverter<'a, T: ConvertInfo> {
     fn convert_core_ir(&self, ast: AstRoot<'a>) -> IRRoot<T> {
         let body = self.convert_children(ast.children);
         IRRoot { body }
@@ -287,7 +284,7 @@ where
     fn get_builtin_component(&self, tag: &str) -> Option<RuntimeHelper>;
 
     // core template syntax conversion
-    fn convert_directive(&self, dir: &mut Directive<'a>)
+    fn convert_directive(&self, dir: &mut Directive<'a>, e: &mut Element<'a>)
         -> DirectiveConvertResult<T::JsExpression>;
     fn convert_if(&self, elems: Vec<Element<'a>>, key: usize) -> IRNode<T>;
     fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
@@ -374,12 +371,13 @@ pub struct BaseConverter {
     /// Compile the function for inlining inside setup().
     /// This allows the function to directly access setup() local bindings.
     pub inline: bool,
-    pub directive_converters: Vec<DirectiveConverter>,
+    pub directive_converters: FxHashMap<&'static str, DirConvertFn>,
     /// Optional binding metadata analyzed from script - used to optimize
     /// binding access when `prefixIdentifiers` is enabled.
     pub binding_metadata: BindingMetadata,
     /// current SFC filename for self-referencing
     pub self_name: String,
+    err_handle: Box<dyn ErrorHandler>,
 }
 pub type BaseRoot<'a> = IRRoot<BaseConvertInfo<'a>>;
 pub type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
@@ -400,8 +398,12 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     }
 
     // core template syntax conversion
-    fn convert_directive(&self, dr: &mut Directive<'a>) -> CoreDirConvRet<'a> {
-        todo!()
+    fn convert_directive(&self, dir: &mut Directive<'a>, e: &mut Element<'a>) -> CoreDirConvRet<'a> {
+        if let Some(convert) = self.directive_converters.get(dir.name) {
+            convert(dir, e, self.err_handle.as_ref())
+        } else {
+            DirectiveConvertResult::Preserve
+        }
     }
     fn convert_if(&self, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
         v_if::convert_if(self, elems, key)
@@ -449,7 +451,7 @@ impl BaseConverter {
 #[cfg(test)]
 pub mod test {
     use super::*;
-    use crate::parser::test::base_parse;
+    use crate::{error::test::TestErrorHandler, parser::test::base_parse};
     use BaseConverter as BC;
     use JsExpr as Js;
 
@@ -484,13 +486,18 @@ pub mod test {
     }
 
     pub fn base_convert(s: &str) -> BaseRoot {
+        let mut convs = FxHashMap::default();
+        for (n, f) in [v_bind::V_BIND, ("on", no_op_directive_convert)] {
+            convs.insert(n, f);
+        }
         let bc = BC {
             scope_id: None,
             slotted: false,
             inline: true,
-            directive_converters: vec![],
+            directive_converters: convs,
             binding_metadata: BindingMetadata(FxHashMap::default(), false),
             self_name: "".into(),
+            err_handle: Box::new(TestErrorHandler)
         };
         let ast = base_parse(s);
         bc.convert_ir(ast)

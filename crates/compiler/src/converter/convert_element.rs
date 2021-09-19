@@ -30,7 +30,7 @@ pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
         directives,
         mut patch_flag,
         dynamic_props,
-    } = build_props(bc, &e, properties);
+    } = build_props(bc, &mut e, properties);
     let directives = build_directive_args(bc, directives);
     patch_flag |= more_flags;
     let vnode = VNodeIR {

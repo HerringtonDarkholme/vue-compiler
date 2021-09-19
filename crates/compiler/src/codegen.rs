@@ -226,7 +226,10 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.write_str("]")
     }
     /// generate a comma separated list
-    fn gen_list(&mut self, exprs: Vec<Js<'a>>) -> io::Result<()> {
+    fn gen_list<I>(&mut self, exprs: I) -> io::Result<()>
+    where
+        I: IntoIterator<Item = Js<'a>>,
+    {
         let mut exprs = exprs.into_iter();
         if let Some(e) = exprs.next() {
             self.generate_js_expr(e)?;
@@ -399,8 +402,10 @@ fn gen_vnode_call_args<'a, T: Write>(
             write!(gen.writer, "{} /*{:?}*/", patch_flag.bits(), patch_flag)?;
         }
         !dynamic_props.is_empty(), {
-            let dps = dynamic_props.into_iter().map(Js::StrLit).collect();
-            gen.generate_js_expr(Js::Array(dps))?;
+            let dps = dynamic_props.into_iter().map(Js::StrLit);
+            gen.write_str("[")?;
+            gen.gen_list(dps)?;
+            gen.write_str("]")?;
         }
     );
     Ok(())
@@ -441,10 +446,6 @@ fn gen_render_slot_args<'a, T: Write>(
     } else {
         Ok(())
     }
-}
-
-fn stringify_dynamic_prop_names(prop_names: FxHashSet<VStr>) -> Option<Js> {
-    todo!()
 }
 
 fn runtime_dirs_to_js_arr(_: Vec<RuntimeDir<BaseConvertInfo>>) -> Js {

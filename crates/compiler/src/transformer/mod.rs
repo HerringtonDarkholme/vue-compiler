@@ -18,6 +18,8 @@ the original ones for the parity of features not implemented in Convert.
 
  */
 
+mod optimize_text;
+
 use super::converter::{
     self as C, BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, RuntimeDir,
 };
@@ -157,7 +159,7 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
     }
 }
 
-trait CoreTransformPass<T: ConvertInfo> {
+pub trait CoreTransformPass<T: ConvertInfo> {
     fn enter_children(&mut self, cs: &mut Vec<IRNode<T>>) {}
     fn exit_children(&mut self, cs: &mut Vec<IRNode<T>>) {}
     fn enter_text(&mut self, t: &mut T::TextType) {}
@@ -179,7 +181,7 @@ trait CoreTransformPass<T: ConvertInfo> {
 }
 
 type BaseTransformPass<'a> = dyn CoreTransformPass<BaseConvertInfo<'a>>;
-struct BaseTransformer<'a, const N: usize> {
+pub struct BaseTransformer<'a, const N: usize> {
     passes: [Box<BaseTransformPass<'a>>; N],
 }
 
@@ -196,7 +198,7 @@ impl<'a, const N: usize> CoreTransformer<BaseConvertInfo<'a>> for BaseTransforme
     }
 
     fn transform_root(&mut self, root: &mut IRRoot<BaseConvertInfo<'a>>) {
-        todo!()
+        self.transform_children(&mut root.body);
     }
 }
 
@@ -204,4 +206,18 @@ impl<'a, const N: usize> CoreTransformer<BaseConvertInfo<'a>> for BaseTransforme
 pub fn post_process_v_for_child() {
     // 1. inject key to slot
     // 2. Reuse the child's codegenNode but mark it as a block.
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    pub use crate::converter::test::base_convert;
+    pub fn get_transformer<'a, P>(pass: P) -> BaseTransformer<'a, 1>
+    where
+        P: CoreTransformPass<BaseConvertInfo<'a>> + 'static,
+    {
+        BaseTransformer {
+            passes: [Box::new(pass)],
+        }
+    }
 }

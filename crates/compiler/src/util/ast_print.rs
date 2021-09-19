@@ -148,7 +148,6 @@ impl<'a> AstString for ElemProp<'a> {
                     ret += &format!("\n{}", expression);
                 }
                 ret
-                // unimplemented!() // TODO
             }
         }
     }

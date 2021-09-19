@@ -1,12 +1,4 @@
 use super::SourceLocation;
-use codespan_reporting::{
-    diagnostic::{Diagnostic, Label},
-    files::SimpleFiles,
-    term::{
-        self,
-        termcolor::{ColorChoice, StandardStream},
-    },
-};
 use std::fmt;
 
 #[derive(PartialEq, Eq)]
@@ -209,32 +201,6 @@ pub trait ErrorHandler {
     // cannot use mut ref due to borrow semantics
     // use RefCell as implementation
     fn on_error(&self, _: CompilationError) {}
-}
-pub struct PrettyErrorHandler<'a> {
-    source: &'a str,
-}
-
-impl<'a> PrettyErrorHandler<'a> {
-    pub fn new(source: &'a str) -> Self {
-        Self { source }
-    }
-}
-impl<'a> ErrorHandler for PrettyErrorHandler<'a> {
-    fn on_error(&self, err: CompilationError) {
-        let mut files = SimpleFiles::new();
-        let default_vue = files.add("default.vue", self.source);
-        let diagnostic = Diagnostic::error().with_labels(vec![Label::primary(
-            default_vue,
-            err.location.clone(),
-        )
-        .with_message(format!("{}", err))]);
-
-        let writer = StandardStream::stderr(ColorChoice::Always);
-        let config = codespan_reporting::term::Config::default();
-
-        term::emit(&mut writer.lock(), &config, &files, &diagnostic)
-            .expect("unable to generate codespan diagnostic");
-    }
 }
 
 #[cfg(test)]

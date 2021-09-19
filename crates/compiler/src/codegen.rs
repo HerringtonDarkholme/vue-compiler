@@ -164,7 +164,20 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.write_str(")")
     }
     fn generate_v_slot(&mut self, s: BaseVSlot<'a>) -> io::Result<()> {
-        todo!()
+        let stable_obj = s
+            .stable_slots
+            .into_iter()
+            .map(|f| (f.name, (f.param, f.body)));
+        // no alterable, output object literal. e.g. {default: ... }
+        if s.alterable_slots.is_empty() {
+            return self.gen_obj_props(stable_obj, gen_slot_fn);
+        }
+        self.write_helper(RH::CreateSlots)?;
+        self.write_str("(")?;
+        self.gen_obj_props(stable_obj, gen_slot_fn)?;
+        self.write_str(", ")?;
+        self.generate_children(s.alterable_slots)?;
+        self.write_str(")")
     }
     fn generate_js_expr(&mut self, expr: Js<'a>) -> io::Result<()> {
         match expr {
@@ -172,9 +185,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
             Js::StrLit(mut l) => l.be_js_str().write_to(&mut self.writer),
             Js::Simple(e, _) => e.write_to(&mut self.writer),
             Js::Symbol(s) => self.write_helper(s),
-            Js::Props(p) => {
-                todo!()
-            }
+            Js::Props(p) => self.gen_obj_props(p, |gen, v| gen.generate_js_expr(v)),
             Js::Compound(v) => {
                 for e in v {
                     self.generate_js_expr(e)?;
@@ -565,6 +576,30 @@ fn gen_render_slot_args<'a, T: Write>(
     } else {
         Ok(())
     }
+}
+fn gen_slot_fn<'a, T: Write>(
+    gen: &mut CodeWriter<'a, T>,
+    (param, body): (Option<Js<'a>>, Vec<BaseIR<'a>>),
+) -> io::Result<()> {
+    gen.write_helper(RH::WithCtx)?;
+    gen.write_str("(")?;
+    gen.write_str("(")?;
+    if let Some(p) = param {
+        gen.generate_js_expr(p)?;
+    }
+    gen.write_str(") => [")?;
+    gen.indent()?;
+    let mut body = body.into_iter();
+    if let Some(b) = body.next() {
+        gen.generate_ir(b)?;
+    }
+    for b in body {
+        gen.write_str(", ")?;
+        gen.newline()?;
+        gen.generate_ir(b)?;
+    }
+    gen.write_str("]")?;
+    gen.write_str(")")
 }
 
 fn runtime_dirs_to_js_arr(_: Vec<RuntimeDir<BaseConvertInfo>>) -> Js {

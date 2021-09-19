@@ -43,8 +43,9 @@ pub fn is_mergeable_prop(prop: &str) -> bool {
 }
 
 pub fn is_simple_identifier(s: VStr) -> bool {
-    s.raw
-        .starts_with(|c: char| c.is_ascii_alphabetic() || c == '$' || c == '_')
+    let is_ident = |c: char| c == '$' || c == '_' || c.is_ascii_alphanumeric();
+    let raw = s.raw;
+    raw.chars().all(is_ident) && !raw.starts_with(|c: char| c.is_ascii_digit())
 }
 
 // https://github.com/vuejs/rfcs/blob/master/active-rfcs/0008-render-function-api-change.md#special-reserved-props

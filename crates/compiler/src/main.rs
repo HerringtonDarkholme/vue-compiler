@@ -7,7 +7,7 @@ use compiler::{
 fn main() {
     let file = r#"
     <template>
-        <div aaa="true">
+        <div aaa="true" v-bind:test.passive.prevent="result">
             test {{result}}
             <!-- comment -->
         </div>

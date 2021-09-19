@@ -1,7 +1,7 @@
 #![warn(dead_code, unused_variables)]
 use crate::{
-    converter::{AstNode, AstRoot, Element},
-    parser::{ElemProp, SourceNode, TextNode},
+    converter::{AstNode, AstRoot, Directive, Element},
+    parser::{DirectiveArg, ElemProp, SourceNode, TextNode},
     tokenizer::{Attribute, AttributeValue},
     SourceLocation,
 };
@@ -95,7 +95,7 @@ impl<'a> AstString for TextNode<'a> {
 }
 
 impl<'a> AstString for SourceNode<'a> {
-    fn ast_string(&self, level: usize) -> String {
+    fn ast_string(&self, _: usize) -> String {
         let SourceLocation { start, end } = &self.location;
         // don't have prefix indent because the source code could be interpolation or comment
         format!(" {}..{} `{}`", start.offset, end.offset, self.source)
@@ -105,21 +105,31 @@ impl<'a> AstString for SourceNode<'a> {
 impl<'a> AstString for ElemProp<'a> {
     fn ast_string(&self, level: usize) -> String {
         match self {
-            ElemProp::Attr(attr) => {
-                let Attribute {
+            ElemProp::Attr(attr) => attr.ast_string(level),
+            ElemProp::Dir(dir) => {
+                let Directive {
                     name,
-                    value,
-                    name_loc: SourceLocation { start, end },
+                    argument,
+                    modifiers,
+                    expression,
+                    location: SourceLocation { start, end },
                     ..
-                } = attr;
-                let name_string = format!(
-                    "{}name {}..{} `{}`",
-                    "  ".repeat(level + 1),
+                } = dir;
+                let name_string = format!("{}name `{}`", "  ".repeat(level + 1), name);
+                let mut ret = format!(
+                    "{}directive {}..{}\n{}",
+                    "  ".repeat(level),
                     start.offset,
                     end.offset,
-                    name
+                    name_string,
                 );
-                let value_string = if let Some(value) = value {
+                if let Some(args) = argument {
+                    ret += &format!("\n{}", args.ast_string(level + 1));
+                }
+                if !modifiers.is_empty() {
+                    ret += &format!("\n{}modifiers `{}`", "  ".repeat(level + 1), modifiers.join(".") );
+                }
+                let expression = if let Some(value) = expression {
                     let AttributeValue {
                         content,
                         location: SourceLocation { start, end },
@@ -134,16 +144,75 @@ impl<'a> AstString for ElemProp<'a> {
                 } else {
                     "".to_string()
                 };
-                let mut ret = format!("{}attribute\n{}", "  ".repeat(level), name_string,);
-                if !value_string.is_empty() {
-                    ret += &format!("\n{}", value_string);
+                if !expression.is_empty() {
+                    ret += &format!("\n{}", expression);
                 }
-                dbg!(&ret);
                 ret
-            }
-            ElemProp::Dir(dir) => {
-                unimplemented!() // TODO
+                // unimplemented!() // TODO
             }
         }
+    }
+}
+
+impl<'a> AstString for Attribute<'a> {
+    fn ast_string(&self, level: usize) -> String {
+        let Attribute {
+            name,
+            value,
+            name_loc:
+                SourceLocation {
+                    start: name_start,
+                    end: name_end,
+                },
+            location: SourceLocation { start, end },
+        } = self;
+        let name_string = format!(
+            "{}name {}..{} `{}`",
+            "  ".repeat(level + 1),
+            name_start.offset,
+            name_end.offset,
+            name
+        );
+        let value_string = if let Some(value) = value {
+            let AttributeValue {
+                content,
+                location: SourceLocation { start, end },
+            } = value;
+            format!(
+                "{}value {}..{} `{}`",
+                "  ".repeat(level + 1),
+                start.offset,
+                end.offset,
+                content.raw
+            )
+        } else {
+            "".to_string()
+        };
+        let mut ret = format!(
+            "{}attribute {}..{}\n{}",
+            "  ".repeat(level),
+            start.offset,
+            end.offset,
+            name_string,
+        );
+        if !value_string.is_empty() {
+            ret += &format!("\n{}", value_string);
+        }
+        dbg!(&ret);
+        ret
+    }
+}
+
+impl<'a> AstString for DirectiveArg<'a> {
+    fn ast_string(&self, level: usize) -> String {
+        let arg_string = match self {
+            DirectiveArg::Static(s) => {
+                format!("{}argument `{}`", "  ".repeat(level), s)
+            }
+            DirectiveArg::Dynamic(d) => {
+                format!("{}argument [{}]", "  ".repeat(level), d)
+            }
+        };
+        arg_string
     }
 }

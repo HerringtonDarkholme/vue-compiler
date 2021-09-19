@@ -5,7 +5,7 @@ use super::converter::{
     VNodeIR,
 };
 use super::flags::{PatchFlag, RuntimeHelper as RH};
-use crate::util::is_simple_identifier;
+use crate::util::{is_simple_identifier, VStr};
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::io::{self, Write};
@@ -218,7 +218,9 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.write_str("}")
     }
     fn generate_comment(&mut self, c: &'a str) -> io::Result<()> {
-        todo!()
+        let comment = Js::StrLit(VStr::raw(c));
+        let call = Js::Call(RH::CreateComment, vec![comment]);
+        self.generate_js_expr(call)
     }
 }
 
@@ -259,7 +261,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.closing_brackets += 1;
         self.indent()
     }
-    /// component/directive resolotuion inside render
+    /// component/directive resolution inside render
     fn generate_assets(&mut self) -> io::Result<()> {
         // TODO
         Ok(())

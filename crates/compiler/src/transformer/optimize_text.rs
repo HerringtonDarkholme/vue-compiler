@@ -1,7 +1,7 @@
 use smallvec::{smallvec, SmallVec};
 
 use super::{
-    BaseConvertInfo, BaseRenderSlot, BaseVNode, BaseVSlot, CoreTransformPass, IRNode as IR,
+    BaseConvertInfo, BaseRenderSlot, BaseSlotFn, BaseVNode, CoreTransformPass, IRNode as IR,
 };
 use crate::converter::{BaseIR, BaseRoot, JsExpr as Js};
 use crate::flags::RuntimeHelper as RH;
@@ -30,11 +30,9 @@ impl<'a> CoreTransformPass<BaseConvertInfo<'a>> for TextOptimizer {
         merge_consecutive_calls(&mut r.fallbacks);
         add_create_text(&mut r.fallbacks);
     }
-    fn enter_v_slot(&mut self, s: &mut BaseVSlot<'a>) {
-        for slot in s.stable_slots.iter_mut() {
-            merge_consecutive_calls(&mut slot.body);
-            add_create_text(&mut slot.body);
-        }
+    fn enter_slot_fn(&mut self, s: &mut BaseSlotFn<'a>) {
+        merge_consecutive_calls(&mut s.body);
+        add_create_text(&mut s.body);
     }
 }
 

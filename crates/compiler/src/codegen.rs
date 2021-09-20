@@ -5,7 +5,7 @@ use super::converter::{
     TopScope, VNodeIR,
 };
 use super::flags::{PatchFlag, RuntimeHelper as RH};
-use super::transformer::{BaseAlterable, BaseFor, BaseIf, BaseRenderSlot, BaseVNode, BaseVSlot};
+use super::transformer::{BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseVNode, BaseVSlot};
 use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
@@ -199,7 +199,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
             }
         }
     }
-    fn generate_alterable_slot(&mut self, s: BaseAlterable<'a>) -> io::Result<()> {
+    fn generate_alterable_slot(&mut self, s: BaseSlotFn<'a>) -> io::Result<()> {
         self.write_str("{")?;
         self.indent()?;
         self.write_str("name: ")?;

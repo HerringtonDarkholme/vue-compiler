@@ -33,7 +33,7 @@ pub type BaseFor<'a> = C::ForNodeIR<BaseConvertInfo<'a>>;
 pub type BaseVNode<'a> = C::VNodeIR<BaseConvertInfo<'a>>;
 pub type BaseRenderSlot<'a> = C::RenderSlotIR<BaseConvertInfo<'a>>;
 pub type BaseVSlot<'a> = C::VSlotIR<BaseConvertInfo<'a>>;
-pub type BaseAlterable<'a> = C::Slot<BaseConvertInfo<'a>>;
+pub type BaseSlotFn<'a> = C::Slot<BaseConvertInfo<'a>>;
 
 pub trait Transformer {
     type IR;

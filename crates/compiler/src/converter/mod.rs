@@ -341,7 +341,7 @@ pub struct TopScope<'a> {
     /// components that requires resolveComponent call
     pub components: FxHashSet<VStr<'a>>,
     /// directives that requires resolveDirecitve call
-    pub directives: FxHashSet<&'a str>,
+    pub directives: FxHashSet<VStr<'a>>,
     /// hoisted vnode/text/js object
     pub hoists: Vec<BaseIR<'a>>,
     /// counters for cached instance, increment per v-once/memo

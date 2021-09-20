@@ -1,8 +1,6 @@
 // this module collects following entities:
 // runtime helpers
 // component/directive asset
-// temporary variable
-// static hoist
 use super::{
     BaseConvertInfo, BaseFor, BaseIf, BaseRenderSlot, BaseVNode, BaseVSlot, CoreTransformPass,
 };
@@ -10,6 +8,7 @@ use crate::converter::{BaseRoot, JsExpr as Js};
 use crate::flags::{HelperCollector, RuntimeHelper as RH};
 use crate::util::{get_vnode_call_helper, VStr};
 use rustc_hash::FxHashSet;
+use std::mem::swap;
 
 pub struct EntityCollector<'a> {
     helpers: HelperCollector,
@@ -22,6 +21,10 @@ impl<'a> CoreTransformPass<BaseConvertInfo<'a>> for EntityCollector<'a> {
         if r.body.len() > 1 {
             self.helpers.collect(RH::Fragment);
         }
+        let scope = &mut r.top_scope;
+        swap(&mut scope.helpers, &mut self.helpers);
+        swap(&mut scope.components, &mut self.components);
+        swap(&mut scope.directives, &mut self.directives);
     }
     fn exit_js_expr(&mut self, e: &mut Js) {
         match e {

@@ -11,11 +11,14 @@ the original ones for the parity of features not implemented in Convert.
 * trackScopes
 
 ## Original
-* collect_helper: track all helpers used in AST. Vue track it by helper/helperString.
-* collect_asset: track all components/directives used in AST.
-* mergeText: merge consecutive text call
-* patch_flag: seems patch flag can be extracted out
-
+* collect_entities:
+track all helpers/components/directives used in AST.
+Vue track it by helper/helperString.
+* optimize_text:
+1. merge consecutive text call
+2. wrap text in createTextVNode
+* patch_flag:
+seems patch flag can be extracted out
  */
 
 mod collect_entities;

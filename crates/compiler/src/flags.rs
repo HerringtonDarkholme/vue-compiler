@@ -144,10 +144,14 @@ pub enum RuntimeHelper {
     IsMemoSame,
 }
 
+#[derive(Clone, Default)]
 pub struct HelperCollector(u64);
 impl HelperCollector {
-    pub fn collect_helper(&mut self, helper: RuntimeHelper) {
+    pub fn collect(&mut self, helper: RuntimeHelper) {
         self.0 |= 1 << (helper as u64);
+    }
+    pub fn contains(&self, helper: RuntimeHelper) -> bool {
+        (self.0 & (1 << helper as u64)) != 0
     }
 }
 pub struct HelperIter(u64);

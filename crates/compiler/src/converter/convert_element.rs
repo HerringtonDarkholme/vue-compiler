@@ -117,7 +117,7 @@ fn resolve_dynamic_component<'a>(
         let exp = match prop.get_ref() {
             ElemProp::Attr(Attribute {
                 value: Some(val), ..
-            }) => Js::StrLit(val.content),
+            }) => Js::StrLit(val.content), // TODO: return Err(val.content) ?
             ElemProp::Dir(Directive {
                 expression: Some(exp),
                 ..

@@ -23,7 +23,7 @@ Convert module roughly corresponds to following transform in vue-next.
 */
 
 pub use super::error::{CompilationError, ErrorHandler};
-use super::flags::{PatchFlag, RuntimeHelper, StaticLevel};
+use super::flags::{HelperCollector, PatchFlag, RuntimeHelper, StaticLevel};
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
@@ -55,6 +55,7 @@ pub trait Converter<'a>: Sized {
 //
 
 pub trait ConvertInfo {
+    type GlobalType: Default;
     type TextType;
     type IfType;
     type IfBranchType;
@@ -217,6 +218,7 @@ pub enum BindingTypes {
 
 pub struct IRRoot<T: ConvertInfo> {
     pub body: Vec<IRNode<T>>,
+    pub globals: T::GlobalType,
 }
 
 /// Default implementation  sketch can be used in DOM/SSR.
@@ -224,7 +226,10 @@ pub struct IRRoot<T: ConvertInfo> {
 pub trait CoreConverter<'a, T: ConvertInfo> {
     fn convert_core_ir(&self, ast: AstRoot<'a>) -> IRRoot<T> {
         let body = self.convert_children(ast.children);
-        IRRoot { body }
+        IRRoot {
+            body,
+            globals: T::GlobalType::default(),
+        }
     }
     fn convert_children(&self, children: Vec<AstNode<'a>>) -> Vec<IRNode<T>> {
         let mut key = 0;
@@ -328,7 +333,24 @@ pub fn no_op_directive_convert<'a>(
 #[derive(Default)]
 pub struct BaseConvertInfo<'a>(std::marker::PhantomData<&'a ()>);
 
+#[derive(Default)]
+pub struct Globals<'a> {
+    /// runtime helpers used in template
+    helpers: HelperCollector,
+    /// components that requires resolveComponent call
+    components: Vec<&'a str>,
+    /// directives that requires resolveDirecitve call
+    directives: Vec<&'a str>,
+    /// hoisted vnode/text/js object
+    hoists: Vec<BaseIR<'a>>,
+    /// counters for cached instance, increment per v-once/memo
+    cached: usize,
+    /// counters for temporary variables created in template
+    temps: usize,
+}
+
 impl<'a> ConvertInfo for BaseConvertInfo<'a> {
+    type GlobalType = Globals<'a>;
     type TextType = SmallVec<[JsExpr<'a>; 1]>;
     type IfType = ();
     type IfBranchType = usize;

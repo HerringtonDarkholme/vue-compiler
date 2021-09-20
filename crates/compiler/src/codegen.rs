@@ -5,6 +5,7 @@ use super::converter::{
     VNodeIR,
 };
 use super::flags::{PatchFlag, RuntimeHelper as RH};
+use super::transformer::{BaseAlterable, BaseFor, BaseIf, BaseRenderSlot, BaseVNode, BaseVSlot};
 use crate::util::{is_simple_identifier, VStr};
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
@@ -80,13 +81,6 @@ impl<'a, T: Write> CodeGenerator for CodeWriter<'a, T> {
         self.generate_root(root)
     }
 }
-
-type BaseIf<'a> = C::IfNodeIR<BaseConvertInfo<'a>>;
-type BaseFor<'a> = C::ForNodeIR<BaseConvertInfo<'a>>;
-type BaseVNode<'a> = C::VNodeIR<BaseConvertInfo<'a>>;
-type BaseRenderSlot<'a> = C::RenderSlotIR<BaseConvertInfo<'a>>;
-type BaseVSlot<'a> = C::VSlotIR<BaseConvertInfo<'a>>;
-type BaseAlterable<'a> = C::Slot<BaseConvertInfo<'a>>;
 
 impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
     type Written = io::Result<()>;

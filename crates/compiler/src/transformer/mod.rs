@@ -23,6 +23,14 @@ mod optimize_text;
 use super::converter::{
     self as C, BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, RuntimeDir,
 };
+
+pub type BaseIf<'a> = C::IfNodeIR<BaseConvertInfo<'a>>;
+pub type BaseFor<'a> = C::ForNodeIR<BaseConvertInfo<'a>>;
+pub type BaseVNode<'a> = C::VNodeIR<BaseConvertInfo<'a>>;
+pub type BaseRenderSlot<'a> = C::RenderSlotIR<BaseConvertInfo<'a>>;
+pub type BaseVSlot<'a> = C::VSlotIR<BaseConvertInfo<'a>>;
+pub type BaseAlterable<'a> = C::Slot<BaseConvertInfo<'a>>;
+
 pub trait Transformer {
     type IR;
     /// transform will change ir node inplace
@@ -160,6 +168,8 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
 }
 
 pub trait CoreTransformPass<T: ConvertInfo> {
+    fn enter_root(&mut self, r: &mut IRRoot<T>) {}
+    fn exit_root(&mut self, r: &mut IRRoot<T>) {}
     fn enter_children(&mut self, cs: &mut Vec<IRNode<T>>) {}
     fn exit_children(&mut self, cs: &mut Vec<IRNode<T>>) {}
     fn enter_text(&mut self, t: &mut T::TextType) {}
@@ -197,8 +207,10 @@ impl<'a, const N: usize> CoreTransformer<BaseConvertInfo<'a>> for BaseTransforme
         &mut self.passes
     }
 
-    fn transform_root(&mut self, root: &mut IRRoot<BaseConvertInfo<'a>>) {
-        self.transform_children(&mut root.body);
+    fn transform_root(&mut self, r: &mut IRRoot<BaseConvertInfo<'a>>) {
+        self.enter(|p| p.enter_root(r));
+        self.transform_children(&mut r.body);
+        self.exit(|p| p.exit_root(r));
     }
 }
 

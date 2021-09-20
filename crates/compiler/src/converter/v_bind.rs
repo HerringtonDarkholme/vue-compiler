@@ -1,7 +1,7 @@
+use crate::error::{CompilationError as Error, CompilationErrorKind as ErrorKind};
 use crate::flags::RuntimeHelper;
 
 use super::{
-    super::error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
     super::parser::DirectiveArg,
     super::util::{non_whitespace, VStr},
     CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,

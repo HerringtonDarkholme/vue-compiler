@@ -85,9 +85,7 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
             I::RenderSlotCall(r) => self.transform_slot_outlet(r),
             I::CommentCall(c) => self.transform_comment(c),
             I::VSlotUse(s) => self.transform_v_slot(s),
-            I::AlterableSlot(_) => {
-                panic!("should not call");
-            }
+            I::AlterableSlot(a) => self.transform_slot_fn(a),
         }
     }
     fn transform_children(&mut self, children: &mut Vec<IRNode<T>>) {
@@ -153,15 +151,20 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
     }
     fn transform_v_slot(&mut self, s: &mut C::VSlotIR<T>) {
         self.enter(|p| p.enter_v_slot(s));
-        // TODO slot param should not counted as expr?
         for slot in s.stable_slots.iter_mut() {
-            self.transform_js_expr(&mut slot.name);
-            self.transform_children(&mut slot.body);
+            self.transform_slot_fn(slot);
         }
         for slot in s.alterable_slots.iter_mut() {
             self.transform_ir(slot);
         }
         self.exit(|p| p.exit_v_slot(s));
+    }
+    fn transform_slot_fn(&mut self, slot: &mut C::Slot<T>) {
+        self.enter(|p| p.enter_slot_fn(slot));
+        // TODO slot param should not counted as expr?
+        self.transform_js_expr(&mut slot.name);
+        self.transform_children(&mut slot.body);
+        self.exit(|p| p.exit_slot_fn(slot));
     }
     fn transform_comment(&mut self, c: &mut T::CommentType) {
         self.enter(|p| p.enter_comment(c));
@@ -186,6 +189,8 @@ pub trait CoreTransformPass<T: ConvertInfo> {
     fn exit_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>) {}
     fn enter_v_slot(&mut self, s: &mut C::VSlotIR<T>) {}
     fn exit_v_slot(&mut self, s: &mut C::VSlotIR<T>) {}
+    fn enter_slot_fn(&mut self, s: &mut C::Slot<T>) {}
+    fn exit_slot_fn(&mut self, s: &mut C::Slot<T>) {}
     fn enter_js_expr(&mut self, e: &mut T::JsExpression) {}
     fn exit_js_expr(&mut self, e: &mut T::JsExpression) {}
     fn enter_comment(&mut self, c: &mut T::CommentType) {}

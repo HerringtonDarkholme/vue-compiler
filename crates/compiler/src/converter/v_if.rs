@@ -1,10 +1,10 @@
 use super::{
-    super::error::CompilationErrorKind as ErrorKind, super::parser::ElemProp, AstNode,
-    BaseConvertInfo, BaseConverter as BC, BaseIR, CompilationError, Directive, Element, IRNode,
-    IfBranch, IfNodeIR,
+    super::parser::ElemProp, AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR,
+    CompilationError, Directive, Element, IRNode, IfBranch, IfNodeIR,
 };
 use crate::{
     converter::{CoreConverter, JsExpr as Js},
+    error::CompilationErrorKind as ErrorKind,
     tokenizer::Attribute,
     util::{find_dir_empty, find_prop},
 };

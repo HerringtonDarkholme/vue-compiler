@@ -55,7 +55,7 @@ pub trait Converter<'a>: Sized {
 //
 
 pub trait ConvertInfo {
-    type GlobalType: Default;
+    type TopType: Default;
     type TextType;
     type IfType;
     type IfBranchType;
@@ -218,7 +218,8 @@ pub enum BindingTypes {
 
 pub struct IRRoot<T: ConvertInfo> {
     pub body: Vec<IRNode<T>>,
-    pub globals: T::GlobalType,
+    /// entities to define/import in top level scope
+    pub top_scope: T::TopType,
 }
 
 /// Default implementation  sketch can be used in DOM/SSR.
@@ -228,7 +229,7 @@ pub trait CoreConverter<'a, T: ConvertInfo> {
         let body = self.convert_children(ast.children);
         IRRoot {
             body,
-            globals: T::GlobalType::default(),
+            top_scope: T::TopType::default(),
         }
     }
     fn convert_children(&self, children: Vec<AstNode<'a>>) -> Vec<IRNode<T>> {
@@ -334,23 +335,23 @@ pub fn no_op_directive_convert<'a>(
 pub struct BaseConvertInfo<'a>(std::marker::PhantomData<&'a ()>);
 
 #[derive(Default)]
-pub struct Globals<'a> {
+pub struct TopScope<'a> {
     /// runtime helpers used in template
-    helpers: HelperCollector,
+    pub helpers: HelperCollector,
     /// components that requires resolveComponent call
-    components: Vec<&'a str>,
+    pub components: Vec<&'a str>,
     /// directives that requires resolveDirecitve call
-    directives: Vec<&'a str>,
+    pub directives: Vec<&'a str>,
     /// hoisted vnode/text/js object
-    hoists: Vec<BaseIR<'a>>,
+    pub hoists: Vec<BaseIR<'a>>,
     /// counters for cached instance, increment per v-once/memo
-    cached: usize,
+    pub cached: usize,
     /// counters for temporary variables created in template
-    temps: usize,
+    pub temps: usize,
 }
 
 impl<'a> ConvertInfo for BaseConvertInfo<'a> {
-    type GlobalType = Globals<'a>;
+    type TopType = TopScope<'a>;
     type TextType = SmallVec<[JsExpr<'a>; 1]>;
     type IfType = ();
     type IfBranchType = usize;

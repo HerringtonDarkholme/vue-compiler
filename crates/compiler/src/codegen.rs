@@ -2,7 +2,7 @@ use crate::converter::RenderSlotIR;
 
 use super::converter::{
     BaseConvertInfo, BaseIR, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir,
-    VNodeIR,
+    TopScope, VNodeIR,
 };
 use super::flags::{PatchFlag, RuntimeHelper as RH};
 use super::transformer::{BaseAlterable, BaseFor, BaseIf, BaseRenderSlot, BaseVNode, BaseVSlot};
@@ -10,7 +10,6 @@ use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::io::{self, Write};
-use std::marker::PhantomData;
 
 pub trait CodeGenerator {
     type IR;
@@ -67,17 +66,18 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
     fn generate_comment(&mut self, c: T::CommentType) -> Self::Written;
 }
 
-struct CodeWriter<'a, T: Write> {
+pub struct CodeWriter<'a, T: Write> {
     writer: T,
-    option: CodeGenerateOption,
     indent_level: usize,
     closing_brackets: usize,
-    p: PhantomData<&'a ()>,
+    top_scope: TopScope<'a>,
 }
 impl<'a, T: Write> CodeGenerator for CodeWriter<'a, T> {
     type IR = BaseRoot<'a>;
     type Output = io::Result<()>;
-    fn generate(&mut self, root: Self::IR) -> Self::Output {
+    fn generate(&mut self, mut root: Self::IR) -> Self::Output {
+        // get top scope entities
+        std::mem::swap(&mut self.top_scope, &mut root.top_scope);
         self.generate_root(root)
     }
 }
@@ -420,6 +420,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
     #[inline(always)]
     fn write_helper(&mut self, h: RH) -> io::Result<()> {
+        debug_assert!(self.top_scope.helpers.contains(h));
         self.write_str("_")?;
         self.write_str(h.helper_str())
     }
@@ -623,11 +624,11 @@ mod test {
     fn base_gen(s: &str) -> String {
         let mut writer = CodeWriter {
             writer: vec![],
-            option: CodeGenerateOption::default(),
             indent_level: 0,
             closing_brackets: 0,
-            p: PhantomData,
+            top_scope: TopScope::default(),
         };
+        writer.top_scope.helpers.ignore_missing();
         let ir = base_convert(s);
         writer.generate_root(ir).unwrap();
         String::from_utf8(writer.writer).unwrap()

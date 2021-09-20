@@ -153,11 +153,21 @@ impl HelperCollector {
     pub fn contains(&self, helper: RuntimeHelper) -> bool {
         (self.0 & (1 << helper as u64)) != 0
     }
+    // ignore missing helpers in unit testing
+    #[cfg(test)]
+    pub fn ignore_missing(&mut self) {
+        self.0 = !0;
+    }
 }
 pub struct HelperIter(u64);
 impl Iterator for HelperIter {
     type Item = RuntimeHelper;
     fn next(&mut self) -> Option<Self::Item> {
+        if cfg!(test) {
+            if self.0 == !0 {
+                return None;
+            }
+        }
         if self.0 == 0 {
             return None;
         }

@@ -98,7 +98,7 @@ pub fn resolve_element_tag<'a>(bc: &BC, e: &Element<'a>) -> Js<'a> {
         comp.suffix_self();
     }
     // 5. user component (resolve)
-    // TODO: ensure comp will be hoisted bc.add_component(comp);
+    // comp will be collected by collect_entities transform pass
     Js::StrLit(*comp.clone().be_component()) // use clone to avoid mutating comp
 }
 

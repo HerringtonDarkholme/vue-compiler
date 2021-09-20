@@ -339,9 +339,9 @@ pub struct TopScope<'a> {
     /// runtime helpers used in template
     pub helpers: HelperCollector,
     /// components that requires resolveComponent call
-    pub components: Vec<&'a str>,
+    pub components: FxHashSet<VStr<'a>>,
     /// directives that requires resolveDirecitve call
-    pub directives: Vec<&'a str>,
+    pub directives: FxHashSet<&'a str>,
     /// hoisted vnode/text/js object
     pub hoists: Vec<BaseIR<'a>>,
     /// counters for cached instance, increment per v-once/memo

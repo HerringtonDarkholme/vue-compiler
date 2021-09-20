@@ -163,10 +163,8 @@ pub struct HelperIter(u64);
 impl Iterator for HelperIter {
     type Item = RuntimeHelper;
     fn next(&mut self) -> Option<Self::Item> {
-        if cfg!(test) {
-            if self.0 == !0 {
-                return None;
-            }
+        if cfg!(test) && self.0 == !0 {
+            return None;
         }
         if self.0 == 0 {
             return None;

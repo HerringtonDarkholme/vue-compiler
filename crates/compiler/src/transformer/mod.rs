@@ -18,10 +18,11 @@ the original ones for the parity of features not implemented in Convert.
 
  */
 
+mod collect_entities;
 mod optimize_text;
 
 use super::converter::{
-    self as C, BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, RuntimeDir,
+    self as C, BaseConvertInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir,
 };
 
 pub type BaseIf<'a> = C::IfNodeIR<BaseConvertInfo<'a>>;
@@ -50,6 +51,8 @@ impl<T> Transformer for NoopTransformer<T> {
 
 trait CoreTransformer<T: ConvertInfo>: Transformer {
     fn get_passes(&mut self) -> &mut [Box<dyn CoreTransformPass<T>>];
+    fn transform_js_expr(&mut self, e: &mut T::JsExpression);
+
     #[inline(always)]
     fn enter<F>(&mut self, mut f: F)
     where
@@ -157,10 +160,6 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
         }
         self.exit(|p| p.exit_v_slot(s));
     }
-    fn transform_js_expr(&mut self, e: &mut T::JsExpression) {
-        self.enter(|p| p.enter_js_expr(e));
-        self.exit(|p| p.exit_js_expr(e));
-    }
     fn transform_comment(&mut self, c: &mut T::CommentType) {
         self.enter(|p| p.enter_comment(c));
         self.exit(|p| p.exit_comment(c));
@@ -211,6 +210,37 @@ impl<'a, const N: usize> CoreTransformer<BaseConvertInfo<'a>> for BaseTransforme
         self.enter(|p| p.enter_root(r));
         self.transform_children(&mut r.body);
         self.exit(|p| p.exit_root(r));
+    }
+
+    fn transform_js_expr(&mut self, e: &mut Js<'a>) {
+        self.enter(|p| p.enter_js_expr(e));
+        match e {
+            Js::Call(_, args) => {
+                for arg in args.iter_mut() {
+                    self.transform_js_expr(arg);
+                }
+            }
+            Js::Compound(exprs) => {
+                for expr in exprs.iter_mut() {
+                    self.transform_js_expr(expr);
+                }
+            }
+            Js::Array(arr) => {
+                for item in arr.iter_mut() {
+                    self.transform_js_expr(item);
+                }
+            }
+            Js::Props(props) => {
+                for (key, val) in props.iter_mut() {
+                    self.transform_js_expr(key);
+                    self.transform_js_expr(val);
+                }
+            }
+            Js::Src(_) | Js::Simple(..) | Js::StrLit(_) | Js::Symbol(_) => {
+                // no further recursion.
+            }
+        }
+        self.exit(|p| p.exit_js_expr(e));
     }
 }
 

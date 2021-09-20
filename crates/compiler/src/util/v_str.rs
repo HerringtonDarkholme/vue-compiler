@@ -140,7 +140,13 @@ impl Iterator for StrOpIter {
             Some(r)
         }
     }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let bits = self.0.bits().count_ones() as usize;
+        (bits, Some(bits))
+    }
 }
+
+impl ExactSizeIterator for StrOpIter {}
 
 /// A str for Vue compiler's internal modification.
 /// Instead of returning a Cow<str>, StrOp is recorded in the VStr

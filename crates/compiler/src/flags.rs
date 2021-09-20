@@ -100,6 +100,7 @@ pub enum StaticLevel {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
 pub enum RuntimeHelper {
     Fragment,
     Teleport,
@@ -141,6 +142,38 @@ pub enum RuntimeHelper {
     IsRef,
     WithMemo,
     IsMemoSame,
+}
+
+pub struct HelperCollector(u64);
+impl HelperCollector {
+    pub fn collect_helper(&mut self, helper: RuntimeHelper) {
+        self.0 |= 1 << (helper as u64);
+    }
+}
+pub struct HelperIter(u64);
+impl Iterator for HelperIter {
+    type Item = RuntimeHelper;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.0 == 0 {
+            return None;
+        }
+        let r = self.0.trailing_zeros();
+        self.0 ^= 1 << r;
+        unsafe { std::mem::transmute(r) }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let bits = self.0.count_ones() as usize;
+        (bits, Some(bits))
+    }
+}
+impl ExactSizeIterator for HelperIter {}
+
+impl IntoIterator for HelperCollector {
+    type Item = RuntimeHelper;
+    type IntoIter = HelperIter;
+    fn into_iter(self) -> Self::IntoIter {
+        HelperIter(self.0)
+    }
 }
 
 /// PreambleHelper is a collection of JavaScript imports at the head of output

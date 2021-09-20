@@ -6,7 +6,7 @@ use super::converter::{
 };
 use super::flags::{PatchFlag, RuntimeHelper as RH};
 use super::transformer::{BaseAlterable, BaseFor, BaseIf, BaseRenderSlot, BaseVNode, BaseVSlot};
-use crate::util::{is_simple_identifier, VStr};
+use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::io::{self, Write};
@@ -422,21 +422,6 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     fn write_helper(&mut self, h: RH) -> io::Result<()> {
         self.write_str("_")?;
         self.write_str(h.helper_str())
-    }
-}
-
-fn get_vnode_call_helper(v: &VNodeIR<BaseConvertInfo>) -> RH {
-    if v.is_block {
-        return if v.is_component {
-            RH::CreateBlock
-        } else {
-            RH::CreateElementBlock
-        };
-    }
-    if v.is_component {
-        RH::CreateVNode
-    } else {
-        RH::CreateElementVNode
     }
 }
 

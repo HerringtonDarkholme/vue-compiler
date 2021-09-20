@@ -1,4 +1,5 @@
 use super::{
+    converter::{BaseConvertInfo, VNodeIR},
     flags::RuntimeHelper,
     parser::{Directive, DirectiveArg, ElemProp, Element},
     tokenizer::Attribute,
@@ -73,6 +74,22 @@ pub const fn yes(_: &str) -> bool {
 }
 pub const fn no(_: &str) -> bool {
     false
+}
+
+pub fn get_vnode_call_helper(v: &VNodeIR<BaseConvertInfo>) -> RuntimeHelper {
+    use RuntimeHelper as RH;
+    if v.is_block {
+        return if v.is_component {
+            RH::CreateBlock
+        } else {
+            RH::CreateElementBlock
+        };
+    }
+    if v.is_component {
+        RH::CreateVNode
+    } else {
+        RH::CreateElementVNode
+    }
 }
 
 pub trait PropPattern {

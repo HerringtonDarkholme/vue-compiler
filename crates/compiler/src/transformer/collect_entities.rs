@@ -1,9 +1,7 @@
 // this module collects following entities:
 // runtime helpers
 // component/directive asset
-use super::{
-    BaseConvertInfo, BaseFor, BaseIf, BaseRenderSlot, BaseVNode, BaseVSlot, CoreTransformPass,
-};
+use super::{BaseFor, BaseIf, BaseInfo, BaseRenderSlot, BaseVNode, BaseVSlot, CorePass};
 use crate::converter::{BaseRoot, JsExpr as Js};
 use crate::flags::{HelperCollector, RuntimeHelper as RH};
 use crate::util::{get_vnode_call_helper, VStr};
@@ -16,7 +14,7 @@ pub struct EntityCollector<'a> {
     directives: FxHashSet<VStr<'a>>,
 }
 
-impl<'a> CoreTransformPass<BaseConvertInfo<'a>> for EntityCollector<'a> {
+impl<'a> CorePass<BaseInfo<'a>> for EntityCollector<'a> {
     fn exit_root(&mut self, r: &mut BaseRoot<'a>) {
         if r.body.len() > 1 {
             self.helpers.collect(RH::Fragment);

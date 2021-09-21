@@ -1,14 +1,12 @@
 use smallvec::{smallvec, SmallVec};
 
-use super::{
-    BaseConvertInfo, BaseRenderSlot, BaseSlotFn, BaseVNode, CoreTransformPass, IRNode as IR,
-};
+use super::{BaseInfo, BaseRenderSlot, BaseSlotFn, BaseVNode, CorePass, IRNode as IR};
 use crate::converter::{BaseIR, BaseRoot, JsExpr as Js};
 use crate::flags::RuntimeHelper as RH;
 
 pub struct TextOptimizer;
 
-impl<'a> CoreTransformPass<BaseConvertInfo<'a>> for TextOptimizer {
+impl<'a> CorePass<BaseInfo<'a>> for TextOptimizer {
     fn enter_root(&mut self, r: &mut BaseRoot<'a>) {
         merge_consecutive_calls(&mut r.body);
         if r.body.len() <= 1 {
@@ -102,9 +100,7 @@ mod test {
     use super::*;
     use crate::converter::RenderSlotIR;
 
-    fn must_render_slot<'a, 'b>(
-        a: &'b mut BaseIR<'a>,
-    ) -> &'b mut RenderSlotIR<BaseConvertInfo<'a>> {
+    fn must_render_slot<'a, 'b>(a: &'b mut BaseIR<'a>) -> &'b mut RenderSlotIR<BaseInfo<'a>> {
         if let IR::RenderSlotCall(t) = a {
             return t;
         }

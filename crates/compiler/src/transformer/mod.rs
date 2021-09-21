@@ -89,11 +89,9 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
         }
     }
     fn transform_children(&mut self, children: &mut Vec<IRNode<T>>) {
-        self.enter(|p| p.enter_children(children));
         for child in children.iter_mut() {
             self.transform_ir(child);
         }
-        self.exit(|p| p.exit_children(children));
     }
     fn transform_text(&mut self, t: &mut T::TextType) {
         self.enter(|p| p.enter_text(t));
@@ -175,8 +173,6 @@ trait CoreTransformer<T: ConvertInfo>: Transformer {
 pub trait CoreTransformPass<T: ConvertInfo> {
     fn enter_root(&mut self, r: &mut IRRoot<T>) {}
     fn exit_root(&mut self, r: &mut IRRoot<T>) {}
-    fn enter_children(&mut self, cs: &mut Vec<IRNode<T>>) {}
-    fn exit_children(&mut self, cs: &mut Vec<IRNode<T>>) {}
     fn enter_text(&mut self, t: &mut T::TextType) {}
     fn exit_text(&mut self, t: &mut T::TextType) {}
     fn enter_if(&mut self, i: &mut C::IfNodeIR<T>) {}

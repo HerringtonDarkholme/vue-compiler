@@ -93,9 +93,10 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
         ps.exit_if(i);
     }
     fn transform_for(f: &mut C::ForNodeIR<T>, ps: &mut P) {
-        ps.enter_for(f);
+        // 1. first transform source in for node
         Self::transform_js_expr(&mut f.source, ps);
         use crate::converter::ForParseResult;
+        // 2. process renderList param
         // val, key, index should counted as param
         let ForParseResult { value, key, index } = &mut f.parse_result;
         ps.enter_fn_param(value);
@@ -106,8 +107,12 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
             ps.enter_fn_param(i);
         }
 
+        // 3. the for itsel
+        ps.enter_for(f);
         Self::transform_ir(&mut f.child, ps);
+        ps.exit_for(f);
 
+        let ForParseResult { value, key, index } = &mut f.parse_result;
         if let Some(i) = index {
             ps.exit_fn_param(i);
         }
@@ -115,8 +120,6 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
             ps.exit_fn_param(k);
         }
         ps.exit_fn_param(value);
-
-        ps.exit_for(f);
     }
     fn transform_vnode(v: &mut C::VNodeIR<T>, ps: &mut P) {
         ps.enter_vnode(v);
@@ -163,8 +166,9 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
     }
     fn transform_slot_fn(slot: &mut C::Slot<T>, ps: &mut P) {
         ps.enter_slot_fn(slot);
-        // slot param should counted as param?
         Self::transform_js_expr(&mut slot.name, ps);
+        // slot param as fn_param, note: visit param after slot_fn
+        // since v-slot has no bind props that depend on slot param
         if let Some(p) = &mut slot.param {
             ps.enter_fn_param(p);
         }

@@ -1,25 +1,38 @@
-trait NodeTransformer {
-    fn pre_trans(&self, n: &mut i32);
-    fn post_trans(&self, n: &mut i32);
+struct H<'a>(&'a str);
+
+trait Pass<T, Info> {
+    fn enter(&mut self, t: &mut T, i: &mut Info);
 }
-struct T;
-impl NodeTransformer for T {
-    fn pre_trans(&self, n: &mut i32) {
-        *n += 1;
-        println!("pre trans: {}", n);
-    }
-    fn post_trans(&self, n: &mut i32) {
-        *n -= 1;
-        println!("post trans: {}", n);
+trait I<'a> {
+    fn add_ident(&mut self, name: &'a str);
+}
+struct Count(i32);
+impl<'a, Info> Pass<H<'a>, Info> for Count
+where
+    Info: I<'a>,
+{
+    fn enter(&mut self, t: &mut H<'a>, i: &mut Info) {
+        self.0 += 1;
+        i.add_ident("test");
     }
 }
+
+struct Info<'a> {
+    v: Vec<&'a str>,
+}
+impl<'a> I<'a> for Info<'a> {
+    fn add_ident(&mut self, name: &'a str) {
+        self.v.push(name);
+    }
+}
+fn transform<T>(ps: Vec<Box<dyn Pass<T, Info>>>, t: &mut T) {
+    let mut info = Info { v: vec![] };
+    for mut p in ps {
+        p.enter(t, &mut info)
+    }
+}
+
 fn main() {
-    let mut node = 123;
-    let v = vec![T, T];
-    for t in v.iter() {
-        t.pre_trans(&mut node);
-    }
-    for t in v.iter().rev() {
-        t.post_trans(&mut node);
-    }
+    let mut h = H("hello");
+    transform(vec![Box::new(Count(0))], &mut h);
 }

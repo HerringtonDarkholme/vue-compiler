@@ -52,121 +52,122 @@ impl<T> Transformer for NoopTransformer<T> {
     }
 }
 
+type Passes<T> = [Box<dyn CoreTransformPass<T>>];
+
 trait CoreTransformer<T: ConvertInfo>: Transformer {
-    fn get_passes(&mut self) -> &mut [Box<dyn CoreTransformPass<T>>];
-    fn transform_js_expr(&mut self, e: &mut T::JsExpression);
+    fn transform_js_expr(&mut self, e: &mut T::JsExpression, ps: &mut Passes<T>);
 
     #[inline(always)]
-    fn enter<F>(&mut self, mut f: F)
+    fn enter<F>(&mut self, mut f: F, ps: &mut Passes<T>)
     where
         F: FnMut(&mut Box<dyn CoreTransformPass<T>>),
     {
-        for pass in self.get_passes() {
+        for pass in ps {
             f(pass);
         }
     }
     #[inline(always)]
-    fn exit<F>(&mut self, mut f: F)
+    fn exit<F>(&mut self, mut f: F, ps: &mut Passes<T>)
     where
         F: FnMut(&mut Box<dyn CoreTransformPass<T>>),
     {
-        for pass in self.get_passes().iter_mut().rev() {
+        for pass in ps.iter_mut().rev() {
             f(pass);
         }
     }
-    fn transform_root(&mut self, root: &mut IRRoot<T>);
-    fn transform_ir(&mut self, ir: &mut IRNode<T>) {
+    fn transform_root(&mut self, root: &mut IRRoot<T>, ps: &mut Passes<T>);
+    fn transform_ir(&mut self, ir: &mut IRNode<T>, ps: &mut Passes<T>) {
         use IRNode as I;
         match ir {
-            I::TextCall(t) => self.transform_text(t),
-            I::If(i) => self.transform_if(i),
-            I::For(f) => self.transform_for(f),
-            I::VNodeCall(v) => self.transform_vnode(v),
-            I::RenderSlotCall(r) => self.transform_slot_outlet(r),
-            I::CommentCall(c) => self.transform_comment(c),
-            I::VSlotUse(s) => self.transform_v_slot(s),
-            I::AlterableSlot(a) => self.transform_slot_fn(a),
+            I::TextCall(t) => self.transform_text(t, ps),
+            I::If(i) => self.transform_if(i, ps),
+            I::For(f) => self.transform_for(f, ps),
+            I::VNodeCall(v) => self.transform_vnode(v, ps),
+            I::RenderSlotCall(r) => self.transform_slot_outlet(r, ps),
+            I::CommentCall(c) => self.transform_comment(c, ps),
+            I::VSlotUse(s) => self.transform_v_slot(s, ps),
+            I::AlterableSlot(a) => self.transform_slot_fn(a, ps),
         }
     }
-    fn transform_children(&mut self, children: &mut Vec<IRNode<T>>) {
+    fn transform_children(&mut self, children: &mut Vec<IRNode<T>>, ps: &mut Passes<T>) {
         for child in children.iter_mut() {
-            self.transform_ir(child);
+            self.transform_ir(child, ps);
         }
     }
-    fn transform_text(&mut self, t: &mut T::TextType) {
-        self.enter(|p| p.enter_text(t));
-        self.exit(|p| p.exit_text(t));
+    fn transform_text(&mut self, t: &mut T::TextType, ps: &mut Passes<T>) {
+        self.enter(|p| p.enter_text(t), ps);
+        self.exit(|p| p.exit_text(t), ps);
     }
-    fn transform_if(&mut self, i: &mut C::IfNodeIR<T>) {
-        self.enter(|p| p.enter_if(i));
+    fn transform_if(&mut self, i: &mut C::IfNodeIR<T>, ps: &mut Passes<T>) {
+        self.enter(|p| p.enter_if(i), ps);
         for branch in i.branches.iter_mut() {
             if let Some(c) = branch.condition.as_mut() {
-                self.transform_js_expr(c);
+                self.transform_js_expr(c, ps);
             }
-            self.transform_ir(&mut branch.child);
+            self.transform_ir(&mut branch.child, ps);
         }
-        self.exit(|p| p.exit_if(i));
+        self.exit(|p| p.exit_if(i), ps);
     }
-    fn transform_for(&mut self, f: &mut C::ForNodeIR<T>) {
-        self.enter(|p| p.enter_for(f));
-        self.transform_js_expr(&mut f.source);
+    fn transform_for(&mut self, f: &mut C::ForNodeIR<T>, ps: &mut Passes<T>) {
+        self.enter(|p| p.enter_for(f), ps);
+        self.transform_js_expr(&mut f.source, ps);
         // TODO val, key, index should not counted as expr?
-        self.transform_ir(&mut f.child);
-        self.exit(|p| p.exit_for(f));
+        self.transform_ir(&mut f.child, ps);
+        self.exit(|p| p.exit_for(f), ps);
     }
-    fn transform_vnode(&mut self, v: &mut C::VNodeIR<T>) {
-        self.enter(|p| p.enter_vnode(v));
-        self.transform_js_expr(&mut v.tag);
+    fn transform_vnode(&mut self, v: &mut C::VNodeIR<T>, ps: &mut Passes<T>) {
+        self.enter(|p| p.enter_vnode(v), ps);
+        self.transform_js_expr(&mut v.tag, ps);
         if let Some(props) = v.props.as_mut() {
-            self.transform_js_expr(props);
+            self.transform_js_expr(props, ps);
         }
-        self.transform_children(&mut v.children);
+        self.transform_children(&mut v.children, ps);
         for dir in v.directives.iter_mut() {
-            self.transform_runtime_dir(dir);
+            self.transform_runtime_dir(dir, ps);
         }
-        self.exit(|p| p.exit_vnode(v));
+        self.exit(|p| p.exit_vnode(v), ps);
     }
-    fn transform_runtime_dir(&mut self, dir: &mut RuntimeDir<T>) {
-        self.transform_js_expr(&mut dir.name);
+    fn transform_runtime_dir(&mut self, dir: &mut RuntimeDir<T>, ps: &mut Passes<T>) {
+        self.transform_js_expr(&mut dir.name, ps);
         if let Some(expr) = dir.expr.as_mut() {
-            self.transform_js_expr(expr);
+            self.transform_js_expr(expr, ps);
         }
         if let Some(arg) = dir.arg.as_mut() {
-            self.transform_js_expr(arg);
+            self.transform_js_expr(arg, ps);
         }
         if let Some(mods) = dir.mods.as_mut() {
-            self.transform_js_expr(mods);
+            self.transform_js_expr(mods, ps);
         }
     }
-    fn transform_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>) {
-        self.enter(|p| p.enter_slot_outlet(r));
-        self.transform_js_expr(&mut r.slot_name);
+    fn transform_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>, ps: &mut Passes<T>) {
+        self.enter(|p| p.enter_slot_outlet(r), ps);
+        self.transform_js_expr(&mut r.slot_name, ps);
         if let Some(props) = r.slot_props.as_mut() {
-            self.transform_js_expr(props);
+            self.transform_js_expr(props, ps);
         }
-        self.transform_children(&mut r.fallbacks);
-        self.exit(|p| p.exit_slot_outlet(r));
+        self.transform_children(&mut r.fallbacks, ps);
+        self.exit(|p| p.exit_slot_outlet(r), ps);
     }
-    fn transform_v_slot(&mut self, s: &mut C::VSlotIR<T>) {
-        self.enter(|p| p.enter_v_slot(s));
+    fn transform_v_slot(&mut self, s: &mut C::VSlotIR<T>, ps: &mut Passes<T>) {
+        self.enter(|p| p.enter_v_slot(s), ps);
         for slot in s.stable_slots.iter_mut() {
-            self.transform_slot_fn(slot);
+            self.transform_slot_fn(slot, ps);
         }
         for slot in s.alterable_slots.iter_mut() {
-            self.transform_ir(slot);
+            self.transform_ir(slot, ps);
         }
-        self.exit(|p| p.exit_v_slot(s));
+        self.exit(|p| p.exit_v_slot(s), ps);
     }
-    fn transform_slot_fn(&mut self, slot: &mut C::Slot<T>) {
-        self.enter(|p| p.enter_slot_fn(slot));
+    fn transform_slot_fn(&mut self, slot: &mut C::Slot<T>, ps: &mut Passes<T>) {
+        self.enter(|p| p.enter_slot_fn(slot), ps);
         // TODO slot param should not counted as expr?
-        self.transform_js_expr(&mut slot.name);
-        self.transform_children(&mut slot.body);
-        self.exit(|p| p.exit_slot_fn(slot));
+        self.transform_js_expr(&mut slot.name, ps);
+        self.transform_children(&mut slot.body, ps);
+        self.exit(|p| p.exit_slot_fn(slot), ps);
     }
-    fn transform_comment(&mut self, c: &mut T::CommentType) {
-        self.enter(|p| p.enter_comment(c));
-        self.exit(|p| p.exit_comment(c));
+    fn transform_comment(&mut self, c: &mut T::CommentType, ps: &mut Passes<T>) {
+        self.enter(|p| p.enter_comment(c), ps);
+        self.exit(|p| p.exit_comment(c), ps);
     }
 }
 
@@ -201,50 +202,51 @@ pub struct BaseTransformer<'a, const N: usize> {
 impl<'a, const N: usize> Transformer for BaseTransformer<'a, N> {
     type IR = BaseRoot<'a>;
     fn transform(&mut self, node: &mut Self::IR) {
-        self.transform_root(node);
+        let mut passes = vec![];
+        self.transform_root(node, &mut passes);
     }
 }
 
 impl<'a, const N: usize> CoreTransformer<BaseConvertInfo<'a>> for BaseTransformer<'a, N> {
-    fn get_passes(&mut self) -> &mut [Box<dyn CoreTransformPass<BaseConvertInfo<'a>>>] {
-        &mut self.passes
+    fn transform_root(
+        &mut self,
+        r: &mut IRRoot<BaseConvertInfo<'a>>,
+        ps: &mut Passes<BaseConvertInfo<'a>>,
+    ) {
+        self.enter(|p| p.enter_root(r), ps);
+        self.transform_children(&mut r.body, ps);
+        self.exit(|p| p.exit_root(r), ps);
     }
 
-    fn transform_root(&mut self, r: &mut IRRoot<BaseConvertInfo<'a>>) {
-        self.enter(|p| p.enter_root(r));
-        self.transform_children(&mut r.body);
-        self.exit(|p| p.exit_root(r));
-    }
-
-    fn transform_js_expr(&mut self, e: &mut Js<'a>) {
-        self.enter(|p| p.enter_js_expr(e));
+    fn transform_js_expr(&mut self, e: &mut Js<'a>, ps: &mut Passes<BaseConvertInfo<'a>>) {
+        self.enter(|p| p.enter_js_expr(e), ps);
         match e {
             Js::Call(_, args) => {
                 for arg in args.iter_mut() {
-                    self.transform_js_expr(arg);
+                    self.transform_js_expr(arg, ps);
                 }
             }
             Js::Compound(exprs) => {
                 for expr in exprs.iter_mut() {
-                    self.transform_js_expr(expr);
+                    self.transform_js_expr(expr, ps);
                 }
             }
             Js::Array(arr) => {
                 for item in arr.iter_mut() {
-                    self.transform_js_expr(item);
+                    self.transform_js_expr(item, ps);
                 }
             }
             Js::Props(props) => {
                 for (key, val) in props.iter_mut() {
-                    self.transform_js_expr(key);
-                    self.transform_js_expr(val);
+                    self.transform_js_expr(key, ps);
+                    self.transform_js_expr(val, ps);
                 }
             }
             Js::Src(_) | Js::Simple(..) | Js::StrLit(_) | Js::Symbol(_) => {
                 // no further recursion.
             }
         }
-        self.exit(|p| p.exit_js_expr(e));
+        self.exit(|p| p.exit_js_expr(e), ps);
     }
 }
 

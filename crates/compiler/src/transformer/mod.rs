@@ -23,11 +23,13 @@ seems patch flag can be extracted out
 
 mod collect_entities;
 mod optimize_text;
+mod pass;
 
 use super::converter::{
     self as C, BaseConvertInfo as BaseInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js,
     RuntimeDir,
 };
+pub use pass::{CorePass, CorePassExt, MergedPass};
 
 pub type BaseIf<'a> = C::IfNodeIR<BaseInfo<'a>>;
 pub type BaseFor<'a> = C::ForNodeIR<BaseInfo<'a>>;
@@ -151,29 +153,6 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
     }
 }
 
-pub trait CorePass<T: ConvertInfo> {
-    fn enter_root(&mut self, r: &mut IRRoot<T>) {}
-    fn exit_root(&mut self, r: &mut IRRoot<T>) {}
-    fn enter_text(&mut self, t: &mut T::TextType) {}
-    fn exit_text(&mut self, t: &mut T::TextType) {}
-    fn enter_if(&mut self, i: &mut C::IfNodeIR<T>) {}
-    fn exit_if(&mut self, i: &mut C::IfNodeIR<T>) {}
-    fn enter_for(&mut self, f: &mut C::ForNodeIR<T>) {}
-    fn exit_for(&mut self, f: &mut C::ForNodeIR<T>) {}
-    fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>) {}
-    fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>) {}
-    fn enter_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>) {}
-    fn exit_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>) {}
-    fn enter_v_slot(&mut self, s: &mut C::VSlotIR<T>) {}
-    fn exit_v_slot(&mut self, s: &mut C::VSlotIR<T>) {}
-    fn enter_slot_fn(&mut self, s: &mut C::Slot<T>) {}
-    fn exit_slot_fn(&mut self, s: &mut C::Slot<T>) {}
-    fn enter_js_expr(&mut self, e: &mut T::JsExpression) {}
-    fn exit_js_expr(&mut self, e: &mut T::JsExpression) {}
-    fn enter_comment(&mut self, c: &mut T::CommentType) {}
-    fn exit_comment(&mut self, c: &mut T::CommentType) {}
-}
-
 pub struct BaseTransformer<'a, P: CorePass<BaseInfo<'a>>> {
     pass: P,
     pd: PhantomData<&'a ()>,
@@ -226,12 +205,6 @@ where
         }
         ps.exit_js_expr(e);
     }
-}
-
-// default transforms
-pub fn post_process_v_for_child() {
-    // 1. inject key to slot
-    // 2. Reuse the child's codegenNode but mark it as a block.
 }
 
 #[cfg(test)]

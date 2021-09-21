@@ -19,6 +19,10 @@ pub trait CorePass<T: ConvertInfo> {
     fn exit_slot_fn(&mut self, s: &mut C::Slot<T>) {}
     fn enter_js_expr(&mut self, e: &mut T::JsExpression) {}
     fn exit_js_expr(&mut self, e: &mut T::JsExpression) {}
+    /// only v-for or slot fn
+    fn enter_fn_param(&mut self, p: &mut T::JsExpression) {}
+    /// only v-for or slot fn
+    fn exit_fn_param(&mut self, p: &mut T::JsExpression) {}
     fn enter_comment(&mut self, c: &mut T::CommentType) {}
     fn exit_comment(&mut self, c: &mut T::CommentType) {}
 }
@@ -114,6 +118,10 @@ where
 }
 
 pub trait CorePassExt<T: ConvertInfo, Shared> {
+    fn enter_js_expr(&mut self, e: &mut T::JsExpression, shared: &mut Shared) {}
+    fn exit_js_expr(&mut self, e: &mut T::JsExpression, shared: &mut Shared) {}
+    fn enter_fn_param(&mut self, p: &mut T::JsExpression, shared: &mut Shared) {}
+    fn exit_fn_param(&mut self, p: &mut T::JsExpression, shared: &mut Shared) {}
     fn enter_root(&mut self, r: &mut IRRoot<T>, shared: &mut Shared) {}
     fn exit_root(&mut self, r: &mut IRRoot<T>, shared: &mut Shared) {}
 }
@@ -135,5 +143,21 @@ where
     fn exit_root(&mut self, r: &mut IRRoot<T>) {
         let shared = &mut self.shared_info;
         self.passes.exit(|p| p.exit_root(r, shared));
+    }
+    fn enter_js_expr(&mut self, e: &mut T::JsExpression) {
+        let shared = &mut self.shared_info;
+        self.passes.enter(|p| p.enter_js_expr(e, shared));
+    }
+    fn exit_js_expr(&mut self, e: &mut T::JsExpression) {
+        let shared = &mut self.shared_info;
+        self.passes.exit(|p| p.exit_js_expr(e, shared));
+    }
+    fn enter_fn_param(&mut self, prm: &mut T::JsExpression) {
+        let shared = &mut self.shared_info;
+        self.passes.enter(|p| p.enter_fn_param(prm, shared));
+    }
+    fn exit_fn_param(&mut self, prm: &mut T::JsExpression) {
+        let shared = &mut self.shared_info;
+        self.passes.exit(|p| p.exit_fn_param(prm, shared));
     }
 }

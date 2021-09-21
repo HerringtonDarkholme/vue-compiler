@@ -24,6 +24,7 @@ seems patch flag can be extracted out
 mod collect_entities;
 mod optimize_text;
 mod pass;
+mod transform_expression;
 
 use super::converter::{
     self as C, BaseConvertInfo as BaseInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js,
@@ -56,8 +57,9 @@ impl<T> Transformer for NoopTransformer<T> {
 }
 
 trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
-    fn transform_js_expr(e: &mut T::JsExpression, ps: &mut P);
     fn transform_root(root: &mut IRRoot<T>, ps: &mut P);
+    fn transform_js_expr(e: &mut T::JsExpression, ps: &mut P);
+
     fn transform_ir(ir: &mut IRNode<T>, ps: &mut P) {
         use IRNode as I;
         match ir {
@@ -93,8 +95,27 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
     fn transform_for(f: &mut C::ForNodeIR<T>, ps: &mut P) {
         ps.enter_for(f);
         Self::transform_js_expr(&mut f.source, ps);
-        // TODO val, key, index should not counted as expr?
+        use crate::converter::ForParseResult;
+        // val, key, index should counted as param
+        let ForParseResult { value, key, index } = &mut f.parse_result;
+        ps.enter_fn_param(value);
+        if let Some(k) = key {
+            ps.enter_fn_param(k);
+        }
+        if let Some(i) = index {
+            ps.enter_fn_param(i);
+        }
+
         Self::transform_ir(&mut f.child, ps);
+
+        if let Some(i) = index {
+            ps.exit_fn_param(i);
+        }
+        if let Some(k) = key {
+            ps.exit_fn_param(k);
+        }
+        ps.exit_fn_param(value);
+
         ps.exit_for(f);
     }
     fn transform_vnode(v: &mut C::VNodeIR<T>, ps: &mut P) {
@@ -142,9 +163,15 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
     }
     fn transform_slot_fn(slot: &mut C::Slot<T>, ps: &mut P) {
         ps.enter_slot_fn(slot);
-        // TODO slot param should not counted as expr?
+        // slot param should counted as param?
         Self::transform_js_expr(&mut slot.name, ps);
+        if let Some(p) = &mut slot.param {
+            ps.enter_fn_param(p);
+        }
         Self::transform_children(&mut slot.body, ps);
+        if let Some(p) = &mut slot.param {
+            ps.exit_fn_param(p);
+        }
         ps.exit_slot_fn(slot);
     }
     fn transform_comment(c: &mut T::CommentType, ps: &mut P) {

@@ -136,17 +136,17 @@ fn rewrite_inline_identifier<'a>(
     use BindingTypes as BT;
     debug_assert!(level == StaticLevel::NotStatic || bind == &BT::SetupConst);
     let expr = move || Js::Simple(raw, level);
-    let dot_value = move || Js::Compound(vec![expr(), Js::Src(".value")]);
+    let dot_value = Js::Compound(vec![expr(), Js::Src(".value")]);
     match bind {
         BT::SetupConst => expr(),
-        BT::SetupRef => dot_value(),
+        BT::SetupRef => dot_value,
         BT::SetupMaybeRef => {
             // const binding that may or may not be ref
             // if it's not a ref, then assignments don't make sense -
             // so we ignore the non-ref assignment case and generate code
             // that assumes the value to be a ref for more efficiency
             if !matches!(ctx, CtxType::NoWrite) {
-                dot_value()
+                dot_value
             } else {
                 Js::Call(RH::Unref, vec![expr()])
             }
@@ -157,16 +157,15 @@ fn rewrite_inline_identifier<'a>(
     }
 }
 
-fn rewrite_setup_let<'a, E, D>(ctx: CtxType<'a>, expr: E, dot_value: D) -> Js<'a>
+fn rewrite_setup_let<'a, E>(ctx: CtxType<'a>, expr: E, dot_value: Js<'a>) -> Js<'a>
 where
     E: Fn() -> Js<'a>,
-    D: Fn() -> Js<'a>,
 {
     match ctx {
         CtxType::Assign(assign) => Js::Compound(vec![
             Js::Call(RH::IsRef, vec![expr()]),
             Js::Src("? "),
-            dot_value(),
+            dot_value,
             assign.clone(),
             Js::Src(": "),
             expr(),
@@ -177,9 +176,9 @@ where
             v.push(Js::Src("? "));
             if is_pre {
                 v.push(op.clone());
-                v.push(dot_value());
+                v.push(dot_value);
             } else {
-                v.push(dot_value());
+                v.push(dot_value);
                 v.push(op.clone());
             }
             v.push(Js::Src(": "));

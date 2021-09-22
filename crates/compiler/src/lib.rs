@@ -1,6 +1,8 @@
 #![allow(dead_code, unused_variables)]
 //! See README.md
 
+use std::ops::Range;
+
 // TODO: reorg pub
 pub mod codegen;
 pub mod compiler;
@@ -40,6 +42,12 @@ impl Default for Position {
 pub struct SourceLocation {
     pub start: Position,
     pub end: Position,
+}
+
+impl From<SourceLocation> for Range<usize> {
+    fn from(location: SourceLocation) -> Self {
+        location.start.offset..location.end.offset
+    }
 }
 
 /// namespace for HTML/SVG/MathML tag

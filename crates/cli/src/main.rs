@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::{AppSettings, Clap};
 use compiler::parser::{ParseOption, Parser };
 use compiler::tokenizer::{self, TokenizeOption};
-use compiler::util::ast_print::AstString;
+use cli::ast_print::AstString;
 
 use std::fs::read_to_string;
 

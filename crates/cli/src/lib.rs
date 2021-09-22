@@ -11,6 +11,8 @@ use codespan_reporting::{
 use compiler::converter::{CompilationError, ErrorHandler};
 use path_clean::PathClean;
 use anyhow::Result;
+
+pub mod ast_print;
 pub struct PrettyErrorHandler<'a> {
     source: &'a str,
 }

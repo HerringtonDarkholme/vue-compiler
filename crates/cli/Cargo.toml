@@ -8,6 +8,6 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0.44"
 clap = "3.0.0-beta.4"
-compiler = { path = "../compiler", features = ["debug"] }
+compiler = { path = "../compiler" }
 path-clean = "0.1.0"
 codespan-reporting = "0.11.1"

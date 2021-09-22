@@ -174,21 +174,16 @@ where
         CtxType::Update(is_pre, op) => {
             let mut v = vec![Js::Call(RH::IsRef, vec![expr()])];
             v.push(Js::Src("? "));
-            if is_pre {
-                v.push(op.clone());
-                v.push(dot_value);
-            } else {
-                v.push(dot_value);
-                v.push(op.clone());
-            }
+            let push = |v: &mut Vec<_>, val, op| {
+                if is_pre {
+                    v.extend([op, val]);
+                } else {
+                    v.extend([val, op]);
+                }
+            };
+            push(&mut v, dot_value, op.clone());
             v.push(Js::Src(": "));
-            if is_pre {
-                v.push(op);
-                v.push(expr());
-            } else {
-                v.push(expr());
-                v.push(op);
-            }
+            push(&mut v, expr(), op);
             Js::Compound(v)
         }
         CtxType::Destructure => {

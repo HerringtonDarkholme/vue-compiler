@@ -46,7 +46,6 @@ pub enum CompilationErrorKind {
     MissingDirectiveMod,
     InvalidVSlotModifier,
 
-    // TODO
     // transform errors
     VIfNoExpression,
     VIfSameKey,
@@ -54,7 +53,7 @@ pub enum CompilationErrorKind {
     VElseNoAdjacentIf,
     VForNoExpression,
     VForMalformedExpression,
-    VForTemplateKeyPlacement,
+    VForTemplateKeyPlacement, // TODO
     VBindNoExpression,
     VOnNoExpression,
     VSlotUnexpectedDirectiveOnSlotOutlet,
@@ -63,10 +62,12 @@ pub enum CompilationErrorKind {
     VSlotDuplicateSlotNames,
     VSlotExtraneousDefaultSlotChildren,
     VSlotMisplaced,
+    // TODO
     VModelNoExpression,
     VModelMalformedExpression,
     VModelOnScopeVariable,
     InvalidExpression,
+
     UnexpectedDirExpression,
     KeepAliveInvalidChildren,
 

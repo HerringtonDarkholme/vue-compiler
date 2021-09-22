@@ -23,11 +23,12 @@ Convert module roughly corresponds to following transform in vue-next.
 */
 
 pub use super::error::{CompilationError, ErrorHandler};
-use super::flags::{self, RuntimeHelper, StaticLevel};
+use super::flags::{HelperCollector, PatchFlag, RuntimeHelper, StaticLevel};
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
 use rustc_hash::{FxHashMap, FxHashSet};
+use smallvec::{smallvec, SmallVec};
 
 mod build_props;
 mod cache_dir;
@@ -54,6 +55,7 @@ pub trait Converter<'a>: Sized {
 //
 
 pub trait ConvertInfo {
+    type TopType: Default;
     type TextType;
     type IfType;
     type IfBranchType;
@@ -62,13 +64,13 @@ pub trait ConvertInfo {
     type RenderSlotType;
     type VSlotType;
     type CommentType;
-    type JsExpression;
+    type JsExpression: Default;
     type StrType;
 }
 
 pub enum IRNode<T: ConvertInfo> {
     /// interpolation or text node
-    TextCall(Vec<T::TextType>),
+    TextCall(T::TextType),
     /// v-if, else-if, else
     If(IfNodeIR<T>),
     /// v-for
@@ -83,66 +85,68 @@ pub enum IRNode<T: ConvertInfo> {
     AlterableSlot(Slot<T>),
     /// comment
     CommentCall(T::CommentType),
-    /// generic JS expression
-    GenericExpression(T::JsExpression),
 }
 
 pub struct IfNodeIR<T: ConvertInfo> {
-    branches: Vec<IfBranch<T>>,
-    info: T::IfType,
+    pub branches: Vec<IfBranch<T>>,
+    pub info: T::IfType,
 }
-struct IfBranch<T: ConvertInfo> {
-    condition: Option<T::JsExpression>,
-    child: Box<IRNode<T>>,
-    info: T::IfBranchType,
+pub struct IfBranch<T: ConvertInfo> {
+    pub condition: Option<T::JsExpression>,
+    pub child: Box<IRNode<T>>,
+    pub info: T::IfBranchType,
 }
 pub struct ForNodeIR<T: ConvertInfo> {
-    source: T::JsExpression,
-    parse_result: ForParseResult<T>,
-    child: Box<IRNode<T>>,
+    pub source: T::JsExpression,
+    pub parse_result: ForParseResult<T>,
+    pub child: Box<IRNode<T>>,
+    pub is_stable: bool,
+    pub fragment_flag: PatchFlag,
 }
 // (value, key, index) in source
-struct ForParseResult<T: ConvertInfo> {
-    value: T::JsExpression,
-    key: Option<T::JsExpression>,
-    index: Option<T::JsExpression>,
+pub struct ForParseResult<T: ConvertInfo> {
+    pub value: T::JsExpression,
+    pub key: Option<T::JsExpression>,
+    pub index: Option<T::JsExpression>,
 }
 pub struct RenderSlotIR<T: ConvertInfo> {
-    slot_name: T::JsExpression,
-    slot_props: Option<T::JsExpression>,
-    fallbacks: Vec<IRNode<T>>,
-    no_slotted: bool,
+    pub slot_obj: T::JsExpression,
+    pub slot_name: T::JsExpression,
+    pub slot_props: Option<T::JsExpression>,
+    pub fallbacks: Vec<IRNode<T>>,
+    pub no_slotted: bool,
 }
 pub struct RuntimeDir<T: ConvertInfo> {
-    name: T::JsExpression,
-    expr: Option<T::JsExpression>,
-    arg: Option<T::JsExpression>,
-    mods: Option<T::JsExpression>,
+    pub name: T::JsExpression,
+    pub expr: Option<T::JsExpression>,
+    pub arg: Option<T::JsExpression>,
+    pub mods: Option<T::JsExpression>,
 }
+#[derive(Default)]
 pub struct VNodeIR<T: ConvertInfo> {
-    tag: T::JsExpression,
-    props: Option<T::JsExpression>,
-    children: Vec<IRNode<T>>,
-    patch_flag: flags::PatchFlag,
-    dynamic_props: FxHashSet<T::StrType>,
-    directives: Vec<RuntimeDir<T>>,
-    is_block: bool,
-    disable_tracking: bool,
-    is_component: bool,
+    pub tag: T::JsExpression,
+    pub props: Option<T::JsExpression>,
+    pub children: Vec<IRNode<T>>,
+    pub patch_flag: PatchFlag,
+    pub dynamic_props: FxHashSet<T::StrType>,
+    pub directives: Vec<RuntimeDir<T>>,
+    pub is_block: bool,
+    pub disable_tracking: bool,
+    pub is_component: bool,
 }
 pub struct Slot<T: ConvertInfo> {
-    name: T::JsExpression,
-    param: Option<T::JsExpression>,
-    body: Vec<IRNode<T>>,
+    pub name: T::JsExpression,
+    pub param: Option<T::JsExpression>,
+    pub body: Vec<IRNode<T>>,
 }
 // note the diffrence between stable and static, dynamic and alterable.
 // static = static template name, capturing no identifier
 // stable = no if nor for
 pub struct VSlotIR<T: ConvertInfo> {
     /// stable v-slots declared statically in the template
-    stable_slots: Vec<Slot<T>>,
+    pub stable_slots: Vec<Slot<T>>,
     /// v-slots templates dynamically declared with v-if/v-for
-    alterable_slots: Vec<IRNode<T>>,
+    pub alterable_slots: Vec<IRNode<T>>,
 }
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
@@ -163,6 +167,12 @@ pub enum JsExpr<'a> {
     Symbol(RuntimeHelper),
     /// array of JsExpr
     Array(Vec<JsExpr<'a>>),
+}
+
+impl<'a> Default for JsExpr<'a> {
+    fn default() -> Self {
+        Self::Src("")
+    }
 }
 
 impl<'a> JsExpr<'a> {
@@ -208,17 +218,19 @@ pub enum BindingTypes {
 
 pub struct IRRoot<T: ConvertInfo> {
     pub body: Vec<IRNode<T>>,
+    /// entities to define/import in top level scope
+    pub top_scope: T::TopType,
 }
 
 /// Default implementation  sketch can be used in DOM/SSR.
 /// Other platform might invent and use their own IR.
-pub trait CoreConverter<'a, T>
-where
-    T: ConvertInfo,
-{
+pub trait CoreConverter<'a, T: ConvertInfo> {
     fn convert_core_ir(&self, ast: AstRoot<'a>) -> IRRoot<T> {
         let body = self.convert_children(ast.children);
-        IRRoot { body }
+        IRRoot {
+            body,
+            top_scope: T::TopType::default(),
+        }
     }
     fn convert_children(&self, children: Vec<AstNode<'a>>) -> Vec<IRNode<T>> {
         let mut key = 0;
@@ -278,8 +290,11 @@ where
     fn get_builtin_component(&self, tag: &str) -> Option<RuntimeHelper>;
 
     // core template syntax conversion
-    fn convert_directive(&self, dir: &mut Directive<'a>)
-        -> DirectiveConvertResult<T::JsExpression>;
+    fn convert_directive(
+        &self,
+        dir: &mut Directive<'a>,
+        e: &mut Element<'a>,
+    ) -> DirectiveConvertResult<T::JsExpression>;
     fn convert_if(&self, elems: Vec<Element<'a>>, key: usize) -> IRNode<T>;
     fn convert_for(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
     fn convert_memo(&self, d: Directive<'a>, n: IRNode<T>) -> IRNode<T>;
@@ -316,11 +331,28 @@ pub fn no_op_directive_convert<'a>(
 }
 
 // Base Converter for DOM and SSR Fallback
-
+#[derive(Default)]
 pub struct BaseConvertInfo<'a>(std::marker::PhantomData<&'a ()>);
 
+#[derive(Default)]
+pub struct TopScope<'a> {
+    /// runtime helpers used in template
+    pub helpers: HelperCollector,
+    /// components that requires resolveComponent call
+    pub components: FxHashSet<VStr<'a>>,
+    /// directives that requires resolveDirecitve call
+    pub directives: FxHashSet<VStr<'a>>,
+    /// hoisted vnode/text/js object
+    pub hoists: Vec<BaseIR<'a>>,
+    /// counters for cached instance, increment per v-once/memo
+    pub cached: usize,
+    /// counters for temporary variables created in template
+    pub temps: usize,
+}
+
 impl<'a> ConvertInfo for BaseConvertInfo<'a> {
-    type TextType = JsExpr<'a>;
+    type TopType = TopScope<'a>;
+    type TextType = SmallVec<[JsExpr<'a>; 1]>;
     type IfType = ();
     type IfBranchType = usize;
     type ForType = ();
@@ -365,12 +397,13 @@ pub struct BaseConverter {
     /// Compile the function for inlining inside setup().
     /// This allows the function to directly access setup() local bindings.
     pub inline: bool,
-    pub directive_converters: Vec<DirectiveConverter>,
+    pub directive_converters: FxHashMap<&'static str, DirConvertFn>,
     /// Optional binding metadata analyzed from script - used to optimize
     /// binding access when `prefixIdentifiers` is enabled.
     pub binding_metadata: BindingMetadata,
     /// current SFC filename for self-referencing
     pub self_name: String,
+    err_handle: Box<dyn ErrorHandler>,
 }
 pub type BaseRoot<'a> = IRRoot<BaseConvertInfo<'a>>;
 pub type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
@@ -391,8 +424,16 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     }
 
     // core template syntax conversion
-    fn convert_directive(&self, dr: &mut Directive<'a>) -> CoreDirConvRet<'a> {
-        todo!()
+    fn convert_directive(
+        &self,
+        dir: &mut Directive<'a>,
+        e: &mut Element<'a>,
+    ) -> CoreDirConvRet<'a> {
+        if let Some(convert) = self.directive_converters.get(dir.name) {
+            convert(dir, e, self.err_handle.as_ref())
+        } else {
+            DirectiveConvertResult::Preserve
+        }
     }
     fn convert_if(&self, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
         v_if::convert_if(self, elems, key)
@@ -420,7 +461,8 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     }
     fn convert_interpolation(&self, interp: SourceNode<'a>) -> BaseIR<'a> {
         let expr = JsExpr::simple(interp.source);
-        IRNode::TextCall(vec![expr])
+        let call = JsExpr::Call(RuntimeHelper::ToDisplayString, vec![expr]);
+        IRNode::TextCall(smallvec![call])
     }
     fn convert_template(&self, e: Element<'a>) -> BaseIR<'a> {
         convert_element::convert_template(self, e, false)
@@ -439,7 +481,7 @@ impl BaseConverter {
 #[cfg(test)]
 pub mod test {
     use super::*;
-    use crate::parser::test::base_parse;
+    use crate::{error::test::TestErrorHandler, parser::test::base_parse};
     use BaseConverter as BC;
     use JsExpr as Js;
 
@@ -473,14 +515,24 @@ pub mod test {
         }
     }
 
+    #[test]
+    fn test_abort() {
+        base_convert("hello <p/> {{world}}");
+    }
+
     pub fn base_convert(s: &str) -> BaseRoot {
+        let mut convs = FxHashMap::default();
+        for (n, f) in [v_bind::V_BIND, ("on", no_op_directive_convert)] {
+            convs.insert(n, f);
+        }
         let bc = BC {
             scope_id: None,
             slotted: false,
             inline: true,
-            directive_converters: vec![],
+            directive_converters: convs,
             binding_metadata: BindingMetadata(FxHashMap::default(), false),
             self_name: "".into(),
+            err_handle: Box::new(TestErrorHandler),
         };
         let ast = base_parse(s);
         bc.convert_ir(ast)

@@ -12,7 +12,6 @@ use crate::{
     util::{find_dir, get_core_component, is_component_tag, prop_finder},
     SourceLocation,
 };
-use rustc_hash::FxHashSet;
 use std::mem;
 
 pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
@@ -31,7 +30,7 @@ pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
         directives,
         mut patch_flag,
         dynamic_props,
-    } = build_props(bc, &e, properties);
+    } = build_props(bc, &mut e, properties);
     let directives = build_directive_args(bc, directives);
     patch_flag |= more_flags;
     let vnode = VNodeIR {
@@ -56,13 +55,7 @@ pub fn convert_template<'a>(bc: &BC, e: Element<'a>, is_slot: bool) -> BaseIR<'a
     IRNode::VNodeCall(VNodeIR {
         tag: Js::Symbol(RuntimeHelper::Fragment),
         children: bc.convert_children(e.children),
-        props: None,
-        directives: vec![],
-        dynamic_props: FxHashSet::default(),
-        patch_flag: PatchFlag::empty(),
-        is_block: false,
-        disable_tracking: false,
-        is_component: false,
+        ..VNodeIR::default()
     })
 }
 
@@ -105,7 +98,7 @@ pub fn resolve_element_tag<'a>(bc: &BC, e: &Element<'a>) -> Js<'a> {
         comp.suffix_self();
     }
     // 5. user component (resolve)
-    // TODO: ensure comp will be hoisted bc.add_component(comp);
+    // comp will be collected by collect_entities transform pass
     Js::StrLit(*comp.clone().be_component()) // use clone to avoid mutating comp
 }
 
@@ -124,7 +117,7 @@ fn resolve_dynamic_component<'a>(
         let exp = match prop.get_ref() {
             ElemProp::Attr(Attribute {
                 value: Some(val), ..
-            }) => Js::StrLit(val.content),
+            }) => Js::StrLit(val.content), // TODO: return Err(val.content) ?
             ElemProp::Dir(Directive {
                 expression: Some(exp),
                 ..
@@ -185,7 +178,7 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
     // <svg> and <foreignObject> must be forced into blocks so that block
     // updates inside get proper isSVG flag at runtime. (vue-next/#639, #643)
     // Technically web-specific, but splitting out of core is too complex
-    e.tag_name == "svg" || e.tag_name == "foreinObject" ||
+    e.tag_name == "svg" || e.tag_name == "foreignObject" ||
     // vue-next/#938: elements with dynamic keys should be forced into blocks
     prop_finder(e, "key").dynamic_only().find().is_some()
 }

@@ -1,7 +1,7 @@
+use crate::error::{CompilationError as Error, CompilationErrorKind as ErrorKind};
 use crate::flags::RuntimeHelper;
 
 use super::{
-    super::error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
     super::parser::DirectiveArg,
     super::util::{non_whitespace, VStr},
     CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
@@ -26,7 +26,7 @@ pub fn convert_v_bind<'a>(
     } else {
         (VStr::raw(""), head_loc.clone())
     };
-    let expr = if !expr_val.contains(non_whitespace) {
+    let expr = if expr_val.contains(non_whitespace) {
         Js::simple(expr_val)
     } else {
         let error = Error::new(ErrorKind::VBindNoExpression).with_location(err_loc);

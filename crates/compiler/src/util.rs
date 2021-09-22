@@ -1,4 +1,5 @@
 use super::{
+    converter::{BaseConvertInfo, VNodeIR},
     flags::RuntimeHelper,
     parser::{Directive, DirectiveArg, ElemProp, Element},
     tokenizer::Attribute,
@@ -42,6 +43,12 @@ pub fn is_mergeable_prop(prop: &str) -> bool {
     prop == "class" || prop == "style" || is_event_prop(prop)
 }
 
+pub fn is_simple_identifier(s: VStr) -> bool {
+    let is_ident = |c: char| c == '$' || c == '_' || c.is_ascii_alphanumeric();
+    let raw = s.raw;
+    raw.chars().all(is_ident) && !raw.starts_with(|c: char| c.is_ascii_digit())
+}
+
 // https://github.com/vuejs/rfcs/blob/master/active-rfcs/0008-render-function-api-change.md#special-reserved-props
 const RESERVED: &[&str] = &[
     "key",
@@ -67,6 +74,22 @@ pub const fn yes(_: &str) -> bool {
 }
 pub const fn no(_: &str) -> bool {
     false
+}
+
+pub fn get_vnode_call_helper(v: &VNodeIR<BaseConvertInfo>) -> RuntimeHelper {
+    use RuntimeHelper as RH;
+    if v.is_block {
+        return if v.is_component {
+            RH::CreateBlock
+        } else {
+            RH::CreateElementBlock
+        };
+    }
+    if v.is_component {
+        RH::CreateVNode
+    } else {
+        RH::CreateElementVNode
+    }
 }
 
 pub trait PropPattern {

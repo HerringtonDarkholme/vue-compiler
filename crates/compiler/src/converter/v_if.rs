@@ -1,10 +1,10 @@
 use super::{
-    super::error::CompilationErrorKind as ErrorKind, super::parser::ElemProp, AstNode,
-    BaseConvertInfo, BaseConverter as BC, BaseIR, CompilationError, Directive, Element, IRNode,
-    IfBranch, IfNodeIR,
+    super::parser::ElemProp, AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR,
+    CompilationError, Directive, Element, IRNode, IfBranch, IfNodeIR,
 };
 use crate::{
     converter::{CoreConverter, JsExpr as Js},
+    error::CompilationErrorKind as ErrorKind,
     tokenizer::Attribute,
     util::{find_dir_empty, find_prop},
 };
@@ -67,13 +67,13 @@ impl<'a> Iterator for PreGroupIter<'a> {
                 let n = self.inner.next().unwrap(); // must next to advance
                 self.group.push(n.into_element());
             } else if let AstNode::Text(s) = n {
-                if s.is_all_whitespace() {
-                    // skip whitespace
-                    self.next().unwrap();
-                } else {
+                if self.group.is_empty() || !s.is_all_whitespace() {
                     // break if text is not whitespaces
+                    // or no preceding v-if
                     break;
                 }
+                // skip whitespace when v-if precedes
+                self.inner.next().unwrap();
             } else if matches!(n, &AstNode::Comment(_)) {
                 // ignore comments for now. #3619
                 return self.next_standalone();
@@ -167,6 +167,7 @@ fn convert_if_branch<'a>(c: &BC, mut e: Element<'a>, key: usize) -> IfBranch<Bas
         .expect("the element must have v-if directives")
         .take();
     report_duplicate_v_if(c, &mut e);
+    // TODO: inject key prop
     let condition = convert_if_condition(c, dir);
     IfBranch {
         child: Box::new(c.dispatch_element(e)),

@@ -13,6 +13,7 @@ use std::{
 bitflags! {
     /// Represents idempotent string manipulation.
     // Idempotency is required since op is a bitflag.
+    #[derive(Default)]
     pub struct StrOps: u16 {
         const COMPRESS_WHITESPACE = 1 << 0;
         const DECODE_ENTITY       = 1 << 1;
@@ -25,6 +26,8 @@ bitflags! {
         const SELF_SUFFIX         = 1 << 8; // not idempotent but called only once
         const V_DIR_PREFIX        = 1 << 9;
         const JS_STRING           = 1 << 10;
+        // TODO: add idempotent_ops and affine_ops. affine comes from
+        // https://en.wikipedia.org/wiki/Substructural_type_system
     }
 }
 
@@ -137,12 +140,18 @@ impl Iterator for StrOpIter {
             Some(r)
         }
     }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let bits = self.0.bits().count_ones() as usize;
+        (bits, Some(bits))
+    }
 }
+
+impl ExactSizeIterator for StrOpIter {}
 
 /// A str for Vue compiler's internal modification.
 /// Instead of returning a Cow<str>, StrOp is recorded in the VStr
 /// and will be processed later in codegen phase.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct VStr<'a> {
     pub raw: &'a str,
     pub ops: StrOps,

@@ -100,6 +100,7 @@ pub enum StaticLevel {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
 pub enum RuntimeHelper {
     Fragment,
     Teleport,
@@ -109,8 +110,8 @@ pub enum RuntimeHelper {
     OpenBlock,
     CreateBlock,
     CreateElementBlock,
-    CreateVnode,
-    CreateElementVnode,
+    CreateVNode,
+    CreateElementVNode,
     CreateComment,
     CreateText,
     CreateStatic,
@@ -143,6 +144,50 @@ pub enum RuntimeHelper {
     IsMemoSame,
 }
 
+#[derive(Clone, Default)]
+pub struct HelperCollector(u64);
+impl HelperCollector {
+    pub fn collect(&mut self, helper: RuntimeHelper) {
+        self.0 |= 1 << (helper as u64);
+    }
+    pub fn contains(&self, helper: RuntimeHelper) -> bool {
+        (self.0 & (1 << helper as u64)) != 0
+    }
+    // ignore missing helpers in unit testing
+    #[cfg(test)]
+    pub fn ignore_missing(&mut self) {
+        self.0 = !0;
+    }
+}
+pub struct HelperIter(u64);
+impl Iterator for HelperIter {
+    type Item = RuntimeHelper;
+    fn next(&mut self) -> Option<Self::Item> {
+        if cfg!(test) && self.0 == !0 {
+            return None;
+        }
+        if self.0 == 0 {
+            return None;
+        }
+        let r = self.0.trailing_zeros();
+        self.0 ^= 1 << r;
+        unsafe { std::mem::transmute(r) }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let bits = self.0.count_ones() as usize;
+        (bits, Some(bits))
+    }
+}
+impl ExactSizeIterator for HelperIter {}
+
+impl IntoIterator for HelperCollector {
+    type Item = RuntimeHelper;
+    type IntoIter = HelperIter;
+    fn into_iter(self) -> Self::IntoIter {
+        HelperIter(self.0)
+    }
+}
+
 /// PreambleHelper is a collection of JavaScript imports at the head of output
 /// e.g. v-for needs a list looping helper to make vdom
 /// preamble helper needs collect helper when traversing template ast
@@ -162,11 +207,11 @@ impl RuntimeHelper {
             OpenBlock => "openBlock",
             CreateBlock => "createBlock",
             CreateElementBlock => "createElementBlock",
-            CreateVnode => "createVnode",
-            CreateElementVnode => "createElementVnode",
-            CreateComment => "createComment",
-            CreateText => "createText",
-            CreateStatic => "createStatic",
+            CreateVNode => "createVNode",
+            CreateElementVNode => "createElementVNode",
+            CreateComment => "createCommentVNode",
+            CreateText => "createTextVNode",
+            CreateStatic => "createStaticVNode",
             ResolveComponent => "resolveComponent",
             ResolveDynamicComponent => "resolveDynamicComponent",
             ResolveDirective => "resolveDirective",

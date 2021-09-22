@@ -1,25 +1,58 @@
 use phf::phf_set;
 
+// prefer contains for small array
 const KEYWORDS: phf::Set<&'static str> = phf_set! {
-    "key",
-    "ref",
-    "onVnodeMounted",
-    "onVnodeUpdated",
-    "onVnodeUnmounted",
-    "onVnodeBeforeMount",
-    "onVnodeBeforeUpdate",
-    "onVnodeBeforeUnmount",
+  "Infinity",
+  "undefined",
+  "NaN",
+  "isFinite",
+  "isNaN",
+  "parseFloat",
+  "parseInt",
+  "decodeURI",
+  "decodeURIComponent",
+  "encodeURI",
+  "encodeURIComponent",
+  "Math",
+  "Number",
+  "Date",
+  "Array",
+  "Object",
+  "Boolean",
+  "String",
+  "RegExp",
+  "Map",
+  "Set",
+  "JSON",
+  "Intl",
+  "BigInt",
 };
 
 const KEYS: &[&str] = &[
-    "key",
-    "ref",
-    "onVnodeMounted",
-    "onVnodeUpdated",
-    "onVnodeUnmounted",
-    "onVnodeBeforeMount",
-    "onVnodeBeforeUpdate",
-    "onVnodeBeforeUnmount",
+    "Array",
+    "BigInt",
+    "Boolean",
+    "Date",
+    "Infinity",
+    "Intl",
+    "JSON",
+    "Map",
+    "Math",
+    "NaN",
+    "Number",
+    "Object",
+    "RegExp",
+    "Set",
+    "String",
+    "decodeURI",
+    "decodeURIComponent",
+    "encodeURI",
+    "encodeURIComponent",
+    "isFinite",
+    "isNaN",
+    "parseFloat",
+    "parseInt",
+    "undefined",
 ];
 
 fn test_phf(s: &str) -> bool {
@@ -34,7 +67,7 @@ use criterion::Criterion;
 use criterion::{criterion_group, criterion_main};
 
 fn test_enum_eq(c: &mut Criterion) {
-    for name in ["key", "onVnodeBeforeUnmount", "not_exist"] {
+    for name in ["Infinity", "BigInt", "not_exist"] {
         c.bench_with_input(BenchmarkId::new("test phf", name), &name, |b, n| {
             b.iter(|| test_phf(n));
         });

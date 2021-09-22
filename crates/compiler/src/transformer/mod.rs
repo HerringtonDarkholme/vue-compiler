@@ -24,20 +24,14 @@ seems patch flag can be extracted out
 mod collect_entities;
 mod optimize_text;
 mod pass;
-mod transform_expression;
+mod process_expression;
 
 use super::converter::{
-    self as C, BaseConvertInfo as BaseInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js,
-    RuntimeDir,
+    self as C, BaseConvertInfo as BaseInfo, BaseRoot, BindingMetadata, ConvertInfo, IRNode, IRRoot,
+    JsExpr as Js, RuntimeDir,
 };
 pub use pass::{CorePass, CorePassExt, MergedPass};
-
-pub type BaseIf<'a> = C::IfNodeIR<BaseInfo<'a>>;
-pub type BaseFor<'a> = C::ForNodeIR<BaseInfo<'a>>;
-pub type BaseVNode<'a> = C::VNodeIR<BaseInfo<'a>>;
-pub type BaseRenderSlot<'a> = C::RenderSlotIR<BaseInfo<'a>>;
-pub type BaseVSlot<'a> = C::VSlotIR<BaseInfo<'a>>;
-pub type BaseSlotFn<'a> = C::Slot<BaseInfo<'a>>;
+use std::{marker::PhantomData, rc::Rc};
 
 pub trait Transformer {
     type IR;
@@ -46,7 +40,19 @@ pub trait Transformer {
     fn transform(&mut self, root: &mut Self::IR);
 }
 
-use std::marker::PhantomData;
+pub struct TransformOption {
+    is_ts: bool,
+    prefix_identifier: bool,
+    binding_metadata: Rc<BindingMetadata>,
+}
+
+pub type BaseIf<'a> = C::IfNodeIR<BaseInfo<'a>>;
+pub type BaseFor<'a> = C::ForNodeIR<BaseInfo<'a>>;
+pub type BaseVNode<'a> = C::VNodeIR<BaseInfo<'a>>;
+pub type BaseRenderSlot<'a> = C::RenderSlotIR<BaseInfo<'a>>;
+pub type BaseVSlot<'a> = C::VSlotIR<BaseInfo<'a>>;
+pub type BaseSlotFn<'a> = C::Slot<BaseInfo<'a>>;
+
 struct NoopTransformer<T>(PhantomData<T>);
 
 impl<T> Transformer for NoopTransformer<T> {

@@ -29,6 +29,7 @@ use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::{smallvec, SmallVec};
+use std::{marker::PhantomData, ops::Deref, rc::Rc};
 
 mod build_props;
 mod cache_dir;
@@ -332,7 +333,7 @@ pub fn no_op_directive_convert<'a>(
 
 // Base Converter for DOM and SSR Fallback
 #[derive(Default)]
-pub struct BaseConvertInfo<'a>(std::marker::PhantomData<&'a ()>);
+pub struct BaseConvertInfo<'a>(PhantomData<&'a ()>);
 
 #[derive(Default)]
 pub struct TopScope<'a> {
@@ -381,7 +382,7 @@ impl BindingMetadata {
         self.1
     }
 }
-impl std::ops::Deref for BindingMetadata {
+impl Deref for BindingMetadata {
     type Target = FxHashMap<&'static str, BindingTypes>;
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -400,7 +401,7 @@ pub struct BaseConverter {
     pub directive_converters: FxHashMap<&'static str, DirConvertFn>,
     /// Optional binding metadata analyzed from script - used to optimize
     /// binding access when `prefixIdentifiers` is enabled.
-    pub binding_metadata: BindingMetadata,
+    pub binding_metadata: Rc<BindingMetadata>,
     /// current SFC filename for self-referencing
     pub self_name: String,
     err_handle: Box<dyn ErrorHandler>,
@@ -530,7 +531,7 @@ pub mod test {
             slotted: false,
             inline: true,
             directive_converters: convs,
-            binding_metadata: BindingMetadata(FxHashMap::default(), false),
+            binding_metadata: Rc::new(BindingMetadata(FxHashMap::default(), false)),
             self_name: "".into(),
             err_handle: Box::new(TestErrorHandler),
         };

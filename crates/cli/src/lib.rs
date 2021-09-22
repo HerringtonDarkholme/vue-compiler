@@ -18,18 +18,19 @@ use path_clean::PathClean;
 
 pub mod ast_print;
 pub struct PrettyErrorHandler<'a> {
+    name: &'a str,
     source: &'a str,
 }
 
 impl<'a> PrettyErrorHandler<'a> {
-    pub fn new(source: &'a str) -> Self {
-        Self { source }
+    pub fn new(name: &'a str, source: &'a str) -> Self {
+        Self { name, source }
     }
 }
 impl<'a> ErrorHandler for PrettyErrorHandler<'a> {
     fn on_error(&self, err: CompilationError) {
         let mut files = SimpleFiles::new();
-        let default_vue = files.add("default.vue", self.source);
+        let default_vue = files.add(self.name, self.source);
         let diagnostic = Diagnostic::error().with_labels(vec![Label::primary(
             default_vue,
             err.location.clone(),

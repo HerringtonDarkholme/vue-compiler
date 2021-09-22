@@ -1,8 +1,8 @@
 use anyhow::Result;
 use clap::{AppSettings, Clap};
-use compiler::parser::{ParseOption, Parser };
-use compiler::tokenizer::{self, TokenizeOption};
 use cli::ast_print::AstString;
+use compiler::parser::{ParseOption, Parser};
+use compiler::tokenizer::{self, TokenizeOption};
 
 use std::fs::read_to_string;
 

@@ -1,16 +1,20 @@
-use std::{env, io, path::{Path, PathBuf}};
+use std::{
+    env, io,
+    path::{Path, PathBuf},
+};
 
 use anyhow::bail;
+use anyhow::Result;
 use codespan_reporting::{
     diagnostic::{Diagnostic, Label},
     files::SimpleFiles,
     term::{
         self,
-        termcolor::{ColorChoice, StandardStream}, },
+        termcolor::{ColorChoice, StandardStream},
+    },
 };
 use compiler::converter::{CompilationError, ErrorHandler};
 use path_clean::PathClean;
-use anyhow::Result;
 
 pub mod ast_print;
 pub struct PrettyErrorHandler<'a> {
@@ -40,7 +44,6 @@ impl<'a> ErrorHandler for PrettyErrorHandler<'a> {
     }
 }
 
-
 pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
     let path = path.as_ref();
 
@@ -52,8 +55,6 @@ pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
     .clean();
 
     Ok(absolute_path)
-
-
 }
 pub fn get_delimiters(delimiters: String) -> Result<(String, String)> {
     let split_delimiter = delimiters.split_once(" ");

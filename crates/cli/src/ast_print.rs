@@ -9,6 +9,7 @@ use compiler::{
 pub trait AstString {
     fn ast_string(&self, level: usize) -> String;
 }
+
 impl<'a> AstString for AstRoot<'a> {
     fn ast_string(&self, level: usize) -> String {
         let SourceLocation { start, end } = &self.location;
@@ -126,7 +127,11 @@ impl<'a> AstString for ElemProp<'a> {
                     ret += &format!("\n{}", args.ast_string(level + 1));
                 }
                 if !modifiers.is_empty() {
-                    ret += &format!("\n{}modifiers `{}`", "  ".repeat(level + 1), modifiers.join(".") );
+                    ret += &format!(
+                        "\n{}modifiers `{}`",
+                        "  ".repeat(level + 1),
+                        modifiers.join(".")
+                    );
                 }
                 let expression = if let Some(value) = expression {
                     let AttributeValue {

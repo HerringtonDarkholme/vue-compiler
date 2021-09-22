@@ -217,6 +217,19 @@ pub enum BindingTypes {
     Options,
 }
 
+impl BindingTypes {
+    pub fn get_js_prop<'a>(&self, prop_name: VStr<'a>) -> JsExpr<'a> {
+        use BindingTypes::*;
+        let obj_dot = JsExpr::Src(match self {
+            Data => "$data.",
+            Props => "$props.",
+            Options => "$options.",
+            _ => "$setup.",
+        });
+        JsExpr::Compound(vec![obj_dot, JsExpr::simple(prop_name)])
+    }
+}
+
 pub struct IRRoot<T: ConvertInfo> {
     pub body: Vec<IRNode<T>>,
     /// entities to define/import in top level scope

@@ -381,7 +381,7 @@ where
             .into_iter()
             .map(|attr| {
                 if dir_parser.detect_directive(&attr) {
-                    // TODO: report duplicate prop
+                    // TODO: report duplicate prop by is_mergeable_prop
                     ElemProp::Dir(dir_parser.parse(attr))
                 } else {
                     ElemProp::Attr(attr)

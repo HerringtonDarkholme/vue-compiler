@@ -42,6 +42,7 @@ pub trait Transformer {
 
 pub struct TransformOption {
     is_ts: bool,
+    inline: bool,
     prefix_identifier: bool,
     binding_metadata: Rc<BindingMetadata>,
 }

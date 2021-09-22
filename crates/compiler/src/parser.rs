@@ -493,6 +493,8 @@ where
     fn parse_text(&mut self, text: VStr<'a>) {
         let mut text = smallvec![text];
         let mut next_token = None;
+        let start = self.tokens.last_position();
+        let location = self.tokens.get_location_from(start);
         for token in &mut self.tokens {
             if let Token::Text(ds) = token {
                 text.push(ds);
@@ -501,8 +503,6 @@ where
                 break;
             }
         }
-        let start = self.tokens.last_position();
-        let location = self.tokens.get_location_from(start);
         let text_node = TextNode { text, location };
         self.insert_node(AstNode::Text(text_node));
         // NB: token must not be dropped

@@ -218,7 +218,7 @@ pub enum BindingTypes {
 }
 
 impl BindingTypes {
-    pub fn get_js_prop<'a>(&self, prop_name: VStr<'a>) -> JsExpr<'a> {
+    pub fn get_js_prop<'a>(&self, name: VStr<'a>, lvl: StaticLevel) -> JsExpr<'a> {
         use BindingTypes::*;
         let obj_dot = JsExpr::Src(match self {
             Data => "$data.",
@@ -226,7 +226,8 @@ impl BindingTypes {
             Options => "$options.",
             _ => "$setup.",
         });
-        JsExpr::Compound(vec![obj_dot, JsExpr::simple(prop_name)])
+        let prop = JsExpr::Simple(name, lvl);
+        JsExpr::Compound(vec![obj_dot, prop])
     }
 }
 

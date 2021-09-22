@@ -65,8 +65,8 @@ impl<'b> ExpressionProcessor<'b> {
         let is_allowed_global = is_global_allow_listed(raw_exp);
         let is_literal = matches!(raw_exp, "true" | "false" | "null" | "this");
         if !is_scope_reference && !is_allowed_global && !is_literal {
-            // const bindings exposed from setup can skip patching
-            // but cannot be hoisted to module scope
+            // const bindings from setup can skip patching but cannot be hoisted
+            // NB: this only applies to simple expression. e.g :prop="constBind()"
             let bindings = &self.option.binding_metadata;
             let lvl = match bindings.get(raw_exp) {
                 Some(BindingTypes::SetupConst) => StaticLevel::CanSkipPatch,
@@ -92,9 +92,10 @@ impl<'b> ExpressionProcessor<'b> {
             return rewrite_inline_identifier(raw);
         }
         if let Some(bind) = binding {
-            bind.get_js_prop(raw)
+            bind.get_js_prop(raw, static_level)
         } else {
-            let prop = Js::Simple(raw, static_level);
+            debug_assert!(static_level == StaticLevel::NotStatic);
+            let prop = Js::simple(raw);
             Js::Compound(vec![Js::Src("$ctx."), prop])
         }
     }

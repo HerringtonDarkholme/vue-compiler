@@ -151,6 +151,7 @@ pub struct VSlotIR<T: ConvertInfo> {
 }
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
+#[derive(Clone)]
 pub enum JsExpr<'a> {
     /// Source. output to generated code as is.
     Src(&'a str),

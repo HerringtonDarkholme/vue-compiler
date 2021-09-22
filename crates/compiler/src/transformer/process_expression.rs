@@ -3,7 +3,7 @@
 // 2. prefix expression
 use super::{BaseInfo, CorePassExt, TransformOption};
 use crate::converter::{BaseRoot, BindingTypes, JsExpr as Js};
-use crate::flags::StaticLevel;
+use crate::flags::{RuntimeHelper as RH, StaticLevel};
 use crate::util::{is_global_allow_listed, is_simple_identifier, VStr};
 use rustc_hash::FxHashMap;
 
@@ -35,7 +35,9 @@ impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'b> {
         };
         *shared.identifiers.entry(a).or_default() -= 1;
     }
-    fn enter_js_expr(&mut self, e: &mut Js<'a>, shared: &mut Scope<'a>) {
+    // only transform expression after its' sub-expression is transformed
+    // e.g. compound/array/call expression
+    fn exit_js_expr(&mut self, e: &mut Js<'a>, shared: &mut Scope<'a>) {
         self.process_expression(e, shared);
     }
 }
@@ -72,7 +74,7 @@ impl<'b> ExpressionProcessor<'b> {
                 Some(BindingTypes::SetupConst) => StaticLevel::CanSkipPatch,
                 _ => *level,
             };
-            *e = self.rewrite_identifier(*v, lvl);
+            *e = self.rewrite_identifier(*v, lvl, CtxType::NoWrite);
         } else if !is_scope_reference {
             *level = if is_literal {
                 StaticLevel::CanStringify
@@ -86,19 +88,36 @@ impl<'b> ExpressionProcessor<'b> {
     fn process_with_swc(&self, e: &mut Js) {
         todo!()
     }
-    fn rewrite_identifier<'a>(&self, raw: VStr<'a>, static_level: StaticLevel) -> Js<'a> {
+    fn rewrite_identifier<'a>(
+        &self,
+        raw: VStr<'a>,
+        level: StaticLevel,
+        ctx: CtxType<'a>,
+    ) -> Js<'a> {
         let binding = self.option.binding_metadata.get(&raw.raw);
-        if self.option.inline {
-            return rewrite_inline_identifier(raw);
-        }
         if let Some(bind) = binding {
-            bind.get_js_prop(raw, static_level)
+            if self.option.inline {
+                rewrite_inline_identifier(raw, level, bind, ctx)
+            } else {
+                bind.get_js_prop(raw, level)
+            }
         } else {
-            debug_assert!(static_level == StaticLevel::NotStatic);
+            debug_assert!(level == StaticLevel::NotStatic);
             let prop = Js::simple(raw);
             Js::Compound(vec![Js::Src("$ctx."), prop])
         }
     }
+}
+
+enum CtxType<'a> {
+    /// ref = value, ref += value
+    Assign(Js<'a>),
+    /// ref++, ref--, ...
+    Update(bool, Js<'a>),
+    /// ({x}) = y
+    Destructure,
+    /// No reactive var writing
+    NoWrite,
 }
 
 // parse expr as function params:
@@ -108,6 +127,77 @@ fn process_fn_param(p: &mut Js) {
     todo!()
 }
 
-fn rewrite_inline_identifier(raw: VStr) -> Js {
-    todo!()
+fn rewrite_inline_identifier<'a>(
+    raw: VStr<'a>,
+    level: StaticLevel,
+    bind: &BindingTypes,
+    ctx: CtxType<'a>,
+) -> Js<'a> {
+    use BindingTypes as BT;
+    debug_assert!(level == StaticLevel::NotStatic || bind == &BT::SetupConst);
+    let expr = move || Js::Simple(raw, level);
+    let dot_value = move || Js::Compound(vec![expr(), Js::Src(".value")]);
+    match bind {
+        BT::SetupConst => expr(),
+        BT::SetupRef => dot_value(),
+        BT::SetupMaybeRef => {
+            // const binding that may or may not be ref
+            // if it's not a ref, then assignments don't make sense -
+            // so we ignore the non-ref assignment case and generate code
+            // that assumes the value to be a ref for more efficiency
+            if !matches!(ctx, CtxType::NoWrite) {
+                dot_value()
+            } else {
+                Js::Call(RH::Unref, vec![expr()])
+            }
+        }
+        BT::SetupLet => rewrite_setup_let(ctx, expr, dot_value),
+        BT::Props => Js::Compound(vec![Js::Src("__props."), expr()]),
+        BT::Data | BT::Options => Js::Compound(vec![Js::Src("_ctx."), expr()]),
+    }
+}
+
+fn rewrite_setup_let<'a, E, D>(ctx: CtxType<'a>, expr: E, dot_value: D) -> Js<'a>
+where
+    E: Fn() -> Js<'a>,
+    D: Fn() -> Js<'a>,
+{
+    match ctx {
+        CtxType::Assign(assign) => Js::Compound(vec![
+            Js::Call(RH::IsRef, vec![expr()]),
+            Js::Src("? "),
+            dot_value(),
+            assign.clone(),
+            Js::Src(": "),
+            expr(),
+            assign,
+        ]),
+        CtxType::Update(is_pre, op) => {
+            let mut v = vec![Js::Call(RH::IsRef, vec![expr()])];
+            v.push(Js::Src("? "));
+            if is_pre {
+                v.push(op.clone());
+                v.push(dot_value());
+            } else {
+                v.push(dot_value());
+                v.push(op.clone());
+            }
+            v.push(Js::Src(": "));
+            if is_pre {
+                v.push(op);
+                v.push(expr());
+            } else {
+                v.push(expr());
+                v.push(op);
+            }
+            Js::Compound(v)
+        }
+        CtxType::Destructure => {
+            // TODO let binding in a destructure assignment - it's very tricky to
+            // handle both possible cases here without altering the original
+            // structure of the code, so we just assume it's not a ref here for now
+            expr()
+        }
+        CtxType::NoWrite => Js::Call(RH::Unref, vec![expr()]),
+    }
 }

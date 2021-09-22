@@ -49,17 +49,59 @@ pub fn is_simple_identifier(s: VStr) -> bool {
     raw.chars().all(is_ident) && !raw.starts_with(|c: char| c.is_ascii_digit())
 }
 
+macro_rules! make_list {
+    ( $($id: ident),* ) => {
+        &[
+            $(stringify!($id)),*
+        ]
+    }
+}
+
+// use simple contains for small str array
+// benchmark shows linear scan takes at most 10ns
+// while phf or bsearch takes 30ns
+const ALLOWED_GLOBALS: &[&str] = make_list!(
+    Infinity,
+    undefined,
+    NaN,
+    isFinite,
+    isNaN,
+    parseFloat,
+    parseInt,
+    decodeURI,
+    decodeURIComponent,
+    encodeURI,
+    encodeURIComponent,
+    Math,
+    Number,
+    Date,
+    Array,
+    Object,
+    Boolean,
+    String,
+    RegExp,
+    Map,
+    Set,
+    JSON,
+    Intl,
+    BigInt
+);
+pub fn is_global_allow_listed(s: &str) -> bool {
+    ALLOWED_GLOBALS.contains(&s)
+}
+
 // https://github.com/vuejs/rfcs/blob/master/active-rfcs/0008-render-function-api-change.md#special-reserved-props
-const RESERVED: &[&str] = &[
-    "key",
-    "ref",
-    "onVnodeMounted",
-    "onVnodeUpdated",
-    "onVnodeUnmounted",
-    "onVnodeBeforeMount",
-    "onVnodeBeforeUpdate",
-    "onVnodeBeforeUnmount",
-];
+const RESERVED: &[&str] = make_list!(
+    key,
+    ref,
+    onVnodeMounted,
+    onVnodeUpdated,
+    onVnodeUnmounted,
+    onVnodeBeforeMount,
+    onVnodeBeforeUpdate,
+    onVnodeBeforeUnmount
+);
+
 #[inline]
 pub fn is_reserved_prop(tag: &str) -> bool {
     RESERVED.contains(&tag)

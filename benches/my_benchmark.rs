@@ -28,32 +28,40 @@ const KEYWORDS: phf::Set<&'static str> = phf_set! {
   "BigInt",
 };
 
-const KEYS: &[&str] = &[
-    "Array",
-    "BigInt",
-    "Boolean",
-    "Date",
-    "Infinity",
-    "Intl",
-    "JSON",
-    "Map",
-    "Math",
-    "NaN",
-    "Number",
-    "Object",
-    "RegExp",
-    "Set",
-    "String",
-    "decodeURI",
-    "decodeURIComponent",
-    "encodeURI",
-    "encodeURIComponent",
-    "isFinite",
-    "isNaN",
-    "parseFloat",
-    "parseInt",
-    "undefined",
-];
+macro_rules! make_list {
+    ( $($id: ident),* ) => {
+        &[
+            $(stringify!($id)),*
+        ]
+    }
+}
+
+const KEYS: &[&str] = make_list!(
+    Infinity,
+    undefined,
+    NaN,
+    isFinite,
+    isNaN,
+    parseFloat,
+    parseInt,
+    decodeURI,
+    decodeURIComponent,
+    encodeURI,
+    encodeURIComponent,
+    Math,
+    Number,
+    Date,
+    Array,
+    Object,
+    Boolean,
+    String,
+    RegExp,
+    Map,
+    Set,
+    JSON,
+    Intl,
+    BigInt
+);
 
 fn test_phf(s: &str) -> bool {
     KEYWORDS.contains(s)

@@ -22,6 +22,7 @@ pub trait CodeGenerator {
 }
 
 pub struct CodeGenerateOption {
+    pub is_dev: bool,
     pub is_ts: bool,
     pub source_map: bool,
     // filename for source map
@@ -31,6 +32,7 @@ pub struct CodeGenerateOption {
 impl Default for CodeGenerateOption {
     fn default() -> Self {
         Self {
+            is_dev: true,
             is_ts: false,
             source_map: false,
             filename: String::new(),
@@ -73,6 +75,7 @@ pub struct CodeWriter<'a, T: Write> {
     indent_level: usize,
     closing_brackets: usize,
     top_scope: TopScope<'a>,
+    option: CodeGenerateOption,
 }
 impl<'a, T: Write> CodeGenerator for CodeWriter<'a, T> {
     type IR = BaseRoot<'a>;
@@ -134,11 +137,8 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
             self.write_str(": ")?;
         }
         // generate default v-else comment
-        let comment = Js::Call(
-            RH::CreateComment,
-            // TODO: add DEV flag
-            vec![Js::Src("''"), Js::Src("true")],
-        );
+        let s = if self.option.is_dev { "'v-if'" } else { "''" };
+        let comment = Js::Call(RH::CreateComment, vec![Js::Src(s), Js::Src("true")]);
         self.generate_js_expr(comment)?;
         self.flush_deindent(indent)
     }
@@ -643,17 +643,21 @@ fn runtime_dirs_to_js_arr(dirs: Vec<RuntimeDir<BaseConvertInfo>>) -> Js {
 mod test {
     use super::super::converter::test::base_convert;
     use super::*;
-    fn base_gen(s: &str) -> String {
+    fn gen(ir: BaseRoot) -> String {
         let mut writer = CodeWriter {
             writer: vec![],
             indent_level: 0,
             closing_brackets: 0,
             top_scope: TopScope::default(),
+            option: CodeGenerateOption::default(),
         };
         writer.top_scope.helpers.ignore_missing();
-        let ir = base_convert(s);
         writer.generate_root(ir).unwrap();
         String::from_utf8(writer.writer).unwrap()
+    }
+    fn base_gen(s: &str) -> String {
+        let ir = base_convert(s);
+        gen(ir)
     }
     #[test]
     fn test_text() {
@@ -667,6 +671,12 @@ mod test {
         let s = base_gen("<p/>");
         assert!(s.contains("\"p\""), "{}", s);
         assert!(s.contains("createElementVNode"), "{}", s);
+        let mut ir = base_convert("<p/>");
+        if let IRNode::VNodeCall(vn) = &mut ir.body[0] {
+            vn.is_block = true;
+        }
+        let s = gen(ir);
+        assert!(s.contains("openBlock"), "{}", s);
     }
     #[test]
     fn test_attr() {
@@ -710,7 +720,23 @@ mod test {
         assert!(s.contains("condition"), "{}", s);
         assert!(s.contains("? "), "{}", s);
         assert!(s.contains("createCommentVNode"), "{}", s);
+        let mut ir = base_convert("<p v-if='condition'/>");
+        if let IRNode::If(i) = &mut ir.body[0] {
+            if let IRNode::VNodeCall(vn) = &mut *i.branches[0].child {
+                vn.is_block = true;
+            }
+        }
+        let s = gen(ir);
+        assert!(s.contains("openBlock"), "{}", s);
     }
+    #[test]
+    fn test_v_if_slot() {
+        let s = base_gen("<slot v-if='condition'/>");
+        assert!(!s.contains("openBlock"), "{}", s);
+        assert!(s.contains("? "), "{}", s);
+        assert!(s.contains("createCommentVNode"), "{}", s);
+    }
+
     #[test]
     fn test_v_for() {
         let s = base_gen("<p v-for='a in b'/>");

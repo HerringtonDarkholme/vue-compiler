@@ -290,7 +290,7 @@ fn build_children<'a>(bc: &BC, e: &mut Element<'a>, tag: &Js<'a>) -> (Vec<BaseIR
     if children.len() == 1 && !is_builtin_symbol(tag, Teleport) {
         let child = &children[0];
         if let IRNode::TextCall(t) = child {
-            let has_non_static = t
+            let has_non_static = t.texts
                 .iter()
                 .map(Js::static_level)
                 .any(|f| f == StaticLevel::NotStatic);

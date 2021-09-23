@@ -71,7 +71,7 @@ pub trait ConvertInfo {
 
 pub enum IRNode<T: ConvertInfo> {
     /// interpolation or text node
-    TextCall(T::TextType),
+    TextCall(TextIR<T>),
     /// v-if, else-if, else
     If(IfNodeIR<T>),
     /// v-for
@@ -88,6 +88,11 @@ pub enum IRNode<T: ConvertInfo> {
     CommentCall(T::CommentType),
 }
 
+pub struct TextIR<T: ConvertInfo> {
+    pub fast_path: bool, // without createTextCall
+    pub need_patch: bool, // PatchFlag::TEXT
+    pub texts: T::TextType,
+}
 pub struct IfNodeIR<T: ConvertInfo> {
     pub branches: Vec<IfBranch<T>>,
     pub info: T::IfType,
@@ -476,13 +481,21 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     }
     fn convert_text(&self, text: TextNode<'a>) -> BaseIR<'a> {
         // TODO: reduce allocation by push to existing
-        let expr = text.text.into_iter().map(JsExpr::StrLit).collect();
-        IRNode::TextCall(expr)
+        let texts = text.text.into_iter().map(JsExpr::StrLit).collect();
+        IRNode::TextCall(TextIR {
+            fast_path: false,
+            need_patch: false,
+            texts,
+        })
     }
     fn convert_interpolation(&self, interp: SourceNode<'a>) -> BaseIR<'a> {
         let expr = JsExpr::simple(interp.source);
         let call = JsExpr::Call(RuntimeHelper::ToDisplayString, vec![expr]);
-        IRNode::TextCall(smallvec![call])
+        IRNode::TextCall(TextIR {
+            fast_path: false,
+            need_patch: false,
+            texts: smallvec![call],
+        })
     }
     fn convert_template(&self, e: Element<'a>) -> BaseIR<'a> {
         convert_element::convert_template(self, e, false)
@@ -528,8 +541,8 @@ pub mod test {
             panic!("wrong parsing");
         }
         let body = base_convert("hello world").body;
-        if let IRNode::TextCall(texts) = &body[0] {
-            assert_str_lit(&texts[0], "hello world");
+        if let IRNode::TextCall(t) = &body[0] {
+            assert_str_lit(&t.texts[0], "hello world");
         } else {
             panic!("wrong parsing");
         }

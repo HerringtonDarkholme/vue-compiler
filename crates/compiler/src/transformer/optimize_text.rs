@@ -57,7 +57,7 @@ fn has_custom_dir(v: &BaseVNode) -> bool {
 }
 
 fn optimize_away_call(cs: &mut Vec<BaseIR>) {
-    if cs.len() > 1 {
+    if cs.len() != 1 {
         return;
     }
     if let IR::TextCall(t) = &mut cs[0] {
@@ -75,12 +75,18 @@ fn must_text<'a, 'b>(a: &'b mut BaseIR<'a>) -> &'b mut SmallVec<[Js<'a>; 1]> {
 #[cfg(test)]
 mod test {
     use super::super::test::{base_convert, get_transformer};
-    use super::super::Transformer;
+    use super::super::{BaseText, Transformer};
     use super::*;
     use crate::converter::RenderSlotIR;
 
     fn must_render_slot<'a, 'b>(a: &'b mut BaseIR<'a>) -> &'b mut RenderSlotIR<BaseInfo<'a>> {
         if let IR::RenderSlotCall(t) = a {
+            return t;
+        }
+        panic!("impossible")
+    }
+    fn must_ir<'a, 'b>(a: &'b BaseIR<'a>) -> &'b BaseText<'a> {
+        if let IR::TextCall(t) = a {
             return t;
         }
         panic!("impossible")
@@ -96,6 +102,9 @@ mod test {
         transformer.transform(&mut ir);
         assert_eq!(ir.body.len(), 1);
         assert_eq!(must_text(&mut ir.body[0]).len(), 2);
+        let ir = must_ir(&mut ir.body[0]);
+        assert!(ir.fast_path);
+        assert!(!ir.need_patch);
     }
 
     #[test]
@@ -105,7 +114,8 @@ mod test {
         assert_eq!(ir.body.len(), 4);
         transformer.transform(&mut ir);
         assert_eq!(ir.body.len(), 3);
-        assert_eq!(must_text(&mut ir.body[2]).len(), 1);
+        assert_eq!(must_text(&mut ir.body[2]).len(), 2);
+        assert!(!must_ir(&mut ir.body[2]).fast_path);
         let mut ir = base_convert("a <p/> a {{f}} b<p/> e {{c}}<p/>");
         transformer.transform(&mut ir);
         assert_eq!(ir.body.len(), 6);
@@ -119,7 +129,8 @@ mod test {
         let slot = must_render_slot(&mut ir.body[0]);
         assert_eq!(slot.fallbacks.len(), 1);
         let text = must_text(&mut slot.fallbacks[0]);
-        assert_eq!(text.len(), 1);
-        assert!(matches!(text[0], Js::Call(..)));
+        assert_eq!(text.len(), 2);
+        let ir = must_ir(&mut slot.fallbacks[0]);
+        assert!(!ir.fast_path);
     }
 }

@@ -128,6 +128,7 @@ fn build_explicit_slots<'a>(bc: &BC, templates: Vec<Element<'a>>) -> BaseVSlot<'
     let mut alterable = vec![];
     let mut seen = FxHashSet::default();
     for t in templates {
+        debug_assert!(is_template_slot(&t));
         let is_alterable = dir_finder(&t, ALTERABLE_DIRS)
             .allow_empty()
             .find()

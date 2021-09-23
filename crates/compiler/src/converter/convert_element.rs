@@ -12,7 +12,7 @@ use crate::{
     util::{find_dir, get_core_component, is_component_tag, prop_finder},
     SourceLocation,
 };
-use std::mem;
+use std::{iter, mem};
 
 pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
     debug_assert!(matches!(
@@ -48,9 +48,11 @@ pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
 }
 
 // is_slot indicates if the template should be compiled to dynamic slot expr
-pub fn convert_template<'a>(bc: &BC, e: Element<'a>, is_slot: bool) -> BaseIR<'a> {
+pub fn convert_template<'a>(bc: &BC, mut e: Element<'a>, is_slot: bool) -> BaseIR<'a> {
     debug_assert!(e.tag_type == ElementType::Template);
     check_wrong_slot(bc, &e, ErrorKind::VSlotTemplateMisplaced);
+    // TODO: optimize away template if it has one stable element child
+    // TODO: pass key property to the direct element child
     // template here is purely a fragment that groups element.
     let mut patch_flag = PatchFlag::STABLE_FRAGMENT;
     let child_count = e
@@ -58,6 +60,13 @@ pub fn convert_template<'a>(bc: &BC, e: Element<'a>, is_slot: bool) -> BaseIR<'a
         .iter()
         .filter(|c| !matches!(c, AstNode::Comment(_)))
         .count();
+    // only build key for props
+    let props = |e: &mut Element<'a>| {
+        let p = prop_finder(&mut *e, "key").find()?;
+        let key_prop_iter = iter::once(p.take());
+        build_props(bc, &mut *e, key_prop_iter).props
+    };
+    let props = props(&mut e);
     if child_count == 1 && bc.is_dev {
         patch_flag |= PatchFlag::DEV_ROOT_FRAGMENT;
     }
@@ -65,6 +74,7 @@ pub fn convert_template<'a>(bc: &BC, e: Element<'a>, is_slot: bool) -> BaseIR<'a
         tag: Js::Symbol(RuntimeHelper::Fragment),
         children: bc.convert_children(e.children),
         patch_flag,
+        props,
         is_block: true, // only v-if/v-for(always block) or v-slot(as wrapper)
         ..VNodeIR::default()
     })

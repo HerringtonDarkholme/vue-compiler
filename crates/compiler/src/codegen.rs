@@ -170,6 +170,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.write_str("(")?;
         self.gen_obj_props(stable_obj, gen_slot_fn)?;
         self.write_str(", ")?;
+        // TODO: it's not correct to reuse v-for in slot-fn
         self.generate_children(s.alterable_slots)?;
         self.write_str(")")
     }

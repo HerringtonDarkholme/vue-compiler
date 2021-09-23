@@ -547,6 +547,7 @@ pub mod test {
             scope_id: None,
             slotted: false,
             inline: true,
+            is_dev: true,
             directive_converters: convs,
             binding_metadata: Rc::new(BindingMetadata(FxHashMap::default(), false)),
             self_name: "".into(),

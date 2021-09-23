@@ -20,7 +20,7 @@ impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for PatchFlagMarker {
     fn exit_for(&mut self, f: &mut BaseFor<'a>, shared: &mut Scope<'a>) {
         let is_stable_fragment = f.source.static_level() > StaticLevel::NotStatic;
         let has_key = find_key(&f.child);
-        let fragment_flag = if is_stable_fragment {
+        f.fragment_flag = if is_stable_fragment {
             PatchFlag::STABLE_FRAGMENT
         } else if has_key {
             PatchFlag::KEYED_FRAGMENT

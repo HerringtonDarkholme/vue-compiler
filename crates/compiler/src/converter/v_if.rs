@@ -5,7 +5,7 @@ use super::{
 use crate::{
     converter::{CoreConverter, JsExpr as Js},
     error::CompilationErrorKind as ErrorKind,
-    tokenizer::{Attribute, AttributeValue},
+    tokenizer::Attribute,
     util::{find_dir_empty, find_prop, VStr},
 };
 use rustc_hash::FxHashSet;
@@ -103,8 +103,7 @@ pub fn pre_group_v_if(children: Vec<AstNode>) -> impl Iterator<Item = PreGroup> 
 /// key is Vue-generated default key based on the number of sibling v-if.
 pub fn convert_if<'a>(c: &BC, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
     debug_assert!(!elems.is_empty());
-    check_dangling_else(c, &elems[0]);
-    check_same_key(c, &elems);
+    check_v_if_group(c, &elems);
     let branches: Vec<_> = elems
         .into_iter()
         .enumerate()
@@ -113,11 +112,9 @@ pub fn convert_if<'a>(c: &BC, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a>
     IRNode::If(IfNodeIR { branches, info: () })
 }
 
-pub fn check_dangling_else<'a>(c: &BC, first_elem: &Element<'a>) {
-    if find_dir_empty(first_elem, "if").is_some() {
-        return;
-    }
-    let loc = find_dir_empty(first_elem, ["else-if", "else"])
+pub fn report_dangling_else<'a>(c: &BC, elem: &Element<'a>) {
+    debug_assert!(find_dir_empty(elem, "if").is_none());
+    let loc = find_dir_empty(elem, ["else-if", "else"])
         .expect("must have other v-if dir")
         .get_ref()
         .location
@@ -126,39 +123,57 @@ pub fn check_dangling_else<'a>(c: &BC, first_elem: &Element<'a>) {
     c.emit_error(error);
 }
 
-fn check_same_key<'a>(c: &BC, elems: &[Element<'a>]) {
-    // vue only does this in dev build
+fn check_duplicate_key<'a>(
+    c: &BC,
+    prop: &ElemProp<'a>,
+    dirs: &mut FxHashSet<VStr<'a>>,
+    attrs: &mut FxHashSet<VStr<'a>>,
+) {
+    match prop {
+        ElemProp::Dir(Directive {
+            expression: Some(v),
+            ..
+        }) => {
+            if dirs.contains(&v.content) {
+                let error =
+                    CompilationError::new(ErrorKind::VIfSameKey).with_location(v.location.clone());
+                c.emit_error(error);
+            } else {
+                dirs.insert(v.content);
+            }
+        }
+        ElemProp::Attr(Attribute { value: Some(v), .. }) => {
+            if attrs.contains(&v.content) {
+                let error =
+                    CompilationError::new(ErrorKind::VIfSameKey).with_location(v.location.clone());
+                c.emit_error(error);
+            } else {
+                attrs.insert(v.content);
+            }
+        }
+        _ => (),
+    }
+}
+
+fn check_v_if_group<'a>(c: &BC, elems: &[Element<'a>]) {
+    // 1. check dangling else
+    if find_dir_empty(&elems[0], "if").is_none() {
+        report_dangling_else(c, &elems[0]);
+    }
+    // 2. check duplicate v-if
     let mut dirs = FxHashSet::default();
     let mut attrs = FxHashSet::default();
+    let mut has_else = false;
     for child in elems {
-        let prop = find_prop(child, "key");
-        if prop.is_none() {
+        if has_else {
+            report_dangling_else(c, child);
             continue;
         }
-        match prop.unwrap().get_ref() {
-            ElemProp::Dir(Directive {
-                expression: Some(v),
-                ..
-            }) => {
-                if dirs.contains(v.content.raw) {
-                    let error = CompilationError::new(ErrorKind::VIfSameKey)
-                        .with_location(v.location.clone());
-                    c.emit_error(error);
-                } else {
-                    dirs.insert(v.content.raw);
-                }
-            }
-            ElemProp::Attr(Attribute { value: Some(v), .. }) => {
-                if attrs.contains(v.content.raw) {
-                    let error = CompilationError::new(ErrorKind::VIfSameKey)
-                        .with_location(v.location.clone());
-                    c.emit_error(error);
-                } else {
-                    attrs.insert(v.content.raw);
-                }
-            }
-            _ => (),
+        let prop = find_prop(child, "key");
+        if let Some(prop) = prop {
+            check_duplicate_key(c, prop.get_ref(), &mut dirs, &mut attrs);
         }
+        has_else = find_dir_empty(child, ["else"]).is_some();
     }
 }
 

@@ -23,6 +23,7 @@ seems patch flag can be extracted out
 
 mod collect_entities;
 mod mark_patch_flag;
+mod mark_slot_flag;
 mod optimize_text;
 mod pass;
 mod process_expression;
@@ -250,12 +251,30 @@ where
 
 #[cfg(test)]
 mod test {
+    use super::pass::{MergedPass, Scope, SharedInfoPasses};
     use super::*;
     pub use crate::converter::test::base_convert;
+    use rustc_hash::FxHashMap;
     pub fn get_transformer<'a, P>(pass: P) -> BaseTransformer<'a, P>
     where
         P: CorePass<BaseInfo<'a>> + 'static,
     {
+        BaseTransformer {
+            pass,
+            pd: PhantomData,
+        }
+    }
+
+    pub fn transformer_ext<'a, P>(pass: P) -> impl Transformer<IR = BaseRoot<'a>>
+    where
+        P: CorePassExt<BaseInfo<'a>, Scope<'a>> + 'static,
+    {
+        let pass = SharedInfoPasses {
+            passes: MergedPass::new([pass]),
+            shared_info: Scope {
+                identifiers: FxHashMap::default(),
+            },
+        };
         BaseTransformer {
             pass,
             pd: PhantomData,

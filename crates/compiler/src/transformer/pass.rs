@@ -34,6 +34,9 @@ pub struct MergedPass<P, const N: usize> {
 }
 
 impl<P, const N: usize> MergedPass<P, N> {
+    pub fn new(passes: [P; N]) -> Self {
+        Self { passes }
+    }
     fn enter<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut P),
@@ -127,10 +130,6 @@ pub trait CorePassExt<T: ConvertInfo, Shared> {
     fn enter_root(&mut self, r: &mut IRRoot<T>, shared: &mut Shared) {}
     fn exit_root(&mut self, r: &mut IRRoot<T>, shared: &mut Shared) {}
 
-    fn enter_if(&mut self, i: &mut C::IfNodeIR<T>, shared: &mut Shared) {}
-    fn exit_if(&mut self, i: &mut C::IfNodeIR<T>, shared: &mut Shared) {}
-    fn enter_for(&mut self, f: &mut C::ForNodeIR<T>, shared: &mut Shared) {}
-    fn exit_for(&mut self, f: &mut C::ForNodeIR<T>, shared: &mut Shared) {}
     fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>, shared: &mut Shared) {}
     fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>, shared: &mut Shared) {}
 }
@@ -140,8 +139,8 @@ pub struct Scope<'a> {
 }
 
 pub struct SharedInfoPasses<Pass, Shared, const N: usize> {
-    passes: MergedPass<Pass, N>,
-    shared_info: Shared,
+    pub passes: MergedPass<Pass, N>,
+    pub shared_info: Shared,
 }
 // TODO: add transform used
 impl<T, Pass, Shared, const N: usize> CorePass<T> for SharedInfoPasses<Pass, Shared, N>
@@ -172,22 +171,6 @@ where
     fn exit_fn_param(&mut self, prm: &mut T::JsExpression) {
         let shared = &mut self.shared_info;
         self.passes.exit(|p| p.exit_fn_param(prm, shared));
-    }
-    fn enter_if(&mut self, i: &mut C::IfNodeIR<T>) {
-        let shared = &mut self.shared_info;
-        self.passes.enter(|p| p.enter_if(i, shared))
-    }
-    fn exit_if(&mut self, i: &mut C::IfNodeIR<T>) {
-        let shared = &mut self.shared_info;
-        self.passes.exit(|p| p.exit_if(i, shared))
-    }
-    fn enter_for(&mut self, f: &mut C::ForNodeIR<T>) {
-        let shared = &mut self.shared_info;
-        self.passes.enter(|p| p.enter_for(f, shared))
-    }
-    fn exit_for(&mut self, f: &mut C::ForNodeIR<T>) {
-        let shared = &mut self.shared_info;
-        self.passes.exit(|p| p.exit_for(f, shared))
     }
     fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>) {
         let shared = &mut self.shared_info;

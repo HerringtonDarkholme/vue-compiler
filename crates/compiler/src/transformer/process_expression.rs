@@ -2,7 +2,7 @@
 // currently only v-for and v-slot
 // 2. prefix expression
 use super::{BaseInfo, CorePassExt, Scope, TransformOption};
-use crate::converter::{BaseRoot, BindingTypes, JsExpr as Js};
+use crate::converter::{BindingTypes, JsExpr as Js};
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
 use crate::util::{is_global_allow_listed, is_simple_identifier, VStr};
 
@@ -11,14 +11,12 @@ pub struct ExpressionProcessor<'b> {
 }
 
 impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'b> {
-    fn enter_root(&mut self, r: &mut BaseRoot<'a>, shared: &mut Scope<'a>) {}
-    fn exit_root(&mut self, r: &mut BaseRoot<'a>, shared: &mut Scope<'a>) {}
     fn enter_fn_param(&mut self, p: &mut Js<'a>, shared: &mut Scope<'a>) {
         process_fn_param(p);
         let a = match p {
             Js::Simple(v, _) => *v,
             Js::Compound(_) => todo!(),
-            _ => panic!("param should only be expression"),
+            _ => panic!("param should only be simple expression"),
         };
         *shared.identifiers.entry(a).or_default() += 1;
     }
@@ -26,7 +24,7 @@ impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'b> {
         let a = match p {
             Js::Simple(v, _) => *v,
             Js::Compound(_) => todo!(),
-            _ => panic!("param should only be expression"),
+            _ => panic!("param should only be simple expression"),
         };
         *shared.identifiers.entry(a).or_default() -= 1;
     }

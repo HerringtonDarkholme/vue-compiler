@@ -1,14 +1,14 @@
 // mark patch flag and is_block for runtime
 // it should happen after process_expression
-use super::{BaseFor, BaseIf, BaseInfo, BaseVNode, CorePassExt, Scope};
+use super::{BaseFor, BaseIf, BaseInfo, CorePass};
 use crate::converter::{BaseIR, IRNode as IR, JsExpr as Js, Prop};
 use crate::flags::{PatchFlag, RuntimeHelper as RH, StaticLevel};
 use crate::util::VStr;
 
 pub struct PatchFlagMarker;
 
-impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for PatchFlagMarker {
-    fn enter_if(&mut self, i: &mut BaseIf<'a>, _: &mut Scope<'a>) {
+impl<'a> CorePass<BaseInfo<'a>> for PatchFlagMarker {
+    fn enter_if(&mut self, i: &mut BaseIf<'a>) {
         for branch in i.branches.iter_mut() {
             // TODO: handle v-memo/v-once
             if let IR::VNodeCall(vn) = &mut *branch.child {
@@ -38,7 +38,7 @@ impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for PatchFlagMarker {
             }
         }
     }
-    fn exit_for(&mut self, f: &mut BaseFor<'a>, shared: &mut Scope<'a>) {
+    fn exit_for(&mut self, f: &mut BaseFor<'a>) {
         let is_stable_fragment = f.source.static_level() > StaticLevel::NotStatic;
         let has_key = find_key(&f.child);
         f.fragment_flag = if is_stable_fragment {
@@ -50,7 +50,6 @@ impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for PatchFlagMarker {
         };
         f.is_stable = is_stable_fragment;
     }
-    fn exit_vnode(&mut self, v: &mut BaseVNode<'a>, shared: &mut Scope<'a>) {}
 }
 
 fn find_key(t: &BaseIR) -> bool {

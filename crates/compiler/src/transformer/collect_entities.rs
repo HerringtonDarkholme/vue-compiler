@@ -1,7 +1,7 @@
 // this module collects following entities:
 // runtime helpers
 // component/directive asset
-use super::{BaseFor, BaseIf, BaseInfo, BaseRenderSlot, BaseVNode, BaseVSlot, CorePass};
+use super::{BaseFor, BaseIf, BaseInfo, BaseRenderSlot, BaseText, BaseVNode, BaseVSlot, CorePass};
 use crate::converter::{BaseRoot, JsExpr as Js};
 use crate::flags::{HelperCollector, RuntimeHelper as RH};
 use crate::util::{get_vnode_call_helper, VStr};
@@ -79,5 +79,11 @@ impl<'a> CorePass<BaseInfo<'a>> for EntityCollector<'a> {
     }
     fn exit_comment(&mut self, _: &mut &str) {
         self.helpers.collect(RH::CreateComment);
+    }
+
+    fn exit_text(&mut self, t: &mut BaseText<'a>) {
+        if !t.fast_path {
+            self.helpers.collect(RH::CreateText);
+        }
     }
 }

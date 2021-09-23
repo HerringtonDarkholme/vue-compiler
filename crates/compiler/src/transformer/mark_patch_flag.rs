@@ -1,6 +1,6 @@
 // mark patch flag and is_block for runtime
 // it should happen after process_expression
-use super::{BaseFor, BaseIf, BaseInfo, CorePass};
+use super::{BaseFor, BaseIf, BaseInfo, BaseText, CorePass};
 use crate::converter::{BaseIR, IRNode as IR, JsExpr as Js, Prop};
 use crate::flags::{PatchFlag, RuntimeHelper as RH, StaticLevel};
 use crate::util::VStr;
@@ -49,6 +49,21 @@ impl<'a> CorePass<BaseInfo<'a>> for PatchFlagMarker {
             PatchFlag::UNKEYED_FRAGMENT
         };
         f.is_stable = is_stable_fragment;
+    }
+
+    fn exit_text(&mut self, t: &mut BaseText<'a>) {
+        if !t.fast_path {
+            return;
+        }
+        let level = t
+            .texts
+            .iter()
+            .map(Js::static_level)
+            .min()
+            .unwrap_or(StaticLevel::CanStringify);
+        if level == StaticLevel::NotStatic {
+            t.need_patch = true;
+        }
     }
 }
 

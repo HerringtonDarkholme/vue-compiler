@@ -5,8 +5,8 @@ use rustc_hash::FxHashMap;
 pub trait CorePass<T: ConvertInfo> {
     fn enter_root(&mut self, r: &mut IRRoot<T>) {}
     fn exit_root(&mut self, r: &mut IRRoot<T>) {}
-    fn enter_text(&mut self, t: &mut T::TextType) {}
-    fn exit_text(&mut self, t: &mut T::TextType) {}
+    fn enter_text(&mut self, t: &mut C::TextIR<T>) {}
+    fn exit_text(&mut self, t: &mut C::TextIR<T>) {}
     fn enter_if(&mut self, i: &mut C::IfNodeIR<T>) {}
     fn exit_if(&mut self, i: &mut C::IfNodeIR<T>) {}
     fn enter_for(&mut self, f: &mut C::ForNodeIR<T>) {}
@@ -63,10 +63,10 @@ where
     fn exit_root(&mut self, r: &mut IRRoot<T>) {
         self.exit(|p| p.exit_root(r))
     }
-    fn enter_text(&mut self, t: &mut T::TextType) {
+    fn enter_text(&mut self, t: &mut C::TextIR<T>) {
         self.enter(|p| p.enter_text(t))
     }
-    fn exit_text(&mut self, t: &mut T::TextType) {
+    fn exit_text(&mut self, t: &mut C::TextIR<T>) {
         self.exit(|p| p.exit_text(t))
     }
     fn enter_if(&mut self, i: &mut C::IfNodeIR<T>) {

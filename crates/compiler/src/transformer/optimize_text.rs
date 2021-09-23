@@ -1,36 +1,31 @@
-use smallvec::{smallvec, SmallVec};
+use smallvec::SmallVec;
 
 use super::{BaseInfo, BaseRenderSlot, BaseSlotFn, BaseVNode, CorePass, IRNode as IR};
 use crate::converter::{BaseIR, BaseRoot, JsExpr as Js};
-use crate::flags::RuntimeHelper as RH;
 
 pub struct TextOptimizer;
 
 impl<'a> CorePass<BaseInfo<'a>> for TextOptimizer {
     fn enter_root(&mut self, r: &mut BaseRoot<'a>) {
         merge_consecutive_calls(&mut r.body);
-        if r.body.len() <= 1 {
-            return;
-        }
-        add_create_text(&mut r.body);
+        optimize_away_call(&mut r.body);
     }
     fn enter_vnode(&mut self, v: &mut BaseVNode<'a>) {
         merge_consecutive_calls(&mut v.children);
         // #3756 custom directives can mutate DOM arbitrarily so set no textContent
-        if v.is_component || v.children.len() > 1 || has_custom_dir(v) {
-            add_create_text(&mut v.children);
+        if v.is_component || has_custom_dir(v) {
+            return;
         }
         // if this is a plain element with a single text child,
         // leave it as is since the runtime has dedicated fast path for this
         // by directly setting textContent of the element
+        optimize_away_call(&mut v.children);
     }
     fn enter_slot_outlet(&mut self, r: &mut BaseRenderSlot<'a>) {
         merge_consecutive_calls(&mut r.fallbacks);
-        add_create_text(&mut r.fallbacks);
     }
     fn enter_slot_fn(&mut self, s: &mut BaseSlotFn<'a>) {
         merge_consecutive_calls(&mut s.body);
-        add_create_text(&mut s.body);
     }
 }
 
@@ -61,34 +56,18 @@ fn has_custom_dir(v: &BaseVNode) -> bool {
     !v.directives.is_empty()
 }
 
-pub fn concat_str<'a, I>(mut texts: I) -> Js<'a>
-where
-    I: ExactSizeIterator<Item = Js<'a>>,
-{
-    debug_assert!(texts.len() > 0);
-    let mut v = Vec::with_capacity(2 * texts.len() - 1);
-    v.push(texts.next().unwrap());
-    for t in texts {
-        v.push(Js::Src(" + "));
-        v.push(t);
+fn optimize_away_call(cs: &mut Vec<BaseIR>) {
+    if cs.len() > 1 {
+        return;
     }
-    Js::Compound(v)
-}
-
-fn add_create_text(cs: &mut Vec<BaseIR>) {
-    for child in cs.iter_mut() {
-        if let IR::TextCall(t) = child {
-            let texts = std::mem::take(t);
-            // TODO: add patch flag
-            let merged_args = vec![concat_str(texts.into_iter())];
-            *t = smallvec![Js::Call(RH::CreateText, merged_args)];
-        }
+    if let IR::TextCall(t) = &mut cs[0] {
+        t.fast_path = true;
     }
 }
 
 fn must_text<'a, 'b>(a: &'b mut BaseIR<'a>) -> &'b mut SmallVec<[Js<'a>; 1]> {
     if let IR::TextCall(t) = a {
-        return t;
+        return &mut t.texts;
     }
     panic!("impossible")
 }

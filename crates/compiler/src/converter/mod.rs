@@ -89,7 +89,7 @@ pub enum IRNode<T: ConvertInfo> {
 }
 
 pub struct TextIR<T: ConvertInfo> {
-    pub fast_path: bool, // without createTextCall
+    pub fast_path: bool,  // without createTextCall
     pub need_patch: bool, // PatchFlag::TEXT
     pub texts: T::TextType,
 }

@@ -5,7 +5,9 @@ use super::converter::{
     TopScope, VNodeIR,
 };
 use super::flags::{PatchFlag, RuntimeHelper as RH};
-use super::transformer::{BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseVNode, BaseVSlot};
+use super::transformer::{
+    BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot,
+};
 use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
@@ -55,7 +57,7 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
     }
     fn generate_prologue(&mut self, t: &IRRoot<T>) -> Self::Written;
     fn generate_epilogue(&mut self) -> Self::Written;
-    fn generate_text(&mut self, t: T::TextType) -> Self::Written;
+    fn generate_text(&mut self, t: C::TextIR<T>) -> Self::Written;
     fn generate_if(&mut self, i: C::IfNodeIR<T>) -> Self::Written;
     fn generate_for(&mut self, f: C::ForNodeIR<T>) -> Self::Written;
     fn generate_vnode(&mut self, v: C::VNodeIR<T>) -> Self::Written;
@@ -99,17 +101,18 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         debug_assert_eq!(self.indent_level, 0);
         Ok(())
     }
-    fn generate_text(&mut self, t: SmallVec<[Js<'a>; 1]>) -> io::Result<()> {
-        let mut texts = t.into_iter();
-        match texts.next() {
-            Some(t) => self.generate_js_expr(t)?,
-            None => return Ok(()),
+    fn generate_text(&mut self, t: BaseText<'a>) -> io::Result<()> {
+        if t.fast_path {
+            return self.gen_concate_str(t.texts);
         }
-        for t in texts {
-            self.write_str(" + ")?;
-            self.generate_js_expr(t)?;
+        self.write_helper(RH::CreateText)?;
+        self.write_str("(")?;
+        self.gen_concate_str(t.texts)?;
+        if t.need_patch {
+            self.write_str(", ")?;
+            self.write_patch(PatchFlag::TEXT)?;
         }
-        Ok(())
+        self.write_str(")")
     }
     fn generate_if(&mut self, i: BaseIf<'a>) -> io::Result<()> {
         let mut indent = 0;
@@ -260,6 +263,19 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     /// component/directive resolution inside render
     fn generate_assets(&mut self) -> io::Result<()> {
         // TODO
+        Ok(())
+    }
+
+    fn gen_concate_str(&mut self, t: SmallVec<[Js<'a>; 1]>) -> io::Result<()> {
+        let mut texts = t.into_iter();
+        match texts.next() {
+            Some(t) => self.generate_js_expr(t)?,
+            None => return Ok(()),
+        }
+        for t in texts {
+            self.write_str(" + ")?;
+            self.generate_js_expr(t)?;
+        }
         Ok(())
     }
 
@@ -426,6 +442,10 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.write_str("_")?;
         self.write_str(h.helper_str())
     }
+    #[inline(always)]
+    fn write_patch(&mut self, flag: PatchFlag) -> io::Result<()> {
+        write!(self.writer, "{} /*{:?}*/", flag.bits(), flag)
+    }
 }
 
 /// DecodedStr represents text after decoding html entities.
@@ -512,7 +532,7 @@ fn gen_vnode_call_args<'a, T: Write>(
         props.is_some(), { gen.generate_js_expr(props.unwrap())?; }
         !children.is_empty(), { gen.generate_children(children)?; }
         patch_flag != PatchFlag::empty(), {
-            write!(gen.writer, "{} /*{:?}*/", patch_flag.bits(), patch_flag)?;
+            gen.write_patch(patch_flag)?;
         }
         !dynamic_props.is_empty(), {
             let dps = dynamic_props.into_iter().map(Js::StrLit);

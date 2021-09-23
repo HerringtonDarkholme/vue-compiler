@@ -49,6 +49,7 @@ pub struct TransformOption {
     binding_metadata: Rc<BindingMetadata>,
 }
 
+pub type BaseText<'a> = C::TextIR<BaseInfo<'a>>;
 pub type BaseIf<'a> = C::IfNodeIR<BaseInfo<'a>>;
 pub type BaseFor<'a> = C::ForNodeIR<BaseInfo<'a>>;
 pub type BaseVNode<'a> = C::VNodeIR<BaseInfo<'a>>;
@@ -87,7 +88,7 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
             Self::transform_ir(child, ps);
         }
     }
-    fn transform_text(t: &mut T::TextType, ps: &mut P) {
+    fn transform_text(t: &mut C::TextIR<T>, ps: &mut P) {
         ps.enter_text(t);
         ps.exit_text(t);
     }

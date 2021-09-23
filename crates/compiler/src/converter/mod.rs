@@ -156,6 +156,8 @@ pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
 pub enum JsExpr<'a> {
     /// Source. output to generated code as is.
     Src(&'a str),
+    /// representing a number, either id or key
+    Num(usize),
     /// String Literal. output after quoted, used by attr/static arg.
     // TODO: StaticLevel + Simple can mock StrLit?
     StrLit(VStr<'a>),

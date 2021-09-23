@@ -177,6 +177,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
     fn generate_js_expr(&mut self, expr: Js<'a>) -> io::Result<()> {
         match expr {
             Js::Src(s) => self.write_str(s),
+            Js::Num(n) => write!(self.writer, "{}", n),
             Js::StrLit(mut l) => l.be_js_str().write_to(&mut self.writer),
             Js::Simple(e, _) => e.write_to(&mut self.writer),
             Js::Symbol(s) => self.write_helper(s),

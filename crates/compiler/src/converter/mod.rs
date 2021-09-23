@@ -103,6 +103,7 @@ pub struct ForNodeIR<T: ConvertInfo> {
     pub child: Box<IRNode<T>>,
     pub is_stable: bool,
     pub fragment_flag: PatchFlag,
+    pub key: Option<T::JsExpression>,
 }
 // (value, key, index) in source
 pub struct ForParseResult<T: ConvertInfo> {
@@ -413,6 +414,7 @@ pub struct BaseConverter {
     /// Compile the function for inlining inside setup().
     /// This allows the function to directly access setup() local bindings.
     pub inline: bool,
+    pub is_dev: bool,
     pub directive_converters: FxHashMap<&'static str, DirConvertFn>,
     /// Optional binding metadata analyzed from script - used to optimize
     /// binding access when `prefixIdentifiers` is enabled.

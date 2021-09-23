@@ -37,6 +37,7 @@ pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> B
         source,
         parse_result,
         child: Box::new(n),
+        key: None,
         is_stable: false,                  // TODO
         fragment_flag: PatchFlag::empty(), // TODO
     })

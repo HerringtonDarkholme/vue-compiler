@@ -1,15 +1,10 @@
 // 1. track variables introduced in template
 // currently only v-for and v-slot
 // 2. prefix expression
-use super::{BaseInfo, CorePassExt, TransformOption};
+use super::{BaseInfo, CorePassExt, Scope, TransformOption};
 use crate::converter::{BaseRoot, BindingTypes, JsExpr as Js};
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
 use crate::util::{is_global_allow_listed, is_simple_identifier, VStr};
-use rustc_hash::FxHashMap;
-
-pub struct Scope<'a> {
-    identifiers: FxHashMap<VStr<'a>, usize>,
-}
 
 pub struct ExpressionProcessor<'b> {
     option: &'b TransformOption,
@@ -112,7 +107,7 @@ impl<'b> ExpressionProcessor<'b> {
 enum CtxType<'a> {
     /// ref = value, ref += value
     Assign(Js<'a>),
-    /// ref++, ref--, ...
+    /// ref++, ++ref, ...
     Update(bool, Js<'a>),
     /// ({x}) = y
     Destructure,

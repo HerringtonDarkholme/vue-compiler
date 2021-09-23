@@ -22,6 +22,7 @@ seems patch flag can be extracted out
  */
 
 mod collect_entities;
+mod mark_patch_flag;
 mod optimize_text;
 mod pass;
 mod process_expression;
@@ -30,7 +31,7 @@ use super::converter::{
     self as C, BaseConvertInfo as BaseInfo, BaseRoot, BindingMetadata, ConvertInfo, IRNode, IRRoot,
     JsExpr as Js, RuntimeDir,
 };
-pub use pass::{CorePass, CorePassExt, MergedPass};
+pub use pass::{CorePass, CorePassExt, MergedPass, Scope};
 use std::{marker::PhantomData, rc::Rc};
 
 pub trait Transformer {
@@ -44,6 +45,7 @@ pub struct TransformOption {
     is_ts: bool,
     inline: bool,
     prefix_identifier: bool,
+    is_dev: bool,
     binding_metadata: Rc<BindingMetadata>,
 }
 

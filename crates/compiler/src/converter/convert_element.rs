@@ -7,7 +7,7 @@ use crate::{
     converter::v_slot::check_wrong_slot,
     error::{CompilationError, CompilationErrorKind as ErrorKind},
     flags::{PatchFlag, RuntimeHelper, StaticLevel},
-    parser::{Directive, ElemProp, ElementType},
+    parser::{AstNode, Directive, ElemProp, ElementType},
     tokenizer::Attribute,
     util::{find_dir, get_core_component, is_component_tag, prop_finder},
     SourceLocation,
@@ -52,9 +52,20 @@ pub fn convert_template<'a>(bc: &BC, e: Element<'a>, is_slot: bool) -> BaseIR<'a
     debug_assert!(e.tag_type == ElementType::Template);
     check_wrong_slot(bc, &e, ErrorKind::VSlotTemplateMisplaced);
     // template here is purely a fragment that groups element.
+    let mut patch_flag = PatchFlag::STABLE_FRAGMENT;
+    let child_count = e
+        .children
+        .iter()
+        .filter(|c| !matches!(c, AstNode::Comment(_)))
+        .count();
+    if child_count == 1 && bc.is_dev {
+        patch_flag |= PatchFlag::DEV_ROOT_FRAGMENT;
+    }
     IRNode::VNodeCall(VNodeIR {
         tag: Js::Symbol(RuntimeHelper::Fragment),
         children: bc.convert_children(e.children),
+        patch_flag,
+        is_block: true, // only v-if/v-for(always block) or v-slot(as wrapper)
         ..VNodeIR::default()
     })
 }

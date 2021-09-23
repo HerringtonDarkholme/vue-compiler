@@ -5,8 +5,8 @@ use super::{
 use crate::{
     converter::{CoreConverter, JsExpr as Js},
     error::CompilationErrorKind as ErrorKind,
-    tokenizer::Attribute,
-    util::{find_dir_empty, find_prop},
+    tokenizer::{Attribute, AttributeValue},
+    util::{find_dir_empty, find_prop, VStr},
 };
 use rustc_hash::FxHashSet;
 use std::{iter::Peekable, vec::IntoIter};

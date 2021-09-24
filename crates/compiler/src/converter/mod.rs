@@ -191,6 +191,9 @@ impl<'a> JsExpr<'a> {
     pub fn simple<V: Into<VStr<'a>>>(v: V) -> Self {
         JsExpr::Simple(v.into(), StaticLevel::NotStatic)
     }
+    pub fn str_lit<V: Into<VStr<'a>>>(v: V) -> Self {
+        JsExpr::StrLit(v.into())
+    }
     pub fn static_level(&self) -> StaticLevel {
         use JsExpr::*;
         use StaticLevel as S;

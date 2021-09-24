@@ -15,7 +15,6 @@ impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for SlotFlagMarker {
 
         let has_dynamic_slots = has_scope_in_vnode(v, shared);
         // has dynamic stable slot key
-        // TODO: add dynamic_slots
         let v_slot = match &mut v.children[0] {
             IRNode::VSlotUse(v_slot) => v_slot,
             _ => panic!("impossible"),

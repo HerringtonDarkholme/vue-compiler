@@ -4,7 +4,7 @@ use super::converter::{
     BaseConvertInfo, BaseIR, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir,
     TopScope, VNodeIR,
 };
-use super::flags::{PatchFlag, RuntimeHelper as RH};
+use super::flags::{PatchFlag, RuntimeHelper as RH, SlotFlag};
 use super::transformer::{
     BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot,
 };
@@ -12,6 +12,7 @@ use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::io::{self, Write};
+use std::iter;
 
 pub trait CodeGenerator {
     type IR;
@@ -161,17 +162,20 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.write_str(")")
     }
     fn generate_v_slot(&mut self, s: BaseVSlot<'a>) -> io::Result<()> {
+        use Slot::*;
+        let flag = (Js::str_lit("_"), Flag(s.slot_flag));
         let stable_obj = s
             .stable_slots
             .into_iter()
-            .map(|f| (f.name, (f.param, f.body)));
+            .map(|f| (f.name, SlotFn(f.param, f.body)))
+            .chain(iter::once(flag));
         // no alterable, output object literal. e.g. {default: ... }
         if s.alterable_slots.is_empty() {
-            return self.gen_obj_props(stable_obj, gen_slot_fn);
+            return self.gen_obj_props(stable_obj, gen_stable_slot_fn);
         }
         self.write_helper(RH::CreateSlots)?;
         self.write_str("(")?;
-        self.gen_obj_props(stable_obj, gen_slot_fn)?;
+        self.gen_obj_props(stable_obj, gen_stable_slot_fn)?;
         self.write_str(", ")?;
         // TODO: it's not correct to reuse v-for in slot-fn
         self.generate_children(s.alterable_slots)?;
@@ -336,14 +340,13 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         }
         Ok(())
     }
-    fn gen_obj_props<V, E, P, K>(&mut self, props: P, cont: K) -> io::Result<()>
+    fn gen_obj_props<V, P, K>(&mut self, props: P, cont: K) -> io::Result<()>
     where
-        E: ExactSizeIterator<Item = (Js<'a>, V)>,
-        P: IntoIterator<Item = (Js<'a>, V), IntoIter = E>,
+        P: IntoIterator<Item = (Js<'a>, V)>,
         K: Fn(&mut Self, V) -> io::Result<()>,
     {
-        let props = props.into_iter();
-        if props.len() == 0 {
+        let mut props = props.into_iter().peekable();
+        if props.peek().is_none() {
             return self.write_str("{}");
         }
         self.write_str("{")?;
@@ -593,6 +596,14 @@ fn gen_render_slot_args<'a, T: Write>(
     } else {
         Ok(())
     }
+}
+
+enum Slot<'a> {
+    SlotFn(Option<Js<'a>>, Vec<BaseIR<'a>>),
+    Flag(SlotFlag),
+}
+fn gen_stable_slot_fn<'a, T: Write>(gen: &mut CodeWriter<'a, T>, slot: Slot<'a>) -> io::Result<()> {
+    todo!()
 }
 fn gen_slot_fn<'a, T: Write>(
     gen: &mut CodeWriter<'a, T>,

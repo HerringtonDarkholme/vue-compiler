@@ -34,7 +34,7 @@ pub fn convert_slot_outlet<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
 type NameAndProps<'a> = (Js<'a>, Option<Js<'a>>);
 
 fn process_slot_outlet<'a>(bc: &BC, e: &mut Element<'a>) -> NameAndProps<'a> {
-    let mut slot_name = Js::StrLit(VStr::raw("default"));
+    let mut slot_name = Js::str_lit("default");
     let mapper = |mut prop| {
         match &mut prop {
             ElemProp::Dir(dir @ Directive { name: "bind", .. })

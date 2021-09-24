@@ -27,7 +27,7 @@ impl<'a> CorePass<BaseInfo<'a>> for PatchFlagMarker {
                 return;
             }
             // inject default key
-            let key = Js::StrLit(VStr::raw("key"));
+            let key = Js::str_lit("key");
             let val = Js::Num(branch.info);
             let key_prop = (key, val);
 

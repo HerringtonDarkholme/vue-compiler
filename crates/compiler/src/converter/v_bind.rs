@@ -35,14 +35,14 @@ pub fn convert_v_bind<'a>(
             return DirectiveConvertResult::Dropped;
         } else {
             // <p :test> returns {test: ""}
-            Js::StrLit(VStr::raw(""))
+            Js::str_lit("")
         }
     };
     let value = if let Some(arg) = argument {
         let mut arg = match arg {
-            DirectiveArg::Static(s) => Js::StrLit(VStr::raw(s)),
+            DirectiveArg::Static(s) => Js::str_lit(*s),
             DirectiveArg::Dynamic(s) => {
-                let e = Js::simple(VStr::raw(s));
+                let e = Js::simple(*s);
                 Js::Compound(vec![Js::Src("("), e, Js::Src(") || ''")])
             }
         };

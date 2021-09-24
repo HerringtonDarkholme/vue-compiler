@@ -59,7 +59,7 @@ pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
                 .with_location(first_child.get_location().clone());
             bc.emit_error(error);
         } else {
-            let name = Js::StrLit(VStr::raw("default"));
+            let name = Js::str_lit("default");
             let body = bc.convert_children(implicit_default);
             let slot = Slot {
                 name,
@@ -228,8 +228,8 @@ fn get_slot_dir<'a>(t: &mut Element<'a>) -> Directive<'a> {
 
 fn get_slot_name<'a>(arg: &Option<DirectiveArg<'a>>) -> Js<'a> {
     match arg {
-        None => Js::StrLit(VStr::raw("default")),
-        Some(DirectiveArg::Static(s)) => Js::StrLit(VStr::raw(s)),
+        None => Js::str_lit("default"),
+        Some(DirectiveArg::Static(s)) => Js::str_lit(*s),
         Some(DirectiveArg::Dynamic(s)) => Js::simple(*s),
     }
 }

@@ -102,7 +102,7 @@ fn collect_attr<'a>(bc: &BC, e: &Element<'a>, attr: Attribute<'a>, cp: &mut Coll
     }
     cp.prop_args
         .pending_props
-        .push((Js::StrLit(VStr::raw(name)), value_expr));
+        .push((Js::str_lit(name), value_expr));
 }
 
 #[inline]

@@ -86,7 +86,7 @@ pub fn convert_template<'a>(bc: &BC, mut e: Element<'a>, is_slot: bool) -> BaseI
 /// 3. Js::StrLit for plain element or component
 pub fn resolve_element_tag<'a>(bc: &BC, e: &Element<'a>) -> Js<'a> {
     if e.tag_type == ElementType::Plain {
-        return Js::StrLit(VStr::raw(e.tag_name));
+        return Js::str_lit(e.tag_name);
     }
     let is_explicit_dynamic = is_component_tag(e.tag_name);
     // 1. resolve dynamic component
@@ -229,13 +229,13 @@ fn build_directive_arg<'a>(
         from_setup
     } else {
         // TODO: should hoist directive bc.add_directive(dir)
-        let arg = Js::StrLit(VStr::raw(dir.name));
+        let arg = Js::str_lit(dir.name);
         Js::Call(RuntimeHelper::ResolveDirective, vec![arg])
     };
     use crate::parser::DirectiveArg::{Dynamic, Static};
     let expr = dir.expression.map(|v| Js::simple(v.content));
     let arg = dir.argument.map(|a| match a {
-        Static(v) => Js::StrLit(VStr::raw(v)),
+        Static(v) => Js::str_lit(v),
         Dynamic(v) => Js::simple(v),
     });
     let mods = if dir.modifiers.is_empty() {

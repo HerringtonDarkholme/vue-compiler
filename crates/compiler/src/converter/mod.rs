@@ -110,6 +110,7 @@ pub struct ForNodeIR<T: ConvertInfo> {
     pub fragment_flag: PatchFlag,
     pub key: Option<T::JsExpression>,
 }
+// TODO: optimize as vec to save memory
 // (value, key, index) in source
 pub struct ForParseResult<T: ConvertInfo> {
     pub value: T::JsExpression,

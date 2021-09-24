@@ -221,7 +221,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.write_str("}")
     }
     fn generate_comment(&mut self, c: &'a str) -> io::Result<()> {
-        let comment = Js::StrLit(VStr::raw(c));
+        let comment = Js::str_lit(c);
         let call = Js::Call(RH::CreateComment, vec![comment]);
         self.generate_js_expr(call)
     }
@@ -775,10 +775,13 @@ mod test {
         let b = std::mem::size_of::<BaseVNode<'_>>();
         let c = std::mem::size_of::<BaseFor<'_>>();
         let d = std::mem::size_of::<Js<'_>>();
+        let e = std::mem::size_of::<std::collections::HashSet<&str>>();
+        // too large
         assert_eq!(a, 184);
         assert_eq!(b, 152);
         assert_eq!(c, 176);
         assert_eq!(d, 32);
+        assert_eq!(e, 32);
     }
     // #[test]
     // fn test_implicit_slot() {

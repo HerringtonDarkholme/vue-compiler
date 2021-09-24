@@ -1,8 +1,136 @@
+use std::fs::read_to_string;
+
 use super::common::{serialize_yaml, SourceLocation, TestErrorHandler};
 use super::tokenizer_test::{base_scan, Attribute, AttributeValue};
-use compiler::parser::{self, AstRoot, Element, ParseOption, Parser};
+use compiler::parser::{self, ParseOption, Parser};
 use insta::assert_snapshot;
 use serde::Serialize;
+
+#[derive(Serialize)]
+pub struct AstRoot {
+    pub children: Vec<AstNode>,
+    pub location: SourceLocation,
+}
+
+impl<'a> From<parser::AstRoot<'a>> for AstRoot {
+    fn from(root: parser::AstRoot<'a>) -> Self {
+        Self {
+            children: root
+                .children
+                .into_iter()
+                .map(|child| child.into())
+                .collect(),
+            location: root.location.into(),
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Serialize)]
+pub enum ElementType {
+    Plain,
+    Component,
+    Template,
+    SlotOutlet,
+}
+
+impl From<parser::ElementType> for ElementType {
+    fn from(ty: parser::ElementType) -> Self {
+        ty.into()
+    }
+}
+
+#[non_exhaustive]
+#[derive(Eq, PartialEq, Serialize)]
+pub enum Namespace {
+    Html,
+    Svg,
+    MathMl,
+    UserDefined(&'static str),
+}
+
+impl From<compiler::Namespace> for Namespace {
+    fn from(namespace: compiler::Namespace) -> Self {
+        namespace.into()
+    }
+}
+
+#[derive(Serialize)]
+pub struct Element {
+    pub tag_name: String,
+    pub tag_type: ElementType,
+    pub namespace: Namespace,
+    pub properties: Vec<ElemProp>,
+    pub children: Vec<AstNode>,
+    pub location: SourceLocation,
+}
+
+impl<'a> From<parser::Element<'a>> for Element {
+    fn from(ele: parser::Element) -> Self {
+        Self {
+            tag_name: ele.tag_name.to_string(),
+            tag_type: ele.tag_type.into(),
+            namespace: ele.namespace.into(),
+            properties: ele.properties.into_iter().map(|item| item.into()).collect(),
+            children: ele.children.into_iter().map(|item| item.into()).collect(),
+            location: ele.location.into(),
+        }
+    }
+}
+#[derive(Serialize)]
+pub enum AstNode {
+    Element(Element),
+    Text(TextNode),
+    Interpolation(SourceNode),
+    Comment(SourceNode),
+}
+impl AstNode {
+    pub fn into_element(self) -> Element {
+        match self {
+            AstNode::Element(e) => e,
+            _ => panic!("call into_element on non-element AstNode"),
+        }
+    }
+}
+impl<'a> From<parser::AstNode<'a>> for AstNode {
+    fn from(node: parser::AstNode<'a>) -> Self {
+        use compiler::converter::AstNode::*;
+        match node {
+            Element(ele) => AstNode::Element(ele.into()),
+            Text(text) => AstNode::Text(text.into()),
+            Interpolation(interpolation) => AstNode::Interpolation(interpolation.into()),
+            Comment(comment) => AstNode::Comment(comment.into()),
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct SourceNode {
+    pub source: String,
+    pub location: SourceLocation,
+}
+
+impl<'a> From<parser::SourceNode<'a>> for SourceNode {
+    fn from(node: parser::SourceNode<'a>) -> Self {
+        Self {
+            source: node.source.to_string(),
+            location: node.location.into(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct TextNode {
+    pub text: String,
+    pub location: SourceLocation,
+}
+impl<'a> From<parser::TextNode<'a>> for TextNode {
+    fn from(text: parser::TextNode) -> Self {
+        Self {
+            text: text.text[0].into_string(),
+            location: text.location.into(),
+        }
+    }
+}
 
 #[derive(Serialize)]
 pub enum DirectiveArg {
@@ -69,6 +197,22 @@ fn test_dir(case: &str) {
     assert_snapshot!(name, val, case);
 }
 
+fn test_full_ast_util(case: &str) {
+    let mut root = base_parse(case);
+    let mut test_root: AstRoot = root.into();
+    let name = insta::_macro_support::AutoName;
+    let val = serialize_yaml(test_root);
+    assert_snapshot!(name, val, case);
+}
+#[test]
+fn test_basic_ast() -> std::io::Result<()> {
+    // let file = read_to_string("tests/test_file/text.vue")?;
+    let case_list: Vec<String> = vec!["<template></template>".to_string()];
+    for case in case_list {
+        test_full_ast_util(&case);
+    }
+    Ok(())
+}
 #[test]
 fn test_custom_dir() {
     let cases = [
@@ -151,14 +295,14 @@ fn test_dir_parse_error() {
     }
 }
 
-pub fn base_parse(s: &str) -> AstRoot {
+pub fn base_parse(s: &str) -> compiler::converter::AstRoot {
     let tokens = base_scan(s);
     let parser = Parser::new(ParseOption::default());
     let eh = TestErrorHandler;
     parser.parse(tokens, eh)
 }
 
-pub fn mock_element(s: &str) -> Element {
+pub fn mock_element(s: &str) -> compiler::converter::Element {
     let mut m = base_parse(s).children;
     m.pop().unwrap().into_element()
 }

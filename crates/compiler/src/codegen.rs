@@ -8,7 +8,7 @@ use super::flags::{PatchFlag, RuntimeHelper as RH, SlotFlag};
 use super::transformer::{
     BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot,
 };
-use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
+use crate::util::{get_vnode_call_helper, is_simple_identifier};
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::io::{self, Write};
@@ -781,7 +781,7 @@ mod test {
         assert_eq!(b, 152);
         assert_eq!(c, 176);
         assert_eq!(d, 32);
-        assert_eq!(e, 32);
+        assert_eq!(e, 48);
     }
     // #[test]
     // fn test_implicit_slot() {

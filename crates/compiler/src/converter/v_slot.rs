@@ -11,7 +11,7 @@ use crate::{
     error::{CompilationError, CompilationErrorKind as ErrorKind},
     flags::{RuntimeHelper, SlotFlag},
     parser::{DirectiveArg, ElementType},
-    util::{dir_finder, VStr},
+    util::dir_finder,
 };
 
 pub fn check_wrong_slot(bc: &BC, e: &Element, kind: ErrorKind) -> bool {

@@ -3,7 +3,6 @@
 use super::{BaseFor, BaseIf, BaseInfo, BaseText, CorePass};
 use crate::converter::{BaseIR, IRNode as IR, JsExpr as Js, Prop};
 use crate::flags::{PatchFlag, RuntimeHelper as RH, StaticLevel};
-use crate::util::VStr;
 
 pub struct PatchFlagMarker;
 

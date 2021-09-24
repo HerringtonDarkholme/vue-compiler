@@ -281,10 +281,6 @@ fn build_children<'a>(bc: &BC, e: &mut Element<'a>, tag: &Js<'a>) -> (Vec<BaseIR
     // if is keep alive
     if should_build_as_slot {
         let slots = v_slot::convert_v_slot(bc, e);
-        // TODO: add dynamic_slots
-        // if dynamic_slots {
-        //     more_flag |= PatchFlag::DYNAMIC_SLOTS;
-        // }
         return (vec![slots], more_flag);
     }
     if children.len() == 1 && !is_builtin_symbol(tag, Teleport) {

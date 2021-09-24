@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     error::{CompilationError, CompilationErrorKind as ErrorKind},
-    flags::RuntimeHelper,
+    flags::{RuntimeHelper, SlotFlag},
     parser::{DirectiveArg, ElementType},
     util::{dir_finder, VStr},
 };
@@ -99,6 +99,7 @@ fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<
     let v_slot_ir = VSlotIR {
         stable_slots: vec![slot],
         alterable_slots: vec![],
+        slot_flag: SlotFlag::Stable,
     };
     Some(IRNode::VSlotUse(v_slot_ir))
 }
@@ -145,6 +146,7 @@ fn build_explicit_slots<'a>(bc: &BC, templates: Vec<Element<'a>>) -> BaseVSlot<'
     VSlotIR {
         stable_slots,
         alterable_slots,
+        slot_flag: SlotFlag::Stable,
     }
 }
 

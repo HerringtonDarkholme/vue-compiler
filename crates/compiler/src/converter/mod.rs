@@ -23,7 +23,7 @@ Convert module roughly corresponds to following transform in vue-next.
 */
 
 pub use super::error::{CompilationError, ErrorHandler};
-use super::flags::{HelperCollector, PatchFlag, RuntimeHelper, StaticLevel};
+use super::flags::{HelperCollector, PatchFlag, RuntimeHelper, SlotFlag, StaticLevel};
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
 use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
@@ -154,6 +154,7 @@ pub struct VSlotIR<T: ConvertInfo> {
     pub stable_slots: Vec<Slot<T>>,
     /// v-slots templates dynamically declared with v-if/v-for
     pub alterable_slots: Vec<IRNode<T>>,
+    pub slot_flag: SlotFlag,
 }
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);

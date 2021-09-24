@@ -243,6 +243,23 @@ impl RuntimeHelper {
     }
 }
 
+#[repr(u8)]
+pub enum SlotFlag {
+    /// Stable slots that only reference slot props or context state. The slot
+    /// can fully capture its own dependencies so when passed down the parent won't
+    /// need to force the child to update.
+    Stable = 1,
+    /// Slots that reference scope variables (v-for or an outer slot prop), or
+    /// has conditional structure (v-if, v-for). The parent will need to force
+    /// the child to update because the slot does not fully capture its dependencies.
+    Dynamic = 2,
+    /// `<slot/>` being forwarded into a child component. Whether the parent needs
+    /// to update the child is dependent on what kind of slots the parent itself
+    /// received. This has to be refined at runtime, when the child's vnode
+    /// is being created (in `normalizeChildren`)
+    Forwarded = 3,
+}
+
 /*
 // we can extend helper by extracting trait like below.
 // but it does not pay off now.

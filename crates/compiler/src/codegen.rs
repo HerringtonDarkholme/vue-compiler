@@ -769,6 +769,17 @@ mod test {
         assert!(s.contains("() => ["), "{}", s);
         assert!(s.contains(r#""fallback""#), "{}", s);
     }
+    #[test]
+    fn test_size() {
+        let a = std::mem::size_of::<BaseIR<'_>>();
+        let b = std::mem::size_of::<BaseVNode<'_>>();
+        let c = std::mem::size_of::<BaseFor<'_>>();
+        let d = std::mem::size_of::<Js<'_>>();
+        assert_eq!(a, 184);
+        assert_eq!(b, 152);
+        assert_eq!(c, 176);
+        assert_eq!(d, 32);
+    }
     // #[test]
     // fn test_implicit_slot() {
     //     let s = base_gen("<component is='test'>test</component>");

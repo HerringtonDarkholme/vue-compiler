@@ -244,6 +244,7 @@ impl RuntimeHelper {
 }
 
 #[repr(u8)]
+#[derive(Clone, Copy, Debug)]
 pub enum SlotFlag {
     /// Stable slots that only reference slot props or context state. The slot
     /// can fully capture its own dependencies so when passed down the parent won't

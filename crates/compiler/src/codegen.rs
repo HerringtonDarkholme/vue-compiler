@@ -420,6 +420,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.newline()
     }
     fn deindent(&mut self, with_new_line: bool) -> io::Result<()> {
+        debug_assert!(self.indent_level > 0);
         self.indent_level -= 1;
         if with_new_line {
             self.newline()
@@ -603,7 +604,12 @@ enum Slot<'a> {
     Flag(SlotFlag),
 }
 fn gen_stable_slot_fn<'a, T: Write>(gen: &mut CodeWriter<'a, T>, slot: Slot<'a>) -> io::Result<()> {
-    todo!()
+    match slot {
+        Slot::SlotFn(param, body) => gen_slot_fn(gen, (param, body)),
+        Slot::Flag(flag) => {
+            write!(gen.writer, "{} /*{:?}*/", flag as u8, flag)
+        }
+    }
 }
 fn gen_slot_fn<'a, T: Write>(
     gen: &mut CodeWriter<'a, T>,
@@ -626,6 +632,7 @@ fn gen_slot_fn<'a, T: Write>(
         gen.newline()?;
         gen.generate_ir(b)?;
     }
+    gen.deindent(true)?;
     gen.write_str("]")?;
     gen.write_str(")")
 }
@@ -680,6 +687,12 @@ mod test {
     }
     #[test]
     fn test_v_element() {
+        let s = base_gen("<p></p>");
+        assert!(s.contains("\"p\""), "{}", s);
+        assert!(s.contains("createElementVNode"), "{}", s);
+    }
+    #[test]
+    fn test_self_closing() {
         let s = base_gen("<p/>");
         assert!(s.contains("\"p\""), "{}", s);
         assert!(s.contains("createElementVNode"), "{}", s);
@@ -781,9 +794,9 @@ mod test {
         assert_eq!(js_size, 32);
         assert_eq!(set_size, 48);
     }
-    // #[test]
-    // fn test_implicit_slot() {
-    //     let s = base_gen("<component is='test'>test</component>");
-    //     assert!(s.contains("_withCtx"), "{}", s);
-    // }
+    #[test]
+    fn test_implicit_slot() {
+        let s = base_gen("<component is='test'>test</component>");
+        assert!(s.contains("_withCtx"), "{}", s);
+    }
 }

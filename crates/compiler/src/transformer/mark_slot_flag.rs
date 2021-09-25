@@ -4,7 +4,7 @@ use crate::flags::{PatchFlag, SlotFlag};
 pub struct SlotFlagMarker;
 
 impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for SlotFlagMarker {
-    fn enter_vnode(&mut self, v: &mut BaseVNode<'a>, scope: &mut Scope<'a>) {
+    fn exit_vnode(&mut self, v: &mut BaseVNode<'a>, scope: &mut Scope<'a>) {
         if !v.is_component || v.children.is_empty() {
             return;
         }

@@ -128,8 +128,6 @@ pub trait CorePassExt<T: ConvertInfo, Shared> {
     fn exit_js_expr(&mut self, e: &mut T::JsExpression, shared: &mut Shared) {}
     fn enter_fn_param(&mut self, p: &mut T::JsExpression, shared: &mut Shared) {}
     fn exit_fn_param(&mut self, p: &mut T::JsExpression, shared: &mut Shared) {}
-    fn enter_root(&mut self, r: &mut IRRoot<T>, shared: &mut Shared) {}
-    fn exit_root(&mut self, r: &mut IRRoot<T>, shared: &mut Shared) {}
 
     fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>, shared: &mut Shared) {}
     fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>, shared: &mut Shared) {}
@@ -157,6 +155,9 @@ impl<'a> Scope<'a> {
         *self.identifiers.entry(id).or_default() -= 1;
     }
     pub fn has_ref_in_vnode(&self, node: &mut BaseVNode<'a>) -> bool {
+        if self.identifiers.is_empty() {
+            return false;
+        }
         let mut ref_finder = RefFinder(&self.identifiers, false);
         BaseTransformer::transform_vnode(node, &mut ref_finder);
         ref_finder.1
@@ -164,6 +165,11 @@ impl<'a> Scope<'a> {
 }
 struct RefFinder<'a, 'b>(&'b Identifiers<'a>, bool);
 // TODO: implement interruptible transformer for early return
+// TODO: current implmentaion is not correct in this code
+// <comp v-for="a in source">
+//  <p v-for="a in s">{{a}}</p> <- expect stable, got dynamic
+// </comp>
+// a variable used stack can be maintained to solve this
 impl<'a, 'b> CorePass<BaseInfo<'a>> for RefFinder<'a, 'b> {
     fn enter_js_expr(&mut self, e: &mut Js<'a>) {
         if let Js::Simple(e, _) = e {
@@ -184,14 +190,6 @@ where
     T: ConvertInfo,
     Pass: CorePassExt<T, Shared>,
 {
-    fn enter_root(&mut self, r: &mut IRRoot<T>) {
-        let shared = &mut self.shared_info;
-        self.passes.enter(|p| p.enter_root(r, shared));
-    }
-    fn exit_root(&mut self, r: &mut IRRoot<T>) {
-        let shared = &mut self.shared_info;
-        self.passes.exit(|p| p.exit_root(r, shared));
-    }
     fn enter_js_expr(&mut self, e: &mut T::JsExpression) {
         let shared = &mut self.shared_info;
         self.passes.enter(|p| p.enter_js_expr(e, shared));

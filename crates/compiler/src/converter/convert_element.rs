@@ -261,13 +261,13 @@ fn build_children<'a>(bc: &BC, e: &mut Element<'a>, tag: &Js<'a>) -> (Vec<BaseIR
         v_slot::check_wrong_slot(bc, e, ErrorKind::VSlotMisplaced);
     }
     let mut more_flag = PatchFlag::empty();
-    let children = mem::take(&mut e.children);
-    if children.is_empty() {
+    if e.children.is_empty() {
         return (vec![], more_flag);
     }
     let should_build_as_slot = v_slot::check_build_as_slot(bc, e, tag);
     use RuntimeHelper::{KeepAlive, Teleport};
     if is_builtin_symbol(tag, KeepAlive) {
+        let children = &e.children;
         // Builtin Component: 2. Force keep-alive always be updated.
         more_flag |= PatchFlag::DYNAMIC_SLOTS;
         if children.len() > 1 {
@@ -278,13 +278,13 @@ fn build_children<'a>(bc: &BC, e: &mut Element<'a>, tag: &Js<'a>) -> (Vec<BaseIR
             bc.emit_error(error);
         }
     }
-    // NB: convert children should take place first
-    let children = bc.convert_children(children);
     // if is keep alive
     if should_build_as_slot {
         let slots = v_slot::convert_v_slot(bc, e);
         return (vec![slots], more_flag);
     }
+    let children = std::mem::take(&mut e.children);
+    let children = bc.convert_children(children);
     if children.len() == 1 && !is_builtin_symbol(tag, Teleport) {
         let child = &children[0];
         if let IRNode::TextCall(t) = child {

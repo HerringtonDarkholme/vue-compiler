@@ -106,7 +106,7 @@ fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<
 
 fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Vec<Element<'a>>) {
     let children = mem::take(&mut e.children);
-    let mut implicit_default = vec![];
+    let mut implicit_default = Vec::with_capacity(children.len());
     let explicit_slots = children
         .into_iter()
         .filter_map(|n| match n {

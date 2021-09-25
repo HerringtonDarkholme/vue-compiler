@@ -417,6 +417,12 @@ impl Deref for BindingMetadata {
     }
 }
 
+pub struct ConvertOption {
+    /// For platform developers. Registers platform specific components written in JS.
+    /// e.g. transition, transition-group. Components that require code in Vue runtime.
+    get_builtin_component: fn(&str) -> Option<RuntimeHelper>,
+}
+
 pub struct BaseConverter {
     pub scope_id: Option<String>,
     /// Indicates this SFC template has used :slotted in its styles
@@ -434,6 +440,7 @@ pub struct BaseConverter {
     /// current SFC filename for self-referencing
     pub self_name: String,
     err_handle: Box<dyn ErrorHandler>,
+    option: ConvertOption,
 }
 pub type BaseRoot<'a> = IRRoot<BaseConvertInfo<'a>>;
 pub type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
@@ -450,7 +457,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
 
     // platform specific methods
     fn get_builtin_component(&self, tag: &str) -> Option<RuntimeHelper> {
-        todo!()
+        (self.option.get_builtin_component)(tag)
     }
 
     // core template syntax conversion
@@ -556,6 +563,9 @@ pub mod test {
         for (n, f) in [v_bind::V_BIND, ("on", no_op_directive_convert)] {
             convs.insert(n, f);
         }
+        let option = ConvertOption {
+            get_builtin_component: |_| None,
+        };
         let bc = BC {
             scope_id: None,
             slotted: false,
@@ -565,6 +575,7 @@ pub mod test {
             binding_metadata: Rc::new(BindingMetadata(FxHashMap::default(), false)),
             self_name: "".into(),
             err_handle: Box::new(TestErrorHandler),
+            option,
         };
         let ast = base_parse(s);
         bc.convert_ir(ast)

@@ -68,21 +68,32 @@ fn has_forwarded_slots(v_slot: &BaseVSlot) -> bool {
 
 #[cfg(test)]
 mod test {
-    // use super::super::test::{base_convert, transformer_ext};
-    // use super::super::Transformer;
-    // use super::*;
+    use crate::cast;
 
-    // #[test]
-    // fn test_dynamic_slot() {
-    //     let mut transformer = transformer_ext(SlotFlagMarker);
-    //     let mut ir = base_convert(
-    //         r"
-    // <component v-for='upper in 123'>
-    // <template v-slot='test' :test='upper'>
-    // </template>
-    // </component>
-    // ",
-    //     );
-    //     transformer.transform(&mut ir);
-    // }
+    use super::super::test::{base_convert, transformer_ext};
+    use super::super::Transformer;
+    use super::*;
+    use crate::converter::BaseRoot;
+
+    fn get_slot(mut ir: BaseRoot) -> BaseVSlot {
+        let mut vn = cast!(ir.body.remove(0), IRNode::VNodeCall);
+        cast!(vn.children.remove(0), IRNode::VSlotUse)
+    }
+
+    #[test]
+    fn test_dynamic_slot() {
+        let mut transformer = transformer_ext(SlotFlagMarker);
+        let mut ir = base_convert(
+            r"
+    <component v-for='upper in 123'>
+    <template v-slot='test' :test='upper'>
+    </template>
+    </component>
+    ",
+        );
+        transformer.transform(&mut ir);
+        let slot = get_slot(ir);
+        assert_eq!(slot.stable_slots.len(), 1);
+        assert!(matches!(slot.slot_flag, SlotFlag::Dynamic));
+    }
 }

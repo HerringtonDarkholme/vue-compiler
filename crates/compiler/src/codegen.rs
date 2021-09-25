@@ -654,6 +654,7 @@ fn runtime_dirs_to_js_arr(dirs: Vec<RuntimeDir<BaseConvertInfo>>) -> Js {
 mod test {
     use super::super::converter::test::base_convert;
     use super::*;
+    use crate::cast;
     fn gen(ir: BaseRoot) -> String {
         let mut writer = CodeWriter {
             writer: vec![],
@@ -683,9 +684,8 @@ mod test {
         assert!(s.contains("\"p\""), "{}", s);
         assert!(s.contains("createElementVNode"), "{}", s);
         let mut ir = base_convert("<p/>");
-        if let IRNode::VNodeCall(vn) = &mut ir.body[0] {
-            vn.is_block = true;
-        }
+        let vn = cast!(&mut ir.body[0], IRNode::VNodeCall);
+        vn.is_block = true;
         let s = gen(ir);
         assert!(s.contains("openBlock"), "{}", s);
     }
@@ -732,11 +732,9 @@ mod test {
         assert!(s.contains("? "), "{}", s);
         assert!(s.contains("createCommentVNode"), "{}", s);
         let mut ir = base_convert("<p v-if='condition'/>");
-        if let IRNode::If(i) = &mut ir.body[0] {
-            if let IRNode::VNodeCall(vn) = &mut *i.branches[0].child {
-                vn.is_block = true;
-            }
-        }
+        let i = cast!(&mut ir.body[0], IRNode::If);
+        let vn = cast!(&mut *i.branches[0].child, IRNode::VNodeCall);
+        vn.is_block = true;
         let s = gen(ir);
         assert!(s.contains("openBlock"), "{}", s);
     }
@@ -776,7 +774,7 @@ mod test {
         let for_size = std::mem::size_of::<BaseFor<'_>>();
         let js_size = std::mem::size_of::<Js<'_>>();
         let set_size = std::mem::size_of::<std::collections::HashSet<&str>>();
-        // too large
+        // TODO: too large
         assert_eq!(ir_size, 184);
         assert_eq!(vnode_size, 152);
         assert_eq!(for_size, 176);

@@ -92,18 +92,17 @@ fn check_template_v_for_key() {}
 
 #[cfg(test)]
 mod test {
+    use super::super::test::assert_simple;
     use super::*;
+    use crate::cast;
     fn to_str(e: Js) -> &str {
-        if let Js::Simple(v, _) = e {
-            v.raw
-        } else {
-            panic!("invalid js expression");
-        }
+        let v = cast!(e, Js::Simple);
+        v.raw
     }
     fn check_equal(src: &str, expect: (&str, &str, Option<&str>, Option<&str>)) {
         let (src, ret) = parse_for_expr(VStr::raw(src)).expect("should parse");
-        assert_eq!(to_str(src), expect.0);
-        assert_eq!(to_str(ret.value), expect.1);
+        assert_simple(&src, expect.0);
+        assert_simple(&ret.value, expect.1);
         assert_eq!(ret.key.map(to_str), expect.2);
         assert_eq!(ret.index.map(to_str), expect.3);
     }

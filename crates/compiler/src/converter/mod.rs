@@ -528,10 +528,8 @@ pub mod test {
         assert_eq!(v.raw, s);
     }
     pub fn assert_simple(expr: &Js, s: &str) {
-        match expr {
-            Js::Simple(v, _) => assert_eq!(v.raw, s),
-            _ => panic!("expr is not string literal"),
-        }
+        let v = cast!(expr, Js::Simple);
+        assert_eq!(v.raw, s);
     }
 
     #[test]

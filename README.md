@@ -64,7 +64,8 @@ No support since most features in full build are additional except for browser b
 * Use [heavily optimized](https://github.com/BurntSushi/memchr) routines for string search primitives. ([Perf reference](https://lise-henry.github.io/articles/optimising_strings.html))
 * Benchmark with [criterion.rs](https://github.com/bheisler/criterion.rs).
 * Test compiler output by [snapshot](https://github.com/mitsuhiko/insta) test.
-* Use alternative allocator like [wee_alloc](https://github.com/rustwasm/wee_alloc).
+* Use alternative allocator like [wee_alloc](https://github.com/rustwasm/wee_alloc) or [mi_malloc](https://microsoft.github.io/mimalloc/index.html).
+* Use `Box<[T]>` instead of `Vec` to reduce type size.
 
 ## Reference
 

@@ -391,7 +391,7 @@ where
     PropFinder::new(elem, pat)
 }
 
-// since std::once::Lazy is not stable
+// since std::lazy::Lazy is not stable
 // it is not thread safe, not Sync.
 // it is Send if F and T is Send
 pub struct Lazy<T, F = fn() -> T>(UnsafeCell<Result<T, Option<F>>>)

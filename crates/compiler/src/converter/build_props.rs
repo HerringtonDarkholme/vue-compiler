@@ -74,7 +74,6 @@ where
         ..
     } = cp;
     let patch_flag = build_patch_flag(cp.prop_flags, &runtime_dirs, &dynamic_props);
-    // let prop_expr = pre_normalize_prop(prop_expr);
     BuildProps {
         props: prop_expr,
         directives: runtime_dirs,
@@ -280,9 +279,4 @@ fn build_patch_flag<'a>(
         patch_flag |= PatchFlag::NEED_PATCH;
     }
     patch_flag
-}
-
-/// extract class/style for faster runtime patching
-pub fn pre_normalize_prop(prop_expr: Option<Js>) -> Option<Js> {
-    todo!("pre-normalize props only in DOM for now. usable in any platform")
 }

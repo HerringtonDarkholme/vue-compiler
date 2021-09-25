@@ -2,3 +2,6 @@
 resolver = "2"
 members = ["crates/*"]
 exclude = ["benches"]
+
+[profile.release]
+lto = true

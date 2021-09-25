@@ -771,17 +771,17 @@ mod test {
     }
     #[test]
     fn test_size() {
-        let a = std::mem::size_of::<BaseIR<'_>>();
-        let b = std::mem::size_of::<BaseVNode<'_>>();
-        let c = std::mem::size_of::<BaseFor<'_>>();
-        let d = std::mem::size_of::<Js<'_>>();
-        let e = std::mem::size_of::<std::collections::HashSet<&str>>();
+        let ir_size = std::mem::size_of::<BaseIR<'_>>();
+        let vnode_size = std::mem::size_of::<BaseVNode<'_>>();
+        let for_size = std::mem::size_of::<BaseFor<'_>>();
+        let js_size = std::mem::size_of::<Js<'_>>();
+        let set_size = std::mem::size_of::<std::collections::HashSet<&str>>();
         // too large
-        assert_eq!(a, 184);
-        assert_eq!(b, 152);
-        assert_eq!(c, 176);
-        assert_eq!(d, 32);
-        assert_eq!(e, 48);
+        assert_eq!(ir_size, 184);
+        assert_eq!(vnode_size, 152);
+        assert_eq!(for_size, 176);
+        assert_eq!(js_size, 32);
+        assert_eq!(set_size, 48);
     }
     // #[test]
     // fn test_implicit_slot() {

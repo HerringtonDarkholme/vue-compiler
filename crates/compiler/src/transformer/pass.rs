@@ -135,7 +135,7 @@ pub trait CorePassExt<T: ConvertInfo, Shared> {
 
 type Identifiers<'a> = FxHashMap<VStr<'a>, usize>;
 pub struct Scope<'a> {
-    identifiers: Identifiers<'a>,
+    pub identifiers: Identifiers<'a>,
 }
 
 /// Check if an IR contains expressions that reference current context scope ids
@@ -165,11 +165,11 @@ impl<'a> Scope<'a> {
 }
 struct RefFinder<'a, 'b>(&'b Identifiers<'a>, bool);
 // TODO: implement interruptible transformer for early return
-// TODO: current implmentaion is not correct in this code
+// TODO: current implmentaion has false alarms in code like below
 // <comp v-for="a in source">
 //  <p v-for="a in s">{{a}}</p> <- expect stable, got dynamic
 // </comp>
-// a variable used stack can be maintained to solve this
+// but it is fine since ref_usage is only for optimization
 impl<'a, 'b> CorePass<BaseInfo<'a>> for RefFinder<'a, 'b> {
     fn enter_js_expr(&mut self, e: &mut Js<'a>) {
         if let Js::Simple(e, _) = e {

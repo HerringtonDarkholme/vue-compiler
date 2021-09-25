@@ -77,19 +77,10 @@ mod test {
     use super::super::test::{base_convert, get_transformer};
     use super::super::{BaseText, Transformer};
     use super::*;
-    use crate::converter::RenderSlotIR;
+    use crate::cast;
 
-    fn must_render_slot<'a, 'b>(a: &'b mut BaseIR<'a>) -> &'b mut RenderSlotIR<BaseInfo<'a>> {
-        if let IR::RenderSlotCall(t) = a {
-            return t;
-        }
-        panic!("impossible")
-    }
     fn must_ir<'a, 'b>(a: &'b BaseIR<'a>) -> &'b BaseText<'a> {
-        if let IR::TextCall(t) = a {
-            return t;
-        }
-        panic!("impossible")
+        cast!(a, IR::TextCall)
     }
 
     #[test]
@@ -126,7 +117,7 @@ mod test {
         let mut ir = base_convert("<slot>hello {{world}}</slot>");
         transformer.transform(&mut ir);
         assert_eq!(ir.body.len(), 1);
-        let slot = must_render_slot(&mut ir.body[0]);
+        let slot = cast!(&mut ir.body[0], IR::RenderSlotCall);
         assert_eq!(slot.fallbacks.len(), 1);
         let text = must_text(&mut slot.fallbacks[0]);
         assert_eq!(text.len(), 2);

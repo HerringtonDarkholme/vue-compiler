@@ -216,6 +216,7 @@ fn report_duplicate_v_if<'a>(c: &BC, e: &mut Element<'a>) {
 mod test {
     use super::super::test::*;
     use super::*;
+    use crate::cast;
 
     fn test_no_panic() {
         let cases = [
@@ -236,10 +237,7 @@ mod test {
     fn test_v_if() {
         let body = base_convert("<p v-if='true'/>").body;
         assert_eq!(body.len(), 1);
-        let v_if = match &body[0] {
-            IRNode::If(ir) => ir,
-            _ => panic!("wrong ir"),
-        };
+        let v_if = cast!(&body[0], IRNode::If);
         assert_eq!(v_if.branches.len(), 1);
         let condition = v_if.branches[0].condition.as_ref().unwrap();
         assert_simple(condition, "true");

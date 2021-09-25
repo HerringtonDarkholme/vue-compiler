@@ -873,7 +873,7 @@ fn is_v_pre_boundary(elem: &Element) -> bool {
 #[cfg(test)]
 pub mod test {
     use super::*;
-    use crate::{error::test::TestErrorHandler, tokenizer::test::base_scan};
+    use crate::{cast, error::test::TestErrorHandler, tokenizer::test::base_scan};
 
     #[test]
     fn test_parse_text() {
@@ -885,14 +885,10 @@ pub mod test {
         children.pop();
         let world = children.pop().unwrap();
         let hello = children.pop().unwrap();
-        match hello {
-            AstNode::Text(v) => assert_eq!(v.text[0].raw, "hello "),
-            _ => panic!("wrong text"),
-        }
-        match world {
-            AstNode::Interpolation(v) => assert_eq!(v.source, "world"),
-            _ => panic!("wrong interp"),
-        }
+        let v = cast!(hello, AstNode::Text);
+        assert_eq!(v.text[0].raw, "hello ");
+        let v = cast!(world, AstNode::Interpolation);
+        assert_eq!(v.source, "world");
     }
 
     pub fn base_parse(s: &str) -> AstRoot {

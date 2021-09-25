@@ -519,15 +519,13 @@ impl BaseConverter {
 #[cfg(test)]
 pub mod test {
     use super::*;
-    use crate::{error::test::TestErrorHandler, parser::test::base_parse};
+    use crate::{cast, error::test::TestErrorHandler, parser::test::base_parse};
     use BaseConverter as BC;
     use JsExpr as Js;
 
     pub fn assert_str_lit(expr: &Js, s: &str) {
-        match expr {
-            Js::StrLit(v) => assert_eq!(v.raw, s),
-            _ => panic!("expr is not string literal"),
-        }
+        let v = cast!(expr, Js::StrLit);
+        assert_eq!(v.raw, s);
     }
     pub fn assert_simple(expr: &Js, s: &str) {
         match expr {
@@ -546,11 +544,8 @@ pub mod test {
             panic!("wrong parsing");
         }
         let body = base_convert("hello world").body;
-        if let IRNode::TextCall(t) = &body[0] {
-            assert_str_lit(&t.texts[0], "hello world");
-        } else {
-            panic!("wrong parsing");
-        }
+        let t = cast!(&body[0], IRNode::TextCall);
+        assert_str_lit(&t.texts[0], "hello world");
     }
 
     #[test]

@@ -57,7 +57,8 @@ pub trait Converter<'a>: Sized {
 
 pub trait ConvertInfo {
     type TopType: Default;
-    type TextType;
+    // TextType should be a slice of JsExpressions
+    type TextType: AsMut<[Self::JsExpression]>;
     type IfType;
     type IfBranchType;
     type ForType;

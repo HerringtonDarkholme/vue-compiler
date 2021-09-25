@@ -94,6 +94,9 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
     }
     fn transform_text(t: &mut C::TextIR<T>, ps: &mut P) {
         ps.enter_text(t);
+        for text in t.texts.as_mut().iter_mut() {
+            Self::transform_js_expr(text, ps);
+        }
         ps.exit_text(t);
     }
     fn transform_if(i: &mut C::IfNodeIR<T>, ps: &mut P) {

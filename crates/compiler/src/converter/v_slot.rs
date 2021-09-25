@@ -247,3 +247,24 @@ fn has_named_default(v_slot_ir: &BaseVSlot) -> bool {
         _ => false,
     })
 }
+
+#[cfg(test)]
+mod test {
+    use super::super::test::{assert_str_lit, base_convert};
+    use super::*;
+    use crate::cast;
+    #[test]
+    fn test_implicit_default_slot() {
+        let mut body = base_convert("<comp>hello</comp>").body;
+        let mut vn = cast!(body.remove(0), IRNode::VNodeCall);
+        let mut v_slot = cast!(vn.children.remove(0), IRNode::VSlotUse);
+        assert_eq!(v_slot.stable_slots.len(), 1);
+        let mut slot = v_slot.stable_slots.remove(0);
+        let text = cast!(slot.body.remove(0), IRNode::TextCall);
+        assert_str_lit(&text.texts[0], "hello");
+    }
+    #[test]
+    fn test_implicit_named_slot() {}
+    #[test]
+    fn test_template_slot() {}
+}

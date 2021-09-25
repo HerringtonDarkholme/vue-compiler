@@ -113,7 +113,9 @@ pub fn resolve_element_tag<'a>(bc: &BC, e: &Element<'a>) -> Js<'a> {
     }
     // 4. User component or Self referencing component (inferred from filename)
     let mut comp = VStr::raw(tag);
-    if VStr::raw(tag).camelize().capitalize().into_string() == bc.self_name {
+    if !bc.self_name.is_empty()
+        && VStr::raw(tag).camelize().capitalize().into_string() == bc.self_name
+    {
         // codegen special checks for __self postfix when generating component imports,
         // which will pass additional `maybeSelfReference` flag to `resolveComponent`.
         comp.suffix_self();
@@ -379,5 +381,20 @@ fn get_variety_from_binding<'a: 'b, 'b>(
         } else {
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::super::test::{assert_str_lit, base_convert};
+    use super::*;
+    use crate::cast;
+    #[test]
+    fn test_component_basic() {
+        let mut body = base_convert("<comp/>").body;
+        assert_eq!(body.len(), 1);
+        let vn = cast!(body.remove(0), IRNode::VNodeCall);
+        assert_str_lit(&vn.tag, "comp");
+        assert!(vn.is_component);
     }
 }

@@ -73,10 +73,9 @@ mod test {
     use super::super::test::{base_convert, transformer_ext};
     use super::super::Transformer;
     use super::*;
-    use crate::converter::BaseRoot;
 
-    fn get_slot(mut ir: BaseRoot) -> BaseVSlot {
-        let mut vn = cast!(ir.body.remove(0), IRNode::VNodeCall);
+    fn get_slot(ir: BaseIR) -> BaseVSlot {
+        let mut vn = cast!(ir, IRNode::VNodeCall);
         cast!(vn.children.remove(0), IRNode::VSlotUse)
     }
 
@@ -86,13 +85,13 @@ mod test {
         let mut ir = base_convert(
             r"
     <component v-for='upper in 123'>
-    <template v-slot='test' :test='upper'>
-    </template>
+    <template v-slot='test'>{{upper}}</template>
     </component>
     ",
         );
         transformer.transform(&mut ir);
-        let slot = get_slot(ir);
+        let v_for = cast!(ir.body.remove(0), IRNode::For);
+        let slot = get_slot(*v_for.child);
         assert_eq!(slot.stable_slots.len(), 1);
         assert!(matches!(slot.slot_flag, SlotFlag::Dynamic));
     }

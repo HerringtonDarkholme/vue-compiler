@@ -893,7 +893,10 @@ pub mod test {
 
     pub fn base_parse(s: &str) -> AstRoot {
         let tokens = base_scan(s);
-        let parser = Parser::new(ParseOption::default());
+        let parser = Parser::new(ParseOption {
+            is_native_element: |s| s != "comp",
+            ..Default::default()
+        });
         let eh = TestErrorHandler;
         parser.parse(tokens, eh)
     }

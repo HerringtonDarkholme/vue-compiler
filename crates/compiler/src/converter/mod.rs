@@ -452,7 +452,7 @@ impl<'a> Converter<'a> for BaseConverter {
 }
 impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     fn emit_error(&self, error: CompilationError) {
-        todo!()
+        self.err_handle.on_error(error)
     }
 
     // platform specific methods

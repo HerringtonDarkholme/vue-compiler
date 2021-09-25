@@ -1,5 +1,6 @@
-use super::{ConvertInfo, IRRoot, C};
+use super::{BaseVNode, ConvertInfo, IRRoot, C};
 use crate::util::VStr;
+
 use rustc_hash::FxHashMap;
 
 pub trait CorePass<T: ConvertInfo> {
@@ -134,8 +135,21 @@ pub trait CorePassExt<T: ConvertInfo, Shared> {
     fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>, shared: &mut Shared) {}
 }
 
+pub type Identifiers<'a> = FxHashMap<VStr<'a>, usize>;
 pub struct Scope<'a> {
-    pub identifiers: FxHashMap<VStr<'a>, usize>,
+    pub identifiers: Identifiers<'a>,
+}
+
+/// Check if an IR contains expressions that reference current context scope ids
+/// e.g. identifiers referenced in the scope can skip prefixing
+// TODO: has_ref will repeatedly call on vnode regardless if new ids are introduced.
+// So it's a O(d^2) complexity where d is the depth of nested v-slot component.
+// we can optimize it by tracking how many IDs are introduced and skip unnecessary call
+// in practice it isn't a problem because stack overflow happens way faster :/
+impl<'a> Scope<'a> {
+    pub fn has_ref_in_vnode(&self, node: &BaseVNode) -> bool {
+        todo!()
+    }
 }
 
 pub struct SharedInfoPasses<Pass, Shared, const N: usize> {

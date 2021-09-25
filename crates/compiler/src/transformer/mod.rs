@@ -67,6 +67,8 @@ impl<T> Transformer for NoopTransformer<T> {
     }
 }
 
+type Control = Option<()>;
+
 trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
     fn transform_root(root: &mut IRRoot<T>, ps: &mut P);
     fn transform_js_expr(e: &mut T::JsExpression, ps: &mut P);

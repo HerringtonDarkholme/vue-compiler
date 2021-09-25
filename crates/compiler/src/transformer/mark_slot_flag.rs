@@ -1,19 +1,15 @@
 use super::{BaseInfo, BaseVNode, CorePassExt, IRNode, Scope};
-use crate::{
-    converter::BaseIR,
-    flags::{PatchFlag, SlotFlag},
-};
+use crate::flags::{PatchFlag, SlotFlag};
 
 pub struct SlotFlagMarker;
 
 impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for SlotFlagMarker {
-    fn enter_vnode(&mut self, v: &mut BaseVNode<'a>, shared: &mut Scope<'a>) {
+    fn enter_vnode(&mut self, v: &mut BaseVNode<'a>, scope: &mut Scope<'a>) {
         if !v.is_component || v.children.is_empty() {
             return;
         }
         debug_assert_eq!(v.children.len(), 1);
-
-        let has_dynamic_slots = has_scope_in_vnode(v, shared);
+        let has_dynamic_slots = scope.has_ref_in_vnode(v);
         // has dynamic stable slot key
         let v_slot = match &mut v.children[0] {
             IRNode::VSlotUse(v_slot) => v_slot,
@@ -34,19 +30,12 @@ impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for SlotFlagMarker {
         }
     }
 }
+
 fn has_dynamic_slot_name<T>(t: T) -> bool {
     todo!()
 }
 
 fn has_forwarded_slots<T>(t: T) -> bool {
-    todo!()
-}
-
-fn has_scope_in_vnode(v: &BaseVNode, scope: &Scope) -> bool {
-    todo!()
-}
-
-fn has_scope_ref(v: &BaseIR, scope: &Scope) -> bool {
     todo!()
 }
 

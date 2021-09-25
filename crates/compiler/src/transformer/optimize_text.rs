@@ -93,7 +93,7 @@ mod test {
         transformer.transform(&mut ir);
         assert_eq!(ir.body.len(), 1);
         assert_eq!(must_text(&mut ir.body[0]).len(), 2);
-        let ir = must_ir(&mut ir.body[0]);
+        let ir = must_ir(&ir.body[0]);
         assert!(ir.fast_path);
         assert!(!ir.need_patch);
     }
@@ -106,7 +106,7 @@ mod test {
         transformer.transform(&mut ir);
         assert_eq!(ir.body.len(), 3);
         assert_eq!(must_text(&mut ir.body[2]).len(), 2);
-        assert!(!must_ir(&mut ir.body[2]).fast_path);
+        assert!(!must_ir(&ir.body[2]).fast_path);
         let mut ir = base_convert("a <p/> a {{f}} b<p/> e {{c}}<p/>");
         transformer.transform(&mut ir);
         assert_eq!(ir.body.len(), 6);
@@ -121,7 +121,7 @@ mod test {
         assert_eq!(slot.fallbacks.len(), 1);
         let text = must_text(&mut slot.fallbacks[0]);
         assert_eq!(text.len(), 2);
-        let ir = must_ir(&mut slot.fallbacks[0]);
+        let ir = must_ir(&slot.fallbacks[0]);
         assert!(!ir.fast_path);
     }
 }

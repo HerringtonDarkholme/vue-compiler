@@ -56,10 +56,9 @@ impl<P, const N: usize> MergedPass<P, N> {
     }
 }
 
-impl<T, Pass, const N: usize> CorePass<T> for MergedPass<Pass, N>
+impl<T, const N: usize> CorePass<T> for MergedPass<&mut dyn CorePass<T>, N>
 where
     T: ConvertInfo,
-    Pass: CorePass<T>,
 {
     fn enter_root(&mut self, r: &mut IRRoot<T>) {
         self.enter(|p| p.enter_root(r))
@@ -185,10 +184,10 @@ pub struct SharedInfoPasses<Pass, Shared, const N: usize> {
     pub shared_info: Shared,
 }
 // TODO: add transform used
-impl<T, Pass, Shared, const N: usize> CorePass<T> for SharedInfoPasses<Pass, Shared, N>
+impl<T, Shared, const N: usize> CorePass<T>
+    for SharedInfoPasses<&mut dyn CorePassExt<T, Shared>, Shared, N>
 where
     T: ConvertInfo,
-    Pass: CorePassExt<T, Shared>,
 {
     fn enter_js_expr(&mut self, e: &mut T::JsExpression) {
         let shared = &mut self.shared_info;

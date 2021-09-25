@@ -7,7 +7,7 @@ use crate::flags::{RuntimeHelper as RH, StaticLevel};
 use crate::util::{is_global_allow_listed, is_simple_identifier, VStr};
 
 pub struct ExpressionProcessor<'b> {
-    option: &'b TransformOption,
+    pub option: &'b TransformOption,
 }
 
 impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'b> {
@@ -117,6 +117,14 @@ enum CtxType<'a> {
 // 1. breaks down binding pattern e.g. [a, b, c] => identifiers a, b and c
 // 2. patch default parameter like v-slot="a = 123" -> (a = 123)
 fn process_fn_param(p: &mut Js) {
+    let (v, level) = match p {
+        Js::Simple(v, level) => (v, level),
+        _ => todo!(),
+    };
+    if is_simple_identifier(*v) {
+        // nothing LOL
+        return;
+    }
     todo!()
 }
 

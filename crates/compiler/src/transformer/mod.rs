@@ -42,6 +42,7 @@ pub trait Transformer {
     fn transform(&mut self, root: &mut Self::IR);
 }
 
+#[derive(Default)]
 pub struct TransformOption {
     is_ts: bool,
     inline: bool,
@@ -267,12 +268,11 @@ mod test {
         }
     }
 
-    pub fn transformer_ext<'a, P>(pass: P) -> impl Transformer<IR = BaseRoot<'a>>
-    where
-        P: CorePassExt<BaseInfo<'a>, Scope<'a>> + 'static,
-    {
+    pub fn transformer_ext<'a, 'b, const N: usize>(
+        passes: [&'b mut dyn CorePassExt<BaseInfo<'a>, Scope<'a>>; N],
+    ) -> impl Transformer<IR = BaseRoot<'a>> + 'b {
         let pass = SharedInfoPasses {
-            passes: MergedPass::new([pass]),
+            passes: MergedPass::new(passes),
             shared_info: Scope {
                 identifiers: FxHashMap::default(),
             },

@@ -70,8 +70,11 @@ fn has_forwarded_slots(v_slot: &BaseVSlot) -> bool {
 mod test {
     use crate::cast;
 
-    use super::super::test::{base_convert, transformer_ext};
-    use super::super::Transformer;
+    use super::super::{
+        process_expression::ExpressionProcessor,
+        test::{base_convert, transformer_ext},
+        BaseRoot, TransformOption, Transformer,
+    };
     use super::*;
 
     fn get_slot(ir: BaseIR) -> BaseVSlot {
@@ -79,17 +82,25 @@ mod test {
         cast!(vn.children.remove(0), IRNode::VSlotUse)
     }
 
+    fn transform(mut ir: BaseRoot) -> BaseRoot {
+        let option = TransformOption::default();
+        let mut exp = ExpressionProcessor { option: &option };
+        let mut marker = SlotFlagMarker;
+        let mut transformer = transformer_ext([&mut marker, &mut exp]);
+        transformer.transform(&mut ir);
+        ir
+    }
+
     #[test]
     fn test_dynamic_slot() {
-        let mut transformer = transformer_ext(SlotFlagMarker);
-        let mut ir = base_convert(
+        let ir = base_convert(
             r"
     <component v-for='upper in 123'>
     <template v-slot='test'>{{upper}}</template>
     </component>
     ",
         );
-        transformer.transform(&mut ir);
+        let mut ir = transform(ir);
         let v_for = cast!(ir.body.remove(0), IRNode::For);
         let slot = get_slot(*v_for.child);
         assert_eq!(slot.stable_slots.len(), 1);

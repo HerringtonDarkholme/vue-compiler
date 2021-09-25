@@ -1,4 +1,4 @@
-use super::{BaseVNode, ConvertInfo, IRRoot, C};
+use super::{BaseInfo, BaseTransformer, BaseVNode, ConvertInfo, CoreTransformer, IRRoot, Js, C};
 use crate::util::VStr;
 
 use rustc_hash::FxHashMap;
@@ -135,9 +135,9 @@ pub trait CorePassExt<T: ConvertInfo, Shared> {
     fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>, shared: &mut Shared) {}
 }
 
-pub type Identifiers<'a> = FxHashMap<VStr<'a>, usize>;
+type Identifiers<'a> = FxHashMap<VStr<'a>, usize>;
 pub struct Scope<'a> {
-    pub identifiers: Identifiers<'a>,
+    identifiers: Identifiers<'a>,
 }
 
 /// Check if an IR contains expressions that reference current context scope ids
@@ -147,8 +147,30 @@ pub struct Scope<'a> {
 // we can optimize it by tracking how many IDs are introduced and skip unnecessary call
 // in practice it isn't a problem because stack overflow happens way faster :/
 impl<'a> Scope<'a> {
-    pub fn has_ref_in_vnode(&self, node: &BaseVNode) -> bool {
-        todo!()
+    pub fn has_identifier(&self, id: &VStr<'a>) -> bool {
+        self.identifiers.contains_key(id)
+    }
+    pub fn add_identifier(&mut self, id: VStr<'a>) {
+        *self.identifiers.entry(id).or_default() += 1;
+    }
+    pub fn remove_identifier(&mut self, id: VStr<'a>) {
+        *self.identifiers.entry(id).or_default() -= 1;
+    }
+    pub fn has_ref_in_vnode(&self, node: &mut BaseVNode<'a>) -> bool {
+        let mut ref_finder = RefFinder(&self.identifiers, false);
+        BaseTransformer::transform_vnode(node, &mut ref_finder);
+        ref_finder.1
+    }
+}
+struct RefFinder<'a, 'b>(&'b Identifiers<'a>, bool);
+// TODO: implement interruptible transformer for early return
+impl<'a, 'b> CorePass<BaseInfo<'a>> for RefFinder<'a, 'b> {
+    fn enter_js_expr(&mut self, e: &mut Js<'a>) {
+        if let Js::Simple(e, _) = e {
+            if self.0.contains_key(e) {
+                self.1 = true;
+            }
+        }
     }
 }
 

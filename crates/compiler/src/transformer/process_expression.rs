@@ -13,20 +13,20 @@ pub struct ExpressionProcessor<'b> {
 impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'b> {
     fn enter_fn_param(&mut self, p: &mut Js<'a>, shared: &mut Scope<'a>) {
         process_fn_param(p);
-        let a = match p {
+        let id = match p {
             Js::Simple(v, _) => *v,
             Js::Compound(_) => todo!(),
             _ => panic!("param should only be simple expression"),
         };
-        *shared.identifiers.entry(a).or_default() += 1;
+        shared.add_identifier(id);
     }
     fn exit_fn_param(&mut self, p: &mut Js<'a>, shared: &mut Scope<'a>) {
-        let a = match p {
+        let id = match p {
             Js::Simple(v, _) => *v,
             Js::Compound(_) => todo!(),
             _ => panic!("param should only be simple expression"),
         };
-        *shared.identifiers.entry(a).or_default() -= 1;
+        shared.remove_identifier(id);
     }
     // only transform expression after its' sub-expression is transformed
     // e.g. compound/array/call expression
@@ -56,7 +56,7 @@ impl<'b> ExpressionProcessor<'b> {
             return false;
         }
         let raw_exp = v.raw;
-        let is_scope_reference = scope.identifiers.contains_key(v);
+        let is_scope_reference = scope.has_identifier(v);
         let is_allowed_global = is_global_allow_listed(raw_exp);
         let is_literal = matches!(raw_exp, "true" | "false" | "null" | "this");
         if !is_scope_reference && !is_allowed_global && !is_literal {

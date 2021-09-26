@@ -11,21 +11,24 @@ use std::{
 };
 
 bitflags! {
-    /// Represents idempotent string manipulation.
-    // Idempotency is required since op is a bitflag.
+    /// Represents string manipulation. It has two categories:
+    /// 1. IDEMPOTENT_OPS and 2. AFFINE_OPS, depending on
+    /// whether the manipulation is idempotent or not
+    /// NB strops is order sensitive when it is cast to string.
     #[derive(Default)]
     pub struct StrOps: u16 {
-        const COMPRESS_WHITESPACE = 1 << 0;
-        const DECODE_ENTITY       = 1 << 1;
-        const CAMEL_CASE          = 1 << 2;
-        const PASCAL_CASE         = 1 << 3;
-        const IS_ATTR             = 1 << 4;
-        const HANDLER_KEY         = 1 << 5;
-        const VALID_DIR           = 1 << 6;
-        const VALID_COMP          = 1 << 7;
-        const SELF_SUFFIX         = 1 << 8;
-        const V_DIR_PREFIX        = 1 << 9;
-        const JS_STRING           = 1 << 10;
+        const HANDLER_KEY         = 1 << 0;
+        const VALID_DIR           = 1 << 1;
+        const VALID_COMP          = 1 << 2;
+        const V_DIR_PREFIX        = 1 << 3;
+        const COMPRESS_WHITESPACE = 1 << 4;
+        const DECODE_ENTITY       = 1 << 5;
+        const CAMEL_CASE          = 1 << 6;
+        const PASCAL_CASE         = 1 << 7;
+        const JS_STRING           = 1 << 8;
+        // marker op is placed at the end
+        const SELF_SUFFIX         = 1 << 9;
+        const IS_ATTR             = 1 << 10;
         /// Ops that can be safely carried out multiple times
         const IDEMPOTENT_OPS =
             Self::COMPRESS_WHITESPACE.bits | Self::DECODE_ENTITY.bits |
@@ -335,9 +338,10 @@ mod test {
         let cases = [
             (StrOps::empty(), "test"),
             (StrOps::V_DIR_PREFIX, "v-test"),
-            (StrOps::SELF_SUFFIX, "test__self"),
+            (StrOps::V_DIR_PREFIX, "v-test"),
+            (StrOps::SELF_SUFFIX, "test"),
             (StrOps::JS_STRING, stringify!("test")),
-            (StrOps::SELF_SUFFIX | StrOps::V_DIR_PREFIX, "v-test__self"),
+            (StrOps::CAMEL_CASE | StrOps::V_DIR_PREFIX, "vTest"),
         ];
         for (ops, expect) in cases {
             let origin = ops;

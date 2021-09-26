@@ -290,20 +290,11 @@ impl<'a, T: Write> CodeWriter<'a, T> {
                 // are lifted out so we need extract hoist helper here.
                 if !self.top_scope.hoists.is_empty() {
                     let hoist_helpers = self.top_scope.helpers.hoist_helpers();
-                    self.write_str("const {")?;
-                    self.gen_helper_import_list(hoist_helpers)?;
-                    self.write_str("} = ")?;
-                    self.write_str(RUNTIME_GLOBAL_NAME)?;
-                    self.newline()?;
+                    self.gen_helper_destruct(hoist_helpers, RUNTIME_GLOBAL_NAME)?;
                 }
             } else {
-                self.write_str("const {")?;
-                self.indent()?;
-                self.gen_helper_import_list(self.top_scope.helpers.clone())?;
-                self.deindent(true)?;
-                self.write_str("} = ")?;
-                self.write_str(RUNTIME_GLOBAL_NAME)?;
-                self.newline()?;
+                let helper = self.top_scope.helpers.clone();
+                self.gen_helper_destruct(helper, RUNTIME_GLOBAL_NAME)?;
             }
         }
         self.gen_hoist()?;
@@ -312,6 +303,15 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
     fn gen_module_preamble(&mut self) -> io::Result<()> {
         todo!()
+    }
+    fn gen_helper_destruct(&mut self, helpers: HelperCollector, from: &str) -> io::Result<()> {
+        self.write_str("const {")?;
+        self.indent()?;
+        self.gen_helper_import_list(helpers)?;
+        self.deindent(true)?;
+        self.write_str("} = ")?;
+        self.write_str(from)?;
+        self.newline()
     }
     fn gen_helper_import_list(&mut self, helpers: HelperCollector) -> io::Result<()> {
         for rh in helpers.into_iter() {
@@ -358,12 +358,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         }
         // function mode const declarations should be inside with block
         // so it doesn't incur the `in` check cost for every helper access.
-        self.write_str("const {")?;
-        self.indent()?;
-        self.gen_helper_import_list(helpers)?;
-        self.deindent(true)?;
-        self.write_str("} = _Vue")?;
-        self.newline()
+        self.gen_helper_destruct(helpers, "_Vue")
     }
     /// component/directive resolution inside render
     fn generate_assets(&mut self) -> io::Result<()> {

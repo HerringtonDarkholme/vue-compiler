@@ -152,7 +152,7 @@ const HELPERS_IN_HOISTED: &[RH] = &[
     RH::CreateText,
     RH::CreateVNode,
 ];
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq, Eq)]
 pub struct HelperCollector(u64);
 impl HelperCollector {
     pub fn is_empty(&self) -> bool {

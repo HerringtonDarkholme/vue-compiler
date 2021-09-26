@@ -5,4 +5,4 @@ repos:
     -   id: fmt
     -   id: cargo-check
     -   id: clippy
-        args: ["--", "-D", "all"]
+        args: ["--all-targets", "--all-features", "--", "-D", "all"]

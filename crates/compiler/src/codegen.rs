@@ -107,7 +107,7 @@ pub struct CodeWriter<'a, T: Write> {
 impl<'a, T: Write> CodeGenerator for CodeWriter<'a, T> {
     type IR = BaseRoot<'a>;
     type Output = io::Result<()>;
-    fn generate(&mut self, mut root: Self::IR) -> Self::Output {
+    fn generate(&mut self, root: Self::IR) -> Self::Output {
         // get top scope entities
         self.helpers = root.top_scope.helpers.clone();
         self.generate_root(root)
@@ -117,10 +117,10 @@ impl<'a, T: Write> CodeGenerator for CodeWriter<'a, T> {
 impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
     type Written = io::Result<()>;
     fn generate_prologue(&mut self, root: &BaseRoot<'a>) -> io::Result<()> {
-        self.generate_preamble()?;
+        self.generate_preamble(&root.top_scope)?;
         self.generate_function_signature()?;
         self.generate_with_scope()?;
-        self.generate_assets()?;
+        self.generate_assets(&root.top_scope)?;
         self.write_str("return ")
     }
     fn generate_epilogue(&mut self) -> io::Result<()> {
@@ -275,14 +275,15 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.generate_epilogue()
     }
     /// for import helpers or hoist that not in function
-    fn generate_preamble(&mut self) -> io::Result<()> {
+    fn generate_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {
         if self.option.mode == ScriptMode::Module {
             self.gen_module_preamble()
         } else {
-            self.gen_function_preamble()
+            self.gen_function_preamble(top)
         }
     }
-    fn gen_function_preamble(&mut self) -> io::Result<()> {
+    fn gen_function_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+        debug_assert!(top.helpers == self.helpers);
         if !self.helpers.is_empty() {
             if self.option.use_with_scope() {
                 self.write_str("const _Vue = ")?;
@@ -290,7 +291,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
                 self.newline()?;
                 // helpers are declared inside with block, but hoists
                 // are lifted out so we need extract hoist helper here.
-                if !self.top_scope.hoists.is_empty() {
+                if !top.hoists.is_empty() {
                     let hoist_helpers = self.helpers.hoist_helpers();
                     self.gen_helper_destruct(hoist_helpers, RUNTIME_GLOBAL_NAME)?;
                 }
@@ -299,7 +300,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
                 self.gen_helper_destruct(helper, RUNTIME_GLOBAL_NAME)?;
             }
         }
-        self.gen_hoist()?;
+        self.gen_hoist(top)?;
         self.newline()?;
         self.write_str("return ")
     }
@@ -324,8 +325,8 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         }
         Ok(())
     }
-    fn gen_hoist(&mut self) -> io::Result<()> {
-        if self.top_scope.hoists.is_empty() {
+    fn gen_hoist(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+        if top.hoists.is_empty() {
             return Ok(());
         }
         todo!()
@@ -363,8 +364,13 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.gen_helper_destruct(helpers, "_Vue")
     }
     /// component/directive resolution inside render
-    fn generate_assets(&mut self) -> io::Result<()> {
-        // TODO
+    fn generate_assets(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+        if !top.components.is_empty() {
+            todo!()
+        }
+        if !top.directives.is_empty() {
+            todo!()
+        }
         Ok(())
     }
 
@@ -768,16 +774,16 @@ mod test {
     use super::super::converter::test::base_convert;
     use super::*;
     use crate::cast;
-    fn gen(ir: BaseRoot, option: CodeGenerateOption) -> String {
+    fn gen(mut ir: BaseRoot, option: CodeGenerateOption) -> String {
+        ir.top_scope.helpers.ignore_missing();
         let mut writer = CodeWriter {
             writer: vec![],
             indent_level: 0,
             closing_brackets: 0,
-            helpers: HelperCollector::default(),
+            helpers: ir.top_scope.helpers.clone(),
             option,
             pd: PhantomData,
         };
-        writer.helpers.ignore_missing();
         writer.generate_root(ir).unwrap();
         String::from_utf8(writer.writer).unwrap()
     }

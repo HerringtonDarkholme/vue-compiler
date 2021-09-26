@@ -115,9 +115,9 @@ impl<'a, T: Write> CodeGenerator for CodeWriter<'a, T> {
 impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
     type Written = io::Result<()>;
     fn generate_prologue(&mut self, root: &BaseRoot<'a>) -> io::Result<()> {
-        self.generate_preamble(&root.top_scope)?;
+        self.generate_preamble()?;
         self.generate_function_signature()?;
-        self.generate_with_scope(&root.top_scope)?;
+        self.generate_with_scope()?;
         self.generate_assets()?;
         self.write_str("return ")
     }
@@ -273,48 +273,59 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.generate_epilogue()
     }
     /// for import helpers or hoist that not in function
-    fn generate_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+    fn generate_preamble(&mut self) -> io::Result<()> {
         if self.option.mode == ScriptMode::Module {
-            self.gen_module_preamble(top)
+            self.gen_module_preamble()
         } else {
-            self.gen_function_preamble(top)
+            self.gen_function_preamble()
         }
     }
-    fn gen_function_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {
-        if !top.helpers.is_empty() {
+    fn gen_function_preamble(&mut self) -> io::Result<()> {
+        if !self.top_scope.helpers.is_empty() {
             if self.option.use_with_scope() {
                 self.write_str("const _Vue = ")?;
                 self.write_str(RUNTIME_GLOBAL_NAME)?;
                 self.newline()?;
                 // helpers are declared inside with block, but hoists
                 // are lifted out so we need extract hoist helper here.
-                if !top.hoists.is_empty() {
-                    let hoist_helpers = top.helpers.hoist_helpers();
+                if !self.top_scope.hoists.is_empty() {
+                    let hoist_helpers = self.top_scope.helpers.hoist_helpers();
                     self.write_str("const {")?;
-                    self.gen_helper_import_list(&hoist_helpers)?;
+                    self.gen_helper_import_list(hoist_helpers)?;
                     self.write_str("} = ")?;
                     self.write_str(RUNTIME_GLOBAL_NAME)?;
+                    self.newline()?;
                 }
             } else {
                 self.write_str("const {")?;
                 self.indent()?;
-                self.gen_helper_import_list(&top.helpers)?;
+                self.gen_helper_import_list(self.top_scope.helpers.clone())?;
                 self.deindent(true)?;
                 self.write_str("} = ")?;
                 self.write_str(RUNTIME_GLOBAL_NAME)?;
+                self.newline()?;
             }
         }
         self.gen_hoist()?;
         self.newline()?;
         self.write_str("return ")
     }
-    fn gen_module_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+    fn gen_module_preamble(&mut self) -> io::Result<()> {
         todo!()
     }
-    fn gen_helper_import_list(&mut self, helpers: &HelperCollector) -> io::Result<()> {
-        todo!()
+    fn gen_helper_import_list(&mut self, helpers: HelperCollector) -> io::Result<()> {
+        for rh in helpers.into_iter() {
+            self.write_str(rh.helper_str())?;
+            self.write_str(": _")?;
+            self.write_str(rh.helper_str())?;
+            self.write_str(", ")?;
+        }
+        Ok(())
     }
     fn gen_hoist(&mut self) -> io::Result<()> {
+        if self.top_scope.hoists.is_empty() {
+            return Ok(());
+        }
         todo!()
     }
     /// render() or ssrRender() and their parameters
@@ -334,22 +345,29 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.indent()
     }
     /// with (ctx) for not prefixIdentifier
-    fn generate_with_scope(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+    fn generate_with_scope(&mut self) -> io::Result<()> {
+        let helpers = self.top_scope.helpers.clone();
         if !self.option.use_with_scope() {
             return Ok(());
         }
         self.write_str("with (_ctx) {")?;
         self.closing_brackets += 1;
         self.indent()?;
-        if top.helpers.is_empty() {
+        if helpers.is_empty() {
             return Ok(());
         }
         // function mode const declarations should be inside with block
         // so it doesn't incur the `in` check cost for every helper access.
-        todo!("add helper")
+        self.write_str("const {")?;
+        self.indent()?;
+        self.gen_helper_import_list(helpers)?;
+        self.deindent(true)?;
+        self.write_str("} = _Vue")?;
+        self.newline()
     }
     /// component/directive resolution inside render
     fn generate_assets(&mut self) -> io::Result<()> {
+        let top = &self.top_scope;
         // TODO
         Ok(())
     }

@@ -10,6 +10,7 @@ use super::transformer::{
 };
 use crate::util::{get_vnode_call_helper, is_simple_identifier};
 use smallvec::{smallvec, SmallVec};
+use std::marker::PhantomData;
 use std::{
     borrow::Cow,
     io::{self, Write},
@@ -99,15 +100,16 @@ pub struct CodeWriter<'a, T: Write> {
     writer: T,
     indent_level: usize,
     closing_brackets: usize,
-    top_scope: TopScope<'a>,
+    helpers: HelperCollector,
     option: CodeGenerateOption,
+    pd: PhantomData<&'a ()>,
 }
 impl<'a, T: Write> CodeGenerator for CodeWriter<'a, T> {
     type IR = BaseRoot<'a>;
     type Output = io::Result<()>;
     fn generate(&mut self, mut root: Self::IR) -> Self::Output {
         // get top scope entities
-        std::mem::swap(&mut self.top_scope, &mut root.top_scope);
+        self.helpers = root.top_scope.helpers.clone();
         self.generate_root(root)
     }
 }
@@ -281,7 +283,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         }
     }
     fn gen_function_preamble(&mut self) -> io::Result<()> {
-        if !self.top_scope.helpers.is_empty() {
+        if !self.helpers.is_empty() {
             if self.option.use_with_scope() {
                 self.write_str("const _Vue = ")?;
                 self.write_str(RUNTIME_GLOBAL_NAME)?;
@@ -289,11 +291,11 @@ impl<'a, T: Write> CodeWriter<'a, T> {
                 // helpers are declared inside with block, but hoists
                 // are lifted out so we need extract hoist helper here.
                 if !self.top_scope.hoists.is_empty() {
-                    let hoist_helpers = self.top_scope.helpers.hoist_helpers();
+                    let hoist_helpers = self.helpers.hoist_helpers();
                     self.gen_helper_destruct(hoist_helpers, RUNTIME_GLOBAL_NAME)?;
                 }
             } else {
-                let helper = self.top_scope.helpers.clone();
+                let helper = self.helpers.clone();
                 self.gen_helper_destruct(helper, RUNTIME_GLOBAL_NAME)?;
             }
         }
@@ -346,7 +348,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
     /// with (ctx) for not prefixIdentifier
     fn generate_with_scope(&mut self) -> io::Result<()> {
-        let helpers = self.top_scope.helpers.clone();
+        let helpers = self.helpers.clone();
         if !self.option.use_with_scope() {
             return Ok(());
         }
@@ -362,7 +364,6 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
     /// component/directive resolution inside render
     fn generate_assets(&mut self) -> io::Result<()> {
-        let top = &self.top_scope;
         // TODO
         Ok(())
     }
@@ -547,7 +548,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
     #[inline(always)]
     fn write_helper(&mut self, h: RH) -> io::Result<()> {
-        debug_assert!(self.top_scope.helpers.contains(h));
+        debug_assert!(self.helpers.contains(h));
         self.write_str("_")?;
         self.write_str(h.helper_str())
     }
@@ -772,10 +773,11 @@ mod test {
             writer: vec![],
             indent_level: 0,
             closing_brackets: 0,
-            top_scope: TopScope::default(),
+            helpers: HelperCollector::default(),
             option,
+            pd: PhantomData,
         };
-        writer.top_scope.helpers.ignore_missing();
+        writer.helpers.ignore_missing();
         writer.generate_root(ir).unwrap();
         String::from_utf8(writer.writer).unwrap()
     }

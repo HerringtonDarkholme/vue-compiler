@@ -155,9 +155,6 @@ const HELPERS_IN_HOISTED: &[RH] = &[
 #[derive(Clone, Default)]
 pub struct HelperCollector(u64);
 impl HelperCollector {
-    pub fn new() -> Self {
-        Self(0)
-    }
     pub fn is_empty(&self) -> bool {
         self.0 == 0
     }

@@ -469,7 +469,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter<'a> {
         dir: &mut Directive<'a>,
         e: &mut Element<'a>,
     ) -> CoreDirConvRet<'a> {
-        if let Some(convert) = self.directive_converters.get(dir.name) {
+        if let Some(convert) = self.option.directive_converters.get(dir.name) {
             convert(dir, e, self.err_handle.as_ref())
         } else {
             DirectiveConvertResult::Preserve
@@ -522,7 +522,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter<'a> {
 
 impl<'a> BaseConverter<'a> {
     fn no_slotted(&self) -> bool {
-        self.scope_id.is_some() && !self.slotted
+        self.option.scope_id.is_some() && !self.option.slotted
     }
 }
 
@@ -568,8 +568,6 @@ pub mod test {
         }
         let option = ConvertOption {
             get_builtin_component: |_| None,
-        };
-        let bc = BC {
             scope_id: None,
             slotted: false,
             inline: true,
@@ -577,8 +575,11 @@ pub mod test {
             directive_converters: convs,
             binding_metadata: Rc::new(BindingMetadata(FxHashMap::default(), false)),
             self_name: "".into(),
+        };
+        let bc = BC {
             err_handle: Box::new(TestErrorHandler),
             option,
+            pd: PhantomData,
         };
         let ast = base_parse(s);
         bc.convert_ir(ast)

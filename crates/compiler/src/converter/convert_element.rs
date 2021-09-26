@@ -67,7 +67,7 @@ pub fn convert_template<'a>(bc: &BC<'a>, mut e: Element<'a>, is_slot: bool) -> B
         build_props(bc, &mut *e, key_prop_iter).props
     };
     let props = props(&mut e);
-    if child_count == 1 && bc.is_dev {
+    if child_count == 1 && bc.option.is_dev {
         patch_flag |= PatchFlag::DEV_ROOT_FRAGMENT;
     }
     IRNode::VNodeCall(VNodeIR {
@@ -113,8 +113,8 @@ pub fn resolve_element_tag<'a>(bc: &BC<'a>, e: &Element<'a>) -> Js<'a> {
     }
     // 4. User component or Self referencing component (inferred from filename)
     let mut comp = VStr::raw(tag);
-    if !bc.self_name.is_empty()
-        && VStr::raw(tag).camelize().capitalize().into_string() == bc.self_name
+    if !bc.option.self_name.is_empty()
+        && VStr::raw(tag).pascalize().into_string() == bc.option.self_name
     {
         // codegen special checks for __self postfix when generating component imports,
         // which will pass additional `maybeSelfReference` flag to `resolveComponent`.
@@ -329,14 +329,15 @@ fn resolve_setup_component<'a>(bc: &BC<'a>, tag: &'a str) -> Option<Js<'a>> {
 // TODO: externalize this into the CoreConverter trait
 /// returns the specific name created in script setup, modulo camel/pascal case
 fn resolve_setup_reference<'a>(bc: &BC<'a>, name: &'a str) -> Option<Js<'a>> {
-    let bindings = &bc.binding_metadata;
+    let bindings = &bc.option.binding_metadata;
     if bindings.is_empty() || !bindings.is_setup() {
         return None;
     }
+    let is_inline = bc.option.inline;
     // the returned closure will find the name modulo casing
     let variety_by_type = get_variety_from_binding(name, bindings);
     if let Some(from_const) = variety_by_type(BindingTypes::SetupConst) {
-        return Some(if bc.inline {
+        return Some(if is_inline {
             Js::simple(from_const)
         } else {
             Js::Compound(vec![
@@ -350,7 +351,7 @@ fn resolve_setup_reference<'a>(bc: &BC<'a>, name: &'a str) -> Option<Js<'a>> {
         .or_else(|| variety_by_type(BindingTypes::SetupRef))
         .or_else(|| variety_by_type(BindingTypes::SetupMaybeRef));
     if let Some(maybe_ref) = from_maybe_ref {
-        return Some(if bc.inline {
+        return Some(if is_inline {
             Js::Call(RuntimeHelper::Unref, vec![Js::simple(maybe_ref)])
         } else {
             Js::Compound(vec![

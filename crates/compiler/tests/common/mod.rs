@@ -7,8 +7,8 @@ impl ErrorHandler for TestErrorHandler {}
 
 pub struct Position {
     pub offset: usize,
-    pub line: usize,
-    pub column: usize,
+    pub line: u32,
+    pub column: u32,
 }
 
 impl Serialize for Position {

@@ -23,9 +23,9 @@ pub struct Position {
     /// the 0-indexed offset in the source str modulo newline
     pub offset: usize,
     /// the line number in the source code
-    pub line: usize,
+    pub line: u32,
     /// the column number in the source code
-    pub column: usize,
+    pub column: u32,
 }
 
 impl Default for Position {
@@ -70,4 +70,13 @@ macro_rules! cast {
             panic!("mismatch variant when cast to {}", stringify!($pat));
         }
     }};
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn test_source_size() {
+        assert_eq!(std::mem::size_of::<Position>(), 16);
+    }
 }

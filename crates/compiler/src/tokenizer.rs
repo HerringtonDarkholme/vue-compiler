@@ -706,9 +706,9 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
         pos.offset += size;
         pos.line += lines;
         pos.column = if last_new_line_pos == -1 {
-            pos.column + size
+            pos.column + size as u32
         } else {
-            size - last_new_line_pos as usize
+            size as u32 - last_new_line_pos as u32
         };
         &old_source[..size]
     }

@@ -7,6 +7,8 @@ use super::{
     transformer::Transformer,
 };
 
+// TODO: we have internal option that diverges from vue's option
+// CompileOption should behave like Vue option and be normalized to internal option
 pub struct CompileOption<E: ErrorHandler> {
     tokenization: TokenizeOption,
     parsing: ParseOption,

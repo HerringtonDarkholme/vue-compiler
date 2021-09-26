@@ -144,14 +144,37 @@ pub enum RuntimeHelper {
     IsMemoSame,
 }
 
+use RuntimeHelper as RH;
+const HELPERS_IN_HOISTED: &[RH] = &[
+    RH::CreateComment,
+    RH::CreateElementVNode,
+    RH::CreateStatic,
+    RH::CreateText,
+    RH::CreateVNode,
+];
 #[derive(Clone, Default)]
 pub struct HelperCollector(u64);
 impl HelperCollector {
+    pub fn new() -> Self {
+        Self(0)
+    }
+    pub fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
     pub fn collect(&mut self, helper: RuntimeHelper) {
         self.0 |= 1 << (helper as u64);
     }
     pub fn contains(&self, helper: RuntimeHelper) -> bool {
         (self.0 & (1 << helper as u64)) != 0
+    }
+    pub fn hoist_helpers(&self) -> Self {
+        let mut n = Self(0);
+        for &rh in HELPERS_IN_HOISTED {
+            if self.contains(rh) {
+                n.collect(rh);
+            }
+        }
+        n
     }
     // ignore missing helpers in unit testing
     #[cfg(test)]

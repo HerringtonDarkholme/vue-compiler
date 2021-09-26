@@ -4,7 +4,7 @@ use super::converter::{
     BaseConvertInfo, BaseIR, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir,
     TopScope, VNodeIR,
 };
-use super::flags::{PatchFlag, RuntimeHelper as RH, SlotFlag};
+use super::flags::{HelperCollector, PatchFlag, RuntimeHelper as RH, SlotFlag};
 use super::transformer::{
     BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot,
 };
@@ -24,9 +24,16 @@ pub trait CodeGenerator {
     fn generate(&mut self, node: Self::IR) -> Self::Output;
 }
 
+#[derive(PartialEq, Eq)]
+pub enum ScriptMode {
+    Function { prefix_identifier: bool },
+    Module,
+}
+
 pub struct CodeGenerateOption {
     pub is_dev: bool,
     pub is_ts: bool,
+    pub mode: ScriptMode,
     pub source_map: bool,
     pub inline: bool,
     pub has_binding: bool,
@@ -34,11 +41,22 @@ pub struct CodeGenerateOption {
     pub filename: String,
     pub decode_entities: EntityDecoder,
 }
+impl CodeGenerateOption {
+    fn use_with_scope(&self) -> bool {
+        match self.mode {
+            ScriptMode::Function { prefix_identifier } => !prefix_identifier,
+            ScriptMode::Module => false,
+        }
+    }
+}
 impl Default for CodeGenerateOption {
     fn default() -> Self {
         Self {
             is_dev: true,
             is_ts: false,
+            mode: ScriptMode::Function {
+                prefix_identifier: false,
+            },
             source_map: false,
             inline: false,
             filename: String::new(),
@@ -97,9 +115,9 @@ impl<'a, T: Write> CodeGenerator for CodeWriter<'a, T> {
 impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
     type Written = io::Result<()>;
     fn generate_prologue(&mut self, root: &BaseRoot<'a>) -> io::Result<()> {
-        self.generate_preamble()?;
+        self.generate_preamble(&root.top_scope)?;
         self.generate_function_signature()?;
-        self.generate_with_scope()?;
+        self.generate_with_scope(&root.top_scope)?;
         self.generate_assets()?;
         self.write_str("return ")
     }
@@ -233,6 +251,8 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
     }
 }
 
+// TODO: put runtimeGlobalName in option
+const RUNTIME_GLOBAL_NAME: &str = "Vue";
 impl<'a, T: Write> CodeWriter<'a, T> {
     fn generate_root(&mut self, mut root: BaseRoot<'a>) -> io::Result<()> {
         self.generate_prologue(&root)?;
@@ -253,18 +273,60 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.generate_epilogue()
     }
     /// for import helpers or hoist that not in function
-    fn generate_preamble(&mut self) -> io::Result<()> {
+    fn generate_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+        if self.option.mode == ScriptMode::Module {
+            self.gen_module_preamble(top)
+        } else {
+            self.gen_function_preamble(top)
+        }
+    }
+    fn gen_function_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+        if !top.helpers.is_empty() {
+            if self.option.use_with_scope() {
+                self.write_str("const _Vue = ")?;
+                self.write_str(RUNTIME_GLOBAL_NAME)?;
+                self.newline()?;
+                // helpers are declared inside with block, but hoists
+                // are lifted out so we need extract hoist helper here.
+                if !top.hoists.is_empty() {
+                    let hoist_helpers = top.helpers.hoist_helpers();
+                    self.write_str("const {")?;
+                    self.gen_helper_import_list(&hoist_helpers)?;
+                    self.write_str("} = ")?;
+                    self.write_str(RUNTIME_GLOBAL_NAME)?;
+                }
+            } else {
+                self.write_str("const {")?;
+                self.indent()?;
+                self.gen_helper_import_list(&top.helpers)?;
+                self.deindent(true)?;
+                self.write_str("} = ")?;
+                self.write_str(RUNTIME_GLOBAL_NAME)?;
+            }
+        }
+        self.gen_hoist()?;
+        self.newline()?;
         self.write_str("return ")
     }
-    /// render() or ssrRender() or IIFE for inline mode
+    fn gen_module_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+        todo!()
+    }
+    fn gen_helper_import_list(&mut self, helpers: &HelperCollector) -> io::Result<()> {
+        todo!()
+    }
+    fn gen_hoist(&mut self) -> io::Result<()> {
+        todo!()
+    }
+    /// render() or ssrRender() and their parameters
     fn generate_function_signature(&mut self) -> io::Result<()> {
-        // TODO: add more params, add more modes
         let option = &self.option;
         let args = if option.has_binding && !option.inline {
             "_ctx, _cache, $props, $setup, $data, $options"
         } else {
             "_ctx, _cache"
         };
+        // NB: vue uses arrow func for inline mode.
+        // but it makes no diff in Vue runtime implementation?
         self.write_str("function render(")?;
         self.write_str(args)?;
         self.write_str(") {")?;
@@ -272,11 +334,19 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.indent()
     }
     /// with (ctx) for not prefixIdentifier
-    fn generate_with_scope(&mut self) -> io::Result<()> {
-        // TODO: add helpers
+    fn generate_with_scope(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+        if !self.option.use_with_scope() {
+            return Ok(());
+        }
         self.write_str("with (_ctx) {")?;
         self.closing_brackets += 1;
-        self.indent()
+        self.indent()?;
+        if top.helpers.is_empty() {
+            return Ok(());
+        }
+        // function mode const declarations should be inside with block
+        // so it doesn't incur the `in` check cost for every helper access.
+        todo!("add helper")
     }
     /// component/directive resolution inside render
     fn generate_assets(&mut self) -> io::Result<()> {

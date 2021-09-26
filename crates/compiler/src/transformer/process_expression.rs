@@ -1,6 +1,7 @@
 // 1. track variables introduced in template
 // currently only v-for and v-slot
 // 2. prefix expression
+use super::collect_entities::is_hoisted_asset;
 use super::{BaseInfo, CorePassExt, Scope, TransformOption};
 use crate::converter::{BindingTypes, JsExpr as Js};
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
@@ -38,6 +39,10 @@ impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'b> {
 impl<'b> ExpressionProcessor<'b> {
     fn process_expression(&self, e: &mut Js, scope: &Scope) {
         if !self.option.prefix_identifier {
+            return;
+        }
+        // hoisted component/directive does not need prefixing
+        if is_hoisted_asset(e).is_some() {
             return;
         }
         if self.process_expr_fast(e, scope) {

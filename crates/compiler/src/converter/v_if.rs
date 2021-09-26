@@ -101,7 +101,7 @@ pub fn pre_group_v_if(children: Vec<AstNode>) -> impl Iterator<Item = PreGroup> 
 }
 
 /// key is Vue-generated default key based on the number of sibling v-if.
-pub fn convert_if<'a>(c: &BC, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
+pub fn convert_if<'a>(c: &BC<'a>, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a> {
     debug_assert!(!elems.is_empty());
     check_v_if_group(c, &elems);
     let branches: Vec<_> = elems
@@ -112,7 +112,7 @@ pub fn convert_if<'a>(c: &BC, elems: Vec<Element<'a>>, key: usize) -> BaseIR<'a>
     IRNode::If(IfNodeIR { branches, info: () })
 }
 
-pub fn report_dangling_else<'a>(c: &BC, elem: &Element<'a>) {
+pub fn report_dangling_else<'a>(c: &BC<'a>, elem: &Element<'a>) {
     debug_assert!(find_dir_empty(elem, "if").is_none());
     let loc = find_dir_empty(elem, ["else-if", "else"])
         .expect("must have other v-if dir")
@@ -124,7 +124,7 @@ pub fn report_dangling_else<'a>(c: &BC, elem: &Element<'a>) {
 }
 
 fn check_duplicate_key<'a>(
-    c: &BC,
+    c: &BC<'a>,
     prop: &ElemProp<'a>,
     dirs: &mut FxHashSet<VStr<'a>>,
     attrs: &mut FxHashSet<VStr<'a>>,
@@ -155,7 +155,7 @@ fn check_duplicate_key<'a>(
     }
 }
 
-fn check_v_if_group<'a>(c: &BC, elems: &[Element<'a>]) {
+fn check_v_if_group<'a>(c: &BC<'a>, elems: &[Element<'a>]) {
     // 1. check dangling else
     if find_dir_empty(&elems[0], "if").is_none() {
         report_dangling_else(c, &elems[0]);
@@ -177,7 +177,11 @@ fn check_v_if_group<'a>(c: &BC, elems: &[Element<'a>]) {
     }
 }
 
-fn convert_if_branch<'a>(c: &BC, mut e: Element<'a>, key: usize) -> IfBranch<BaseConvertInfo<'a>> {
+fn convert_if_branch<'a>(
+    c: &BC<'a>,
+    mut e: Element<'a>,
+    key: usize,
+) -> IfBranch<BaseConvertInfo<'a>> {
     let dir = find_dir_empty(&mut e, ["if", "else-if", "else"])
         .expect("the element must have v-if directives")
         .take();
@@ -189,7 +193,7 @@ fn convert_if_branch<'a>(c: &BC, mut e: Element<'a>, key: usize) -> IfBranch<Bas
         info: key,
     }
 }
-fn convert_if_condition<'a>(c: &BC, dir: Directive<'a>) -> Option<Js<'a>> {
+fn convert_if_condition<'a>(c: &BC<'a>, dir: Directive<'a>) -> Option<Js<'a>> {
     if dir.name != "else" {
         if let Some(err) = dir.check_empty_expr(ErrorKind::VIfNoExpression) {
             c.emit_error(err);
@@ -203,7 +207,7 @@ fn convert_if_condition<'a>(c: &BC, dir: Directive<'a>) -> Option<Js<'a>> {
     }
     dir.expression.map(|v| Js::simple(v.content))
 }
-fn report_duplicate_v_if<'a>(c: &BC, e: &mut Element<'a>) {
+fn report_duplicate_v_if<'a>(c: &BC<'a>, e: &mut Element<'a>) {
     // https://stackoverflow.com/a/48144226/2198656
     while let Some(found) = find_dir_empty(&mut *e, ["if", "else-if", "else"]) {
         let dir = found.take();

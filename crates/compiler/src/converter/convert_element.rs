@@ -14,7 +14,7 @@ use crate::{
 };
 use std::{iter, mem};
 
-pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
+pub fn convert_element<'a>(bc: &BC<'a>, mut e: Element<'a>) -> BaseIR<'a> {
     debug_assert!(matches!(
         e.tag_type,
         ElementType::Plain | ElementType::Component
@@ -48,7 +48,7 @@ pub fn convert_element<'a>(bc: &BC, mut e: Element<'a>) -> BaseIR<'a> {
 }
 
 // is_slot indicates if the template should be compiled to dynamic slot expr
-pub fn convert_template<'a>(bc: &BC, mut e: Element<'a>, is_slot: bool) -> BaseIR<'a> {
+pub fn convert_template<'a>(bc: &BC<'a>, mut e: Element<'a>, is_slot: bool) -> BaseIR<'a> {
     debug_assert!(e.tag_type == ElementType::Template);
     check_wrong_slot(bc, &e, ErrorKind::VSlotTemplateMisplaced);
     // TODO: optimize away template if it has one stable element child
@@ -84,7 +84,7 @@ pub fn convert_template<'a>(bc: &BC, mut e: Element<'a>, is_slot: bool) -> BaseI
 /// 1. Js::Call for dynamic component or user component.
 /// 2. Js::Symbol for builtin component
 /// 3. Js::StrLit for plain element or component
-pub fn resolve_element_tag<'a>(bc: &BC, e: &Element<'a>) -> Js<'a> {
+pub fn resolve_element_tag<'a>(bc: &BC<'a>, e: &Element<'a>) -> Js<'a> {
     if e.tag_type == ElementType::Plain {
         return Js::str_lit(e.tag_name);
     }
@@ -209,7 +209,7 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
 
 type BaseDir<'a> = RuntimeDir<BaseConvertInfo<'a>>;
 fn build_directive_args<'a>(
-    bc: &BC,
+    bc: &BC<'a>,
     dirs: Vec<(Directive<'a>, Option<RuntimeHelper>)>,
 ) -> Vec<BaseDir<'a>> {
     dirs.into_iter()
@@ -218,7 +218,7 @@ fn build_directive_args<'a>(
 }
 
 fn build_directive_arg<'a>(
-    bc: &BC,
+    bc: &BC<'a>,
     dir: Directive<'a>,
     helper: Option<RuntimeHelper>,
 ) -> BaseDir<'a> {
@@ -256,7 +256,11 @@ fn build_directive_arg<'a>(
     }
 }
 
-fn build_children<'a>(bc: &BC, e: &mut Element<'a>, tag: &Js<'a>) -> (Vec<BaseIR<'a>>, PatchFlag) {
+fn build_children<'a>(
+    bc: &BC<'a>,
+    e: &mut Element<'a>,
+    tag: &Js<'a>,
+) -> (Vec<BaseIR<'a>>, PatchFlag) {
     // check slot should precede return
     if !e.is_component() {
         v_slot::check_wrong_slot(bc, e, ErrorKind::VSlotMisplaced);
@@ -310,7 +314,7 @@ fn is_builtin_symbol(tag: &Js, helper: RuntimeHelper) -> bool {
     }
 }
 
-fn resolve_setup_component<'a>(bc: &BC, tag: &'a str) -> Option<Js<'a>> {
+fn resolve_setup_component<'a>(bc: &BC<'a>, tag: &'a str) -> Option<Js<'a>> {
     if let Some(from_setup) = resolve_setup_reference(bc, tag) {
         return Some(from_setup);
     }
@@ -324,7 +328,7 @@ fn resolve_setup_component<'a>(bc: &BC, tag: &'a str) -> Option<Js<'a>> {
 
 // TODO: externalize this into the CoreConverter trait
 /// returns the specific name created in script setup, modulo camel/pascal case
-fn resolve_setup_reference<'a>(bc: &BC, name: &'a str) -> Option<Js<'a>> {
+fn resolve_setup_reference<'a>(bc: &BC<'a>, name: &'a str) -> Option<Js<'a>> {
     let bindings = &bc.binding_metadata;
     if bindings.is_empty() || !bindings.is_setup() {
         return None;

@@ -425,7 +425,7 @@ pub struct ConvertOption {
     get_builtin_component: fn(&str) -> Option<RuntimeHelper>,
 }
 
-pub struct BaseConverter {
+pub struct BaseConverter<'a> {
     pub scope_id: Option<String>,
     /// Indicates this SFC template has used :slotted in its styles
     /// Defaults to `true` for backwards compatibility - SFC tooling should set it
@@ -435,7 +435,7 @@ pub struct BaseConverter {
     /// This allows the function to directly access setup() local bindings.
     pub inline: bool,
     pub is_dev: bool,
-    pub directive_converters: FxHashMap<&'static str, DirConvertFn>,
+    pub directive_converters: FxHashMap<&'a str, DirConvertFn>,
     /// Optional binding metadata analyzed from script - used to optimize
     /// binding access when `prefixIdentifiers` is enabled.
     pub binding_metadata: Rc<BindingMetadata>,
@@ -446,13 +446,13 @@ pub struct BaseConverter {
 }
 pub type BaseRoot<'a> = IRRoot<BaseConvertInfo<'a>>;
 pub type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
-impl<'a> Converter<'a> for BaseConverter {
+impl<'a> Converter<'a> for BaseConverter<'a> {
     type IR = BaseRoot<'a>;
     fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR {
         self.convert_core_ir(ast)
     }
 }
-impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
+impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter<'a> {
     fn emit_error(&self, error: CompilationError) {
         self.err_handle.on_error(error)
     }
@@ -519,7 +519,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter {
     }
 }
 
-impl BaseConverter {
+impl<'a> BaseConverter<'a> {
     fn no_slotted(&self) -> bool {
         self.scope_id.is_some() && !self.slotted
     }

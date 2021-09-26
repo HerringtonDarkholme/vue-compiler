@@ -42,7 +42,7 @@ type BaseVSlot<'a> = VSlotIR<BaseConvertInfo<'a>>;
 // 1. On component slot: <comp v-slot="">
 // 2. Full template slot: <template v-slot>
 // 3. implicit default with named: hybrid of 1 and 2
-pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
+pub fn convert_v_slot<'a>(bc: &BC<'a>, e: &mut Element<'a>) -> BaseIR<'a> {
     // TODO: Check dynamic identifier usage
     // 1. Check for slot with slotProps on component itself. <Comp v-slot="{ prop }"/>
     if let Some(ret) = convert_on_component_slot(bc, &mut *e) {
@@ -72,7 +72,7 @@ pub fn convert_v_slot<'a>(bc: &BC, e: &mut Element<'a>) -> BaseIR<'a> {
     IRNode::VSlotUse(v_slot_ir)
 }
 
-fn convert_on_component_slot<'a>(bc: &BC, e: &mut Element<'a>) -> Option<BaseIR<'a>> {
+fn convert_on_component_slot<'a>(bc: &BC<'a>, e: &mut Element<'a>) -> Option<BaseIR<'a>> {
     let dir = dir_finder(&mut *e, "slot").allow_empty().find()?.take();
     let Directive {
         argument,
@@ -121,7 +121,7 @@ fn split_implicit_and_explicit<'a>(e: &mut Element<'a>) -> (Vec<AstNode<'a>>, Ve
 }
 
 const ALTERABLE_DIRS: [&str; 4] = ["if", "else-if", "else", "for"];
-fn build_explicit_slots<'a>(bc: &BC, templates: Vec<Element<'a>>) -> BaseVSlot<'a> {
+fn build_explicit_slots<'a>(bc: &BC<'a>, templates: Vec<Element<'a>>) -> BaseVSlot<'a> {
     // 1. check dup static name
     // 2. rebuild alterable slots
     // output stable slots and alterable ones
@@ -151,7 +151,7 @@ fn build_explicit_slots<'a>(bc: &BC, templates: Vec<Element<'a>>) -> BaseVSlot<'
 }
 
 fn build_stable_slot<'a>(
-    bc: &BC,
+    bc: &BC<'a>,
     mut t: Element<'a>,
     seen: &mut FxHashSet<&'a str>,
 ) -> Option<Slot<BaseConvertInfo<'a>>> {
@@ -175,7 +175,7 @@ fn build_stable_slot<'a>(
     let body = bc.convert_children(t.children);
     Some(Slot { name, param, body })
 }
-fn build_alterable_slots<'a>(bc: &BC, mut templates: Vec<Element<'a>>) -> Vec<BaseIR<'a>> {
+fn build_alterable_slots<'a>(bc: &BC<'a>, mut templates: Vec<Element<'a>>) -> Vec<BaseIR<'a>> {
     // strip v-slot dirs to reuse convert_children
     let mut dirs = templates
         .iter_mut()

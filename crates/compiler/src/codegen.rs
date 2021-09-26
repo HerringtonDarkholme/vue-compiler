@@ -1,8 +1,8 @@
 use crate::converter::RenderSlotIR;
 
 use super::converter::{
-    BaseConvertInfo, BaseIR, BaseRoot, BindingMetadata, ConvertInfo, IRNode, IRRoot, JsExpr as Js,
-    RuntimeDir, TopScope, VNodeIR,
+    BaseConvertInfo, BaseIR, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir,
+    TopScope, VNodeIR,
 };
 use super::flags::{PatchFlag, RuntimeHelper as RH, SlotFlag};
 use super::transformer::{
@@ -14,7 +14,6 @@ use std::{
     borrow::Cow,
     io::{self, Write},
     iter,
-    rc::Rc,
 };
 
 pub trait CodeGenerator {
@@ -685,13 +684,13 @@ mod test {
     use super::super::converter::test::base_convert;
     use super::*;
     use crate::cast;
-    fn gen(ir: BaseRoot) -> String {
+    fn gen(ir: BaseRoot, option: CodeGenerateOption) -> String {
         let mut writer = CodeWriter {
             writer: vec![],
             indent_level: 0,
             closing_brackets: 0,
             top_scope: TopScope::default(),
-            option: CodeGenerateOption::default(),
+            option,
         };
         writer.top_scope.helpers.ignore_missing();
         writer.generate_root(ir).unwrap();
@@ -699,7 +698,8 @@ mod test {
     }
     fn base_gen(s: &str) -> String {
         let ir = base_convert(s);
-        gen(ir)
+        let option = CodeGenerateOption::default();
+        gen(ir, option)
     }
     #[test]
     fn test_text() {
@@ -722,7 +722,7 @@ mod test {
         let mut ir = base_convert("<p/>");
         let vn = cast!(&mut ir.body[0], IRNode::VNodeCall);
         vn.is_block = true;
-        let s = gen(ir);
+        let s = gen(ir, CodeGenerateOption::default());
         assert!(s.contains("openBlock"), "{}", s);
     }
     #[test]
@@ -771,7 +771,7 @@ mod test {
         let i = cast!(&mut ir.body[0], IRNode::If);
         let vn = cast!(&mut *i.branches[0].child, IRNode::VNodeCall);
         vn.is_block = true;
-        let s = gen(ir);
+        let s = gen(ir, CodeGenerateOption::default());
         assert!(s.contains("openBlock"), "{}", s);
     }
     #[test]
@@ -821,5 +821,18 @@ mod test {
     fn test_implicit_slot() {
         let s = base_gen("<component is='test'>test</component>");
         assert!(s.contains("_withCtx"), "{}", s);
+    }
+
+    #[test]
+    fn test_render_func_args() {
+        let option = CodeGenerateOption {
+            has_binding: true,
+            ..Default::default()
+        };
+        let ir = base_convert("hello world");
+        let s = gen(ir, option);
+        assert!(s.contains("$data"), "{}", s);
+        let s = base_gen("hello world");
+        assert!(!s.contains("$setup"), "{}", s);
     }
 }

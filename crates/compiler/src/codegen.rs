@@ -305,15 +305,23 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
     // TODO: add newline
     fn gen_func_expr(&mut self, params: Vec<Option<Js<'a>>>, body: BaseIR<'a>) -> io::Result<()> {
+        const PLACE_HOLDER: &[&str] = &[
+            "_", "_1", "_2", "_3", "_4", "_5", "_6", "_7", "_8", "_9", "_0",
+        ];
         let last = params
             .iter()
             .rposition(Option::is_some)
             .map(|i| i + 1)
             .unwrap_or(0);
+        debug_assert!(
+            last < PLACE_HOLDER.len(),
+            "Too many params to generate placeholder"
+        );
         let normalized_params = params
             .into_iter()
             .take(last)
-            .map(|o| o.unwrap_or(Js::Src("_")));
+            .enumerate()
+            .map(|(i, o)| o.unwrap_or(Js::Src(PLACE_HOLDER[i])));
         self.write_str("(")?;
         self.gen_list(normalized_params)?;
         self.write_str(") => {")?;

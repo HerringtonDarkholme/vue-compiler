@@ -764,13 +764,17 @@ fn gen_assets<'a, T: Write>(
         } else {
             ""
         };
-        let mut binding = asset;
         gen.write_str("const ")?;
-        binding.be_component().write_to(&mut gen.writer)?;
+        asset.write_to(&mut gen.writer)?;
         gen.write_str(" = ")?;
         gen.write_helper(resolver)?;
         gen.write_str("(")?;
-        asset.write_to(&mut gen.writer)?;
+        let raw = if resolver == RH::ResolveComponent {
+            *asset.clone().unbe_component()
+        } else {
+            *asset.clone().unbe_directive()
+        };
+        raw.write_to(&mut gen.writer)?;
         gen.write_str(hint)?;
         gen.write_str(")")?;
         gen.newline()?;

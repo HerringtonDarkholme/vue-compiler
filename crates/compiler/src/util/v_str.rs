@@ -24,7 +24,7 @@ bitflags! {
         const COMPRESS_WHITESPACE = 1 << 4;
         const DECODE_ENTITY       = 1 << 5;
         const CAMEL_CASE          = 1 << 6;
-        const PASCAL_CASE         = 1 << 7;
+        const CAPITALIZED         = 1 << 7;
         const JS_STRING           = 1 << 8;
         // marker op is placed at the end
         const SELF_SUFFIX         = 1 << 9;
@@ -32,7 +32,7 @@ bitflags! {
         /// Ops that can be safely carried out multiple times
         const IDEMPOTENT_OPS =
             Self::COMPRESS_WHITESPACE.bits | Self::DECODE_ENTITY.bits |
-            Self::CAMEL_CASE.bits | Self::PASCAL_CASE.bits | Self::IS_ATTR.bits;
+            Self::CAMEL_CASE.bits | Self::CAPITALIZED.bits | Self::IS_ATTR.bits;
         /// Ops that can only be performed at most once. Name comes from
         /// https://en.wikipedia.org/wiki/Substructural_type_system
         const AFFINE_OPS =
@@ -45,7 +45,7 @@ bitflags! {
 }
 
 // NB: JS word boundary is `\w`: `[a-zA-Z0-9-]`.
-fn write_camelize<W: Write>(s: &str, mut w: W) -> io::Result<()> {
+fn write_camelized<W: Write>(s: &str, mut w: W) -> io::Result<()> {
     // str.replace(/-(\w)/g, (_, c) => c.toUpperCase())
     let mut is_minus = false;
     for c in s.chars() {
@@ -68,6 +68,15 @@ fn write_camelize<W: Write>(s: &str, mut w: W) -> io::Result<()> {
     } else {
         Ok(())
     }
+}
+fn write_capitalized<W: Write>(s: &str, mut w: W) -> io::Result<()> {
+    if s.is_empty() {
+        return Ok(());
+    }
+    let c = s.chars().next().unwrap();
+    write!(w, "{}", c.to_uppercase())?;
+    let s = &s[c.len_utf8()..];
+    w.write_all(s.as_bytes())
 }
 
 fn write_hyphenated<W: Write>(s: &str, mut w: W) -> io::Result<()> {
@@ -116,6 +125,27 @@ fn write_decoded<W: Write>(s: &str, mut w: W) -> io::Result<()> {
     todo!()
 }
 
+fn not_js_identifier(c: char) -> bool {
+    !c.is_alphanumeric() && c != '$' && c != '_'
+}
+
+fn write_valid_asset<W: Write>(mut s: &str, mut w: W, asset: &str) -> io::Result<()> {
+    write!(w, "_{}_", asset)?;
+    while let Some(n) = s.find(not_js_identifier) {
+        let (prev, next) = s.split_at(n);
+        write!(w, "{}", prev)?;
+        let c = next.chars().next().unwrap();
+        if c == '-' {
+            write!(w, "_")?;
+        } else {
+            write!(w, "{}", c as u32)?;
+        }
+        s = &next[c.len_utf8()..];
+    }
+    write!(w, "{}", s)?;
+    Ok(())
+}
+
 impl StrOps {
     // ideally it should be str.satisfy(op) but adding a trait
     // to str is too much. Use passive voice.
@@ -147,7 +177,10 @@ impl StrOps {
             StrOps::COMPRESS_WHITESPACE => write_compressed(s, w),
             StrOps::DECODE_ENTITY => write_decoded(s, w),
             StrOps::JS_STRING => write_json_string(s, &mut w),
-            StrOps::CAMEL_CASE => write_camelize(s, w),
+            StrOps::CAMEL_CASE => write_camelized(s, w),
+            StrOps::CAPITALIZED => write_capitalized(s, w),
+            StrOps::VALID_DIR => write_valid_asset(s, w, "directive"),
+            StrOps::VALID_COMP => write_valid_asset(s, w, "component"),
             StrOps::IS_ATTR => w.write_all(s.as_bytes()), // NOOP
             StrOps::SELF_SUFFIX => {
                 // noop, just a marker
@@ -233,8 +266,11 @@ impl<'a> VStr<'a> {
         self
     }
     pub fn capitalize(&mut self) -> &mut Self {
-        self.ops |= StrOps::PASCAL_CASE;
+        self.ops |= StrOps::CAPITALIZED;
         self
+    }
+    pub fn pascalize(&mut self) -> &mut Self {
+        self.camelize().capitalize()
     }
     pub fn compress_whitespace(&mut self) -> &mut Self {
         self.ops |= StrOps::COMPRESS_WHITESPACE;
@@ -344,6 +380,38 @@ mod test {
             (StrOps::CAMEL_CASE | StrOps::V_DIR_PREFIX, "vTest"),
         ];
         for (ops, expect) in cases {
+            let origin = ops;
+            assert_eq!(write_string(ops, src), expect);
+            assert_eq!(ops, origin);
+        }
+    }
+
+    #[test]
+    fn test_str_ops_write_edge() {
+        let cases = [
+            ("å—åŒ–ã‘", StrOps::empty(), "å—åŒ–ã‘"),
+            ("å—åŒ–ã‘", StrOps::JS_STRING, stringify!("å—åŒ–ã‘")),
+            ("foo-bar", StrOps::CAMEL_CASE, "fooBar"),
+            ("foo-bar", StrOps::CAPITALIZED, "Foo-bar"),
+            ("", StrOps::CAPITALIZED, ""),
+            ("ālaya-vijñāna", StrOps::CAMEL_CASE, "ālayaVijñāna"),
+            ("आलयविज्ञान", StrOps::CAMEL_CASE, "आलयविज्ञान"),
+            ("ω", StrOps::CAPITALIZED, "Ω"),
+            (
+                "foo-bar",
+                StrOps::CAPITALIZED | StrOps::CAMEL_CASE,
+                "FooBar",
+            ),
+            ("-a-b-c", StrOps::CAMEL_CASE, "ABC"),
+            ("a-a-b-c", StrOps::CAMEL_CASE, "aABC"),
+            ("a--b", StrOps::CAMEL_CASE, "a-B"),
+            ("a--b", StrOps::VALID_COMP, "_component_a__b"),
+            ("aいろは", StrOps::VALID_COMP, "_component_aいろは"),
+            ("a^_^", StrOps::VALID_COMP, "_component_a94_94"),
+            ("a--b", StrOps::VALID_DIR, "_directive_a__b"),
+            ("a--", StrOps::VALID_DIR, "_directive_a__"),
+        ];
+        for (src, ops, expect) in cases {
             let origin = ops;
             assert_eq!(write_string(ops, src), expect);
             assert_eq!(ops, origin);

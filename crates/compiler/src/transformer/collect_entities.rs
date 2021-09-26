@@ -61,11 +61,24 @@ impl<'a> CorePass<BaseInfo<'a>> for EntityCollector<'a> {
         if !v.is_component {
             return;
         }
-        // only StrLit needs handling, see [resolve_element_tag] in convert_element
-        // component with Js::Symbol is collected in js_expr
-        if let Js::StrLit(tag) = v.tag {
+        // only hoisted asset needs handling, Js::Symbol is collected in js_expr
+        // see [resolve_element_tag] in convert_element
+        if let Some(tag) = is_hoisted_asset(&v.tag) {
             self.helpers.collect(RH::ResolveComponent);
-            self.components.insert(tag);
+            self.components.insert(*tag);
+        }
+        // only StrLit needs handling, see [build_directive_arg] in convert_element
+        let mut hoisted_dir_names = v
+            .directives
+            .iter()
+            .map(|dir| &dir.name)
+            .filter_map(is_hoisted_asset)
+            .peekable();
+        if hoisted_dir_names.peek().is_some() {
+            self.helpers.collect(RH::ResolveDirective);
+        }
+        for dir_name in hoisted_dir_names {
+            self.directives.insert(*dir_name);
         }
     }
     fn exit_slot_outlet(&mut self, _: &mut BaseRenderSlot<'a>) {
@@ -85,5 +98,12 @@ impl<'a> CorePass<BaseInfo<'a>> for EntityCollector<'a> {
         if !t.fast_path {
             self.helpers.collect(RH::CreateText);
         }
+    }
+}
+
+pub fn is_hoisted_asset<'a, 'b>(expr: &'b Js<'a>) -> Option<&'b VStr<'a>> {
+    match expr {
+        Js::Simple(n, _) if VStr::is_asset(n) => Some(n),
+        _ => None,
     }
 }

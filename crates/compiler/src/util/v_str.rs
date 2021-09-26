@@ -23,16 +23,51 @@ bitflags! {
         const HANDLER_KEY         = 1 << 5;
         const VALID_DIR           = 1 << 6;
         const VALID_COMP          = 1 << 7;
-        const SELF_SUFFIX         = 1 << 8; // not idempotent but called only once
+        const SELF_SUFFIX         = 1 << 8;
         const V_DIR_PREFIX        = 1 << 9;
         const JS_STRING           = 1 << 10;
-        // TODO: add idempotent_ops and affine_ops. affine comes from
-        // https://en.wikipedia.org/wiki/Substructural_type_system
+        /// Ops that can be safely carried out multiple times
+        const IDEMPOTENT_OPS =
+            Self::COMPRESS_WHITESPACE.bits | Self::DECODE_ENTITY.bits |
+            Self::CAMEL_CASE.bits | Self::PASCAL_CASE.bits | Self::IS_ATTR.bits;
+        /// Ops that can only be performed at most once. Name comes from
+        /// https://en.wikipedia.org/wiki/Substructural_type_system
+        const AFFINE_OPS =
+            Self::HANDLER_KEY.bits | Self::VALID_DIR.bits | Self::VALID_COMP.bits |
+            Self::SELF_SUFFIX.bits | Self::V_DIR_PREFIX.bits | Self::JS_STRING.bits;
+        /// Ops that mark the string is an hoisted asset
+        const ASSET_OPS = Self::VALID_DIR.bits | Self::VALID_COMP.bits |
+            Self::SELF_SUFFIX.bits;
+    }
+}
+
+// NB: JS word boundary is `\w`: `[a-zA-Z0-9-]`.
+fn write_camelize<W: Write>(s: &str, mut w: W) -> io::Result<()> {
+    // str.replace(/-(\w)/g, (_, c) => c.toUpperCase())
+    let mut is_minus = false;
+    for c in s.chars() {
+        if c.is_ascii_alphanumeric() && is_minus {
+            write!(w, "{}", c.to_ascii_uppercase())?;
+            is_minus = false;
+            continue;
+        }
+        // write pending -
+        if is_minus {
+            write!(w, "-")?;
+        }
+        is_minus = c == '-';
+        if !is_minus {
+            write!(w, "{}", c)?;
+        }
+    }
+    if is_minus {
+        write!(w, "-")
+    } else {
+        Ok(())
     }
 }
 
 fn write_hyphenated<W: Write>(s: &str, mut w: W) -> io::Result<()> {
-    // JS word boundary is `\w`: `[a-zA-Z0-9-]`.
     // https://javascript.info/regexp-boundary
     // str.replace(/\B([A-Z])/g, '-$1').toLowerCase()
     let mut is_boundary = true;
@@ -109,10 +144,11 @@ impl StrOps {
             StrOps::COMPRESS_WHITESPACE => write_compressed(s, w),
             StrOps::DECODE_ENTITY => write_decoded(s, w),
             StrOps::JS_STRING => write_json_string(s, &mut w),
+            StrOps::CAMEL_CASE => write_camelize(s, w),
             StrOps::IS_ATTR => w.write_all(s.as_bytes()), // NOOP
             StrOps::SELF_SUFFIX => {
-                w.write_all(s.as_bytes())?;
-                w.write_all(b"__self")
+                // noop, just a marker
+                w.write_all(s.as_bytes())
             }
             StrOps::V_DIR_PREFIX => {
                 w.write_all(b"v-")?;
@@ -171,6 +207,12 @@ impl<'a> VStr<'a> {
         }
         is_event_prop(s.raw)
     }
+    pub fn is_self_suffixed(s: &VStr) -> bool {
+        s.ops.contains(StrOps::SELF_SUFFIX)
+    }
+    pub fn is_asset(s: &VStr) -> bool {
+        s.ops.intersects(StrOps::ASSET_OPS)
+    }
 }
 impl<'a> VStr<'a> {
     // verb is instance method
@@ -210,8 +252,16 @@ impl<'a> VStr<'a> {
         self.ops |= StrOps::VALID_COMP;
         self
     }
+    pub fn unbe_component(&mut self) -> &mut Self {
+        self.ops.remove(StrOps::VALID_COMP);
+        self
+    }
     pub fn be_directive(&mut self) -> &mut Self {
         self.ops |= StrOps::VALID_DIR;
+        self
+    }
+    pub fn unbe_directive(&mut self) -> &mut Self {
+        self.ops.remove(StrOps::VALID_DIR);
         self
     }
     /// convert into a valid asset id
@@ -250,6 +300,11 @@ impl<'a> From<&'a str> for VStr<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_v_str_size() {
+        assert_eq!(std::mem::size_of::<VStr>(), 24);
+    }
 
     // TODO: proptest can test invariant
     #[test]

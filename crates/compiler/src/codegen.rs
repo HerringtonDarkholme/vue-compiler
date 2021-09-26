@@ -8,7 +8,7 @@ use super::flags::{HelperCollector, PatchFlag, RuntimeHelper as RH, SlotFlag};
 use super::transformer::{
     BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot,
 };
-use crate::util::{get_vnode_call_helper, is_simple_identifier};
+use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use smallvec::{smallvec, SmallVec};
 use std::marker::PhantomData;
 use std::{
@@ -366,10 +366,14 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     /// component/directive resolution inside render
     fn generate_assets(&mut self, top: &TopScope<'a>) -> io::Result<()> {
         if !top.components.is_empty() {
-            todo!()
+            self.newline()?;
+            let components = top.components.iter().cloned();
+            gen_assets(self, components, RH::ResolveComponent)?;
         }
         if !top.directives.is_empty() {
-            todo!()
+            self.newline()?;
+            let directives = top.directives.iter().cloned();
+            gen_assets(self, directives, RH::ResolveDirective)?;
         }
         Ok(())
     }
@@ -522,6 +526,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
 
     fn newline(&mut self) -> io::Result<()> {
         self.write_str("\n")?;
+        // TODO: use exponential adding + lazy static
         for _ in 0..self.indent_level {
             self.write_str("  ")?;
         }
@@ -747,6 +752,30 @@ fn gen_slot_fn<'a, T: Write>(
     gen.deindent(true)?;
     gen.write_str("]")?;
     gen.write_str(")")
+}
+fn gen_assets<'a, T: Write>(
+    gen: &mut CodeWriter<'a, T>,
+    assets: impl Iterator<Item = VStr<'a>>,
+    resolver: RH,
+) -> io::Result<()> {
+    for asset in assets {
+        let hint = if VStr::is_self_suffixed(&asset) {
+            ", true"
+        } else {
+            ""
+        };
+        let mut binding = asset;
+        gen.write_str("const ")?;
+        binding.be_component().write_to(&mut gen.writer)?;
+        gen.write_str(" = ")?;
+        gen.write_helper(resolver)?;
+        gen.write_str("(")?;
+        asset.write_to(&mut gen.writer)?;
+        gen.write_str(hint)?;
+        gen.write_str(")")?;
+        gen.newline()?;
+    }
+    Ok(())
 }
 
 fn runtime_dir(dir: RuntimeDir<BaseConvertInfo>) -> Js {

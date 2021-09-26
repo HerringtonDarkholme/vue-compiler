@@ -121,8 +121,9 @@ pub fn resolve_element_tag<'a>(bc: &BC, e: &Element<'a>) -> Js<'a> {
         comp.suffix_self();
     }
     // 5. user component (resolve)
-    // comp will be collected by collect_entities transform pass
-    Js::StrLit(*comp.clone().be_component()) // use clone to avoid mutating comp
+    let comp_name = *comp.clone().be_component(); // use clone to avoid mutating
+                                                  // comp will be collected by collect_entities transform pass
+    Js::Simple(comp_name, StaticLevel::CanHoist)
 }
 
 const MUST_NON_EMPTY: &str = "find_prop must return prop with non-empty value";
@@ -230,9 +231,9 @@ fn build_directive_arg<'a>(
     } else if let Some(from_setup) = resolve_setup_dir() {
         from_setup
     } else {
-        // TODO: should hoist directive bc.add_directive(dir)
-        let arg = Js::str_lit(dir.name);
-        Js::Call(RuntimeHelper::ResolveDirective, vec![arg])
+        // collected in collect_entities transform pass
+        let dir_name = *VStr::raw(dir.name).be_directive();
+        Js::Simple(dir_name, StaticLevel::CanHoist)
     };
     use crate::parser::DirectiveArg::{Dynamic, Static};
     let expr = dir.expression.map(|v| Js::simple(v.content));

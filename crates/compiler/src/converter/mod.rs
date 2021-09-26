@@ -422,10 +422,7 @@ impl Deref for BindingMetadata {
 pub struct ConvertOption {
     /// For platform developers. Registers platform specific components written in JS.
     /// e.g. transition, transition-group. Components that require code in Vue runtime.
-    get_builtin_component: fn(&str) -> Option<RuntimeHelper>,
-}
-
-pub struct BaseConverter<'a> {
+    pub get_builtin_component: fn(&str) -> Option<RuntimeHelper>,
     pub scope_id: Option<String>,
     /// Indicates this SFC template has used :slotted in its styles
     /// Defaults to `true` for backwards compatibility - SFC tooling should set it
@@ -435,14 +432,18 @@ pub struct BaseConverter<'a> {
     /// This allows the function to directly access setup() local bindings.
     pub inline: bool,
     pub is_dev: bool,
-    pub directive_converters: FxHashMap<&'a str, DirConvertFn>,
+    pub directive_converters: FxHashMap<&'static str, DirConvertFn>,
     /// Optional binding metadata analyzed from script - used to optimize
     /// binding access when `prefixIdentifiers` is enabled.
     pub binding_metadata: Rc<BindingMetadata>,
     /// current SFC filename for self-referencing
     pub self_name: String,
+}
+
+pub struct BaseConverter<'a> {
     err_handle: Box<dyn ErrorHandler>,
     option: ConvertOption,
+    pd: PhantomData<&'a ()>,
 }
 pub type BaseRoot<'a> = IRRoot<BaseConvertInfo<'a>>;
 pub type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;

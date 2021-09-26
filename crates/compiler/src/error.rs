@@ -1,5 +1,7 @@
 use super::SourceLocation;
+use std::cell::RefCell;
 use std::fmt;
+use std::rc::Rc;
 
 #[derive(PartialEq, Eq)]
 pub enum CompilationErrorKind {
@@ -202,6 +204,24 @@ pub trait ErrorHandler {
     // cannot use mut ref due to borrow semantics
     // use RefCell as implementation
     fn on_error(&self, _: CompilationError) {}
+}
+
+#[derive(Clone)]
+pub struct VecErrorHandler {
+    errors: Rc<RefCell<Vec<CompilationError>>>,
+}
+impl VecErrorHandler {
+    fn new() -> Self {
+        Self {
+            errors: Rc::new(RefCell::new(vec![])),
+        }
+    }
+}
+
+impl ErrorHandler for VecErrorHandler {
+    fn on_error(&self, e: CompilationError) {
+        self.errors.borrow_mut().push(e);
+    }
 }
 
 #[cfg(test)]

@@ -1,8 +1,8 @@
 use crate::converter::RenderSlotIR;
 
 use super::converter::{
-    BaseConvertInfo, BaseIR, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir,
-    TopScope, VNodeIR,
+    BaseConvertInfo, BaseIR, BaseRoot, BindingMetadata, ConvertInfo, IRNode, IRRoot, JsExpr as Js,
+    RuntimeDir, TopScope, VNodeIR,
 };
 use super::flags::{PatchFlag, RuntimeHelper as RH, SlotFlag};
 use super::transformer::{
@@ -10,9 +10,12 @@ use super::transformer::{
 };
 use crate::util::{get_vnode_call_helper, is_simple_identifier};
 use smallvec::{smallvec, SmallVec};
-use std::borrow::Cow;
-use std::io::{self, Write};
-use std::iter;
+use std::{
+    borrow::Cow,
+    io::{self, Write},
+    iter,
+    rc::Rc,
+};
 
 pub trait CodeGenerator {
     type IR;
@@ -26,6 +29,8 @@ pub struct CodeGenerateOption {
     pub is_dev: bool,
     pub is_ts: bool,
     pub source_map: bool,
+    pub inline: bool,
+    pub has_binding: bool,
     // filename for source map
     pub filename: String,
     pub decode_entities: EntityDecoder,
@@ -36,7 +41,9 @@ impl Default for CodeGenerateOption {
             is_dev: true,
             is_ts: false,
             source_map: false,
+            inline: false,
             filename: String::new(),
+            has_binding: false,
             decode_entities: |s, _| DecodedStr::from(s),
         }
     }
@@ -253,7 +260,15 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     /// render() or ssrRender() or IIFE for inline mode
     fn generate_function_signature(&mut self) -> io::Result<()> {
         // TODO: add more params, add more modes
-        self.write_str("function render(_ctx, _cache) {")?;
+        let option = &self.option;
+        let args = if option.has_binding && !option.inline {
+            "_ctx, _cache, $props, $setup, $data, $options"
+        } else {
+            "_ctx, _cache"
+        };
+        self.write_str("function render(")?;
+        self.write_str(args)?;
+        self.write_str(") {")?;
         self.closing_brackets += 1;
         self.indent()
     }

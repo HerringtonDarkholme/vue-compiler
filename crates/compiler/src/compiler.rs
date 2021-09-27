@@ -1,7 +1,7 @@
 use super::{
     codegen::{CodeGenerateOption, CodeGenerator, CodeWriter},
     converter::{BaseConvertInfo as BaseInfo, BaseConverter, BaseRoot, ConvertOption, Converter},
-    error::{ErrorHandler, VecErrorHandler},
+    error::ErrorHandler,
     parser::{ParseOption, Parser},
     tokenizer::{TokenizeOption, Tokenizer},
     transformer::{BaseTransformer, CorePass, MergedPass, TransformOption, Transformer},
@@ -11,7 +11,7 @@ use std::io;
 
 // TODO: we have internal option that diverges from vue's option
 // CompileOption should behave like Vue option and be normalized to internal option
-pub struct CompileOption<'a, E: ErrorHandler> {
+pub struct CompileOption<'a, E: ErrorHandler + Clone> {
     tokenization: TokenizeOption,
     parsing: ParseOption,
     conversion: ConvertOption<'a>,
@@ -54,16 +54,18 @@ pub trait TemplateCompiler<'a> {
 
 type Passes<'a, 'b> = &'b mut dyn CorePass<BaseInfo<'a>>;
 
-pub struct BaseCompiler<'a, 'b> {
+pub struct BaseCompiler<'a, 'b, Eh: ErrorHandler + Clone> {
     passes: Option<&'b mut [Passes<'a, 'b>]>,
-    option: CompileOption<'a, VecErrorHandler>,
-    eh: VecErrorHandler,
+    option: CompileOption<'a, Eh>,
 }
 
-impl<'a, 'b> TemplateCompiler<'a> for BaseCompiler<'a, 'b> {
+impl<'a, 'b, Eh> TemplateCompiler<'a> for BaseCompiler<'a, 'b, Eh>
+where
+    Eh: ErrorHandler + Clone + 'static,
+{
     type IR = BaseRoot<'a>;
     type Result = String;
-    type Eh = VecErrorHandler;
+    type Eh = Eh;
     type Output = io::Result<()>;
     type Conv = BaseConverter<'a>;
     type Trans = BaseTransformer<'a, MergedPass<'b, Passes<'a, 'b>>>;
@@ -96,6 +98,6 @@ impl<'a, 'b> TemplateCompiler<'a> for BaseCompiler<'a, 'b> {
         String::from_utf8(gen.writer).expect("compiler must produce valid string")
     }
     fn get_error_handler(&self) -> Self::Eh {
-        self.eh.clone()
+        self.option.error_handler.clone()
     }
 }

@@ -13,24 +13,32 @@ use codespan_reporting::{
         termcolor::{ColorChoice, StandardStream},
     },
 };
-use compiler::converter::{CompilationError, ErrorHandler};
+use compiler::{
+    compiler::{BaseCompiler, CompileOption, TemplateCompiler},
+    error::{CompilationError, ErrorHandler},
+    transformer::base_passes,
+};
 use path_clean::PathClean;
 
 pub mod ast_print;
-pub struct PrettyErrorHandler<'a> {
-    name: &'a str,
-    source: &'a str,
+#[derive(Clone)]
+pub struct PrettyErrorHandler {
+    name: String,
+    source: String,
 }
 
-impl<'a> PrettyErrorHandler<'a> {
-    pub fn new(name: &'a str, source: &'a str) -> Self {
-        Self { name, source }
+impl PrettyErrorHandler {
+    pub fn new<S: ToOwned<Owned = String> + ?Sized>(name: &S, source: &S) -> Self {
+        Self {
+            name: name.to_owned(),
+            source: source.to_owned(),
+        }
     }
 }
-impl<'a> ErrorHandler for PrettyErrorHandler<'a> {
+impl ErrorHandler for PrettyErrorHandler {
     fn on_error(&self, err: CompilationError) {
         let mut files = SimpleFiles::new();
-        let default_vue = files.add(self.name, self.source);
+        let default_vue = files.add(&self.name, &self.source);
         let diagnostic = Diagnostic::error().with_labels(vec![Label::primary(
             default_vue,
             err.location.clone(),
@@ -45,6 +53,21 @@ impl<'a> ErrorHandler for PrettyErrorHandler<'a> {
     }
 }
 
+pub fn compile_to_stdout<'a>(name: &'a str, source: &'a str) -> Result<(), anyhow::Error> {
+    let mut passes = base_passes();
+    let option = CompileOption {
+        tokenization: Default::default(),
+        parsing: Default::default(),
+        conversion: Default::default(),
+        transformation: Default::default(),
+        codegen: Default::default(),
+        error_handler: PrettyErrorHandler::new(name, source),
+    };
+    let mut compiler = BaseCompiler::new(io::stdout(), &mut [], option);
+    compiler.compile(source)?;
+    Ok(())
+}
+
 pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
     let path = path.as_ref();
 
@@ -57,6 +80,7 @@ pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
 
     Ok(absolute_path)
 }
+
 pub fn get_delimiters(delimiters: String) -> Result<(String, String)> {
     let split_delimiter = delimiters.split_once(" ");
     if let Some((a, b)) = split_delimiter {

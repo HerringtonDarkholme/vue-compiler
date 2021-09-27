@@ -21,12 +21,12 @@ Vue track it by helper/helperString.
 seems patch flag can be extracted out
  */
 
-mod collect_entities;
-mod mark_patch_flag;
-mod mark_slot_flag;
-mod optimize_text;
-mod pass;
-mod process_expression;
+pub mod collect_entities;
+pub mod mark_patch_flag;
+pub mod mark_slot_flag;
+pub mod optimize_text;
+pub mod pass;
+pub mod process_expression;
 
 use super::converter::{
     self as C, BaseConvertInfo as BaseInfo, BaseRoot, BindingMetadata, ConvertInfo, IRNode, IRRoot,
@@ -262,6 +262,8 @@ where
         ps.exit_js_expr(e);
     }
 }
+pub type BasePasses = ();
+pub fn base_passes() -> BasePasses {}
 
 #[cfg(test)]
 mod test {

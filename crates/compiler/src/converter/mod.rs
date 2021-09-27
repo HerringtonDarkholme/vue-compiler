@@ -22,6 +22,8 @@ Convert module roughly corresponds to following transform in vue-next.
 * vOn (noop)
 */
 
+use crate::util::get_core_component;
+
 pub use super::error::{CompilationError, ErrorHandler};
 use super::flags::{HelperCollector, PatchFlag, RuntimeHelper, SlotFlag, StaticLevel};
 pub use super::parser::{AstNode, AstRoot, Directive, Element};
@@ -439,6 +441,21 @@ pub struct ConvertOption<'a> {
     pub binding_metadata: Rc<BindingMetadata<'a>>,
     /// current SFC filename for self-referencing
     pub self_name: String,
+}
+
+impl<'a> Default for ConvertOption<'a> {
+    fn default() -> Self {
+        Self {
+            get_builtin_component: get_core_component,
+            scope_id: None,
+            slotted: true,
+            inline: false,
+            is_dev: true,
+            directive_converters: FxHashMap::default(),
+            binding_metadata: Rc::new(BindingMetadata::default()),
+            self_name: "".into(),
+        }
+    }
 }
 
 pub struct BaseConverter<'a> {

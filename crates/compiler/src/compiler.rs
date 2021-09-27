@@ -12,18 +12,18 @@ use std::io;
 // TODO: we have internal option that diverges from vue's option
 // CompileOption should behave like Vue option and be normalized to internal option
 pub struct CompileOption<'a, E: ErrorHandler + Clone> {
-    tokenization: TokenizeOption,
-    parsing: ParseOption,
-    conversion: ConvertOption<'a>,
-    transformation: TransformOption<'a>,
-    codegen: CodeGenerateOption,
-    error_handler: E,
+    pub tokenization: TokenizeOption,
+    pub parsing: ParseOption,
+    pub conversion: ConvertOption<'a>,
+    pub transformation: TransformOption<'a>,
+    pub codegen: CodeGenerateOption,
+    pub error_handler: E,
 }
 
+// TODO: refactor this ownership usage
 pub trait TemplateCompiler<'a> {
     type IR;
     type Output;
-    type Result;
     type Eh: ErrorHandler;
     type Conv: Converter<'a, IR = Self::IR>;
     type Trans: Transformer<IR = Self::IR>;
@@ -33,11 +33,10 @@ pub trait TemplateCompiler<'a> {
     fn get_parser(&self) -> Parser;
     fn get_converter(&self) -> Self::Conv;
     fn get_transformer(&mut self) -> Self::Trans;
-    fn get_code_generator(&self) -> Self::Gen;
+    fn get_code_generator(&mut self) -> Self::Gen;
     fn get_error_handler(&self) -> Self::Eh;
-    fn get_result(&self, gen: Self::Gen) -> Self::Result;
 
-    fn compile(&mut self, source: &'a str) -> Self::Result {
+    fn compile(&mut self, source: &'a str) -> Self::Output {
         let tokenizer = self.get_tokenizer();
         let parser = self.get_parser();
         let eh = self.get_error_handler();
@@ -46,30 +45,43 @@ pub trait TemplateCompiler<'a> {
         let ast = parser.parse(tokens, eh);
         let mut ir = self.get_converter().convert_ir(ast);
         self.get_transformer().transform(&mut ir);
-        let mut gen = self.get_code_generator();
-        gen.generate(ir);
-        self.get_result(gen)
+        self.get_code_generator().generate(ir)
     }
 }
 
 type Passes<'a, 'b> = &'b mut dyn CorePass<BaseInfo<'a>>;
 
-pub struct BaseCompiler<'a, 'b, Eh: ErrorHandler + Clone> {
+pub struct BaseCompiler<'a, 'b, Eh: ErrorHandler + Clone, W: io::Write> {
+    writer: Option<W>,
     passes: Option<&'b mut [Passes<'a, 'b>]>,
     option: CompileOption<'a, Eh>,
 }
 
-impl<'a, 'b, Eh> TemplateCompiler<'a> for BaseCompiler<'a, 'b, Eh>
+impl<'a, 'b, Eh, W> BaseCompiler<'a, 'b, Eh, W>
 where
+    W: io::Write,
+    Eh: ErrorHandler + Clone + 'static,
+{
+    pub fn new(writer: W, passes: &'b mut [Passes<'a, 'b>], option: CompileOption<'a, Eh>) -> Self {
+        Self {
+            writer: Some(writer),
+            passes: Some(passes),
+            option,
+        }
+    }
+}
+
+impl<'a, 'b, Eh, W> TemplateCompiler<'a> for BaseCompiler<'a, 'b, Eh, W>
+where
+    W: io::Write,
     Eh: ErrorHandler + Clone + 'static,
 {
     type IR = BaseRoot<'a>;
-    type Result = String;
     type Eh = Eh;
     type Output = io::Result<()>;
     type Conv = BaseConverter<'a>;
     type Trans = BaseTransformer<'a, MergedPass<'b, Passes<'a, 'b>>>;
-    type Gen = CodeWriter<'a, Vec<u8>>;
+    type Gen = CodeWriter<'a, W>;
 
     fn get_tokenizer(&self) -> Tokenizer {
         Tokenizer::new(self.option.tokenization.clone())
@@ -90,12 +102,10 @@ where
         let pass = MergedPass::new(self.passes.take().unwrap());
         BaseTransformer::new(pass)
     }
-    fn get_code_generator(&self) -> Self::Gen {
+    fn get_code_generator(&mut self) -> Self::Gen {
         let option = self.option.codegen.clone();
-        CodeWriter::new(vec![], option)
-    }
-    fn get_result(&self, gen: Self::Gen) -> Self::Result {
-        String::from_utf8(gen.writer).expect("compiler must produce valid string")
+        let writer = self.writer.take().unwrap();
+        CodeWriter::new(writer, option)
     }
     fn get_error_handler(&self) -> Self::Eh {
         self.option.error_handler.clone()

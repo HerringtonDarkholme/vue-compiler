@@ -262,8 +262,6 @@ where
         ps.exit_js_expr(e);
     }
 }
-pub type BasePasses = ();
-pub fn base_passes() -> BasePasses {}
 
 #[cfg(test)]
 mod test {

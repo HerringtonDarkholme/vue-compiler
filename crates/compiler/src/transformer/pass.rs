@@ -133,6 +133,7 @@ pub trait CorePassExt<T: ConvertInfo, Shared> {
 }
 
 type Identifiers<'a> = FxHashMap<VStr<'a>, usize>;
+#[derive(Default)]
 pub struct Scope<'a> {
     pub identifiers: Identifiers<'a>,
 }

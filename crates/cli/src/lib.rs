@@ -16,7 +16,15 @@ use codespan_reporting::{
 use compiler::{
     compiler::{BaseCompiler, CompileOption, TemplateCompiler},
     error::{CompilationError, ErrorHandler},
-    transformer::base_passes,
+    transformer::{
+        collect_entities::EntityCollector,
+        mark_patch_flag::PatchFlagMarker,
+        mark_slot_flag::SlotFlagMarker,
+        optimize_text::TextOptimizer,
+        pass::{Scope, SharedInfoPasses},
+        process_expression::ExpressionProcessor,
+        CorePass, CorePassExt, MergedPass,
+    },
 };
 use path_clean::PathClean;
 
@@ -53,18 +61,32 @@ impl ErrorHandler for PrettyErrorHandler {
     }
 }
 
-pub fn compile_to_stdout<'a>(name: &'a str, source: &'a str) -> Result<(), anyhow::Error> {
-    let mut passes = base_passes();
+pub fn compile_to_stdout(name: String, source: String) -> Result<(), anyhow::Error> {
     let option = CompileOption {
         tokenization: Default::default(),
         parsing: Default::default(),
         conversion: Default::default(),
         transformation: Default::default(),
         codegen: Default::default(),
-        error_handler: PrettyErrorHandler::new(name, source),
+        error_handler: PrettyErrorHandler::new(&name, &source),
     };
-    let mut compiler = BaseCompiler::new(io::stdout(), &mut [], option);
-    compiler.compile(source)?;
+    let shared: &mut [&mut dyn CorePassExt<_, _>] = &mut [
+        &mut SlotFlagMarker,
+        &mut ExpressionProcessor {
+            option: &Default::default(),
+        },
+    ];
+    let pass: &mut [&mut dyn CorePass<_>] = &mut [
+        &mut TextOptimizer,
+        &mut EntityCollector::default(),
+        &mut PatchFlagMarker,
+        &mut SharedInfoPasses {
+            passes: MergedPass::new(shared),
+            shared_info: Scope::default(),
+        },
+    ];
+    let mut compiler = BaseCompiler::new(io::stdout(), pass, option);
+    compiler.compile(&source)?;
     Ok(())
 }
 

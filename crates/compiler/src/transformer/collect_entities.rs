@@ -8,6 +8,7 @@ use crate::util::{get_vnode_call_helper, VStr};
 use rustc_hash::FxHashSet;
 use std::mem::swap;
 
+#[derive(Default)]
 pub struct EntityCollector<'a> {
     helpers: HelperCollector,
     components: FxHashSet<VStr<'a>>,

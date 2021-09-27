@@ -1,8 +1,9 @@
 // mark patch flag and is_block for runtime
 // it should happen after process_expression
-use super::{BaseFor, BaseIf, BaseInfo, BaseText, CorePass};
+use super::{BaseFor, BaseIf, BaseInfo, BaseText, BaseVNode, CorePass};
 use crate::converter::{BaseIR, IRNode as IR, JsExpr as Js, Prop};
 use crate::flags::{PatchFlag, RuntimeHelper as RH, StaticLevel};
+use crate::util::is_builtin_symbol;
 
 pub struct PatchFlagMarker;
 
@@ -37,6 +38,20 @@ impl<'a> CorePass<BaseInfo<'a>> for PatchFlagMarker {
             }
         }
     }
+    fn exit_vnode(&mut self, vn: &mut BaseVNode<'a>) {
+        if vn.children.len() != 1 || is_builtin_symbol(&vn.tag, RH::Teleport) {
+            return;
+        }
+        // patch text flag on node for fast path text
+        let need_patch = if let Some(IR::TextCall(t)) = vn.children.first() {
+            t.fast_path && t.need_patch
+        } else {
+            false
+        };
+        if need_patch {
+            vn.patch_flag |= PatchFlag::TEXT;
+        }
+    }
     fn exit_for(&mut self, f: &mut BaseFor<'a>) {
         let is_stable_fragment = f.source.static_level() > StaticLevel::NotStatic;
         let has_key = find_key(&f.child);
@@ -51,9 +66,6 @@ impl<'a> CorePass<BaseInfo<'a>> for PatchFlagMarker {
     }
 
     fn exit_text(&mut self, t: &mut BaseText<'a>) {
-        if !t.fast_path {
-            return;
-        }
         let level = t
             .texts
             .iter()

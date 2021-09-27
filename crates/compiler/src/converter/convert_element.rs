@@ -9,7 +9,7 @@ use crate::{
     flags::{PatchFlag, RuntimeHelper, StaticLevel},
     parser::{AstNode, Directive, ElemProp, ElementType},
     tokenizer::Attribute,
-    util::{find_dir, get_core_component, is_component_tag, prop_finder},
+    util::{find_dir, get_core_component, is_builtin_symbol, is_component_tag, prop_finder},
     SourceLocation,
 };
 use std::{iter, mem};
@@ -270,8 +270,7 @@ fn build_children<'a>(
         return (vec![], more_flag);
     }
     let should_build_as_slot = v_slot::check_build_as_slot(bc, e, tag);
-    use RuntimeHelper::{KeepAlive, Teleport};
-    if is_builtin_symbol(tag, KeepAlive) {
+    if is_builtin_symbol(tag, RuntimeHelper::KeepAlive) {
         let children = &e.children;
         // Builtin Component: 2. Force keep-alive always be updated.
         more_flag |= PatchFlag::DYNAMIC_SLOTS;
@@ -290,28 +289,7 @@ fn build_children<'a>(
     }
     let children = std::mem::take(&mut e.children);
     let children = bc.convert_children(children);
-    if children.len() == 1 && !is_builtin_symbol(tag, Teleport) {
-        let child = &children[0];
-        if let IRNode::TextCall(t) = child {
-            let has_non_static = t
-                .texts
-                .iter()
-                .map(Js::static_level)
-                .any(|f| f == StaticLevel::NotStatic);
-            if has_non_static {
-                more_flag |= PatchFlag::TEXT;
-            }
-        }
-    }
     (children, more_flag)
-}
-
-fn is_builtin_symbol(tag: &Js, helper: RuntimeHelper) -> bool {
-    if let Js::Symbol(r) = tag {
-        r == &helper
-    } else {
-        false
-    }
 }
 
 fn resolve_setup_component<'a>(bc: &BC<'a>, tag: &'a str) -> Option<Js<'a>> {

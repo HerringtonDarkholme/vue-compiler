@@ -1,5 +1,5 @@
 use super::{
-    converter::{BaseConvertInfo, VNodeIR},
+    converter::{BaseConvertInfo, JsExpr as Js, VNodeIR},
     flags::RuntimeHelper,
     parser::{Directive, DirectiveArg, ElemProp, Element},
     tokenizer::Attribute,
@@ -131,6 +131,14 @@ pub fn get_vnode_call_helper(v: &VNodeIR<BaseConvertInfo>) -> RuntimeHelper {
         RH::CreateVNode
     } else {
         RH::CreateElementVNode
+    }
+}
+
+pub fn is_builtin_symbol(tag: &Js, helper: RuntimeHelper) -> bool {
+    if let Js::Symbol(r) = tag {
+        r == &helper
+    } else {
+        false
     }
 }
 

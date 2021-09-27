@@ -406,20 +406,21 @@ pub type DirectiveConverter = (&'static str, DirConvertFn);
 /// stores binding variables exposed by data/prop/setup script.
 /// also stores if the binding is from setup script.
 #[derive(Default)]
-pub struct BindingMetadata(FxHashMap<&'static str, BindingTypes>, bool);
-impl BindingMetadata {
+pub struct BindingMetadata<'a>(FxHashMap<&'a str, BindingTypes>, bool);
+impl<'a> BindingMetadata<'a> {
     pub fn is_setup(&self) -> bool {
         self.1
     }
 }
-impl Deref for BindingMetadata {
-    type Target = FxHashMap<&'static str, BindingTypes>;
+impl<'a> Deref for BindingMetadata<'a> {
+    type Target = FxHashMap<&'a str, BindingTypes>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-pub struct ConvertOption {
+#[derive(Clone)]
+pub struct ConvertOption<'a> {
     /// For platform developers. Registers platform specific components written in JS.
     /// e.g. transition, transition-group. Components that require code in Vue runtime.
     pub get_builtin_component: fn(&str) -> Option<RuntimeHelper>,
@@ -435,15 +436,14 @@ pub struct ConvertOption {
     pub directive_converters: FxHashMap<&'static str, DirConvertFn>,
     /// Optional binding metadata analyzed from script - used to optimize
     /// binding access when `prefixIdentifiers` is enabled.
-    pub binding_metadata: Rc<BindingMetadata>,
+    pub binding_metadata: Rc<BindingMetadata<'a>>,
     /// current SFC filename for self-referencing
     pub self_name: String,
 }
 
 pub struct BaseConverter<'a> {
-    err_handle: Box<dyn ErrorHandler>,
-    option: ConvertOption,
-    pd: PhantomData<&'a ()>,
+    pub err_handle: Box<dyn ErrorHandler>,
+    pub option: ConvertOption<'a>,
 }
 pub type BaseRoot<'a> = IRRoot<BaseConvertInfo<'a>>;
 pub type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
@@ -579,7 +579,6 @@ pub mod test {
         let bc = BC {
             err_handle: Box::new(TestErrorHandler),
             option,
-            pd: PhantomData,
         };
         let ast = base_parse(s);
         bc.convert_ir(ast)

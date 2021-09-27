@@ -31,7 +31,7 @@ pub trait CorePass<T: ConvertInfo> {
 }
 
 pub struct MergedPass<P, const N: usize> {
-    passes: [P; N],
+    pub passes: [P; N],
 }
 
 impl<P, const N: usize> MergedPass<P, N> {

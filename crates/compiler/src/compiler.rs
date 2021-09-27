@@ -7,15 +7,15 @@ use super::{
     transformer::{BaseTransformer, CorePass, MergedPass, TransformOption, Transformer},
 };
 
-use std::{io, marker::PhantomData};
+use std::io;
 
 // TODO: we have internal option that diverges from vue's option
 // CompileOption should behave like Vue option and be normalized to internal option
-pub struct CompileOption<E: ErrorHandler> {
+pub struct CompileOption<'a, E: ErrorHandler> {
     tokenization: TokenizeOption,
     parsing: ParseOption,
-    conversion: ConvertOption,
-    transformation: TransformOption,
+    conversion: ConvertOption<'a>,
+    transformation: TransformOption<'a>,
     codegen: CodeGenerateOption,
     error_handler: E,
 }
@@ -32,12 +32,12 @@ pub trait TemplateCompiler<'a> {
     fn get_tokenizer(&self) -> Tokenizer;
     fn get_parser(&self) -> Parser;
     fn get_converter(&self) -> Self::Conv;
-    fn get_transformer(&self) -> Self::Trans;
+    fn get_transformer(&mut self) -> Self::Trans;
     fn get_code_generator(&self) -> Self::Gen;
     fn get_error_handler(&self) -> Self::Eh;
     fn get_result(&self, gen: Self::Gen) -> Self::Result;
 
-    fn compile(&self, source: &'a str) -> Self::Result {
+    fn compile(&mut self, source: &'a str) -> Self::Result {
         let tokenizer = self.get_tokenizer();
         let parser = self.get_parser();
         let eh = self.get_error_handler();
@@ -52,26 +52,21 @@ pub trait TemplateCompiler<'a> {
     }
 }
 
-pub struct BaseCompiler<'a, P, const N: usize>
-where
-    P: CorePass<BaseInfo<'a>>,
-{
-    passes: [P; N],
-    option: CompileOption<VecErrorHandler>,
+type Passes<'a, 'b> = &'b mut dyn CorePass<BaseInfo<'a>>;
+
+pub struct BaseCompiler<'a, 'b, const N: usize> {
+    passes: Option<[Passes<'a, 'b>; N]>,
+    option: CompileOption<'a, VecErrorHandler>,
     eh: VecErrorHandler,
-    pd: PhantomData<&'a ()>,
 }
 
-impl<'a, P, const N: usize> TemplateCompiler<'a> for BaseCompiler<'a, P, N>
-where
-    P: CorePass<BaseInfo<'a>>,
-{
+impl<'a, 'b, const N: usize> TemplateCompiler<'a> for BaseCompiler<'a, 'b, N> {
     type IR = BaseRoot<'a>;
     type Result = String;
     type Eh = VecErrorHandler;
     type Output = io::Result<()>;
     type Conv = BaseConverter<'a>;
-    type Trans = BaseTransformer<'a, P>;
+    type Trans = BaseTransformer<'a, MergedPass<Passes<'a, 'b>, N>>;
     type Gen = CodeWriter<'a, Vec<u8>>;
 
     fn get_tokenizer(&self) -> Tokenizer {
@@ -83,35 +78,24 @@ where
     }
     fn get_converter(&self) -> Self::Conv {
         let eh = self.get_error_handler();
-        let option = self.option.conversion;
+        let option = self.option.conversion.clone();
         BaseConverter {
             err_handle: Box::new(eh),
             option,
-            pd: PhantomData,
         }
     }
-    fn get_transformer(&self) -> Self::Trans {
+    fn get_transformer(&mut self) -> Self::Trans {
         let pass = MergedPass {
-            passes: &self.passes,
+            passes: self.passes.take().unwrap(),
         };
-        BaseTransformer {
-            pass,
-            pd: PhantomData,
-        }
+        BaseTransformer::new(pass)
     }
     fn get_code_generator(&self) -> Self::Gen {
-        CodeWriter {
-            writer: vec![],
-            indent_level: 0,
-            closing_brackets: 0,
-            helpers: Default::default(),
-            option: self.option.codegen,
-            pd: PhantomData,
-        }
+        let option = self.option.codegen.clone();
+        CodeWriter::new(vec![], option)
     }
     fn get_result(&self, gen: Self::Gen) -> Self::Result {
-        String::from_utf8(gen.writer)
-            .expect("compiler must produce valid string")
+        String::from_utf8(gen.writer).expect("compiler must produce valid string")
     }
     fn get_error_handler(&self) -> Self::Eh {
         self.eh.clone()

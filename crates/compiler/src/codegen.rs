@@ -25,12 +25,13 @@ pub trait CodeGenerator {
     fn generate(&mut self, node: Self::IR) -> Self::Output;
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum ScriptMode {
     Function { prefix_identifier: bool },
     Module,
 }
 
+#[derive(Clone)]
 pub struct CodeGenerateOption {
     pub is_dev: bool,
     pub is_ts: bool,
@@ -103,6 +104,18 @@ pub struct CodeWriter<'a, T: Write> {
     helpers: HelperCollector,
     option: CodeGenerateOption,
     pd: PhantomData<&'a ()>,
+}
+impl<'a, T: Write> CodeWriter<'a, T> {
+    pub fn new(writer: T, option: CodeGenerateOption) -> Self {
+        Self {
+            writer,
+            option,
+            indent_level: 0,
+            closing_brackets: 0,
+            helpers: Default::default(),
+            pd: PhantomData,
+        }
+    }
 }
 impl<'a, T: Write> CodeGenerator for CodeWriter<'a, T> {
     type IR = BaseRoot<'a>;
@@ -809,15 +822,8 @@ mod test {
     use crate::cast;
     fn gen(mut ir: BaseRoot, option: CodeGenerateOption) -> String {
         ir.top_scope.helpers.ignore_missing();
-        let mut writer = CodeWriter {
-            writer: vec![],
-            indent_level: 0,
-            closing_brackets: 0,
-            helpers: ir.top_scope.helpers.clone(),
-            option,
-            pd: PhantomData,
-        };
-        writer.generate_root(ir).unwrap();
+        let mut writer = CodeWriter::new(vec![], option);
+        writer.generate(ir).unwrap();
         String::from_utf8(writer.writer).unwrap()
     }
     fn base_gen(s: &str) -> String {

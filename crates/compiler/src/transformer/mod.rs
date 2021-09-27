@@ -43,12 +43,12 @@ pub trait Transformer {
 }
 
 #[derive(Default)]
-pub struct TransformOption {
+pub struct TransformOption<'a> {
     is_ts: bool,
     inline: bool,
     prefix_identifier: bool,
     is_dev: bool,
-    binding_metadata: Rc<BindingMetadata>,
+    binding_metadata: Rc<BindingMetadata<'a>>,
 }
 
 pub type BaseText<'a> = C::TextIR<BaseInfo<'a>>;
@@ -205,6 +205,14 @@ pub struct BaseTransformer<'a, P: CorePass<BaseInfo<'a>>> {
     pass: P,
     pd: PhantomData<&'a ()>,
 }
+impl<'a, P: CorePass<BaseInfo<'a>>> BaseTransformer<'a, P> {
+    pub fn new(pass: P) -> Self {
+        Self {
+            pass,
+            pd: PhantomData,
+        }
+    }
+}
 
 impl<'a, P: CorePass<BaseInfo<'a>>> Transformer for BaseTransformer<'a, P> {
     type IR = BaseRoot<'a>;
@@ -273,7 +281,10 @@ mod test {
 
     pub fn transformer_ext<'a, 'b, const N: usize>(
         passes: [&'b mut dyn CorePassExt<BaseInfo<'a>, Scope<'a>>; N],
-    ) -> impl Transformer<IR = BaseRoot<'a>> + 'b {
+    ) -> BaseTransformer<
+        'a,
+        SharedInfoPasses<&'b mut dyn CorePassExt<BaseInfo<'a>, Scope<'a>>, Scope<'a>, N>,
+    > {
         let pass = SharedInfoPasses {
             passes: MergedPass::new(passes),
             shared_info: Scope {

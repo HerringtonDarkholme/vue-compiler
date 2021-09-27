@@ -13,7 +13,6 @@ pub fn pre_convert_for<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
     let b = dir.take();
     debug_assert!(find_dir(&mut *elem, "for").is_none());
     check_template_v_for_key();
-    // TODO: inject key props
     Some(b)
 }
 
@@ -38,8 +37,8 @@ pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> B
         parse_result,
         child: Box::new(n),
         key: None,
-        is_stable: false,                  // TODO
-        fragment_flag: PatchFlag::empty(), // TODO
+        is_stable: false,
+        fragment_flag: PatchFlag::empty(),
     })
 }
 

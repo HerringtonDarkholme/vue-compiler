@@ -405,6 +405,17 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
 
     fn generate_children(&mut self, children: Vec<BaseIR<'a>>) -> io::Result<()> {
+        debug_assert!(!children.is_empty());
+        let fast = if let IRNode::TextCall(t) = &children[0] {
+            t.fast_path
+        } else {
+            false
+        };
+        if fast {
+            // generate sole text node without []
+            let ir = children.into_iter().next().unwrap();
+            return self.generate_ir(ir);
+        }
         self.write_str("[")?;
         self.indent()?;
         for child in children {
@@ -835,8 +846,19 @@ mod test {
     fn test_text() {
         let s = base_gen("hello       world");
         assert!(s.contains(stringify!("hello world")));
-        // let s = base_gen("hello {{world}}");
-        // assert!(s.contains("\"hello\" + world"), "{}", s);
+        let s = base_gen("hello {{world}}");
+        assert!(s.contains(stringify!("hello ")));
+        assert!(s.contains("_createTextVNode(_toDisplayString(world))"));
+    }
+    #[test]
+    fn test_text_merge() {
+        let mut ir = base_convert("hello{{world}}");
+        let world = ir.body.pop().unwrap();
+        let world = cast!(world, IRNode::TextCall);
+        let hello = cast!(&mut ir.body[0], IRNode::TextCall);
+        hello.texts.extend(world.texts);
+        let s = gen(ir, CodeGenerateOption::default());
+        assert!(s.contains("\"hello\" + _toDisplayString(world)"), "{}", s);
     }
     #[test]
     fn test_v_element() {

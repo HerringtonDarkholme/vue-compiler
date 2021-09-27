@@ -97,7 +97,7 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
 }
 
 pub struct CodeWriter<'a, T: Write> {
-    writer: T,
+    pub writer: T,
     indent_level: usize,
     closing_brackets: usize,
     helpers: HelperCollector,

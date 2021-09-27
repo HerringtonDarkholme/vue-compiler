@@ -23,6 +23,7 @@ pub struct CompileOption<E: ErrorHandler> {
 pub trait TemplateCompiler<'a> {
     type IR;
     type Output;
+    type Result;
     type Eh: ErrorHandler;
     type Conv: Converter<'a, IR = Self::IR>;
     type Trans: Transformer<IR = Self::IR>;
@@ -34,8 +35,9 @@ pub trait TemplateCompiler<'a> {
     fn get_transformer(&self) -> Self::Trans;
     fn get_code_generator(&self) -> Self::Gen;
     fn get_error_handler(&self) -> Self::Eh;
+    fn get_result(&self, gen: Self::Gen) -> Self::Result;
 
-    fn compile(&self, source: &'a str) -> Self::Output {
+    fn compile(&self, source: &'a str) -> Self::Result {
         let tokenizer = self.get_tokenizer();
         let parser = self.get_parser();
         let eh = self.get_error_handler();
@@ -44,7 +46,9 @@ pub trait TemplateCompiler<'a> {
         let ast = parser.parse(tokens, eh);
         let mut ir = self.get_converter().convert_ir(ast);
         self.get_transformer().transform(&mut ir);
-        self.get_code_generator().generate(ir)
+        let mut gen = self.get_code_generator();
+        gen.generate(ir);
+        self.get_result(gen)
     }
 }
 
@@ -52,19 +56,10 @@ pub struct BaseCompiler<'a, P, const N: usize>
 where
     P: CorePass<BaseInfo<'a>>,
 {
-    writer: Vec<u8>,
     passes: [P; N],
     option: CompileOption<VecErrorHandler>,
     eh: VecErrorHandler,
     pd: PhantomData<&'a ()>,
-}
-impl<'a, P, const N: usize> BaseCompiler<'a, P, N>
-where
-    P: CorePass<BaseInfo<'a>>,
-{
-    pub fn into_string(self) -> String {
-        String::from_utf8(self.writer).expect("Compiler should ouput valid UTF8")
-    }
 }
 
 impl<'a, P, const N: usize> TemplateCompiler<'a> for BaseCompiler<'a, P, N>
@@ -72,6 +67,7 @@ where
     P: CorePass<BaseInfo<'a>>,
 {
     type IR = BaseRoot<'a>;
+    type Result = String;
     type Eh = VecErrorHandler;
     type Output = io::Result<()>;
     type Conv = BaseConverter<'a>;
@@ -96,7 +92,7 @@ where
     }
     fn get_transformer(&self) -> Self::Trans {
         let pass = MergedPass {
-            passes: self.passes,
+            passes: &self.passes,
         };
         BaseTransformer {
             pass,
@@ -105,13 +101,17 @@ where
     }
     fn get_code_generator(&self) -> Self::Gen {
         CodeWriter {
-            writer: self.writer,
+            writer: vec![],
             indent_level: 0,
             closing_brackets: 0,
             helpers: Default::default(),
             option: self.option.codegen,
             pd: PhantomData,
         }
+    }
+    fn get_result(&self, gen: Self::Gen) -> Self::Result {
+        String::from_utf8(gen.writer)
+            .expect("compiler must produce valid string")
     }
     fn get_error_handler(&self) -> Self::Eh {
         self.eh.clone()

@@ -54,19 +54,19 @@ pub trait TemplateCompiler<'a> {
 
 type Passes<'a, 'b> = &'b mut dyn CorePass<BaseInfo<'a>>;
 
-pub struct BaseCompiler<'a, 'b, const N: usize> {
-    passes: Option<[Passes<'a, 'b>; N]>,
+pub struct BaseCompiler<'a, 'b> {
+    passes: Option<&'b mut [Passes<'a, 'b>]>,
     option: CompileOption<'a, VecErrorHandler>,
     eh: VecErrorHandler,
 }
 
-impl<'a, 'b, const N: usize> TemplateCompiler<'a> for BaseCompiler<'a, 'b, N> {
+impl<'a, 'b> TemplateCompiler<'a> for BaseCompiler<'a, 'b> {
     type IR = BaseRoot<'a>;
     type Result = String;
     type Eh = VecErrorHandler;
     type Output = io::Result<()>;
     type Conv = BaseConverter<'a>;
-    type Trans = BaseTransformer<'a, MergedPass<Passes<'a, 'b>, N>>;
+    type Trans = BaseTransformer<'a, MergedPass<'b, Passes<'a, 'b>>>;
     type Gen = CodeWriter<'a, Vec<u8>>;
 
     fn get_tokenizer(&self) -> Tokenizer {
@@ -85,9 +85,7 @@ impl<'a, 'b, const N: usize> TemplateCompiler<'a> for BaseCompiler<'a, 'b, N> {
         }
     }
     fn get_transformer(&mut self) -> Self::Trans {
-        let pass = MergedPass {
-            passes: self.passes.take().unwrap(),
-        };
+        let pass = MergedPass::new(self.passes.take().unwrap());
         BaseTransformer::new(pass)
     }
     fn get_code_generator(&self) -> Self::Gen {

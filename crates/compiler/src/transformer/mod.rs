@@ -279,11 +279,11 @@ mod test {
         }
     }
 
-    pub fn transformer_ext<'a, 'b, const N: usize>(
-        passes: [&'b mut dyn CorePassExt<BaseInfo<'a>, Scope<'a>>; N],
+    pub fn transformer_ext<'a, 'b>(
+        passes: &'b mut [&'b mut dyn CorePassExt<BaseInfo<'a>, Scope<'a>>],
     ) -> BaseTransformer<
         'a,
-        SharedInfoPasses<&'b mut dyn CorePassExt<BaseInfo<'a>, Scope<'a>>, Scope<'a>, N>,
+        SharedInfoPasses<'b, &'b mut dyn CorePassExt<BaseInfo<'a>, Scope<'a>>, Scope<'a>>,
     > {
         let pass = SharedInfoPasses {
             passes: MergedPass::new(passes),

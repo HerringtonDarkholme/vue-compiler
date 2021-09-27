@@ -30,19 +30,19 @@ pub trait CorePass<T: ConvertInfo> {
     fn exit_comment(&mut self, c: &mut T::CommentType) {}
 }
 
-pub struct MergedPass<P, const N: usize> {
-    pub passes: [P; N],
+pub struct MergedPass<'b, P> {
+    passes: &'b mut [P],
 }
 
-impl<P, const N: usize> MergedPass<P, N> {
-    pub fn new(passes: [P; N]) -> Self {
+impl<'b, P> MergedPass<'b, P> {
+    pub fn new(passes: &'b mut [P]) -> Self {
         Self { passes }
     }
     fn enter<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut P),
     {
-        for p in &mut self.passes {
+        for p in &mut self.passes.iter_mut() {
             f(p)
         }
     }
@@ -56,7 +56,7 @@ impl<P, const N: usize> MergedPass<P, N> {
     }
 }
 
-impl<T, const N: usize> CorePass<T> for MergedPass<&mut dyn CorePass<T>, N>
+impl<'b, T> CorePass<T> for MergedPass<'b, &'b mut dyn CorePass<T>>
 where
     T: ConvertInfo,
 {
@@ -179,13 +179,12 @@ impl<'a, 'b> CorePass<BaseInfo<'a>> for RefFinder<'a, 'b> {
     }
 }
 
-pub struct SharedInfoPasses<Pass, Shared, const N: usize> {
-    pub passes: MergedPass<Pass, N>,
+pub struct SharedInfoPasses<'b, Pass, Shared> {
+    pub passes: MergedPass<'b, Pass>,
     pub shared_info: Shared,
 }
 // TODO: add transform used
-impl<T, Shared, const N: usize> CorePass<T>
-    for SharedInfoPasses<&mut dyn CorePassExt<T, Shared>, Shared, N>
+impl<'b, T, Shared> CorePass<T> for SharedInfoPasses<'b, &'b mut dyn CorePassExt<T, Shared>, Shared>
 where
     T: ConvertInfo,
 {

@@ -861,6 +861,14 @@ mod test {
         assert!(s.contains("\"hello\" + _toDisplayString(world)"), "{}", s);
     }
     #[test]
+    fn test_text_fast_path() {
+        let mut ir = base_convert("hello");
+        let hello = cast!(&mut ir.body[0], IRNode::TextCall);
+        hello.fast_path = true;
+        let s = gen(ir, CodeGenerateOption::default());
+        assert!(!s.contains("_createTextVNode"), "{}", s);
+    }
+    #[test]
     fn test_v_element() {
         let s = base_gen("<p></p>");
         assert!(s.contains("\"p\""), "{}", s);

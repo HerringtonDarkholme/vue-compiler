@@ -1,0 +1,19 @@
+---
+source: crates/compiler/tests/parser_test/mod.rs
+expression: "<p v-🖖:🤘.🤙/>"
+
+---
+Dir:
+  name: 🖖
+  argument:
+    Static: 🤘
+  modifiers:
+    - 🤙
+  expression: ~
+  head_loc:
+    start: "Pos: 3, Ln: 1, Col: 4"
+    end: "Pos: 10, Ln: 1, Col: 11"
+  location:
+    start: "Pos: 3, Ln: 1, Col: 4"
+    end: "Pos: 10, Ln: 1, Col: 11"
+

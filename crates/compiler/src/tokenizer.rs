@@ -8,7 +8,7 @@ use super::{
     Name, Position, SourceLocation,
 };
 use rustc_hash::FxHashSet;
-use std::{iter::FusedIterator, str::Chars};
+use std::{iter::FusedIterator, str::Bytes};
 
 pub struct Attribute<'a> {
     pub name: Name<'a>,
@@ -266,8 +266,8 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     }
     fn scan_tag_name(&mut self) -> Tag<'a> {
         debug_assert!(self.source.starts_with(ascii_alpha));
-        let chars = self.source.chars();
-        let l = scan_tag_name_length(chars);
+        let bytes = self.source.bytes();
+        let l = scan_tag_name_length(bytes);
         debug_assert!(l > 0);
         let name = self.move_by(l);
         let attributes = self.scan_attributes();
@@ -354,7 +354,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-name-state
     fn scan_attr_name(&mut self) -> &'a str {
-        debug_assert!(self.source.starts_with(is_valid_name_char));
+        debug_assert!(is_valid_name_char(self.source.as_bytes()[0]));
         // case like <tag =="value"/>
         let offset = if self.source.starts_with('=') {
             self.emit_error(ErrorKind::UnexpectedEqualsSignBeforeAttributeName);
@@ -363,7 +363,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
             0
         };
         let count = self.source[offset..]
-            .chars()
+            .bytes()
             .take_while(|&c| semi_valid_attr_name(c))
             .count();
         let src = self.move_by(count + offset);
@@ -419,7 +419,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     fn scan_unquoted_attr_value(&mut self) -> Option<VStr<'a>> {
         let val_len = self
             .source
-            .chars()
+            .bytes()
             .take_while(semi_valid_unquoted_attr_value)
             .count();
         // unexpected EOF: <tag attr=
@@ -662,7 +662,8 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
             }
             // https://html.spec.whatwg.org/multipage/parsing.html#rawtext-end-tag-name-state
             let is_appropriate_end = source[i + 2..e].eq_ignore_ascii_case(tag_name);
-            let terminated = !source[e..].starts_with(is_valid_name_char);
+            // equivalent to source[e..] does not start with valid_name_char
+            let terminated = !is_valid_name_char(source.as_bytes()[e]);
             if is_appropriate_end && terminated {
                 // found!
                 return i;
@@ -689,28 +690,31 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
     /// tokenizer's line/column are also updated in the method
     /// NB: it only moves forward, not backward
     /// `advance_to` is a better name but it collides with iter
-    // TODO: size should be byte, not char length
     fn move_by(&mut self, size: usize) -> &'a str {
         debug_assert!(size > 0, "tokenizer must move forward");
         let mut lines = 0;
         let mut last_new_line_pos = -1;
-        for (i, c) in self.source[..size].chars().enumerate() {
-            if c == '\n' {
+        for (i, c) in self.source[..size].bytes().enumerate() {
+            if c == b'\n' {
                 lines += 1;
                 last_new_line_pos = i as i32;
             }
         }
         let old_source = self.source;
         self.source = &self.source[size..];
+        let ret = &old_source[..size];
+        // NB: pos is counted in char not u8
         let pos = &mut self.position;
-        pos.offset += size;
+        let offset = ret.chars().count();
+        pos.offset += offset;
         pos.line += lines;
         pos.column = if last_new_line_pos == -1 {
-            pos.column + size as u32
+            pos.column + offset as u32
         } else {
-            size as u32 - last_new_line_pos as u32
+            ret[last_new_line_pos as usize..].chars().count() as u32
+            // size as u32 - last_new_line_pos as u32
         };
-        &old_source[..size]
+        ret
     }
 
     fn skip_whitespace(&mut self) -> usize {
@@ -731,31 +735,31 @@ fn ascii_alpha(c: char) -> bool {
 // `< ' "` are not valid but counted as semi valid
 // to leniently recover from a parsing error
 #[inline]
-fn semi_valid_attr_name(c: char) -> bool {
-    is_valid_name_char(c) && c != '='
+fn semi_valid_attr_name(c: u8) -> bool {
+    is_valid_name_char(c) && c != b'='
 }
 
 // only whitespace and > terminates unquoted attr value
 // other special char only emits error
 #[inline]
-fn semi_valid_unquoted_attr_value(&c: &char) -> bool {
-    !c.is_ascii_whitespace() && c != '>'
+fn semi_valid_unquoted_attr_value(&c: &u8) -> bool {
+    !c.is_ascii_whitespace() && c != b'>'
 }
 
 #[inline]
-fn is_valid_name_char(c: char) -> bool {
-    !c.is_ascii_whitespace() && c != '/' && c != '>'
+fn is_valid_name_char(c: u8) -> bool {
+    !c.is_ascii_whitespace() && c != b'/' && c != b'>'
 }
 
 // tag name should begin with [a-zA-Z]
 // followed by chars except whitespace, / or >
-fn scan_tag_name_length(mut chars: Chars<'_>) -> usize {
-    let first_char = chars.next();
+fn scan_tag_name_length(mut bytes: Bytes<'_>) -> usize {
+    let first_char = bytes.next();
     debug_assert!(first_char.is_some());
     if !first_char.unwrap().is_ascii_alphabetic() {
         return 0;
     }
-    let l = chars.take_while(|&c| is_valid_name_char(c)).count();
+    let l = bytes.take_while(|&c| is_valid_name_char(c)).count();
     l + 1
 }
 

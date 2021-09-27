@@ -83,7 +83,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         true
     }
 
-    fn process_with_swc(&self, e: &mut Js) {
+    fn process_with_swc(&self, _: &mut Js) {
         todo!()
     }
     fn rewrite_identifier(&self, raw: VStr<'a>, level: StaticLevel, ctx: CtxType<'a>) -> Js<'a> {
@@ -117,8 +117,8 @@ enum CtxType<'a> {
 // 1. breaks down binding pattern e.g. [a, b, c] => identifiers a, b and c
 // 2. patch default parameter like v-slot="a = 123" -> (a = 123)
 fn process_fn_param(p: &mut Js) {
-    let (v, level) = match p {
-        Js::Simple(v, level) => (v, level),
+    let v = match p {
+        Js::Simple(v, _) => v,
         _ => todo!(),
     };
     if is_simple_identifier(*v) {

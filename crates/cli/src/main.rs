@@ -3,7 +3,7 @@ use clap::{AppSettings, Clap};
 use std::fs;
 use std::io::{self, Read};
 
-use cli::{absolute_path, compile_to_stdout, get_delimiters, PrettyErrorHandler};
+use cli::{absolute_path, compile_to_stdout};
 
 /// A simple CLI app for quick debugging the compiler internal.
 #[derive(Clap)]

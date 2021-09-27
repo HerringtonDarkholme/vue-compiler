@@ -12,8 +12,8 @@ use std::{
 
 bitflags! {
     /// Represents string manipulation. It has two categories:
-    /// 1. IDEMPOTENT_OPS and 2. AFFINE_OPS, depending on
-    /// whether the manipulation is idempotent or not
+    /// 1. IDEMPOTENT_OPS and 2. AFFINE_OPS,
+    /// depending on whether the manipulation is idempotent or not
     /// NB strops is order sensitive when it is cast to string.
     #[derive(Default)]
     pub struct StrOps: u16 {

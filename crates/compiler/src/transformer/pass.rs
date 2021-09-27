@@ -4,30 +4,30 @@ use crate::util::VStr;
 use rustc_hash::FxHashMap;
 
 pub trait CorePass<T: ConvertInfo> {
-    fn enter_root(&mut self, r: &mut IRRoot<T>) {}
-    fn exit_root(&mut self, r: &mut IRRoot<T>) {}
-    fn enter_text(&mut self, t: &mut C::TextIR<T>) {}
-    fn exit_text(&mut self, t: &mut C::TextIR<T>) {}
-    fn enter_if(&mut self, i: &mut C::IfNodeIR<T>) {}
-    fn exit_if(&mut self, i: &mut C::IfNodeIR<T>) {}
-    fn enter_for(&mut self, f: &mut C::ForNodeIR<T>) {}
-    fn exit_for(&mut self, f: &mut C::ForNodeIR<T>) {}
-    fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>) {}
-    fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>) {}
-    fn enter_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>) {}
-    fn exit_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>) {}
-    fn enter_v_slot(&mut self, s: &mut C::VSlotIR<T>) {}
-    fn exit_v_slot(&mut self, s: &mut C::VSlotIR<T>) {}
-    fn enter_slot_fn(&mut self, s: &mut C::Slot<T>) {}
-    fn exit_slot_fn(&mut self, s: &mut C::Slot<T>) {}
-    fn enter_js_expr(&mut self, e: &mut T::JsExpression) {}
-    fn exit_js_expr(&mut self, e: &mut T::JsExpression) {}
+    fn enter_root(&mut self, _: &mut IRRoot<T>) {}
+    fn exit_root(&mut self, _: &mut IRRoot<T>) {}
+    fn enter_text(&mut self, _: &mut C::TextIR<T>) {}
+    fn exit_text(&mut self, _: &mut C::TextIR<T>) {}
+    fn enter_if(&mut self, _: &mut C::IfNodeIR<T>) {}
+    fn exit_if(&mut self, _: &mut C::IfNodeIR<T>) {}
+    fn enter_for(&mut self, _: &mut C::ForNodeIR<T>) {}
+    fn exit_for(&mut self, _: &mut C::ForNodeIR<T>) {}
+    fn enter_vnode(&mut self, _: &mut C::VNodeIR<T>) {}
+    fn exit_vnode(&mut self, _: &mut C::VNodeIR<T>) {}
+    fn enter_slot_outlet(&mut self, _: &mut C::RenderSlotIR<T>) {}
+    fn exit_slot_outlet(&mut self, _: &mut C::RenderSlotIR<T>) {}
+    fn enter_v_slot(&mut self, _: &mut C::VSlotIR<T>) {}
+    fn exit_v_slot(&mut self, _: &mut C::VSlotIR<T>) {}
+    fn enter_slot_fn(&mut self, _: &mut C::Slot<T>) {}
+    fn exit_slot_fn(&mut self, _: &mut C::Slot<T>) {}
+    fn enter_js_expr(&mut self, _: &mut T::JsExpression) {}
+    fn exit_js_expr(&mut self, _: &mut T::JsExpression) {}
     /// only v-for or slot fn
-    fn enter_fn_param(&mut self, p: &mut T::JsExpression) {}
+    fn enter_fn_param(&mut self, _: &mut T::JsExpression) {}
     /// only v-for or slot fn
-    fn exit_fn_param(&mut self, p: &mut T::JsExpression) {}
-    fn enter_comment(&mut self, c: &mut T::CommentType) {}
-    fn exit_comment(&mut self, c: &mut T::CommentType) {}
+    fn exit_fn_param(&mut self, _: &mut T::JsExpression) {}
+    fn enter_comment(&mut self, _: &mut T::CommentType) {}
+    fn exit_comment(&mut self, _: &mut T::CommentType) {}
 }
 
 pub struct MergedPass<'b, P> {
@@ -123,13 +123,13 @@ where
 }
 
 pub trait CorePassExt<T: ConvertInfo, Shared> {
-    fn enter_js_expr(&mut self, e: &mut T::JsExpression, shared: &mut Shared) {}
-    fn exit_js_expr(&mut self, e: &mut T::JsExpression, shared: &mut Shared) {}
-    fn enter_fn_param(&mut self, p: &mut T::JsExpression, shared: &mut Shared) {}
-    fn exit_fn_param(&mut self, p: &mut T::JsExpression, shared: &mut Shared) {}
+    fn enter_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
+    fn exit_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
+    fn enter_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
+    fn exit_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
 
-    fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>, shared: &mut Shared) {}
-    fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>, shared: &mut Shared) {}
+    fn enter_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
+    fn exit_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
 }
 
 type Identifiers<'a> = FxHashMap<VStr<'a>, usize>;

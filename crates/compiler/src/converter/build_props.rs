@@ -242,7 +242,7 @@ fn analyze_patch_flag<'a>(p: &Prop<'a>, cp: &mut CollectProps<'a>) {
         "class" => flags.has_class_binding = true,
         "style" => flags.has_style_binding = true,
         "key" => (),
-        n => {
+        _ => {
             cp.dynamic_props.insert(*name);
         }
     }

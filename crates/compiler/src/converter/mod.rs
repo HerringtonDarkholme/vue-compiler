@@ -499,10 +499,10 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter<'a> {
         v_for::convert_for(self, d, e)
     }
     // once/memo are noop on SSR/SSR-fallback. They only work in re-render
-    fn convert_memo(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+    fn convert_memo(&self, _: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
         n
     }
-    fn convert_once(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+    fn convert_once(&self, _: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
         n
     }
     fn convert_slot_outlet(&self, e: Element<'a>) -> BaseIR<'a> {

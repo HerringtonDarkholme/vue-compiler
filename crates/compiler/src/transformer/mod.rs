@@ -48,6 +48,7 @@ pub struct TransformOption<'a> {
     inline: bool,
     prefix_identifier: bool,
     is_dev: bool,
+    // TODO: move this out
     binding_metadata: Rc<BindingMetadata<'a>>,
 }
 
@@ -67,8 +68,6 @@ impl<T> Transformer for NoopTransformer<T> {
         // noop
     }
 }
-
-type Control = Option<()>;
 
 trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
     fn transform_root(root: &mut IRRoot<T>, ps: &mut P);

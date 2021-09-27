@@ -96,8 +96,10 @@ Todo tasks grouped by scopes.
     - [x] slot outlet
     - [x] element
     - [x] build props
-- [ ] transformer
-- [ ] code generator
+- [x] transformer
+    - [ ] SWC integration
+- [x] code generator
+    - [ ] module preamble
 ### [dom]
 - [ ] IR converter
     - [ ] v-on

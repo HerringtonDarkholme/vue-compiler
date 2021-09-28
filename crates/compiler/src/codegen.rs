@@ -178,6 +178,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
             self.newline()?;
             self.write_str(": ")?;
         }
+        // TODO: generate undefined for alterable_slots
         // generate default v-else comment
         let s = if self.option.is_dev { "'v-if'" } else { "''" };
         let comment = Js::Call(RH::CreateComment, vec![Js::Src(s), Js::Src("true")]);

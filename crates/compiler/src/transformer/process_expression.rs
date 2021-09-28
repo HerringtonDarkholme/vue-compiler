@@ -208,7 +208,7 @@ mod test {
     };
     use super::*;
     use crate::cast;
-    use crate::converter::IRNode;
+    use crate::converter::{BaseIR, IRNode};
 
     fn transform(s: &str) -> BaseRoot {
         let mut option = TransformOption::default();
@@ -220,16 +220,47 @@ mod test {
         transformer.transform(&mut ir);
         ir
     }
+    fn first_child(ir: BaseRoot) -> BaseIR {
+        ir.body.into_iter().next().unwrap()
+    }
 
     #[test]
     fn test_interpolation_prefix() {
         let ir = transform("{{test}}");
-        let text = cast!(&ir.body[0], IRNode::TextCall);
+        let text = cast!(first_child(ir), IRNode::TextCall);
         let text = match &text.texts[0] {
             Js::Call(_, r) => &r[0],
             _ => panic!("wrong interpolation"),
         };
         let expr = cast!(text, Js::Simple);
         assert_eq!(expr.into_string(), "_ctx.test");
+    }
+    #[test]
+    fn test_prop_prefix() {
+        let ir = transform("<p :test='a'/>");
+        let vn = cast!(first_child(ir), IRNode::VNodeCall);
+        let props = vn.props.unwrap();
+        let props = cast!(props, Js::Props);
+        let key = cast!(&props[0].0, Js::StrLit);
+        assert_eq!(key.into_string(), "test");
+        let expr = cast!(&props[0].1, Js::Simple);
+        assert_eq!(expr.into_string(), "_ctx.a");
+    }
+    #[test]
+    fn test_v_bind_prefix() {
+        let ir = transform("<p v-bind='b'/>");
+        let vn = cast!(&ir.body[0], IRNode::VNodeCall);
+        let props = vn.props.as_ref().unwrap();
+        let expr = cast!(props, Js::Simple);
+        assert_eq!(expr.into_string(), "_ctx.b");
+    }
+    #[test]
+    fn test_prefix_v_for() {
+        let ir = transform("<p v-for='a in b'/>");
+        let v_for = cast!(first_child(ir), IRNode::For);
+        let b = cast!(v_for.source, Js::Simple);
+        let a = cast!(v_for.parse_result.value, Js::Simple);
+        assert_eq!(a.into_string(), "a");
+        assert_eq!(b.into_string(), "_ctx.b");
     }
 }

@@ -1,0 +1,19 @@
+---
+source: crates/compiler/tests/parser_test/mod.rs
+expression: "<p/>"
+
+---
+children:
+  - Element:
+      tag_name: p
+      tag_type: Plain
+      namespace: Html
+      properties: []
+      children: []
+      location:
+        start: "Pos: 0, Ln: 1, Col: 1"
+        end: "Pos: 4, Ln: 1, Col: 5"
+location:
+  start: "Pos: 0, Ln: 1, Col: 1"
+  end: "Pos: 4, Ln: 1, Col: 5"
+

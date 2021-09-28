@@ -1,0 +1,24 @@
+---
+source: crates/compiler/tests/parser_test/mod.rs
+expression: "<p>123</p>"
+
+---
+children:
+  - Element:
+      tag_name: p
+      tag_type: Plain
+      namespace: Html
+      properties: []
+      children:
+        - Text:
+            text: "123"
+            location:
+              start: "Pos: 3, Ln: 1, Col: 4"
+              end: "Pos: 6, Ln: 1, Col: 7"
+      location:
+        start: "Pos: 0, Ln: 1, Col: 1"
+        end: "Pos: 10, Ln: 1, Col: 11"
+location:
+  start: "Pos: 0, Ln: 1, Col: 1"
+  end: "Pos: 10, Ln: 1, Col: 11"
+

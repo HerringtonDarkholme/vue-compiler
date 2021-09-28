@@ -14,6 +14,9 @@ pub mod tokenizer;
 pub mod transformer;
 pub mod util;
 
+#[cfg(feature = "serde")]
+use serde::Serialize;
+
 // use plain &str here for now
 // may change to tendril
 pub type Name<'a> = &'a str;
@@ -29,7 +32,7 @@ pub struct Position {
 }
 
 #[cfg(feature = "serde")]
-impl serde::Serialize for Position {
+impl Serialize for Position {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -56,7 +59,7 @@ impl Default for Position {
 }
 
 #[derive(Default, PartialEq, Eq, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct SourceLocation {
     pub start: Position,
     pub end: Position,
@@ -71,6 +74,7 @@ impl From<SourceLocation> for Range<usize> {
 /// namespace for HTML/SVG/MathML tag
 #[non_exhaustive]
 #[derive(Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Namespace {
     Html,
     Svg,

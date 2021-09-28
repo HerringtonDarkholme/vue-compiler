@@ -4,22 +4,20 @@ use super::tokenizer_test::base_scan;
 use compiler::parser::{self as p, ParseOption, Parser};
 use compiler::tokenizer::TextMode;
 use insta::assert_snapshot;
-use serde::Serialize;
-
-#[derive(Serialize)]
-struct AstRoot;
-
-impl<'a> From<p::AstRoot<'a>> for AstRoot {
-    fn from(_: p::AstRoot<'a>) -> Self {
-        Self
-    }
-}
 
 fn test_ast(case: &str) {
     let name = insta::_macro_support::AutoName;
-    let root = AstRoot::from(base_parse(case));
+    let root = base_parse(case);
     let val = serialize_yaml(root);
     assert_snapshot!(name, val, case);
+}
+
+#[test]
+fn test_base_parse() {
+    let cases = ["<p/>", "<p></p>", "<p>123</p>"];
+    for case in cases {
+        test_ast(case);
+    }
 }
 
 pub fn base_parse(s: &str) -> p::AstRoot {

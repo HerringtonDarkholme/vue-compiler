@@ -31,7 +31,11 @@ use super::parser::{SourceNode, TextNode};
 use super::util::{find_dir, VStr};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::{smallvec, SmallVec};
+use std::hash::Hash;
 use std::{marker::PhantomData, ops::Deref, rc::Rc};
+
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 mod build_props;
 mod cache_dir;
@@ -55,23 +59,28 @@ pub trait Converter<'a>: Sized {
     fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR;
 }
 
-//
-
+#[cfg(feature = "serde")]
+pub trait ConvertInfo {
+    type TopType: Default + Serialize;
+    // TextType should be a slice of JsExpressions
+    type TextType: AsMut<[Self::JsExpression]> + Serialize;
+    type IfBranchType: Serialize;
+    type CommentType: Serialize;
+    type JsExpression: Default + Serialize;
+    type StrType: Serialize + Eq + Hash;
+}
+#[cfg(not(feature = "serde"))]
 pub trait ConvertInfo {
     type TopType: Default;
     // TextType should be a slice of JsExpressions
     type TextType: AsMut<[Self::JsExpression]>;
-    type IfType;
     type IfBranchType;
-    type ForType;
-    type VNodeType;
-    type RenderSlotType;
-    type VSlotType;
     type CommentType;
     type JsExpression: Default;
-    type StrType;
+    type StrType: Eq + Hash;
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum IRNode<T: ConvertInfo> {
     /// interpolation or text node
     TextCall(TextIR<T>),
@@ -91,20 +100,23 @@ pub enum IRNode<T: ConvertInfo> {
     CommentCall(T::CommentType),
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct TextIR<T: ConvertInfo> {
     pub fast_path: bool,  // without createTextCall
     pub need_patch: bool, // PatchFlag::TEXT
     pub texts: T::TextType,
 }
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct IfNodeIR<T: ConvertInfo> {
     pub branches: Vec<IfBranch<T>>,
-    pub info: T::IfType,
 }
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct IfBranch<T: ConvertInfo> {
     pub condition: Option<T::JsExpression>,
     pub child: Box<IRNode<T>>,
     pub info: T::IfBranchType,
 }
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ForNodeIR<T: ConvertInfo> {
     pub source: T::JsExpression,
     pub parse_result: ForParseResult<T>,
@@ -115,11 +127,13 @@ pub struct ForNodeIR<T: ConvertInfo> {
 }
 // TODO: optimize as vec to save memory
 // (value, key, index) in source
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ForParseResult<T: ConvertInfo> {
     pub value: T::JsExpression,
     pub key: Option<T::JsExpression>,
     pub index: Option<T::JsExpression>,
 }
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct RenderSlotIR<T: ConvertInfo> {
     pub slot_obj: T::JsExpression,
     pub slot_name: T::JsExpression,
@@ -127,6 +141,7 @@ pub struct RenderSlotIR<T: ConvertInfo> {
     pub fallbacks: Vec<IRNode<T>>,
     pub no_slotted: bool,
 }
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct RuntimeDir<T: ConvertInfo> {
     pub name: T::JsExpression,
     pub expr: Option<T::JsExpression>,
@@ -134,6 +149,7 @@ pub struct RuntimeDir<T: ConvertInfo> {
     pub mods: Option<T::JsExpression>,
 }
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct VNodeIR<T: ConvertInfo> {
     pub tag: T::JsExpression,
     pub props: Option<T::JsExpression>,
@@ -145,6 +161,7 @@ pub struct VNodeIR<T: ConvertInfo> {
     pub disable_tracking: bool,
     pub is_component: bool,
 }
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Slot<T: ConvertInfo> {
     pub name: T::JsExpression,
     pub param: Option<T::JsExpression>,
@@ -153,6 +170,7 @@ pub struct Slot<T: ConvertInfo> {
 // note the diffrence between stable and static, dynamic and alterable.
 // static = static template name, capturing no identifier
 // stable = no if nor for
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct VSlotIR<T: ConvertInfo> {
     /// stable v-slots declared statically in the template
     pub stable_slots: Vec<Slot<T>>,
@@ -163,6 +181,7 @@ pub struct VSlotIR<T: ConvertInfo> {
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum JsExpr<'a> {
     /// Source. output to generated code as is.
     Src(&'a str),
@@ -248,6 +267,7 @@ impl BindingTypes {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct IRRoot<T: ConvertInfo> {
     pub body: Vec<IRNode<T>>,
     /// entities to define/import in top level scope
@@ -364,9 +384,11 @@ pub fn no_op_directive_convert<'a>(
 
 // Base Converter for DOM and SSR Fallback
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct BaseConvertInfo<'a>(PhantomData<&'a ()>);
 
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct TopScope<'a> {
     /// runtime helpers used in template
     pub helpers: HelperCollector,
@@ -385,12 +407,7 @@ pub struct TopScope<'a> {
 impl<'a> ConvertInfo for BaseConvertInfo<'a> {
     type TopType = TopScope<'a>;
     type TextType = SmallVec<[JsExpr<'a>; 1]>;
-    type IfType = ();
     type IfBranchType = usize;
-    type ForType = ();
-    type VNodeType = ();
-    type RenderSlotType = ();
-    type VSlotType = ();
     type CommentType = &'a str;
     type JsExpression = JsExpr<'a>;
     type StrType = VStr<'a>;

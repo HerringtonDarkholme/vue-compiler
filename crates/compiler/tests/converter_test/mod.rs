@@ -3,22 +3,20 @@ use super::common::TestErrorHandler;
 use super::parser_test::base_parse;
 use compiler::converter::{self as C, BaseConverter, ConvertOption, Converter};
 use insta::assert_snapshot;
-use serde::Serialize;
-
-#[derive(Serialize)]
-struct BaseRoot;
-
-impl<'a> From<C::BaseRoot<'a>> for BaseRoot {
-    fn from(_: C::BaseRoot) -> Self {
-        Self
-    }
-}
 
 fn test_ir(case: &str) {
     let name = insta::_macro_support::AutoName;
-    let ir = BaseRoot::from(base_convert(case));
-    let val = serialize_yaml(ir);
+    let ir = base_convert(case);
+    let val = serialize_yaml(ir.body);
     assert_snapshot!(name, val, case);
+}
+
+#[test]
+fn test_text_call() {
+    let cases = ["hello world", "hello {{world}}", "hello < world"];
+    for case in cases {
+        test_ir(case);
+    }
 }
 
 pub fn base_convert(s: &str) -> C::BaseRoot {

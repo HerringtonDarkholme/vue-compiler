@@ -20,7 +20,6 @@ use super::{
     util::{find_dir, is_core_component, no, non_whitespace, yes, VStr},
     Name, Namespace, SourceLocation,
 };
-use serde::ser::SerializeStruct;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 use smallvec::{smallvec, SmallVec};
@@ -79,6 +78,7 @@ impl<'a> Serialize for TextNode<'a> {
     where
         S: serde::Serializer,
     {
+        use serde::ser::SerializeStruct;
         let mut state = serializer.serialize_struct("TextNode", 2)?;
         let s = self.text.iter().map(|&s| s.into_string());
         let s: String = s.collect();

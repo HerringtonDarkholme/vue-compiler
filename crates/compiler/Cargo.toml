@@ -17,4 +17,4 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 insta = "1.8.0"
 
 [features]
-default = ["serde"]
+default = ["serde", "smallvec/serde"]

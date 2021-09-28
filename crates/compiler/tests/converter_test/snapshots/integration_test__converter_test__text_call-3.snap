@@ -1,0 +1,13 @@
+---
+source: crates/compiler/tests/converter_test/mod.rs
+expression: hello < world
+
+---
+- TextCall:
+    fast_path: false
+    need_patch: false
+    texts:
+      - StrLit: "hello "
+      - StrLit: "<"
+      - StrLit: " world"
+

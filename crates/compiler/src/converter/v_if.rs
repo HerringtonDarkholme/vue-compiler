@@ -109,7 +109,7 @@ pub fn convert_if<'a>(c: &BC<'a>, elems: Vec<Element<'a>>, key: usize) -> BaseIR
         .enumerate()
         .map(|(i, n)| convert_if_branch(c, n, key + i))
         .collect();
-    IRNode::If(IfNodeIR { branches, info: () })
+    IRNode::If(IfNodeIR { branches })
 }
 
 pub fn report_dangling_else<'a>(c: &BC<'a>, elem: &Element<'a>) {

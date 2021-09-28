@@ -101,6 +101,7 @@ pub struct CodeWriter<'a, T: Write> {
     pub writer: T,
     indent_level: usize,
     closing_brackets: usize,
+    in_alterable: bool,
     helpers: HelperCollector,
     option: CodeGenerateOption,
     pd: PhantomData<&'a ()>,
@@ -112,6 +113,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
             option,
             indent_level: 0,
             closing_brackets: 0,
+            in_alterable: false,
             helpers: Default::default(),
             pd: PhantomData,
         }
@@ -183,6 +185,10 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.flush_deindent(indent)
     }
     fn generate_for(&mut self, f: BaseFor<'a>) -> io::Result<()> {
+        // skip block creation or Fragment in alterable_slots
+        if self.in_alterable {
+            return self.generate_render_list(f);
+        }
         // write open block
         self.gen_open_block(f.is_stable, move |gen| {
             gen.write_helper(RH::CreateElementBlock)?;
@@ -216,8 +222,11 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.write_str("(")?;
         self.gen_obj_props(stable_obj, gen_stable_slot_fn)?;
         self.write_str(", ")?;
-        // TODO: it's not correct to reuse v-for in slot-fn
+        // NB: set in_alterable flag to reuse v-for in slot-fn
+        self.in_alterable = true;
         self.generate_children(s.alterable_slots)?;
+        debug_assert!(self.in_alterable);
+        self.in_alterable = false;
         self.write_str(")")
     }
     fn generate_js_expr(&mut self, expr: Js<'a>) -> io::Result<()> {
@@ -248,6 +257,9 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         }
     }
     fn generate_alterable_slot(&mut self, s: BaseSlotFn<'a>) -> io::Result<()> {
+        debug_assert!(self.in_alterable);
+        // switch back to normal mode
+        self.in_alterable = false;
         self.write_str("{")?;
         self.indent()?;
         self.write_str("name: ")?;
@@ -257,7 +269,9 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.write_str("fn: ")?;
         gen_slot_fn(self, (s.param, s.body))?;
         self.deindent(true)?;
-        self.write_str("}")
+        self.write_str("}")?;
+        self.in_alterable = true;
+        Ok(())
     }
     fn generate_comment(&mut self, c: &'a str) -> io::Result<()> {
         let comment = Js::str_lit(c);

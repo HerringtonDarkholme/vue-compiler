@@ -1,75 +1,7 @@
-use super::common::{serialize_yaml, SourceLocation, TestErrorHandler};
-use compiler::tokenizer::{self, TextMode, TokenSource, TokenizeOption, Tokenizer};
+use super::common::{serialize_yaml, TestErrorHandler};
+use compiler::tokenizer::{TextMode, TokenSource, TokenizeOption, Tokenizer};
 use insta::assert_snapshot;
 use serde::Serialize;
-
-#[derive(Serialize)]
-pub struct Attribute {
-    pub name: String,
-    pub value: Option<AttributeValue>,
-    pub name_loc: SourceLocation,
-    pub location: SourceLocation,
-}
-
-#[derive(Serialize)]
-pub struct AttributeValue {
-    pub content: String,
-    pub location: SourceLocation,
-}
-
-#[derive(Serialize)]
-pub struct Tag {
-    pub name: String,
-    pub attributes: Vec<Attribute>,
-    pub self_closing: bool,
-}
-
-#[derive(Serialize)]
-pub enum Token {
-    StartTag(Tag),
-    EndTag(String),
-    Text(String),
-    Comment(String),
-    Interpolation(String),
-}
-
-impl<'a> From<tokenizer::Token<'a>> for Token {
-    fn from(t: tokenizer::Token<'a>) -> Self {
-        use tokenizer::Token as T;
-        match t {
-            T::StartTag(s) => Self::StartTag(s.into()),
-            T::EndTag(e) => Self::EndTag(e.into()),
-            T::Text(t) => Self::Text(t.into_string()),
-            T::Comment(c) => Self::Comment(c.into()),
-            T::Interpolation(i) => Self::Interpolation(i.into()),
-        }
-    }
-}
-
-impl<'a> From<tokenizer::Attribute<'a>> for Attribute {
-    fn from(a: tokenizer::Attribute<'a>) -> Self {
-        Self {
-            name: a.name.into(),
-            value: a.value.map(|v| AttributeValue {
-                content: v.content.into_string(),
-                location: v.location.into(),
-            }),
-            name_loc: a.name_loc.into(),
-            location: a.location.into(),
-        }
-    }
-}
-
-impl<'a> From<tokenizer::Tag<'a>> for Tag {
-    fn from(t: tokenizer::Tag<'a>) -> Self {
-        let attrs = t.attributes.into_iter().map(Attribute::from);
-        Tag {
-            name: t.name.into(),
-            attributes: attrs.collect(),
-            self_closing: t.self_closing,
-        }
-    }
-}
 
 fn scan_with_opt(s: &str, opt: TokenizeOption) -> impl TokenSource {
     let tokenizer = Tokenizer::new(opt);
@@ -111,7 +43,7 @@ fn test_scan() {
         r#"<p v-err=232/>"#,
     ];
     for case in cases {
-        let val: Vec<_> = base_scan(case).map(Token::from).collect();
+        let val: Vec<_> = base_scan(case).collect();
         assert_yaml(val, case);
     }
 }
@@ -131,7 +63,7 @@ fn test_scan_raw_text() {
             get_text_mode: |_| TextMode::RawText,
             ..Default::default()
         };
-        let t: Vec<_> = scan_with_opt(case, opt).map(Token::from).collect();
+        let t: Vec<_> = scan_with_opt(case, opt).collect();
         assert_yaml(t, case);
     }
 }
@@ -156,7 +88,7 @@ fn test_scan_rc_data() {
             get_text_mode: |_| TextMode::RcData,
             ..Default::default()
         };
-        let a: Vec<_> = scan_with_opt(case, opt).map(Token::from).collect();
+        let a: Vec<_> = scan_with_opt(case, opt).collect();
         assert_yaml(a, case);
     }
 }

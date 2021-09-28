@@ -336,6 +336,17 @@ impl<'a> From<&'a str> for VStr<'a> {
     }
 }
 
+#[cfg(feature = "serde")]
+impl<'a> serde::Serialize for VStr<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let s = self.into_string();
+        serializer.serialize_str(&s)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

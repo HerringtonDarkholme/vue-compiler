@@ -1,7 +1,7 @@
 use super::base_parse;
 use crate::common::{serialize_yaml, SourceLocation};
-use crate::tokenizer_test::{Attribute, AttributeValue};
 use compiler::parser;
+use compiler::tokenizer::{Attribute, AttributeValue};
 use insta::assert_snapshot;
 use serde::Serialize;
 
@@ -22,21 +22,21 @@ impl<'a> From<parser::DirectiveArg<'a>> for DirectiveArg {
 }
 
 #[derive(Serialize)]
-pub struct Directive {
+pub struct Directive<'a> {
     pub name: String,
     pub argument: Option<DirectiveArg>,
     pub modifiers: Vec<String>,
-    pub expression: Option<AttributeValue>,
+    pub expression: Option<AttributeValue<'a>>,
     pub head_loc: SourceLocation,
     pub location: SourceLocation,
 }
 #[derive(Serialize)]
-pub enum ElemProp {
-    Attr(Attribute),
-    Dir(Directive),
+pub enum ElemProp<'a> {
+    Attr(Attribute<'a>),
+    Dir(Directive<'a>),
 }
 
-impl<'a> From<parser::ElemProp<'a>> for ElemProp {
+impl<'a> From<parser::ElemProp<'a>> for ElemProp<'a> {
     fn from(p: parser::ElemProp<'a>) -> Self {
         use parser::ElemProp as P;
         match p {
@@ -46,14 +46,14 @@ impl<'a> From<parser::ElemProp<'a>> for ElemProp {
     }
 }
 
-impl<'a> From<parser::Directive<'a>> for Directive {
+impl<'a> From<parser::Directive<'a>> for Directive<'a> {
     fn from(d: parser::Directive<'a>) -> Self {
         Directive {
             name: d.name.into(),
             argument: d.argument.map(|a| a.into()),
             modifiers: d.modifiers.into_iter().map(String::from).collect(),
             expression: d.expression.map(|v| AttributeValue {
-                content: v.content.into_string(),
+                content: v.content,
                 location: v.location.into(),
             }),
             head_loc: d.head_loc.into(),

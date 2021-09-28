@@ -10,6 +10,10 @@ use super::{
 use rustc_hash::FxHashSet;
 use std::{iter::FusedIterator, str::Bytes};
 
+#[cfg(feature = "serde")]
+use serde::Serialize;
+
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Attribute<'a> {
     pub name: Name<'a>,
     pub value: Option<AttributeValue<'a>>,
@@ -25,12 +29,14 @@ impl<'a> Attribute<'a> {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct AttributeValue<'a> {
     pub content: VStr<'a>,
     pub location: SourceLocation,
 }
 
 /// Tag is used only for start tag since end tag is bare
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Tag<'a> {
     pub name: Name<'a>,
     pub attributes: Vec<Attribute<'a>>,
@@ -39,6 +45,7 @@ pub struct Tag<'a> {
 
 /// html token definition is tailored for convenience.
 /// https://html.spec.whatwg.org/multipage/parsing.html#tokenization
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Token<'a> {
     StartTag(Tag<'a>),
     EndTag(Name<'a>), // with no attrs or self_closing flag

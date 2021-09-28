@@ -56,6 +56,7 @@ impl Default for Position {
 }
 
 #[derive(Default, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct SourceLocation {
     pub start: Position,
     pub end: Position,

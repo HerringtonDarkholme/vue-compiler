@@ -8,4 +8,4 @@ edition = "2018"
 
 [dependencies]
 smallvec = "1.6.1"
-compiler = { path = "../compiler" }
+compiler = { path = "../compiler", default-features = false }

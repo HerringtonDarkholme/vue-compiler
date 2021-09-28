@@ -18,7 +18,7 @@ use compiler::{
 use serde_yaml::to_writer;
 use std::io;
 
-pub(super) fn compile_to_stdout<'a>(debug: CliInput) -> Result<()> {
+pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let (source, option, show) = debug;
 
     let shared: &mut [&mut dyn CorePassExt<_, _>] = &mut [
@@ -43,17 +43,19 @@ pub(super) fn compile_to_stdout<'a>(debug: CliInput) -> Result<()> {
     let tokens = tokenizer.scan(&source, eh());
     if show.dump_scan {
         let tokens: Vec<_> = tokenizer.scan(&source, eh()).collect();
-        println!(r#"============= Tokens ============"#);
+        println!(r#"============== Tokens ============="#);
         let stdout = io::stdout();
         to_writer(stdout.lock(), &tokens)?;
+        println!(r#"========== End of Tokens =========="#);
     }
 
     let parser = parser::Parser::new(option.parsing);
     let ast = parser.parse(tokens, eh());
     if show.dump_parse {
-        println!(r#"============= AST ============"#);
+        println!(r#"=============== AST =============="#);
         let stdout = io::stdout();
         to_writer(stdout.lock(), &ast)?;
+        println!(r#"=========== End of AST ==========="#);
     }
 
     let converter = converter::BaseConverter {
@@ -64,6 +66,7 @@ pub(super) fn compile_to_stdout<'a>(debug: CliInput) -> Result<()> {
     if show.dump_convert {
         println!(r#"============= IR ============"#);
         // to_writer(io::stdout(), &ir)?;
+        println!(r#"========== End of IR ==========="#);
     }
 
     let mut transformer = transformer::BaseTransformer::new(MergedPass::new(pass));
@@ -71,6 +74,7 @@ pub(super) fn compile_to_stdout<'a>(debug: CliInput) -> Result<()> {
     if show.dump_transform {
         println!(r#"======= Transformed ========="#);
         // to_writer(io::stdout(), &ir)?;
+        println!(r#"======== End of Transform ========"#);
     }
 
     let mut generator = codegen::CodeWriter::new(io::stdout(), option.codegen);

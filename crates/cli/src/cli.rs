@@ -15,6 +15,7 @@ use compiler::{
         CorePass, CorePassExt, MergedPass, Transformer,
     },
 };
+use serde_yaml::to_writer;
 use std::io;
 
 pub(super) fn compile_to_stdout<'a>(debug: CliInput) -> Result<()> {
@@ -40,18 +41,37 @@ pub(super) fn compile_to_stdout<'a>(debug: CliInput) -> Result<()> {
 
     let tokenizer = tokenizer::Tokenizer::new(option.tokenization);
     let tokens = tokenizer.scan(&source, eh());
+    if show.dump_scan {
+        let tokens: Vec<_> = tokenizer.scan(&source, eh()).collect();
+        println!(r#"============= Tokens ============"#);
+        let stdout = io::stdout();
+        to_writer(stdout.lock(), &tokens)?;
+    }
 
     let parser = parser::Parser::new(option.parsing);
     let ast = parser.parse(tokens, eh());
+    if show.dump_parse {
+        println!(r#"============= AST ============"#);
+        let stdout = io::stdout();
+        to_writer(stdout.lock(), &ast)?;
+    }
 
     let converter = converter::BaseConverter {
         err_handle: Box::new(eh()),
         option: option.conversion,
     };
     let mut ir = converter.convert_ir(ast);
+    if show.dump_convert {
+        println!(r#"============= IR ============"#);
+        // to_writer(io::stdout(), &ir)?;
+    }
 
     let mut transformer = transformer::BaseTransformer::new(MergedPass::new(pass));
     transformer.transform(&mut ir);
+    if show.dump_transform {
+        println!(r#"======= Transformed ========="#);
+        // to_writer(io::stdout(), &ir)?;
+    }
 
     let mut generator = codegen::CodeWriter::new(io::stdout(), option.codegen);
     generator.generate(ir)?;

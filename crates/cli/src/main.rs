@@ -35,23 +35,23 @@ struct Opts {
 
     /// Display the token stream produced by scanner
     #[clap(short = 's', long)]
-    show_scan: bool,
+    dump_scan: bool,
     /// Display the AST produced by parser
     #[clap(short = 'p', long)]
-    show_parse: bool,
+    dump_parse: bool,
     /// Display the IR produced by converter
     #[clap(short = 'c', long)]
-    show_convert: bool,
+    dump_convert: bool,
     /// Display the optimized IR after transformation
     #[clap(short = 't', long)]
-    show_transform: bool,
+    dump_transform: bool,
 }
 
 struct ShowOption {
-    show_scan: bool,
-    show_parse: bool,
-    show_convert: bool,
-    show_transform: bool,
+    dump_scan: bool,
+    dump_parse: bool,
+    dump_convert: bool,
+    dump_transform: bool,
 }
 
 fn main() -> Result<()> {
@@ -82,10 +82,10 @@ fn process(opts: Opts) -> Result<CliInput> {
         error_handler: err_hanlde,
     };
     let show = ShowOption {
-        show_scan: opts.show_scan,
-        show_parse: opts.show_parse,
-        show_convert: opts.show_convert,
-        show_transform: opts.show_transform,
+        dump_scan: opts.dump_scan,
+        dump_parse: opts.dump_parse,
+        dump_convert: opts.dump_convert,
+        dump_transform: opts.dump_transform,
     };
     Ok((source, option, show))
 }

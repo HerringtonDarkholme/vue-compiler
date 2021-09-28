@@ -112,3 +112,39 @@ pub fn is_hoisted_asset<'a, 'b>(expr: &'b Js<'a>) -> Option<&'b VStr<'a>> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::super::test::{base_convert, get_transformer};
+    use super::*;
+    use crate::transformer::Transformer;
+    fn transform(s: &str) -> BaseRoot {
+        let mut transformer = get_transformer(EntityCollector::default());
+        let mut ir = base_convert(s);
+        transformer.transform(&mut ir);
+        ir
+    }
+    #[test]
+    fn test_v_for_helper() {
+        let ir = transform("<p v-for='a in b'/>");
+        let helpers = ir.top_scope.helpers;
+        assert!(helpers.contains(RH::Fragment));
+        assert!(helpers.contains(RH::OpenBlock));
+        assert!(helpers.contains(RH::RenderList));
+        assert!(!helpers.contains(RH::CreateComment));
+    }
+    #[test]
+    fn test_v_for_alterable_helper() {
+        let ir = transform(
+            "
+        <comp>
+            <template #slot v-for='a in b'/>
+        </comp>",
+        );
+        let helpers = ir.top_scope.helpers;
+        assert!(!helpers.contains(RH::Fragment));
+        assert!(!helpers.contains(RH::CreateElementBlock));
+        assert!(helpers.contains(RH::RenderList));
+        assert!(helpers.contains(RH::WithCtx));
+    }
+}

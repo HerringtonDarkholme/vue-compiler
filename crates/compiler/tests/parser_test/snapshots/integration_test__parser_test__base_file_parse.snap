@@ -1,0 +1,86 @@
+---
+source: crates/compiler/tests/parser_test/mod.rs
+expression: "<template>\n  <div v-for=\"item in result\">\n    <p>test {{item}}</p>\n    <input v-model=\"inputValue\"/>\n  </div>\n</template>\n"
+
+---
+children:
+  - Element:
+      tag_name: template
+      tag_type: Plain
+      namespace: Html
+      properties: []
+      children:
+        - Element:
+            tag_name: div
+            tag_type: Plain
+            namespace: Html
+            properties:
+              - Dir:
+                  name: for
+                  argument: ~
+                  modifiers: []
+                  expression:
+                    content: item in result
+                    location:
+                      start: "Pos: 24, Ln: 2, Col: 14"
+                      end: "Pos: 40, Ln: 2, Col: 30"
+                  head_loc:
+                    start: "Pos: 18, Ln: 2, Col: 8"
+                    end: "Pos: 23, Ln: 2, Col: 13"
+                  location:
+                    start: "Pos: 18, Ln: 2, Col: 8"
+                    end: "Pos: 40, Ln: 2, Col: 30"
+            children:
+              - Element:
+                  tag_name: p
+                  tag_type: Plain
+                  namespace: Html
+                  properties: []
+                  children:
+                    - Text:
+                        text: "test "
+                        location:
+                          start: "Pos: 49, Ln: 3, Col: 8"
+                          end: "Pos: 54, Ln: 3, Col: 13"
+                    - Interpolation:
+                        source: item
+                        location:
+                          start: "Pos: 54, Ln: 3, Col: 13"
+                          end: "Pos: 62, Ln: 3, Col: 21"
+                  location:
+                    start: "Pos: 46, Ln: 3, Col: 5"
+                    end: "Pos: 66, Ln: 3, Col: 25"
+              - Element:
+                  tag_name: input
+                  tag_type: Plain
+                  namespace: Html
+                  properties:
+                    - Dir:
+                        name: model
+                        argument: ~
+                        modifiers: []
+                        expression:
+                          content: inputValue
+                          location:
+                            start: "Pos: 86, Ln: 4, Col: 20"
+                            end: "Pos: 98, Ln: 4, Col: 32"
+                        head_loc:
+                          start: "Pos: 78, Ln: 4, Col: 12"
+                          end: "Pos: 85, Ln: 4, Col: 19"
+                        location:
+                          start: "Pos: 78, Ln: 4, Col: 12"
+                          end: "Pos: 98, Ln: 4, Col: 32"
+                  children: []
+                  location:
+                    start: "Pos: 71, Ln: 4, Col: 5"
+                    end: "Pos: 100, Ln: 4, Col: 34"
+            location:
+              start: "Pos: 13, Ln: 2, Col: 3"
+              end: "Pos: 109, Ln: 5, Col: 9"
+      location:
+        start: "Pos: 0, Ln: 1, Col: 1"
+        end: "Pos: 121, Ln: 6, Col: 12"
+location:
+  start: "Pos: 0, Ln: 1, Col: 1"
+  end: "Pos: 122, Ln: 7, Col: 1"
+

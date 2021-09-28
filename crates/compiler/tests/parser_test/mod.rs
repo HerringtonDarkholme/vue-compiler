@@ -1,4 +1,6 @@
 mod dir;
+use std::fs::read_to_string;
+
 use super::common::{serialize_yaml, TestErrorHandler};
 use super::tokenizer_test::base_scan;
 use compiler::parser::{self as p, ParseOption, Parser};
@@ -13,11 +15,22 @@ fn test_ast(case: &str) {
 }
 
 #[test]
-fn test_base_parse() {
+fn test_base_parse() -> std::io::Result<()> {
     let cases = ["<p/>", "<p></p>", "<p>123</p>"];
     for case in cases {
         test_ast(case);
     }
+    Ok(())
+}
+
+#[test]
+fn test_base_file_parse() -> std::io::Result<()> {
+    let file_list = ["basic.vue"];
+    for file_name in file_list {
+        let file = read_to_string(format!("tests/test_files/{}", file_name))?;
+        test_ast(&file);
+    }
+    Ok(())
 }
 
 pub fn base_parse(s: &str) -> p::AstRoot {

@@ -191,22 +191,22 @@ impl Default for WhitespaceStrategy {
 // Please refer to project README for more details.
 #[derive(Clone)]
 pub struct ParseOption {
-    whitespace: WhitespaceStrategy,
-    preserve_comment: bool,
-    get_namespace: fn(&str, &Vec<Element<'_>>) -> Namespace,
-    get_text_mode: fn(&str) -> TextMode,
+    pub whitespace: WhitespaceStrategy,
+    pub preserve_comment: bool,
+    pub get_namespace: fn(&str, &Vec<Element<'_>>) -> Namespace,
+    pub get_text_mode: fn(&str) -> TextMode,
     /// Returns if a tag is self closing.
-    is_void_tag: fn(&str) -> bool,
+    pub is_void_tag: fn(&str) -> bool,
     // probably we don't need configure pre tag?
     // in original Vue this is only used for parsing SFC.
-    is_pre_tag: fn(&str) -> bool,
+    pub is_pre_tag: fn(&str) -> bool,
     /// Exposed to end user for customization like importing web-component from React.
-    is_custom_element: fn(&str) -> bool,
+    pub is_custom_element: fn(&str) -> bool,
     /// For platform developers. Registers platform specific components written in JS.
     /// e.g. transition, transition-group. Components that require code in Vue runtime.
-    is_builtin_component: fn(&str) -> bool,
+    pub is_builtin_component: fn(&str) -> bool,
     /// For platform developer. Registers platform components written in host language like C++.
-    is_native_element: fn(&str) -> bool,
+    pub is_native_element: fn(&str) -> bool,
 }
 
 impl Default for ParseOption {

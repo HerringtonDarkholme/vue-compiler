@@ -1,6 +1,7 @@
 use super::common::{serialize_yaml, SourceLocation, TestErrorHandler};
 use super::tokenizer_test::{base_scan, Attribute, AttributeValue};
 use compiler::parser::{self, AstRoot, Element, ParseOption, Parser};
+use compiler::tokenizer::TextMode;
 use insta::assert_snapshot;
 use serde::Serialize;
 
@@ -153,7 +154,15 @@ fn test_dir_parse_error() {
 
 pub fn base_parse(s: &str) -> AstRoot {
     let tokens = base_scan(s);
-    let parser = Parser::new(ParseOption::default());
+    let parser = Parser::new(ParseOption {
+        get_text_mode: |s| match s {
+            "script" => TextMode::RawText,
+            "textarea" => TextMode::RcData,
+            _ => TextMode::Data,
+        },
+        is_native_element: |s| s != "comp",
+        ..ParseOption::default()
+    });
     let eh = TestErrorHandler;
     parser.parse(tokens, eh)
 }

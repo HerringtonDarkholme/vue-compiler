@@ -125,6 +125,12 @@ mod test {
         ir
     }
     #[test]
+    fn test_v_if_helper() {
+        let ir = transform("<p v-if='a'/>");
+        let helpers = ir.top_scope.helpers;
+        assert!(helpers.contains(RH::CreateComment));
+    }
+    #[test]
     fn test_v_for_helper() {
         let ir = transform("<p v-for='a in b'/>");
         let helpers = ir.top_scope.helpers;

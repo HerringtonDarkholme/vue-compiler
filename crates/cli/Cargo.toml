@@ -9,5 +9,6 @@ edition = "2018"
 anyhow = "1.0.44"
 clap = "3.0.0-beta.4"
 compiler = { path = "../compiler" }
+dom = { path = "../dom" }
 path-clean = "0.1.0"
 codespan-reporting = "0.11.1"

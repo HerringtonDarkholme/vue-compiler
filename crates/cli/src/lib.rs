@@ -26,6 +26,7 @@ use compiler::{
         CorePass, CorePassExt, MergedPass,
     },
 };
+use dom::tokenize_option;
 use path_clean::PathClean;
 
 pub mod ast_print;
@@ -63,7 +64,7 @@ impl ErrorHandler for PrettyErrorHandler {
 
 pub fn compile_to_stdout(name: String, source: String) -> Result<(), anyhow::Error> {
     let option = CompileOption {
-        tokenization: Default::default(),
+        tokenization: tokenize_option(),
         parsing: Default::default(),
         conversion: Default::default(),
         transformation: Default::default(),

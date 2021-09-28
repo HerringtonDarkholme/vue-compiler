@@ -18,7 +18,7 @@ use compiler::{
 use serde_yaml::to_writer;
 use std::io;
 
-pub(super) fn compile_to_stdout<'a>(debug: CliInput) -> Result<()> {
+pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let (source, option, show) = debug;
 
     let shared: &mut [&mut dyn CorePassExt<_, _>] = &mut [

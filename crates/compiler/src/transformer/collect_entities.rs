@@ -2,7 +2,7 @@
 // runtime helpers
 // component/directive asset
 use super::{BaseFor, BaseIf, BaseInfo, BaseRenderSlot, BaseText, BaseVNode, BaseVSlot, CorePass};
-use crate::converter::{BaseRoot, JsExpr as Js};
+use crate::converter::{BaseRoot, IRNode as IR, JsExpr as Js};
 use crate::flags::{HelperCollector, RuntimeHelper as RH};
 use crate::util::{get_vnode_call_helper, VStr};
 use rustc_hash::FxHashSet;
@@ -38,7 +38,11 @@ impl<'a> CorePass<BaseInfo<'a>> for EntityCollector<'a> {
             self.helpers.collect(RH::CreateComment);
         }
     }
-    fn exit_for(&mut self, _: &mut BaseFor<'a>) {
+    fn exit_for(&mut self, f: &mut BaseFor<'a>) {
+        if let IR::AlterableSlot(_) = &*f.child {
+            // v-for in slot only need renderList
+            return self.helpers.collect(RH::RenderList);
+        }
         self.helpers.collect(RH::OpenBlock);
         self.helpers.collect(RH::CreateElementBlock);
         self.helpers.collect(RH::RenderList);

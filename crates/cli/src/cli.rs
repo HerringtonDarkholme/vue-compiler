@@ -65,7 +65,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let mut ir = converter.convert_ir(ast);
     if show.dump_convert {
         println!(r#"============= IR ============"#);
-        // to_writer(io::stdout(), &ir)?;
+        to_writer(io::stdout(), &ir)?;
         println!(r#"========== End of IR ==========="#);
     }
 
@@ -73,7 +73,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     transformer.transform(&mut ir);
     if show.dump_transform {
         println!(r#"======= Transformed ========="#);
-        // to_writer(io::stdout(), &ir)?;
+        to_writer(io::stdout(), &ir)?;
         println!(r#"======== End of Transform ========"#);
     }
 

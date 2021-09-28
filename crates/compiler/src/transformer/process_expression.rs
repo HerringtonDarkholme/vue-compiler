@@ -45,13 +45,17 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         if is_hoisted_asset(e).is_some() {
             return;
         }
+        // complex expr will be handled recusively in transformer
+        if !matches!(e, Js::Simple(..)) {
+            return;
+        }
         if self.process_expr_fast(e, scope) {
             return;
         }
         self.process_with_swc(e);
     }
 
-    /// prefix _ctx without ast parsing
+    /// prefix _ctx without parsing JS
     fn process_expr_fast(&self, e: &mut Js<'a>, scope: &Scope) -> bool {
         let (v, level) = match e {
             Js::Simple(v, level) => (v, level),
@@ -96,8 +100,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             }
         } else {
             debug_assert!(level == StaticLevel::NotStatic);
-            let prop = Js::simple(raw);
-            Js::Compound(vec![Js::Src("$ctx."), prop])
+            Js::simple(*raw.clone().prefix_ctx())
         }
     }
 }
@@ -194,5 +197,39 @@ where
             expr()
         }
         CtxType::NoWrite => Js::Call(RH::Unref, vec![expr()]),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::super::{
+        test::{base_convert, transformer_ext},
+        BaseRoot, TransformOption, Transformer,
+    };
+    use super::*;
+    use crate::cast;
+    use crate::converter::IRNode;
+
+    fn transform(s: &str) -> BaseRoot {
+        let mut option = TransformOption::default();
+        option.prefix_identifier = true;
+        let mut ir = base_convert(s);
+        let mut exp = ExpressionProcessor { option: &option };
+        let a: &mut [&mut dyn CorePassExt<_, _>] = &mut [&mut exp];
+        let mut transformer = transformer_ext(a);
+        transformer.transform(&mut ir);
+        ir
+    }
+
+    #[test]
+    fn test_interpolation_prefix() {
+        let ir = transform("{{test}}");
+        let text = cast!(&ir.body[0], IRNode::TextCall);
+        let text = match &text.texts[0] {
+            Js::Call(_, r) => &r[0],
+            _ => panic!("wrong interpolation"),
+        };
+        let expr = cast!(text, Js::Simple);
+        assert_eq!(expr.into_string(), "_ctx.test");
     }
 }

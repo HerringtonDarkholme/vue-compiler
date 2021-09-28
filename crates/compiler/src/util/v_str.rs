@@ -26,9 +26,10 @@ bitflags! {
         const CAMEL_CASE          = 1 << 6;
         const CAPITALIZED         = 1 << 7;
         const JS_STRING           = 1 << 8;
+        const CTX_PREFIX          = 1 << 9;
         // marker op is placed at the end
-        const SELF_SUFFIX         = 1 << 9;
-        const IS_ATTR             = 1 << 10;
+        const SELF_SUFFIX         = 1 << 10;
+        const IS_ATTR             = 1 << 11;
         /// Ops that can be safely carried out multiple times
         const IDEMPOTENT_OPS =
             Self::COMPRESS_WHITESPACE.bits | Self::DECODE_ENTITY.bits |
@@ -37,7 +38,8 @@ bitflags! {
         /// https://en.wikipedia.org/wiki/Substructural_type_system
         const AFFINE_OPS =
             Self::HANDLER_KEY.bits | Self::VALID_DIR.bits | Self::VALID_COMP.bits |
-            Self::SELF_SUFFIX.bits | Self::V_DIR_PREFIX.bits | Self::JS_STRING.bits;
+            Self::SELF_SUFFIX.bits | Self::V_DIR_PREFIX.bits | Self::JS_STRING.bits |
+            Self::CTX_PREFIX.bits;
         /// Ops that mark the string is an hoisted asset
         const ASSET_OPS = Self::VALID_DIR.bits | Self::VALID_COMP.bits |
             Self::SELF_SUFFIX.bits;
@@ -190,6 +192,10 @@ impl StrOps {
                 w.write_all(b"v-")?;
                 w.write_all(s.as_bytes())
             }
+            StrOps::CTX_PREFIX => {
+                w.write_all(b"_ctx.")?;
+                w.write_all(s.as_bytes())
+            }
             _ => todo!("{:?} not implemented", op),
         }
     }
@@ -310,6 +316,10 @@ impl<'a> VStr<'a> {
     }
     pub fn be_js_str(&mut self) -> &mut Self {
         self.ops |= StrOps::JS_STRING;
+        self
+    }
+    pub fn prefix_ctx(&mut self) -> &mut Self {
+        self.ops |= StrOps::CTX_PREFIX;
         self
     }
     pub fn into_string(self) -> String {

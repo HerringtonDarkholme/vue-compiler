@@ -1,5 +1,5 @@
 ---
-source: crates/compiler/tests/parser_test/mod.rs
+source: crates/compiler/tests/parser_test/dir.rs
 expression: "<p v-🖖:🤘.🤙/>"
 
 ---

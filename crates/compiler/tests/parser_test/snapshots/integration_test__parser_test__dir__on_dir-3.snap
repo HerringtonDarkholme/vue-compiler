@@ -1,12 +1,12 @@
 ---
-source: crates/compiler/tests/parser_test/mod.rs
-expression: "<p @::=\"tt\"/>"
+source: crates/compiler/tests/parser_test/dir.rs
+expression: "<p @_@=\"tt\"/>"
 
 ---
 Dir:
   name: "on"
   argument:
-    Static: "::"
+    Static: _@
   modifiers: []
   expression:
     content: tt

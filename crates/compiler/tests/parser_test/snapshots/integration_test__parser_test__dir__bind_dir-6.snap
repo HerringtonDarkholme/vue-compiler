@@ -1,16 +1,19 @@
 ---
-source: crates/compiler/tests/parser_test/mod.rs
-expression: "<p v-.=\"tt\"/>"
+source: crates/compiler/tests/parser_test/dir.rs
+expression: "<p :[]=\"tt\"/>"
 
 ---
-Attr:
-  name: v-.
-  value:
+Dir:
+  name: bind
+  argument:
+    Dynamic: ""
+  modifiers: []
+  expression:
     content: tt
     location:
       start: "Pos: 7, Ln: 1, Col: 8"
       end: "Pos: 11, Ln: 1, Col: 12"
-  name_loc:
+  head_loc:
     start: "Pos: 3, Ln: 1, Col: 4"
     end: "Pos: 6, Ln: 1, Col: 7"
   location:

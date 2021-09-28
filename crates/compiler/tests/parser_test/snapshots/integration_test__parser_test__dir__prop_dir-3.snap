@@ -1,22 +1,22 @@
 ---
-source: crates/compiler/tests/parser_test/mod.rs
-expression: "<p :[a.b].stop=\"tt\"/>"
+source: crates/compiler/tests/parser_test/dir.rs
+expression: "<p .[dynamic]=\"tt\" />"
 
 ---
 Dir:
   name: bind
   argument:
-    Dynamic: a.b
+    Dynamic: dynamic
   modifiers:
-    - stop
+    - prop
   expression:
     content: tt
     location:
-      start: "Pos: 15, Ln: 1, Col: 16"
+      start: "Pos: 14, Ln: 1, Col: 15"
       end: "Pos: 19, Ln: 1, Col: 20"
   head_loc:
     start: "Pos: 3, Ln: 1, Col: 4"
-    end: "Pos: 14, Ln: 1, Col: 15"
+    end: "Pos: 13, Ln: 1, Col: 14"
   location:
     start: "Pos: 3, Ln: 1, Col: 4"
     end: "Pos: 19, Ln: 1, Col: 20"

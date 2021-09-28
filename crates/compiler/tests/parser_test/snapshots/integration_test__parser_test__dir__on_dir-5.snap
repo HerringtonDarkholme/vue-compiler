@@ -1,12 +1,13 @@
 ---
-source: crates/compiler/tests/parser_test/mod.rs
-expression: "<p v-test=\"tt\"/>"
+source: crates/compiler/tests/parser_test/dir.rs
+expression: "<p @.stop=\"tt\"/>"
 
 ---
 Dir:
-  name: test
+  name: "on"
   argument: ~
-  modifiers: []
+  modifiers:
+    - stop
   expression:
     content: tt
     location:

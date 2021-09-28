@@ -1,0 +1,23 @@
+---
+source: crates/compiler/tests/parser_test/dir.rs
+expression: "<p :[a.b].stop=\"tt\"/>"
+
+---
+Dir:
+  name: bind
+  argument:
+    Dynamic: a.b
+  modifiers:
+    - stop
+  expression:
+    content: tt
+    location:
+      start: "Pos: 15, Ln: 1, Col: 16"
+      end: "Pos: 19, Ln: 1, Col: 20"
+  head_loc:
+    start: "Pos: 3, Ln: 1, Col: 4"
+    end: "Pos: 14, Ln: 1, Col: 15"
+  location:
+    start: "Pos: 3, Ln: 1, Col: 4"
+    end: "Pos: 19, Ln: 1, Col: 20"
+

@@ -1,10 +1,10 @@
 ---
-source: crates/compiler/tests/parser_test/mod.rs
-expression: "<p @=\"tt\"/>"
+source: crates/compiler/tests/parser_test/dir.rs
+expression: "<p :=\"tt\"/>"
 
 ---
 Dir:
-  name: "on"
+  name: bind
   argument: ~
   modifiers: []
   expression:

@@ -1,72 +1,13 @@
 use super::base_parse;
-use crate::common::{serialize_yaml, SourceLocation};
+use crate::common::serialize_yaml;
 use compiler::parser;
-use compiler::tokenizer::{Attribute, AttributeValue};
 use insta::assert_snapshot;
-use serde::Serialize;
-
-#[derive(Serialize)]
-pub enum DirectiveArg {
-    // :static="val"
-    Static(String),
-    Dynamic(String), // :[dynamic]="val"
-}
-impl<'a> From<parser::DirectiveArg<'a>> for DirectiveArg {
-    fn from(a: parser::DirectiveArg<'a>) -> Self {
-        use parser::DirectiveArg as A;
-        match a {
-            A::Static(s) => Self::Static(s.into()),
-            A::Dynamic(s) => Self::Dynamic(s.into()),
-        }
-    }
-}
-
-#[derive(Serialize)]
-pub struct Directive<'a> {
-    pub name: String,
-    pub argument: Option<DirectiveArg>,
-    pub modifiers: Vec<String>,
-    pub expression: Option<AttributeValue<'a>>,
-    pub head_loc: SourceLocation,
-    pub location: SourceLocation,
-}
-#[derive(Serialize)]
-pub enum ElemProp<'a> {
-    Attr(Attribute<'a>),
-    Dir(Directive<'a>),
-}
-
-impl<'a> From<parser::ElemProp<'a>> for ElemProp<'a> {
-    fn from(p: parser::ElemProp<'a>) -> Self {
-        use parser::ElemProp as P;
-        match p {
-            P::Attr(a) => Self::Attr(a.into()),
-            P::Dir(d) => Self::Dir(d.into()),
-        }
-    }
-}
-
-impl<'a> From<parser::Directive<'a>> for Directive<'a> {
-    fn from(d: parser::Directive<'a>) -> Self {
-        Directive {
-            name: d.name.into(),
-            argument: d.argument.map(|a| a.into()),
-            modifiers: d.modifiers.into_iter().map(String::from).collect(),
-            expression: d.expression.map(|v| AttributeValue {
-                content: v.content,
-                location: v.location.into(),
-            }),
-            head_loc: d.head_loc.into(),
-            location: d.location.into(),
-        }
-    }
-}
 
 fn test_dir(case: &str) {
     let mut elem = mock_element(case);
     let name = insta::_macro_support::AutoName;
     let dir = elem.properties.pop().unwrap();
-    let val = serialize_yaml(ElemProp::from(dir));
+    let val = serialize_yaml(dir);
     assert_snapshot!(name, val, case);
 }
 

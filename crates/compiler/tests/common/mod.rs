@@ -1,31 +1,10 @@
 use compiler::error::ErrorHandler;
+use compiler::Position;
 use serde::Serialize;
 
 #[derive(Clone)]
 pub struct TestErrorHandler;
 impl ErrorHandler for TestErrorHandler {}
-
-pub struct Position {
-    pub offset: usize,
-    pub line: u32,
-    pub column: u32,
-}
-
-impl Serialize for Position {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let s = format!(
-            // Position, Line, Column
-            "Pos: {}, Ln: {}, Col: {}",
-            self.offset,
-            self.line,
-            self.column,
-        );
-        serializer.serialize_str(&s)
-    }
-}
 
 #[derive(Serialize)]
 pub struct SourceLocation {

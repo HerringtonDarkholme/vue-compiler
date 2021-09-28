@@ -28,6 +28,23 @@ pub struct Position {
     pub column: u32,
 }
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for Position {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let s = format!(
+            // Position, Line, Column
+            "Pos: {}, Ln: {}, Col: {}",
+            self.offset,
+            self.line,
+            self.column,
+        );
+        serializer.serialize_str(&s)
+    }
+}
+
 impl Default for Position {
     fn default() -> Self {
         Self {

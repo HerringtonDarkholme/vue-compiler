@@ -1,0 +1,24 @@
+---
+source: crates/compiler/tests/scanner_test/mod.rs
+expression: "<a test=\"value\">...</a>"
+
+---
+- StartTag:
+    name: a
+    attributes:
+      - name: test
+        value:
+          content: value
+          location:
+            start: "Pos: 8, Ln: 1, Col: 9"
+            end: "Pos: 15, Ln: 1, Col: 16"
+        name_loc:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 7, Ln: 1, Col: 8"
+        location:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 15, Ln: 1, Col: 16"
+    self_closing: false
+- Text: "..."
+- EndTag: a
+

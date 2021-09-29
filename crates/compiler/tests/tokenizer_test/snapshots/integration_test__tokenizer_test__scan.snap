@@ -1,7 +1,0 @@
----
-source: crates/compiler/tests/tokenizer_test/mod.rs
-expression: "<![CDATA["
-
----
-- Comment: "[CDATA["
-

@@ -1,7 +1,7 @@
 use compiler::flags::RuntimeHelper;
 
 use super::{
-    error::CompilationErrorKind as ErrorKind, parser::DirectiveArg, tokenizer::AttributeValue,
+    error::CompilationErrorKind as ErrorKind, parser::DirectiveArg, scanner::AttributeValue,
     util::VStr, CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element,
     ErrorHandler, JsExpr as Js,
 };

@@ -4,4 +4,4 @@ mod options;
 
 pub struct DomCodeGenerator {}
 
-pub use options::tokenize_option;
+pub use options::scan_option;

@@ -3,7 +3,7 @@ use anyhow::Result;
 use compiler::{
     codegen::{self, CodeGenerator},
     converter::{self, Converter},
-    parser, tokenizer,
+    parser, scanner,
     transformer::{
         self,
         collect_entities::EntityCollector,
@@ -39,10 +39,10 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let error_handler = option.error_handler;
     let eh = || error_handler.clone();
 
-    let tokenizer = tokenizer::Tokenizer::new(option.tokenization);
-    let tokens = tokenizer.scan(&source, eh());
+    let scanner = scanner::Scanner::new(option.scanning);
+    let tokens = scanner.scan(&source, eh());
     if show.dump_scan {
-        let tokens: Vec<_> = tokenizer.scan(&source, eh()).collect();
+        let tokens: Vec<_> = scanner.scan(&source, eh()).collect();
         println!(r#"============== Tokens ============="#);
         let stdout = io::stdout();
         to_writer(stdout.lock(), &tokens)?;

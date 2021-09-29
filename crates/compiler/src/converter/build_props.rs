@@ -2,7 +2,7 @@ use super::{BaseConverter as BC, CoreConverter, Element, JsExpr as Js, Prop, VSt
 use crate::{
     flags::{self, PatchFlag, RuntimeHelper},
     parser::{Directive, ElemProp},
-    tokenizer::Attribute,
+    scanner::Attribute,
     util::{self, is_bind_key, is_component_tag, is_reserved_prop},
 };
 use rustc_hash::{FxHashMap, FxHashSet};

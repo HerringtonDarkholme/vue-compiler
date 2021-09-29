@@ -3,7 +3,7 @@ use super::{
     converter::{BaseConvertInfo as BaseInfo, BaseConverter, BaseRoot, ConvertOption, Converter},
     error::ErrorHandler,
     parser::{ParseOption, Parser},
-    tokenizer::{TokenizeOption, Tokenizer},
+    scanner::{ScanOption, Scanner},
     transformer::{BaseTransformer, CorePass, MergedPass, TransformOption, Transformer},
 };
 
@@ -12,7 +12,7 @@ use std::io;
 // TODO: we have internal option that diverges from vue's option
 // CompileOption should behave like Vue option and be normalized to internal option
 pub struct CompileOption<'a, E: ErrorHandler + Clone> {
-    pub tokenization: TokenizeOption,
+    pub scanning: ScanOption,
     pub parsing: ParseOption,
     pub conversion: ConvertOption<'a>,
     pub transformation: TransformOption<'a>,
@@ -29,7 +29,7 @@ pub trait TemplateCompiler<'a> {
     type Trans: Transformer<IR = Self::IR>;
     type Gen: CodeGenerator<IR = Self::IR, Output = Self::Output>;
 
-    fn get_tokenizer(&self) -> Tokenizer;
+    fn get_scanner(&self) -> Scanner;
     fn get_parser(&self) -> Parser;
     fn get_converter(&self) -> Self::Conv;
     fn get_transformer(&mut self) -> Self::Trans;
@@ -37,10 +37,10 @@ pub trait TemplateCompiler<'a> {
     fn get_error_handler(&self) -> Self::Eh;
 
     fn compile(&mut self, source: &'a str) -> Self::Output {
-        let tokenizer = self.get_tokenizer();
+        let scanner = self.get_scanner();
         let parser = self.get_parser();
         let eh = self.get_error_handler();
-        let tokens = tokenizer.scan(source, eh);
+        let tokens = scanner.scan(source, eh);
         let eh = self.get_error_handler();
         let ast = parser.parse(tokens, eh);
         let mut ir = self.get_converter().convert_ir(ast);
@@ -83,8 +83,8 @@ where
     type Trans = BaseTransformer<'a, MergedPass<'b, Passes<'a, 'b>>>;
     type Gen = CodeWriter<'a, W>;
 
-    fn get_tokenizer(&self) -> Tokenizer {
-        Tokenizer::new(self.option.tokenization.clone())
+    fn get_scanner(&self) -> Scanner {
+        Scanner::new(self.option.scanning.clone())
     }
 
     fn get_parser(&self) -> Parser {

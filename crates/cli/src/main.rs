@@ -10,8 +10,8 @@ use std::{
 use anyhow::{bail, Result};
 use clap::{AppSettings, Clap};
 
-use compiler::{compiler::CompileOption, tokenizer::TokenizeOption};
-use dom::tokenize_option;
+use compiler::{compiler::CompileOption, scanner::ScanOption};
+use dom::scan_option;
 
 use cli::compile_to_stdout;
 use path_clean::PathClean;
@@ -69,12 +69,12 @@ fn process(opts: Opts) -> Result<CliInput> {
     let (name, source) = get_file(opts.input_file_name)?;
     let err_hanlde = PrettyErrorHandler::new(name, source.clone());
     let delimiters = get_delimiters(opts.delimiters)?;
-    let tokenization = TokenizeOption {
+    let scanning = ScanOption {
         delimiters,
-        ..tokenize_option()
+        ..scan_option()
     };
     let option = CompileOption {
-        tokenization,
+        scanning,
         parsing: Default::default(),
         conversion: Default::default(),
         transformation: Default::default(),

@@ -1,8 +1,8 @@
 mod dir;
 use super::common::{serialize_yaml, TestErrorHandler};
-use super::tokenizer_test::base_scan;
+use super::scanner_test::base_scan;
 use compiler::parser::{self as p, ParseOption, Parser};
-use compiler::tokenizer::TextMode;
+use compiler::scanner::TextMode;
 use insta::assert_snapshot;
 
 fn test_ast(case: &str) {

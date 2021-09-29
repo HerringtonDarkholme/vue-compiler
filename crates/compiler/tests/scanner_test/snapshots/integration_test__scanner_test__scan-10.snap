@@ -1,0 +1,22 @@
+---
+source: crates/compiler/tests/scanner_test/mod.rs
+expression: "<a == />"
+
+---
+- StartTag:
+    name: a
+    attributes:
+      - name: "="
+        value:
+          content: /
+          location:
+            start: "Pos: 6, Ln: 1, Col: 7"
+            end: "Pos: 7, Ln: 1, Col: 8"
+        name_loc:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 4, Ln: 1, Col: 5"
+        location:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 7, Ln: 1, Col: 8"
+    self_closing: false
+

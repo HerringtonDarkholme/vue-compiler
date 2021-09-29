@@ -1,0 +1,11 @@
+---
+source: crates/compiler/tests/scanner_test/mod.rs
+expression: "<textarea><div/></textareas>"
+
+---
+- StartTag:
+    name: textarea
+    attributes: []
+    self_closing: false
+- Text: "<div/></textareas>"
+

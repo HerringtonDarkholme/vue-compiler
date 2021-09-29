@@ -2,7 +2,7 @@ use super::{
     converter::{BaseConvertInfo, JsExpr as Js, VNodeIR},
     flags::RuntimeHelper,
     parser::{Directive, DirectiveArg, ElemProp, Element},
-    tokenizer::Attribute,
+    scanner::Attribute,
 };
 use std::{
     borrow::{Borrow, BorrowMut},

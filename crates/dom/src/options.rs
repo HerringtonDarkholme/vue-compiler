@@ -1,4 +1,4 @@
-use compiler::tokenizer::{TextMode, TokenizeOption};
+use compiler::scanner::{ScanOption, TextMode};
 
 fn get_text_mode(s: &str) -> TextMode {
     match s {
@@ -8,8 +8,8 @@ fn get_text_mode(s: &str) -> TextMode {
     }
 }
 
-pub fn tokenize_option() -> TokenizeOption {
-    TokenizeOption {
+pub fn scan_option() -> ScanOption {
+    ScanOption {
         get_text_mode,
         delimiters: ("{{".to_string(), "}}".to_string()),
     }

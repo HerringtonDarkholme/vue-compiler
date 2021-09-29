@@ -10,7 +10,7 @@ pub mod converter;
 pub mod error;
 pub mod flags;
 pub mod parser;
-pub mod tokenizer;
+pub mod scanner;
 pub mod transformer;
 pub mod util;
 

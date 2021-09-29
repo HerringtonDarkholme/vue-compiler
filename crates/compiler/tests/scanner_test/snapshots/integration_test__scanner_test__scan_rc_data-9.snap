@@ -1,0 +1,12 @@
+---
+source: crates/compiler/tests/scanner_test/mod.rs
+expression: "<textarea>{{}}</textarea>"
+
+---
+- StartTag:
+    name: textarea
+    attributes: []
+    self_closing: false
+- Interpolation: ""
+- EndTag: textarea
+

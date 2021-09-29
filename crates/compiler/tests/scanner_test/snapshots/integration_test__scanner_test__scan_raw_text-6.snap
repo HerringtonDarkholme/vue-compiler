@@ -1,0 +1,12 @@
+---
+source: crates/compiler/tests/scanner_test/mod.rs
+expression: "<style>abc</style>"
+
+---
+- StartTag:
+    name: style
+    attributes: []
+    self_closing: false
+- Text: abc
+- EndTag: style
+

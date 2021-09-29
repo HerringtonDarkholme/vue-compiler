@@ -9,14 +9,14 @@
 // 4. adjust MathML/SVG attributes:
 //    ?? Should we handle this? The original Vue compiler does not.
 // 5. Inserting Text/Comment: N/A. We don't handle script/insertion location.
-// 6. Parsing elements that contain only text: Already handled in tokenizer.
+// 6. Parsing elements that contain only text: Already handled in scanner.
 // 7. Closing elements that have implied end tags:
 //    N/A: Rule is too complicated and requires non-local context.
 // Instead, we use a simple stack to construct AST.
 
 use super::{
     error::{CompilationError, CompilationErrorKind as ErrorKind, ErrorHandler},
-    tokenizer::{Attribute, AttributeValue, Tag, TextMode, Token, TokenSource},
+    scanner::{Attribute, AttributeValue, Tag, TextMode, Token, TokenSource},
     util::{find_dir, is_core_component, no, non_whitespace, yes, VStr},
     Name, Namespace, SourceLocation,
 };
@@ -383,7 +383,7 @@ where
             // self-closing element cancels out pre itself.
             self.handle_pre_like(&elem);
             self.open_elems.push(elem);
-            self.set_tokenizer_flag();
+            self.set_scanner_flag();
         }
     }
     fn parse_attributes(&mut self, mut attrs: Vec<Attribute<'a>>) -> Vec<ElemProp<'a>> {
@@ -455,7 +455,7 @@ where
     }
     fn close_element(&mut self, has_matched_end: bool) {
         let mut elem = self.open_elems.pop().unwrap();
-        self.set_tokenizer_flag();
+        self.set_scanner_flag();
         let start = elem.location.start;
         if !has_matched_end {
             // should only span the start of a tag, not the whole tag.
@@ -585,7 +585,7 @@ where
 
     // must call this when handle CDATA
     #[inline]
-    fn set_tokenizer_flag(&mut self) {
+    fn set_scanner_flag(&mut self) {
         if self.need_flag_namespace {
             return;
         }
@@ -898,7 +898,7 @@ fn is_v_pre_boundary(elem: &Element) -> bool {
 #[cfg(test)]
 pub mod test {
     use super::*;
-    use crate::{cast, error::test::TestErrorHandler, tokenizer::test::base_scan};
+    use crate::{cast, error::test::TestErrorHandler, scanner::test::base_scan};
 
     #[test]
     fn test_parse_text() {

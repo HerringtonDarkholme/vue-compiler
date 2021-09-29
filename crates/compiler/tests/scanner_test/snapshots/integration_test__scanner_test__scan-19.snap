@@ -1,0 +1,22 @@
+---
+source: crates/compiler/tests/scanner_test/mod.rs
+expression: "<p v-err=232/>"
+
+---
+- StartTag:
+    name: p
+    attributes:
+      - name: v-err
+        value:
+          content: 232/
+          location:
+            start: "Pos: 9, Ln: 1, Col: 10"
+            end: "Pos: 13, Ln: 1, Col: 14"
+        name_loc:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 8, Ln: 1, Col: 9"
+        location:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 13, Ln: 1, Col: 14"
+    self_closing: false
+

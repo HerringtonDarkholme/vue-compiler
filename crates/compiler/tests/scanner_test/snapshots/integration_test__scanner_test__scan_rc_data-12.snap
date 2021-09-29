@@ -1,0 +1,12 @@
+---
+source: crates/compiler/tests/scanner_test/mod.rs
+expression: "<textarea>{{ garbage  {{ }}</textarea>"
+
+---
+- StartTag:
+    name: textarea
+    attributes: []
+    self_closing: false
+- Interpolation: " garbage  {{ "
+- EndTag: textarea
+

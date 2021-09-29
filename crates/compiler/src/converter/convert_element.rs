@@ -8,7 +8,7 @@ use crate::{
     error::{CompilationError, CompilationErrorKind as ErrorKind},
     flags::{PatchFlag, RuntimeHelper, StaticLevel},
     parser::{AstNode, Directive, ElemProp, ElementType},
-    tokenizer::Attribute,
+    scanner::Attribute,
     util::{find_dir, get_core_component, is_builtin_symbol, is_component_tag, prop_finder},
     SourceLocation,
 };

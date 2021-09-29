@@ -1,0 +1,18 @@
+---
+source: crates/compiler/tests/scanner_test/mod.rs
+expression: "<a =123 />"
+
+---
+- StartTag:
+    name: a
+    attributes:
+      - name: "=123"
+        value: ~
+        name_loc:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 7, Ln: 1, Col: 8"
+        location:
+          start: "Pos: 3, Ln: 1, Col: 4"
+          end: "Pos: 8, Ln: 1, Col: 9"
+    self_closing: true
+

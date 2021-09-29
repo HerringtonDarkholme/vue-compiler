@@ -85,7 +85,7 @@ Todo tasks grouped by scopes.
     - [ ] camel/pascal cache
     - [ ] str ops
 ### [core]
-- [x] tokenizer
+- [x] scanner
     - [ ] UTF8 support
 - [x] parser
 - [ ] IR converter
@@ -112,7 +112,7 @@ Todo tasks grouped by scopes.
 ### [sfc]
 - [ ] TODO
 ### [test]
-- [ ] tokenizer test
+- [ ] scanner test
 - [ ] parser test
     - [x] dir parser test
 - [x] Add insta snapshot

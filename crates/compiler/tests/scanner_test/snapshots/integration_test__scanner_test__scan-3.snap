@@ -1,0 +1,7 @@
+---
+source: crates/compiler/tests/scanner_test/mod.rs
+expression: "{{test}}"
+
+---
+- Interpolation: test
+

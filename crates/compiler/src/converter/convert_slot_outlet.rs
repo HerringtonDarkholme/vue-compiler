@@ -6,7 +6,7 @@ use super::{
 use crate::{
     error::{CompilationError, CompilationErrorKind::VSlotUnexpectedDirectiveOnSlotOutlet},
     parser::{DirectiveArg, ElemProp},
-    tokenizer::Attribute,
+    scanner::Attribute,
     util::is_bind_key,
 };
 use std::mem;

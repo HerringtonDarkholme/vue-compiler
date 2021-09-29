@@ -11,7 +11,9 @@ use std::{
     ops::Deref,
 };
 
+mod swc;
 mod v_str;
+pub use swc::parse_js_expr;
 pub use v_str::VStr;
 
 pub fn non_whitespace(c: char) -> bool {

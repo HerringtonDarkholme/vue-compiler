@@ -211,8 +211,10 @@ mod test {
     use crate::converter::{BaseIR, IRNode};
 
     fn transform(s: &str) -> BaseRoot {
-        let mut option = TransformOption::default();
-        option.prefix_identifier = true;
+        let option = TransformOption {
+            prefix_identifier: true,
+            ..Default::default()
+        };
         let mut ir = base_convert(s);
         let mut exp = ExpressionProcessor { option: &option };
         let a: &mut [&mut dyn CorePassExt<_, _>] = &mut [&mut exp];

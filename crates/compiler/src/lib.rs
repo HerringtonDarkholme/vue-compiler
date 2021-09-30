@@ -12,6 +12,7 @@ pub mod flags;
 pub mod parser;
 pub mod scanner;
 pub mod transformer;
+#[macro_use]
 pub mod util;
 
 #[cfg(feature = "serde")]

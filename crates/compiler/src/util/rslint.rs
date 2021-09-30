@@ -1,6 +1,6 @@
 use rslint_parser::{
     self as rl,
-    ast::{Expr, NameRef, ParameterList},
+    ast::{Expr, Name, NameRef, ParameterList},
     parse_expr, AstNode, SyntaxKind, SyntaxNodeExt,
 };
 
@@ -23,7 +23,9 @@ pub fn parse_js_expr(text: &str) -> Option<Expr> {
         .filter(|n: &Expr| is_sole_child(n, text.trim().len()))
 }
 
-fn walk_identifier<F>(root: Expr, mut func: F)
+// only visit free variable, not bound ones like identifiers
+// declared in the scope/func param list
+pub fn walk_free_variables<F>(root: Expr, mut func: F)
 where
     F: FnMut(NameRef) -> bool,
 {
@@ -76,6 +78,27 @@ fn parse_param_impl(text: &str, file_id: usize) -> rl::Parse<ParameterList> {
     rl::Parse::new(green, parse_errors)
 }
 
+const PATTERNS: &[SyntaxKind] = &[
+    SyntaxKind::OBJECT_PATTERN,
+    SyntaxKind::ARRAY_PATTERN,
+    SyntaxKind::ASSIGN_PATTERN,
+    SyntaxKind::REST_PATTERN,
+    SyntaxKind::KEY_VALUE_PATTERN,
+    SyntaxKind::SINGLE_PATTERN,
+];
+pub fn walk_fn_param<F>(list: ParameterList, mut f: F)
+where
+    F: FnMut(Name) -> bool,
+{
+    list.syntax().descendants_with(&mut |n| {
+        if n.kind() == SyntaxKind::NAME {
+            f(n.to())
+        } else {
+            PATTERNS.contains(&n.kind())
+        }
+    })
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -122,10 +145,10 @@ mod test {
         assert!(parse_js_expr("if (a) {b} else {c}").is_none());
     }
 
-    fn test_walk(s: &str) -> Vec<String> {
+    fn walk_ident(s: &str) -> Vec<String> {
         let expr = parse_js_expr(s).unwrap();
         let mut ret = vec![];
-        walk_identifier(expr, |name_ref| {
+        walk_free_variables(expr, |name_ref| {
             ret.push(name_ref.text());
             true
         });
@@ -148,7 +171,7 @@ mod test {
             ("true, false, null, this", vec![]),
         ];
         for (src, expect) in cases {
-            assert_eq!(test_walk(src), expect);
+            assert_eq!(walk_ident(src), expect);
         }
     }
 
@@ -162,5 +185,29 @@ mod test {
         assert!(parse_fn_param(" a={b: 3} ").is_some());
         assert!(parse_fn_param(" a={b: 3 ").is_none());
         assert!(parse_fn_param(" ").is_some());
+    }
+
+    fn walk_param(s: &str) -> Vec<String> {
+        let expr = parse_fn_param(s).unwrap();
+        let mut ret = vec![];
+        walk_fn_param(expr, |name| {
+            dbg!(&name);
+            ret.push(name.text());
+            true
+        });
+        ret
+    }
+
+    #[test]
+    fn test_walk_fn_param() {
+        let cases = [
+            ("a, b", vec!["a", "b"]),
+            ("a = (b) => {}", vec!["a"]),
+            ("{a = b}", vec!["a"]),
+            ("[a, b, c]", vec!["a", "b", "c"]),
+        ];
+        for (src, expect) in cases {
+            assert_eq!(walk_param(src), expect);
+        }
     }
 }

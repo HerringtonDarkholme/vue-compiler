@@ -44,9 +44,12 @@ const FN_KINDS: &[SyntaxKind] = &[
     SyntaxKind::FN_DECL,
     SyntaxKind::FN_EXPR,
     SyntaxKind::METHOD,
+    SyntaxKind::GETTER,
+    SyntaxKind::SETTER,
 ];
 
 // just allocate if complex expressions are used
+// users should not abuse expression in template
 // dont have time to optimize it :(
 struct FreeVarWalker<F: FnMut(NameRef)> {
     func: F,
@@ -94,20 +97,48 @@ where
     #[inline(never)]
     fn track_block_var(&mut self, node: &ast::BlockStmt) -> usize {
         use ast::Decl;
-        let l = self.bound_vars.len();
+        let len = self.bound_vars.len();
         let decls = node.stmts().filter_map(|s| s.syntax().try_to::<Decl>());
-        for decl in decls {
-            collect_name(decl.syntax(), |n| {
+        let mut collect = |d: &rl::SyntaxNode| {
+            collect_name(d, |n| {
                 self.bound_vars.push(n.syntax().trimmed_text());
                 false
             })
-        }
-        self.bound_vars.len() - l
+        };
+        decls.for_each(|decl| match decl {
+            Decl::VarDecl(v) => {
+                v.declared().for_each(|d| collect(d.syntax()));
+            }
+            decl => collect(decl.syntax()),
+        });
+        self.bound_vars.len() - len
     }
     #[inline(never)]
-    fn track_param(&mut self, n: &rl::SyntaxNode) -> usize {
-        debug_assert!(FN_KINDS.contains(&n.kind()));
-        todo!()
+    fn track_param(&mut self, node: &rl::SyntaxNode) -> usize {
+        debug_assert!(FN_KINDS.contains(&node.kind()));
+        let len = self.bound_vars.len();
+        // arrow func has single param without parenthesis
+        if node.kind() == SyntaxKind::ARROW_EXPR {
+            let param = node.to::<ast::ArrowExpr>().params();
+            if let Some(ast::ArrowExprParams::Name(n)) = param {
+                self.bound_vars.push(n.syntax().trimmed_text());
+            }
+        }
+        // function expression has name property
+        else if node.kind() == SyntaxKind::FN_EXPR {
+            let name = node.to::<ast::FnExpr>().name();
+            if let Some(n) = name {
+                self.bound_vars.push(n.syntax().trimmed_text());
+            }
+        }
+        let list = node.children().find_map(|nd| nd.try_to::<ParameterList>());
+        if let Some(list) = list {
+            walk_fn_param(list, |nd| {
+                self.bound_vars.push(nd.syntax().trimmed_text());
+                false
+            });
+        }
+        self.bound_vars.len() - len
     }
     fn untrack_var(&mut self, c: usize) {
         debug_assert!(self.bound_vars.len() >= c);
@@ -179,11 +210,12 @@ fn collect_name<F>(node: &rl::SyntaxNode, mut f: F)
 where
     F: FnMut(ast::Name) -> bool,
 {
-    node.descendants_with(&mut |n| {
-        if node.kind() == SyntaxKind::NAME {
-            f(node.to())
+    node.descendants_with(&mut |d| {
+        let kind = d.kind();
+        if kind == SyntaxKind::NAME {
+            f(d.to())
         } else {
-            PATTERNS.contains(&node.kind())
+            PATTERNS.contains(&kind)
         }
     })
 }
@@ -261,8 +293,20 @@ mod test {
             ("a ? b : c", vec!["a", "b", "c"]),
             ("a(b + 1, {c: d})", vec!["a", "b", "d"]),
             ("a, a, a", vec!["a", "a", "a"]),
+            // arrow
             ("() => {let a = 123}", vec![]),
             ("() => {let {a} = b;}", vec!["b"]),
+            ("(c) => {let {a} = b;}", vec!["b"]),
+            // fn expr
+            ("function (a) {}", vec![]),
+            ("function test(a) {test; foo;}", vec!["foo"]),
+            // method
+            ("{test(a) {a; b}}", vec!["b"]),
+            ("{test: a => {a; b}}", vec!["b"]),
+            // getter, setter
+            ("{get test(a) {a; b}}", vec!["b"]),
+            ("{set test(a) {a; b}}", vec!["b"]),
+            // keyword
             ("true, false, null, this", vec![]),
         ];
         for (src, expect) in cases {
@@ -296,7 +340,7 @@ mod test {
     fn test_walk_fn_param() {
         let cases = [
             ("a, b", vec!["a", "b"]),
-            ("a = (b) => {}", vec!["a"]),
+            ("a = (b) => { var a = 123}", vec!["a"]),
             ("a=b", vec!["a"]),
             ("{a, b, c}", vec!["a", "b", "c"]),
             // ("{a=b}", vec!["a"]), // need https://github.com/rslint/rslint/issues/120

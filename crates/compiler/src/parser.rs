@@ -279,6 +279,7 @@ impl Parser {
     }
 }
 
+// TODO: remove Eh as generic
 struct AstBuilder<'a, Ts, Eh>
 where
     Ts: TokenSource<'a>,

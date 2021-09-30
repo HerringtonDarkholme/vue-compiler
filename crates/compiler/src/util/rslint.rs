@@ -1,6 +1,6 @@
 use rslint_parser::{
     self as rl,
-    ast::{Expr, Name, NameRef, ParameterList},
+    ast::{self, Expr, NameRef, ParameterList},
     parse_expr, AstNode, SyntaxKind, SyntaxNodeExt,
 };
 use std::cell::RefCell;
@@ -24,21 +24,108 @@ pub fn parse_js_expr(text: &str) -> Option<Expr> {
         .filter(|n: &Expr| is_sole_child(n, text.trim().len()))
 }
 
+// difference from descendants_with:
+// 1. has enter and exit to enable scop analysis
+// 2. enter/exit never stop walking. 「止まるんじゃねぇぞ…💃」
+pub trait SyntaxWalker<T> {
+    fn enter(&mut self, n: &rl::SyntaxNode) -> T;
+    fn exit(&mut self, n: &rl::SyntaxNode, i: T);
+    fn walk(&mut self, node: &rl::SyntaxNode) {
+        let t = self.enter(node);
+        for child in node.children() {
+            self.walk(&child);
+        }
+        self.exit(node, t);
+    }
+}
+
+const FN_KINDS: &[SyntaxKind] = &[
+    SyntaxKind::ARROW_EXPR,
+    SyntaxKind::FN_DECL,
+    SyntaxKind::FN_EXPR,
+    SyntaxKind::METHOD,
+];
+
+// just allocate if complex expressions are used
+// dont have time to optimize it :(
+struct FreeVarWalker<F: FnMut(NameRef)> {
+    func: F,
+    bound_vars: Vec<rl::SyntaxText>,
+}
+
+impl<F> SyntaxWalker<usize> for FreeVarWalker<F>
+where
+    F: FnMut(NameRef),
+{
+    fn enter(&mut self, node: &rl::SyntaxNode) -> usize {
+        use SyntaxKind as SK;
+        let kind = node.kind();
+        if kind == SK::NAME_REF {
+            self.emit_name_ref(node);
+            0
+        } else if kind == SK::BLOCK_STMT {
+            self.track_block_var(&node.to())
+        } else if FN_KINDS.contains(&kind) {
+            self.track_param(node)
+        } else {
+            0
+        }
+    }
+    fn exit(&mut self, node: &rl::SyntaxNode, c: usize) {
+        self.untrack_var(c);
+    }
+}
+impl<F> FreeVarWalker<F>
+where
+    F: FnMut(NameRef),
+{
+    fn new(func: F) -> Self {
+        Self {
+            func,
+            bound_vars: vec![],
+        }
+    }
+    fn emit_name_ref(&mut self, name_ref: &rl::SyntaxNode) {
+        if self.bound_vars.contains(&name_ref.trimmed_text()) {
+            return;
+        }
+        (self.func)(name_ref.to());
+    }
+    #[inline(never)]
+    fn track_block_var(&mut self, node: &ast::BlockStmt) -> usize {
+        use ast::Decl;
+        let l = self.bound_vars.len();
+        let decls = node.stmts().filter_map(|s| s.syntax().try_to::<Decl>());
+        for decl in decls {
+            collect_name(decl.syntax(), |n| {
+                self.bound_vars.push(n.syntax().trimmed_text());
+                false
+            })
+        }
+        self.bound_vars.len() - l
+    }
+    #[inline(never)]
+    fn track_param(&mut self, n: &rl::SyntaxNode) -> usize {
+        debug_assert!(FN_KINDS.contains(&n.kind()));
+        todo!()
+    }
+    fn untrack_var(&mut self, c: usize) {
+        debug_assert!(self.bound_vars.len() >= c);
+        if c > 0 {
+            let new_len = self.bound_vars.len() - c;
+            self.bound_vars.truncate(new_len);
+        }
+    }
+}
+
 // only visit free variable, not bound ones like identifiers
 // declared in the scope/func param list
-pub fn walk_free_variables<F>(root: Expr, mut func: F)
+pub fn walk_free_variables<F>(root: Expr, func: F)
 where
-    F: FnMut(NameRef) -> bool,
+    F: FnMut(NameRef),
 {
-    root.syntax().descendants_with(&mut |node| {
-        if node.kind() != SyntaxKind::NAME_REF {
-            return true;
-        }
-        // TODO: handle block declaration
-        // TODO: handle fn param
-        let name_ref = node.to::<NameRef>();
-        func(name_ref)
-    })
+    let mut walker = FreeVarWalker::new(func);
+    walker.walk(root.syntax())
 }
 
 pub fn parse_fn_param(text: &str) -> Option<ParameterList> {
@@ -88,17 +175,24 @@ const PATTERNS: &[SyntaxKind] = &[
     SyntaxKind::KEY_VALUE_PATTERN,
     SyntaxKind::SINGLE_PATTERN,
 ];
-pub fn walk_fn_param<F>(list: ParameterList, mut f: F)
+fn collect_name<F>(node: &rl::SyntaxNode, mut f: F)
 where
-    F: FnMut(Name) -> bool,
+    F: FnMut(ast::Name) -> bool,
 {
-    list.syntax().descendants_with(&mut |n| {
-        if n.kind() == SyntaxKind::NAME {
-            f(n.to())
+    node.descendants_with(&mut |n| {
+        if node.kind() == SyntaxKind::NAME {
+            f(node.to())
         } else {
-            PATTERNS.contains(&n.kind())
+            PATTERNS.contains(&node.kind())
         }
     })
+}
+
+pub fn walk_fn_param<F>(list: ParameterList, f: F)
+where
+    F: FnMut(ast::Name) -> bool,
+{
+    collect_name(list.syntax(), f);
 }
 
 #[cfg(test)]
@@ -152,7 +246,6 @@ mod test {
         let mut ret = vec![];
         walk_free_variables(expr, |name_ref| {
             ret.push(name_ref.text());
-            true
         });
         ret
     }

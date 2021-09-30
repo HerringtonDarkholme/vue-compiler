@@ -66,6 +66,7 @@ No support since most features in full build are additional except for browser b
 * Test compiler output by [snapshot](https://github.com/mitsuhiko/insta) test.
 * Use alternative allocator like [wee_alloc](https://github.com/rustwasm/wee_alloc) or [mi_malloc](https://microsoft.github.io/mimalloc/index.html).
 * Use `Box<[T]>` instead of `Vec` to reduce type size.
+* Use `Rc` to manage error handler. Don't optimize wrong code.
 
 ## Reference
 

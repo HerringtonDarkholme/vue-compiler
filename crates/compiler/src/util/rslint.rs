@@ -301,6 +301,8 @@ mod test {
             ("() => {let a = 123}", vec![]),
             ("() => {let {a} = b;}", vec!["b"]),
             ("(c) => {let {a} = b;}", vec!["b"]),
+            // nested
+            ("(c) => { ((a) => {b})(); a; }", vec!["b", "a"]),
             // fn expr
             ("function (a) {}", vec![]),
             ("function test(a) {test; foo;}", vec!["foo"]),

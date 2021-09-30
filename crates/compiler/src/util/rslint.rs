@@ -160,7 +160,11 @@ where
 }
 
 pub fn parse_fn_param(text: &str) -> Option<ParameterList> {
-    let parsed = parse_param_impl(text);
+    let parsed = if text.starts_with('(') {
+        parse_param_impl(text, 0)
+    } else {
+        parse_param_normalized(text, 0)
+    };
     if !parsed.errors().is_empty() {
         return None;
     }
@@ -173,18 +177,18 @@ pub fn parse_fn_param(text: &str) -> Option<ParameterList> {
 thread_local! {
     static STR_CACHE: RefCell<String> = RefCell::new(String::with_capacity(50));
 }
-fn parse_param_impl(text: &str) -> rl::Parse<ParameterList> {
+fn parse_param_normalized(text: &str, file_id: usize) -> rl::Parse<ParameterList> {
     use std::fmt::Write;
     STR_CACHE.with(|sc| {
         let mut s = sc.borrow_mut();
         s.clear();
         write!(s, "({})", text).unwrap();
-        parse_param_real(&*s, 0)
+        parse_param_impl(&*s, file_id)
     })
 }
 
 // copied from parse_expr
-fn parse_param_real(text: &str, file_id: usize) -> rl::Parse<ParameterList> {
+fn parse_param_impl(text: &str, file_id: usize) -> rl::Parse<ParameterList> {
     let (tokens, mut errors) = rl::tokenize(text, file_id);
     let tok_source = rl::TokenSource::new(text, &tokens);
     let mut tree_sink = rl::LosslessTreeSink::new(text, &tokens);

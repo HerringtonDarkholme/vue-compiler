@@ -3,6 +3,7 @@ use rslint_parser::{
     ast::{Expr, Name, NameRef, ParameterList},
     parse_expr, AstNode, SyntaxKind, SyntaxNodeExt,
 };
+use std::cell::RefCell;
 
 fn is_sole_child<N: AstNode>(n: &N, expect_len: usize) -> bool {
     use std::ops::Range;
@@ -40,19 +41,8 @@ where
     })
 }
 
-// TODO: Arc for multi-threaded code
-static mut STR_CACHE: String = String::new();
-fn wrap_in_paren(text: &str) -> &str {
-    unsafe {
-        use std::fmt::Write;
-        STR_CACHE.clear();
-        write!(STR_CACHE, "({})", text).unwrap();
-        &STR_CACHE
-    }
-}
-
 pub fn parse_fn_param(text: &str) -> Option<ParameterList> {
-    let parsed = parse_param_impl(text, 0);
+    let parsed = parse_param_impl(text);
     if !parsed.errors().is_empty() {
         return None;
     }
@@ -61,10 +51,22 @@ pub fn parse_fn_param(text: &str) -> Option<ParameterList> {
         .try_to()
         .filter(|p: &ParameterList| is_sole_child(p, text.len() + 2))
 }
+// TODO: Arc for multi-threaded code
+thread_local! {
+    static STR_CACHE: RefCell<String> = RefCell::new(String::new());
+}
+fn parse_param_impl(text: &str) -> rl::Parse<ParameterList> {
+    use std::fmt::Write;
+    STR_CACHE.with(|sc| {
+        let mut s = sc.borrow_mut();
+        s.clear();
+        write!(s, "({})", text).unwrap();
+        parse_param_real(&*s, 0)
+    })
+}
 
 // copied from parse_expr
-fn parse_param_impl(text: &str, file_id: usize) -> rl::Parse<ParameterList> {
-    let text = wrap_in_paren(text);
+fn parse_param_real(text: &str, file_id: usize) -> rl::Parse<ParameterList> {
     let (tokens, mut errors) = rl::tokenize(text, file_id);
     let tok_source = rl::TokenSource::new(text, &tokens);
     let mut tree_sink = rl::LosslessTreeSink::new(text, &tokens);
@@ -191,7 +193,6 @@ mod test {
         let expr = parse_fn_param(s).unwrap();
         let mut ret = vec![];
         walk_fn_param(expr, |name| {
-            dbg!(&name);
             ret.push(name.text());
             true
         });

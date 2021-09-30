@@ -51,9 +51,9 @@ pub fn parse_fn_param(text: &str) -> Option<ParameterList> {
         .try_to()
         .filter(|p: &ParameterList| is_sole_child(p, text.len() + 2))
 }
-// TODO: Arc for multi-threaded code
+// TODO: thread local in Rust isn't that fast
 thread_local! {
-    static STR_CACHE: RefCell<String> = RefCell::new(String::new());
+    static STR_CACHE: RefCell<String> = RefCell::new(String::with_capacity(50));
 }
 fn parse_param_impl(text: &str) -> rl::Parse<ParameterList> {
     use std::fmt::Write;
@@ -204,7 +204,9 @@ mod test {
         let cases = [
             ("a, b", vec!["a", "b"]),
             ("a = (b) => {}", vec!["a"]),
-            ("{a = b}", vec!["a"]),
+            ("a=b", vec!["a"]),
+            ("{a, b, c}", vec!["a", "b", "c"]),
+            // ("{a=b}", vec!["a"]), // need https://github.com/rslint/rslint/issues/120
             ("[a, b, c]", vec!["a", "b", "c"]),
         ];
         for (src, expect) in cases {

@@ -1,20 +1,26 @@
 use rslint_parser::{
-    ast::{Expr, NameRef},
+    self as rl,
+    ast::{Expr, NameRef, ParameterList},
     parse_expr, AstNode, SyntaxKind, SyntaxNodeExt,
 };
 
-pub fn parse_js_expr(text: &str) -> Option<Expr> {
+fn is_sole_child<N: AstNode>(n: &N, expect_len: usize) -> bool {
     use std::ops::Range;
+    let r: Range<usize> = Range::from(n.syntax().trimmed_range());
+    r.end - r.start == expect_len
+}
+
+pub fn parse_js_expr(text: &str) -> Option<Expr> {
     let parsed = parse_expr(text, 0);
     if !parsed.errors().is_empty() {
         return None;
     }
     // range should be equal after removing trailing trivia(comment/whitespace)
     // otherwise the text is not a single expression
-    parsed.syntax().try_to().filter(|n: &Expr| {
-        let r: Range<usize> = Range::from(n.syntax().trimmed_range());
-        r.end - r.start == text.trim().len()
-    })
+    parsed
+        .syntax()
+        .try_to()
+        .filter(|n: &Expr| is_sole_child(n, text.trim().len()))
 }
 
 fn walk_identifier<F>(root: Expr, mut func: F)
@@ -32,26 +38,49 @@ where
     })
 }
 
+// TODO: Arc for multi-threaded code
+static mut STR_CACHE: String = String::new();
+fn wrap_in_paren(text: &str) -> &str {
+    unsafe {
+        use std::fmt::Write;
+        STR_CACHE.clear();
+        write!(STR_CACHE, "({})", text).unwrap();
+        &STR_CACHE
+    }
+}
+
+pub fn parse_fn_param(text: &str) -> Option<ParameterList> {
+    let parsed = parse_param_impl(text, 0);
+    if !parsed.errors().is_empty() {
+        return None;
+    }
+    parsed
+        .syntax()
+        .try_to()
+        .filter(|p: &ParameterList| is_sole_child(p, text.len() + 2))
+}
+
 // copied from parse_expr
-pub fn parse_fn_param(text: &str) -> Option<Expr> {
-    todo!()
-    // let (tokens, mut errors) = tokenize(text, file_id);
-    // let tok_source = TokenSource::new(text, &tokens);
-    // let mut parser = crate::Parser::new(tok_source, file_id, Syntax::default());
-    // crate::syntax::expr::expr(&mut parser);
-    // let (events, p_diags) = parser.finish();
-    // errors.extend(p_diags);
-    // let mut tree_sink = LosslessTreeSink::new(text, &tokens);
-    // crate::process(&mut tree_sink, events, errors);
-    // let (green, parse_errors) = tree_sink.finish();
-    // Parse::new(green, parse_errors)
+fn parse_param_impl(text: &str, file_id: usize) -> rl::Parse<ParameterList> {
+    let text = wrap_in_paren(text);
+    let (tokens, mut errors) = rl::tokenize(text, file_id);
+    let tok_source = rl::TokenSource::new(text, &tokens);
+    let mut tree_sink = rl::LosslessTreeSink::new(text, &tokens);
+
+    let mut parser = rl::Parser::new(tok_source, file_id, rl::Syntax::default());
+    rl::syntax::decl::formal_parameters(&mut parser);
+    let (events, p_diags) = parser.finish();
+    errors.extend(p_diags);
+    rl::process(&mut tree_sink, events, errors);
+    let (green, parse_errors) = tree_sink.finish();
+    rl::Parse::new(green, parse_errors)
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::cast;
-    use rslint_parser::ast::{AstNode, BinOp, IfStmt};
+    use rslint_parser::ast::{BinOp, IfStmt};
 
     #[test]
     #[should_panic]
@@ -121,5 +150,17 @@ mod test {
         for (src, expect) in cases {
             assert_eq!(test_walk(src), expect);
         }
+    }
+
+    #[test]
+    fn test_fn_param() {
+        assert!(parse_fn_param("abc").is_some());
+        assert!(parse_fn_param("a + b").is_none());
+        assert!(parse_fn_param("a, b").is_some());
+        assert!(parse_fn_param("{a, b = 123}").is_some());
+        assert!(parse_fn_param("{a, ").is_none());
+        assert!(parse_fn_param(" a={b: 3} ").is_some());
+        assert!(parse_fn_param(" a={b: 3 ").is_none());
+        assert!(parse_fn_param(" ").is_some());
     }
 }

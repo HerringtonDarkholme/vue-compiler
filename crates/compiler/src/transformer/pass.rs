@@ -30,6 +30,7 @@ pub trait CorePass<T: ConvertInfo> {
     fn exit_comment(&mut self, _: &mut T::CommentType) {}
 }
 
+// TODO: refactor this to Future like chain
 pub struct MergedPass<'b, P> {
     passes: &'b mut [P],
 }

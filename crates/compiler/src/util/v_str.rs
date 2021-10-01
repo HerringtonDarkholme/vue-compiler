@@ -255,6 +255,9 @@ impl<'a> VStr<'a> {
     pub fn is_asset(s: &VStr) -> bool {
         s.ops.intersects(StrOps::ASSET_OPS)
     }
+    pub fn is_ctx_prefixed(s: &VStr) -> bool {
+        s.ops.contains(StrOps::CTX_PREFIX)
+    }
 }
 impl<'a> VStr<'a> {
     // verb is instance method

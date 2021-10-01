@@ -18,14 +18,22 @@ impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'a, 'b
         process_fn_param(p);
         match p {
             Js::Simple(id, _) => shared.add_identifier(*id),
-            Js::Compound(ids) => todo!(),
+            Js::Compound(ids) => {
+                for id in only_param_ids(ids) {
+                    shared.add_identifier(id);
+                }
+            }
             _ => panic!("param should only be simple expression"),
         }
     }
     fn exit_fn_param(&mut self, p: &mut Js<'a>, shared: &mut Scope<'a>) {
         match p {
             Js::Simple(id, _) => shared.remove_identifier(*id),
-            Js::Compound(ids) => todo!(),
+            Js::Compound(ids) => {
+                for id in only_param_ids(ids) {
+                    shared.remove_identifier(id);
+                }
+            }
             _ => panic!("param should only be simple expression"),
         };
     }
@@ -52,7 +60,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         if self.process_expr_fast(e, scope) {
             return;
         }
-        self.process_with_js_parser(e);
+        self.process_with_js_parser(e, scope);
     }
 
     /// prefix _ctx without parsing JS
@@ -87,13 +95,13 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         true
     }
 
-    fn process_with_js_parser(&self, e: &mut Js<'a>) {
+    fn process_with_js_parser(&self, e: &mut Js<'a>, scope: &Scope) {
         let (v, level) = match e {
             Js::Simple(v, level) => (v, level),
             _ => return,
         };
         let raw = v.raw;
-        let broken_atoms = break_down_complex_expression(raw, self.option.inline);
+        let broken_atoms = self.break_down_complex_expression(raw, scope);
         *e = self.reunite_atoms(raw, broken_atoms);
     }
     fn rewrite_identifier(&self, raw: VStr<'a>, level: StaticLevel, ctx: CtxType<'a>) -> Js<'a> {
@@ -109,6 +117,37 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             Js::simple(*raw.clone().prefix_ctx())
         }
     }
+
+    fn break_down_complex_expression(&self, raw: &'a str, scope: &Scope) -> Vec<Atom<'a>> {
+        let expr = rslint::parse_js_expr(raw);
+        let expr = match expr {
+            Some(exp) => exp,
+            None => todo!("add error handler"),
+        };
+        let inline = self.option.inline;
+        let mut atoms = vec![];
+        use std::ops::Range;
+        rslint::walk_free_variables(expr, |fv| {
+            let id_text = fv.text();
+            if is_global_allow_listed(&id_text) || id_text == "require" {
+                return;
+            }
+            let range = Range::from(fv.range());
+            let id_str = VStr::raw(&raw[range.clone()]);
+            // skip id defined in the template scope
+            if scope.has_identifier(&id_str) {
+                return;
+            }
+            atoms.push(Atom {
+                range,
+                id_str,
+                ctx_type: if inline { todo!() } else { CtxType::NoWrite },
+            })
+        });
+        atoms.sort_by_key(|r| r.range.start);
+        atoms
+    }
+
     fn reunite_atoms(&self, raw: &'a str, atoms: Vec<Atom<'a>>) -> Js<'a> {
         let mut inner = vec![];
         let mut last = 0;
@@ -119,12 +158,9 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
                 inner.push(comp);
             }
             last = range.end;
-            let prefixed = self.rewrite_identifier(
-                VStr::raw(&raw[range]),
-                StaticLevel::NotStatic,
-                atom.ctx_type,
-            );
-            inner.push(prefixed);
+            let rewritten =
+                self.rewrite_identifier(atom.id_str, StaticLevel::NotStatic, atom.ctx_type);
+            inner.push(rewritten);
         }
         if last < raw.len() {
             inner.push(Js::Src(&raw[last..]));
@@ -133,31 +169,27 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
     }
 }
 
-struct Atom<'a> {
-    range: std::ops::Range<usize>,
-    ctx_type: CtxType<'a>,
+// This implementation assumes that broken param expression has only two kinds subexpr:
+// 1. param identifiers that has no prefix
+// 2. expression in default binding that has been prefixed
+// so we just check is the vstr is prefixed to tell if it is a param name
+fn only_param_ids<'a, 'b>(ids: &'b [Js<'a>]) -> impl Iterator<Item = VStr<'a>> + 'b {
+    ids.iter()
+        .filter_map(|id| match id {
+            Js::Simple(v, _) => Some(*v),
+            Js::Src(_) => None,
+            _ => {
+                debug_assert!(false, "Illegal sub expr kind in param.");
+                None
+            }
+        })
+        .filter(|v| VStr::is_ctx_prefixed(v))
 }
 
-fn break_down_complex_expression(raw: &str, inline: bool) -> Vec<Atom> {
-    let expr = rslint::parse_js_expr(raw);
-    let expr = match expr {
-        Some(exp) => exp,
-        None => todo!("add error handler"),
-    };
-    let mut atoms = vec![];
-    use std::ops::Range;
-    rslint::walk_free_variables(expr, |fv| {
-        let id_text = fv.text();
-        if is_global_allow_listed(&id_text) || id_text == "require" {
-            return;
-        }
-        atoms.push(Atom {
-            range: Range::from(fv.range()),
-            ctx_type: if inline { CtxType::NoWrite } else { todo!() },
-        })
-    });
-    atoms.sort_by_key(|r| r.range.start);
-    atoms
+struct Atom<'a> {
+    range: std::ops::Range<usize>,
+    id_str: VStr<'a>,
+    ctx_type: CtxType<'a>,
 }
 
 enum CtxType<'a> {
@@ -318,6 +350,20 @@ mod test {
         let b = cast!(v_for.source, Js::Simple);
         let a = cast!(v_for.parse_result.value, Js::Simple);
         assert_eq!(a.into_string(), "a");
+        assert_eq!(b.into_string(), "_ctx.b");
+    }
+    #[test]
+    fn test_complex_expression() {
+        let ir = transform("{{a + b}}");
+        let text = cast!(first_child(ir), IRNode::TextCall);
+        let text = match &text.texts[0] {
+            Js::Call(_, r) => &r[0],
+            _ => panic!("wrong interpolation"),
+        };
+        let expr = cast!(text, Js::Compound);
+        let a = cast!(expr[0], Js::Simple);
+        let b = cast!(expr[2], Js::Simple);
+        assert_eq!(a.into_string(), "_ctx.a");
         assert_eq!(b.into_string(), "_ctx.b");
     }
 }

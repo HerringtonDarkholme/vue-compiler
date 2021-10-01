@@ -563,7 +563,7 @@ where
         debug_assert!(self.tokens.next().is_none());
         let elem = match self.open_elems.last() {
             Some(e) => e,
-            _ => return,
+            None => return,
         };
         if !elem.tag_name.eq_ignore_ascii_case("script") {
             return;

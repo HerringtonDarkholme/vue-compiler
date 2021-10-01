@@ -145,7 +145,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             let id_str = VStr::raw(&raw[atom.range]);
             let rewritten = self.rewrite_identifier(id_str, StaticLevel::NotStatic, prop.ctx_type);
             if prop.is_obj_shorthand {
-                Js::Compound(vec![Js::StrLit(id_str), Js::Src(":"), rewritten])
+                Js::Compound(vec![Js::StrLit(id_str), Js::Src(": "), rewritten])
             } else {
                 rewritten
             }
@@ -433,6 +433,24 @@ mod test {
         let b = cast!(expr[2], Js::Simple);
         assert_eq!(a.into_string(), "_ctx.a");
         assert_eq!(b.into_string(), "_ctx.b");
+    }
+
+    #[test]
+    fn test_transform_shorthand() {
+        let ir = transform("{{ {a} }}");
+        let text = cast!(first_child(ir), IRNode::TextCall);
+        let text = match &text.texts[0] {
+            Js::Call(_, r) => &r[0],
+            _ => panic!("wrong interpolation"),
+        };
+        let expr = cast!(text, Js::Compound);
+        let prop = cast!(&expr[1], Js::Compound);
+        let key = cast!(prop[0], Js::StrLit);
+        let colon = cast!(prop[1], Js::Src);
+        let val = cast!(prop[2], Js::Simple);
+        assert_eq!(key.into_string(), "a");
+        assert_eq!(colon, ": ");
+        assert_eq!(val.into_string(), "_ctx.a");
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use rslint_parser::{
     self as rl,
-    ast::{self, Expr, NameRef, ParameterList},
+    ast::{self, Expr, ParameterList},
     parse_expr, AstNode, SyntaxKind, SyntaxNodeExt,
 };
 use std::cell::RefCell;
@@ -48,23 +48,52 @@ const FN_KINDS: &[SyntaxKind] = &[
     SyntaxKind::SETTER,
 ];
 
+pub enum FreeVar {
+    Ident(rl::SyntaxNode),
+    Shorthand(rl::SyntaxNode),
+}
+impl FreeVar {
+    fn syntax(&self) -> &rl::SyntaxNode {
+        use FreeVar::*;
+        match self {
+            Ident(n) | Shorthand(n) => n,
+        }
+    }
+    pub fn is_shorthand(&self) -> bool {
+        use FreeVar::*;
+        match self {
+            Shorthand(_) => true,
+            Ident(_) => false,
+        }
+    }
+    pub fn text(&self) -> String {
+        self.syntax().trimmed_text().into()
+    }
+    pub fn range(&self) -> Range<usize> {
+        self.syntax().trimmed_range().into()
+    }
+}
+
 // just allocate if complex expressions are used
 // users should not abuse expression in template
 // dont have time to optimize it :(
-struct FreeVarWalker<F: FnMut(NameRef)> {
+struct FreeVarWalker<F: FnMut(FreeVar)> {
     func: F,
     bound_vars: Vec<rl::SyntaxText>,
 }
 
 impl<F> SyntaxWalker<usize> for FreeVarWalker<F>
 where
-    F: FnMut(NameRef),
+    F: FnMut(FreeVar),
 {
     fn enter(&mut self, node: &rl::SyntaxNode) -> usize {
         use SyntaxKind as SK;
         let kind = node.kind();
         if kind == SK::NAME_REF {
             self.emit_name_ref(node);
+            0
+        } else if kind == SK::IDENT_PROP {
+            self.emit_object_shorthad(node);
             0
         } else if kind == SK::BLOCK_STMT {
             self.track_block_var(&node.to())
@@ -80,7 +109,7 @@ where
 }
 impl<F> FreeVarWalker<F>
 where
-    F: FnMut(NameRef),
+    F: FnMut(FreeVar),
 {
     fn new(func: F) -> Self {
         Self {
@@ -89,10 +118,19 @@ where
         }
     }
     fn emit_name_ref(&mut self, name_ref: &rl::SyntaxNode) {
+        debug_assert!(name_ref.kind() == SyntaxKind::NAME_REF);
         if self.bound_vars.contains(&name_ref.trimmed_text()) {
             return;
         }
-        (self.func)(name_ref.to());
+        (self.func)(FreeVar::Ident(name_ref.to_owned()));
+    }
+    fn emit_object_shorthad(&mut self, prop: &rl::SyntaxNode) {
+        debug_assert!(prop.kind() == SyntaxKind::IDENT_PROP);
+        let prop = prop.first_child().unwrap();
+        if self.bound_vars.contains(&prop.trimmed_text()) {
+            return;
+        }
+        (self.func)(FreeVar::Shorthand(prop));
     }
     #[inline(never)]
     fn track_block_var(&mut self, node: &ast::BlockStmt) -> usize {
@@ -153,7 +191,7 @@ where
 // declared in the scope/func param list
 pub fn walk_free_variables<F>(root: Expr, func: F)
 where
-    F: FnMut(NameRef),
+    F: FnMut(FreeVar),
 {
     let mut walker = FreeVarWalker::new(func);
     walker.walk(root.syntax())
@@ -304,6 +342,7 @@ mod test {
         assert!(parse_js_expr("a **** b").is_none());
         assert!(parse_js_expr("a; ddd;").is_none());
         assert!(parse_js_expr("if (a) {b} else {c}").is_none());
+        // assert!(parse_js_expr("{a = 4}").is_none()); // TODO
     }
 
     fn walk_ident(s: &str) -> Vec<String> {
@@ -326,8 +365,6 @@ mod test {
             ("a ? b : c", vec!["a", "b", "c"]),
             ("a(b + 1, {c: d})", vec!["a", "b", "d"]),
             ("a, a, a", vec!["a", "a", "a"]),
-            // object key shorthand
-            // ("{a, b, c}", vec!["a", "b", "c"]), TODO
             // arrow
             ("() => {let a = 123}", vec![]),
             ("() => {let {a} = b;}", vec!["b"]),
@@ -337,6 +374,12 @@ mod test {
             // fn expr
             ("function (a) {}", vec![]),
             ("function test(a) {test; foo;}", vec!["foo"]),
+            // object key shorthand
+            ("{a, b, c}", vec!["a", "b", "c"]),
+            // computed
+            ("{[a]: b, c: 1}", vec!["a", "b"]),
+            // rest
+            ("{...a, ...b}", vec!["a", "b"]),
             // method
             ("{test(a) {a; b}}", vec!["b"]),
             ("{test: a => {a; b}}", vec!["b"]),

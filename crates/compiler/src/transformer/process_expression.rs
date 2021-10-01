@@ -1,5 +1,3 @@
-use rslint_parser::AstNode;
-
 // 1. track variables introduced in template
 // currently only v-for and v-slot
 // 2. prefix expression
@@ -143,12 +141,14 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             return;
         }
         *e = reunite_atoms(raw, broken_atoms, |atom| {
-            let ctx_type = atom.property;
-            self.rewrite_identifier(
-                VStr::raw(&raw[atom.range]),
-                StaticLevel::NotStatic,
-                ctx_type,
-            )
+            let prop = atom.property;
+            let id_str = VStr::raw(&raw[atom.range]);
+            let rewritten = self.rewrite_identifier(id_str, StaticLevel::NotStatic, prop.ctx_type);
+            if prop.is_obj_shorthand {
+                Js::Compound(vec![Js::StrLit(id_str), Js::Src(":"), rewritten])
+            } else {
+                rewritten
+            }
         });
     }
     fn rewrite_identifier(&self, raw: VStr<'a>, level: StaticLevel, ctx: CtxType<'a>) -> Js<'a> {
@@ -169,7 +169,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         &self,
         raw: &'a str,
         scope: &Scope,
-    ) -> (Vec<Atom<CtxType<'a>>>, bool) {
+    ) -> (FreeVarAtoms<'a>, bool) {
         let expr = rslint::parse_js_expr(raw);
         let expr = match expr {
             Some(exp) => exp,
@@ -178,22 +178,25 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         let inline = self.option.inline;
         let mut atoms = vec![];
         let mut has_local_ref = false;
-        use std::ops::Range;
         rslint::walk_free_variables(expr, |fv| {
             let id_text = fv.text();
             // skip global variable prefixing
             if is_global_allow_listed(&id_text) || id_text == "require" {
                 return;
             }
-            let range = Range::from(fv.range());
+            let range = fv.range();
             // skip id defined in the template scope
             if scope.has_identifier(&raw[range.clone()]) {
                 has_local_ref = true;
                 return;
             }
+            let ctx_type = if inline { todo!() } else { CtxType::NoWrite };
             atoms.push(Atom {
                 range,
-                property: if inline { todo!() } else { CtxType::NoWrite },
+                property: FreeVarProp {
+                    ctx_type,
+                    is_obj_shorthand: fv.is_shorthand(),
+                },
             })
         });
         atoms.sort_by_key(|r| r.range.start);
@@ -239,6 +242,12 @@ struct Atom<T> {
     range: std::ops::Range<usize>,
     property: T,
 }
+
+struct FreeVarProp<'a> {
+    is_obj_shorthand: bool,
+    ctx_type: CtxType<'a>,
+}
+type FreeVarAtoms<'a> = Vec<Atom<FreeVarProp<'a>>>;
 
 enum CtxType<'a> {
     /// ref = value, ref += value

@@ -66,7 +66,10 @@ No support since most features in full build are additional except for browser b
 * Test compiler output by [snapshot](https://github.com/mitsuhiko/insta) test.
 * Use alternative allocator like [wee_alloc](https://github.com/rustwasm/wee_alloc) or [mi_malloc](https://microsoft.github.io/mimalloc/index.html).
 * Use `Box<[T]>` instead of `Vec` to reduce type size.
+* Use Arean to minimize allocation.
+* A `Future` like stack-allocated transformation `Pass` composition.
 * Use `Rc` to manage error handler. Don't optimize wrong code.
+* Parallelized conversion with Rayon.
 
 ## Reference
 
@@ -87,7 +90,7 @@ Todo tasks grouped by scopes.
     - [ ] str ops
 ### [core]
 - [x] scanner
-    - [ ] UTF8 support
+    - [x] UTF8 support
 - [x] parser
 - [ ] IR converter
     - [x] v-if
@@ -98,9 +101,14 @@ Todo tasks grouped by scopes.
     - [x] element
     - [x] build props
 - [x] transformer
-    - [ ] SWC integration
+    - [x] ~~SWC~~ RSLint integration
+    - [ ] Rewrite MergePass struct
 - [x] code generator
     - [ ] module preamble
+- [ ] wrap error handler in Rc
+- [ ] compile option
+- [ ] Arena allocation
+- [ ] Parallelization
 ### [dom]
 - [ ] IR converter
     - [ ] v-on
@@ -120,7 +128,11 @@ Todo tasks grouped by scopes.
 - [x] Move snapshot outside of src
 ### [bench]
 - [x] Add benchmark framework
-- [ ] Micro benchmarks for compiler components
+- [ ] Micro benchmarks for scanner
+- [ ] Micro benchmarks for parser
+- [ ] Micro benchmarks for converter
+- [ ] Micro benchmarks for transformer
+- [ ] Micro benchmarks for codegen
 - [ ] Integrated benchmarks using repos like [Element-Plus](https://github.com/element-plus/element-plus)
 ### [infra]
 - [x] Add [pre-commit](https://pre-commit.com/) hooks.

@@ -288,7 +288,7 @@ mod test {
     };
     use super::*;
     use crate::cast;
-    use crate::converter::{test::assert_simple, BaseIR, IRNode};
+    use crate::converter::{BaseIR, IRNode};
 
     fn transform(s: &str) -> BaseRoot {
         let option = TransformOption {
@@ -314,7 +314,8 @@ mod test {
             Js::Call(_, r) => &r[0],
             _ => panic!("wrong interpolation"),
         };
-        assert_simple(text, "_ctx.test");
+        let expr = cast!(text, Js::Simple);
+        assert_eq!(expr.into_string(), "_ctx.test");
     }
     #[test]
     fn test_prop_prefix() {
@@ -324,22 +325,25 @@ mod test {
         let props = cast!(props, Js::Props);
         let key = cast!(&props[0].0, Js::StrLit);
         assert_eq!(key.into_string(), "test");
-        assert_simple(&props[0].1, "_ctx.a");
+        let expr = cast!(&props[0].1, Js::Simple);
+        assert_eq!(expr.into_string(), "_ctx.a");
     }
     #[test]
     fn test_v_bind_prefix() {
         let ir = transform("<p v-bind='b'/>");
         let vn = cast!(&ir.body[0], IRNode::VNodeCall);
         let props = vn.props.as_ref().unwrap();
-        assert_simple(props, "_ctx.b");
+        let expr = cast!(props, Js::Simple);
+        assert_eq!(expr.into_string(), "_ctx.b");
     }
     #[test]
     fn test_prefix_v_for() {
         let ir = transform("<p v-for='a in b'/>");
         let v_for = cast!(first_child(ir), IRNode::For);
+        let b = cast!(v_for.source, Js::Simple);
         let a = cast!(v_for.parse_result.value, Js::Param);
         assert_eq!(a, "a");
-        assert_simple(&v_for.source, "_ctx.b");
+        assert_eq!(b.into_string(), "_ctx.b");
     }
     #[test]
     fn test_complex_expression() {
@@ -350,7 +354,9 @@ mod test {
             _ => panic!("wrong interpolation"),
         };
         let expr = cast!(text, Js::Compound);
-        assert_simple(&expr[0], "_ctx.a");
-        assert_simple(&expr[2], "_ctx.b");
+        let a = cast!(expr[0], Js::Simple);
+        let b = cast!(expr[2], Js::Simple);
+        assert_eq!(a.into_string(), "_ctx.a");
+        assert_eq!(b.into_string(), "_ctx.b");
     }
 }

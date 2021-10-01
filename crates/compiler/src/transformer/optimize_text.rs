@@ -1,6 +1,7 @@
 use smallvec::SmallVec;
 
 use super::{BaseInfo, BaseRenderSlot, BaseSlotFn, BaseVNode, CorePass, IRNode as IR};
+use crate::cast;
 use crate::converter::{BaseIR, BaseRoot, JsExpr as Js};
 
 pub struct TextOptimizer;
@@ -66,10 +67,8 @@ fn optimize_away_call(cs: &mut Vec<BaseIR>) {
 }
 
 fn must_text<'a, 'b>(a: &'b mut BaseIR<'a>) -> &'b mut SmallVec<[Js<'a>; 1]> {
-    if let IR::TextCall(t) = a {
-        return &mut t.texts;
-    }
-    panic!("impossible")
+    let t = cast!(a, IR::TextCall);
+    &mut t.texts
 }
 
 #[cfg(test)]
@@ -77,7 +76,6 @@ mod test {
     use super::super::test::{base_convert, get_transformer};
     use super::super::{BaseText, Transformer};
     use super::*;
-    use crate::cast;
 
     fn must_ir<'a, 'b>(a: &'b BaseIR<'a>) -> &'b BaseText<'a> {
         cast!(a, IR::TextCall)

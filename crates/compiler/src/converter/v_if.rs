@@ -244,6 +244,7 @@ mod test {
         let v_if = cast!(&body[0], IRNode::If);
         assert_eq!(v_if.branches.len(), 1);
         let condition = v_if.branches[0].condition.as_ref().unwrap();
-        assert_simple(condition, "true");
+        let cond = cast!(condition, Js::Simple);
+        assert_eq!(cond.into_string(), "true");
     }
 }

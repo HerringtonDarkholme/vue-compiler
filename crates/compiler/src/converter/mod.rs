@@ -575,10 +575,6 @@ pub mod test {
         let v = cast!(expr, Js::StrLit);
         assert_eq!(v.raw, s);
     }
-    pub fn assert_simple(expr: &Js, s: &str) {
-        let v = cast!(expr, Js::Simple);
-        assert_eq!(v.into_string(), s);
-    }
 
     #[test]
     fn test_simplest() {

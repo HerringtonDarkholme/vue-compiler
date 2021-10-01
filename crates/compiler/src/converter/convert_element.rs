@@ -370,7 +370,7 @@ fn get_variety_from_binding<'a: 'b, 'b>(
 
 #[cfg(test)]
 mod test {
-    use super::super::test::{assert_simple, base_convert};
+    use super::super::test::base_convert;
     use super::*;
     use crate::cast;
     #[test]
@@ -378,7 +378,8 @@ mod test {
         let mut body = base_convert("<comp/>").body;
         assert_eq!(body.len(), 1);
         let vn = cast!(body.remove(0), IRNode::VNodeCall);
-        assert_simple(&vn.tag, "_component_comp");
+        let tag = cast!(vn.tag, Js::Simple);
+        assert_eq!(tag.into_string(), "_component_comp");
         assert!(vn.is_component);
     }
 }

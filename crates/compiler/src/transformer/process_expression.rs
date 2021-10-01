@@ -103,7 +103,14 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         };
         let raw = v.raw;
         let broken_atoms = self.break_down_complex_expression(raw, scope);
-        *e = self.reunite_atoms(raw, broken_atoms);
+        *e = reunite_atoms(raw, broken_atoms, |atom| {
+            let ctx_type = atom.property;
+            self.rewrite_identifier(
+                VStr::raw(&raw[atom.range]),
+                StaticLevel::NotStatic,
+                ctx_type,
+            )
+        });
     }
     fn rewrite_identifier(&self, raw: VStr<'a>, level: StaticLevel, ctx: CtxType<'a>) -> Js<'a> {
         let binding = self.option.binding_metadata.get(&raw.raw);
@@ -146,30 +153,6 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         atoms.sort_by_key(|r| r.range.start);
         atoms
     }
-
-    fn reunite_atoms(&self, raw: &'a str, atoms: Vec<Atom<CtxType<'a>>>) -> Js<'a> {
-        let mut inner = vec![];
-        let mut last = 0;
-        for atom in atoms {
-            let range = atom.range;
-            if last < range.start {
-                let comp = Js::Src(&raw[last..range.start]);
-                inner.push(comp);
-            }
-            last = range.end;
-            let ctx_type = atom.property;
-            let rewritten = self.rewrite_identifier(
-                VStr::raw(&raw[range.clone()]),
-                StaticLevel::NotStatic,
-                ctx_type,
-            );
-            inner.push(rewritten);
-        }
-        if last < raw.len() {
-            inner.push(Js::Src(&raw[last..]));
-        }
-        Js::Compound(inner)
-    }
 }
 
 // This implementation assumes that broken param expression has only two kinds subexpr:
@@ -211,6 +194,28 @@ fn process_fn_param(p: &mut Js) {
         return;
     }
     todo!()
+}
+
+fn reunite_atoms<'a, T, F>(raw: &'a str, atoms: Vec<Atom<T>>, mut rewrite: F) -> Js<'a>
+where
+    F: FnMut(Atom<T>) -> Js<'a>,
+{
+    let mut inner = vec![];
+    let mut last = 0;
+    for atom in atoms {
+        let range = &atom.range;
+        if last < range.start {
+            let comp = Js::Src(&raw[last..range.start]);
+            inner.push(comp);
+        }
+        last = range.end;
+        let rewritten = rewrite(atom);
+        inner.push(rewritten);
+    }
+    if last < raw.len() {
+        inner.push(Js::Src(&raw[last..]));
+    }
+    Js::Compound(inner)
 }
 
 fn rewrite_inline_identifier<'a>(

@@ -114,6 +114,12 @@ where
     fn exit_js_expr(&mut self, e: &mut T::JsExpression) {
         self.exit(|p| p.exit_js_expr(e))
     }
+    fn enter_fn_param(&mut self, m: &mut T::JsExpression) {
+        self.enter(|p| p.enter_fn_param(m))
+    }
+    fn exit_fn_param(&mut self, m: &mut T::JsExpression) {
+        self.exit(|p| p.exit_fn_param(m))
+    }
     fn enter_comment(&mut self, c: &mut T::CommentType) {
         self.enter(|p| p.enter_comment(c))
     }

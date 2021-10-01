@@ -1,5 +1,4 @@
 use super::{BaseInfo, BaseTransformer, BaseVNode, ConvertInfo, CoreTransformer, IRRoot, Js, C};
-use crate::util::VStr;
 use crate::Name;
 use rustc_hash::FxHashMap;
 

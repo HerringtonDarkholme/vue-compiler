@@ -31,6 +31,10 @@ impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'a, 'b
         match p {
             Js::Param(id) => shared.remove_identifier(id),
             Js::Compound(ids) => {
+                // process default expression before remove id
+                for id in ids.iter_mut() {
+                    self.process_expression(id, shared);
+                }
                 for id in only_param_ids(ids) {
                     shared.remove_identifier(id);
                 }
@@ -404,5 +408,30 @@ mod test {
         let b = cast!(expr[2], Js::Simple);
         assert_eq!(a.into_string(), "_ctx.a");
         assert_eq!(b.into_string(), "_ctx.b");
+    }
+
+    #[test]
+    fn test_transform_fn_param() {
+        let ir = transform("<p v-for='a=c in b'/>");
+        let v_for = cast!(first_child(ir), IRNode::For);
+        let val = cast!(v_for.parse_result.value, Js::Compound);
+        let a = cast!(val[0], Js::Param);
+        let c = cast!(val[2], Js::Simple);
+        assert_eq!(a, "a");
+        assert_eq!(c.into_string(), "_ctx.c");
+    }
+    #[test]
+    fn test_transform_destruct() {
+        let ir = transform("<p v-for='{a: dd} in b' :yes='a' :not='dd' />");
+        let v_for = cast!(first_child(ir), IRNode::For);
+        let val = cast!(v_for.parse_result.value, Js::Compound);
+        let dd = cast!(val[1], Js::Param);
+        assert_eq!(dd, "dd");
+        let p = cast!(*v_for.child, IRNode::VNodeCall);
+        let props = cast!(p.props.unwrap(), Js::Props);
+        let a = cast!(props[0].1, Js::Simple);
+        let dd = cast!(props[1].1, Js::Simple);
+        assert_eq!(a.into_string(), "_ctx.a");
+        assert_eq!(dd.into_string(), "dd");
     }
 }

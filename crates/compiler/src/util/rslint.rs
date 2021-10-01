@@ -100,7 +100,7 @@ where
         let len = self.bound_vars.len();
         let decls = node.stmts().filter_map(|s| s.syntax().try_to::<Decl>());
         let mut collect = |d: &rl::SyntaxNode| {
-            collect_name(d, |n| {
+            collect_names(d, |n| {
                 self.bound_vars.push(n.syntax().trimmed_text());
                 false
             })
@@ -133,7 +133,7 @@ where
         }
         let list = node.children().find_map(|nd| nd.try_to::<ParameterList>());
         if let Some(list) = list {
-            walk_fn_param(list, |nd| {
+            collect_names(list.syntax(), |nd| {
                 self.bound_vars.push(nd.syntax().trimmed_text());
                 false
             });
@@ -212,28 +212,34 @@ const PATTERNS: &[SyntaxKind] = &[
     SyntaxKind::ARRAY_PATTERN,
     SyntaxKind::ASSIGN_PATTERN,
     SyntaxKind::REST_PATTERN,
-    SyntaxKind::KEY_VALUE_PATTERN,
+    SyntaxKind::KEY_VALUE_PATTERN, // key value pattern requires special handle
     SyntaxKind::SINGLE_PATTERN,
 ];
-fn collect_name<F>(node: &rl::SyntaxNode, mut f: F)
+fn collect_names<F>(node: &rl::SyntaxNode, mut f: F)
 where
     F: FnMut(ast::Name) -> bool,
 {
-    node.descendants_with(&mut |d| {
-        let kind = d.kind();
-        if kind == SyntaxKind::NAME {
-            f(d.to())
-        } else {
-            PATTERNS.contains(&kind)
-        }
-    })
+    node.descendants_with(&mut |d| collect_one_name(d, &mut f))
 }
-
-fn walk_fn_param<F>(list: ParameterList, f: F)
+fn collect_one_name<F>(node: &rl::SyntaxNode, mut f: F) -> bool
 where
     F: FnMut(ast::Name) -> bool,
 {
-    collect_name(list.syntax(), f);
+    let kind = node.kind();
+    if kind == SyntaxKind::NAME {
+        let parent = match node.parent() {
+            Some(prt) => prt,
+            None => return f(node.to()),
+        };
+        // kv.name() also contains Name, we need skip
+        if parent.kind() == SyntaxKind::KEY_VALUE_PATTERN {
+            false
+        } else {
+            f(node.to())
+        }
+    } else {
+        PATTERNS.contains(&kind)
+    }
 }
 
 /// returns param and default argument's range in text
@@ -242,15 +248,14 @@ where
     F: FnMut(Range<usize>, bool),
 {
     list.syntax().descendants_with(&mut |d| {
-        let kind = d.kind();
-        if kind == SyntaxKind::NAME {
-            f(Range::from(d.text_range()), true);
-            false
-        } else if d.is::<Expr>() {
+        if d.is::<Expr>() {
             f(Range::from(d.text_range()), false);
             false
         } else {
-            PATTERNS.contains(&kind)
+            collect_one_name(d, |name| {
+                f(Range::from(name.range()), true);
+                false
+            })
         }
     })
 }
@@ -359,7 +364,7 @@ mod test {
     fn walk_param(s: &str) -> Vec<String> {
         let expr = parse_fn_param(s).unwrap();
         let mut ret = vec![];
-        walk_fn_param(expr, |name| {
+        collect_names(expr.syntax(), |name| {
             ret.push(name.text());
             true
         });
@@ -377,6 +382,12 @@ mod test {
             ("[a, b, c]", vec!["a", "b", "c"]),
             // ts annotation
             ("a: A", vec!["a"]),
+            // object destruct
+            ("{a: b = c}", vec!["b"]),
+            ("{a: b}", vec!["b"]),
+            // array
+            ("[a, b]", vec!["a", "b"]),
+            ("[a=c, b]", vec!["a", "b"]),
         ];
         for (src, expect) in cases {
             assert_eq!(walk_param(src), expect);

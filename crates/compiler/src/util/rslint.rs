@@ -326,6 +326,8 @@ mod test {
             ("a ? b : c", vec!["a", "b", "c"]),
             ("a(b + 1, {c: d})", vec!["a", "b", "d"]),
             ("a, a, a", vec!["a", "a", "a"]),
+            // object key shorthand
+            // ("{a, b, c}", vec!["a", "b", "c"]), TODO
             // arrow
             ("() => {let a = 123}", vec![]),
             ("() => {let {a} = b;}", vec!["b"]),

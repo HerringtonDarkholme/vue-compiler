@@ -129,8 +129,17 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             _ => return,
         };
         let raw = v.raw;
-        let broken_atoms = self.break_down_complex_expression(raw, scope);
+        let (broken_atoms, has_local_ref) = self.break_down_complex_expression(raw, scope);
+        // no prefixed identifier found
         if broken_atoms.is_empty() {
+            // if expr has no template var nor prefixed var, it can be hoisted as static
+            // NOTE: func call and member access must be bailed for potential side-effect
+            let side_effect = raw.contains('(') || raw.contains('.');
+            *level = if !has_local_ref && !side_effect {
+                StaticLevel::CanStringify
+            } else {
+                StaticLevel::NotStatic
+            };
             return;
         }
         *e = reunite_atoms(raw, broken_atoms, |atom| {
@@ -156,7 +165,11 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         }
     }
 
-    fn break_down_complex_expression(&self, raw: &'a str, scope: &Scope) -> Vec<Atom<CtxType<'a>>> {
+    fn break_down_complex_expression(
+        &self,
+        raw: &'a str,
+        scope: &Scope,
+    ) -> (Vec<Atom<CtxType<'a>>>, bool) {
         let expr = rslint::parse_js_expr(raw);
         let expr = match expr {
             Some(exp) => exp,
@@ -164,15 +177,18 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         };
         let inline = self.option.inline;
         let mut atoms = vec![];
+        let mut has_local_ref = false;
         use std::ops::Range;
         rslint::walk_free_variables(expr, |fv| {
             let id_text = fv.text();
+            // skip global variable prefixing
             if is_global_allow_listed(&id_text) || id_text == "require" {
                 return;
             }
             let range = Range::from(fv.range());
             // skip id defined in the template scope
             if scope.has_identifier(&raw[range.clone()]) {
+                has_local_ref = true;
                 return;
             }
             atoms.push(Atom {
@@ -181,7 +197,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             })
         });
         atoms.sort_by_key(|r| r.range.start);
-        atoms
+        (atoms, has_local_ref)
     }
 
     /// Atom's property records if it is param identifier
@@ -241,7 +257,7 @@ where
 {
     // expr without atoms have specific processing outside
     debug_assert!(!atoms.is_empty());
-    // the only one atom that spans the text should be handled in fast path
+    // the only one ident that spans the text should be handled in fast path
     debug_assert!(atoms.len() > 1 || atoms[0].range.len() < raw.len());
     let mut inner = vec![];
     let mut last = 0;

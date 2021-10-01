@@ -83,7 +83,6 @@ pub enum Namespace {
     UserDefined(&'static str),
 }
 
-#[cfg(test)]
 #[macro_export]
 macro_rules! cast {
     ($target: expr, $pat: path) => {{

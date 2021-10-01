@@ -60,9 +60,9 @@ fn parse_for_expr(expr: VStr) -> Option<ParsedFor> {
     Some((
         Js::simple(rhs.trim()),
         ForParseResult {
-            value: Js::simple(val),
-            key: key.map(Js::simple),
-            index: idx.map(Js::simple),
+            value: Js::Param(val),
+            key: key.map(Js::Param),
+            index: idx.map(Js::Param),
         },
     ))
 }
@@ -95,13 +95,13 @@ mod test {
     use super::*;
     use crate::cast;
     fn to_str(e: Js) -> &str {
-        let v = cast!(e, Js::Simple);
-        v.raw
+        let v = cast!(e, Js::Param);
+        v
     }
     fn check_equal(src: &str, expect: (&str, &str, Option<&str>, Option<&str>)) {
         let (src, ret) = parse_for_expr(VStr::raw(src)).expect("should parse");
         assert_simple(&src, expect.0);
-        assert_simple(&ret.value, expect.1);
+        assert_eq!(to_str(ret.value), expect.1);
         assert_eq!(ret.key.map(to_str), expect.2);
         assert_eq!(ret.index.map(to_str), expect.3);
     }

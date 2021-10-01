@@ -22,13 +22,15 @@ Convert module roughly corresponds to following transform in vue-next.
 * vOn (noop)
 */
 
-use crate::util::get_core_component;
+use crate::{
+    flags::{HelperCollector, PatchFlag, RuntimeHelper, SlotFlag, StaticLevel},
+    parser::{SourceNode, TextNode},
+    util::{find_dir, get_core_component, VStr},
+    Name,
+};
 
-pub use super::error::{CompilationError, ErrorHandler};
-use super::flags::{HelperCollector, PatchFlag, RuntimeHelper, SlotFlag, StaticLevel};
-pub use super::parser::{AstNode, AstRoot, Directive, Element};
-use super::parser::{SourceNode, TextNode};
-use super::util::{find_dir, VStr};
+pub use crate::error::{CompilationError, ErrorHandler};
+pub use crate::parser::{AstNode, AstRoot, Directive, Element};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::{smallvec, SmallVec};
 use std::hash::Hash;
@@ -192,6 +194,8 @@ pub enum JsExpr<'a> {
     StrLit(VStr<'a>),
     /// non-string js expression, will be processed like prefixing
     Simple(VStr<'a>, StaticLevel),
+    /// variable in parameter
+    Param(Name<'a>),
     /// alternative to join string as JsExpr
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),
@@ -573,7 +577,7 @@ pub mod test {
     }
     pub fn assert_simple(expr: &Js, s: &str) {
         let v = cast!(expr, Js::Simple);
-        assert_eq!(v.raw, s);
+        assert_eq!(v.into_string(), s);
     }
 
     #[test]

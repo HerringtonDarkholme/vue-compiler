@@ -80,7 +80,6 @@ fn convert_on_component_slot<'a>(bc: &BC<'a>, e: &mut Element<'a>) -> Option<Bas
         ..
     } = dir;
     let slot_name = get_slot_name(&argument);
-    let expr = expression.map(|v| Js::simple(v.content));
     let children = mem::take(&mut e.children);
     //  check nested <template v-slot/>
     let children = children.into_iter().filter(|n| {
@@ -93,7 +92,7 @@ fn convert_on_component_slot<'a>(bc: &BC<'a>, e: &mut Element<'a>) -> Option<Bas
     });
     let slot = Slot {
         name: slot_name,
-        param: expr,
+        param: expression.map(|v| Js::Param(v.content.raw)),
         body: bc.convert_children(children.collect()),
     };
     let v_slot_ir = VSlotIR {
@@ -171,7 +170,7 @@ fn build_stable_slot<'a>(
         }
         seen.insert(n.raw);
     }
-    let param = expression.map(|v| Js::simple(v.content));
+    let param = expression.map(|v| Js::Param(v.content.raw));
     let body = bc.convert_children(t.children);
     Some(Slot { name, param, body })
 }
@@ -214,7 +213,7 @@ where
                 let body = mem::take(&mut vnode.children);
                 let dir = dirs.pop_front().expect("should be non empty");
                 let name = get_slot_name(&dir.argument);
-                let param = dir.expression.map(|v| Js::simple(v.content));
+                let param = dir.expression.map(|v| Js::Param(v.content.raw));
                 *ir = IRNode::AlterableSlot(Slot { name, param, body });
             }
             _ => panic!("alterable slot only contains if/for/vnode call"),

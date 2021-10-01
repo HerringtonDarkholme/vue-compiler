@@ -254,7 +254,12 @@ where
                     Self::transform_js_expr(val, ps);
                 }
             }
-            Js::Src(_) | Js::Num(_) | Js::Simple(..) | Js::StrLit(_) | Js::Symbol(_) => {
+            Js::Src(_)
+            | Js::Num(_)
+            | Js::Simple(..)
+            | Js::Param(_)
+            | Js::StrLit(_)
+            | Js::Symbol(_) => {
                 // no further recursion.
             }
         }

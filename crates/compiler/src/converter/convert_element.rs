@@ -378,7 +378,7 @@ mod test {
         let mut body = base_convert("<comp/>").body;
         assert_eq!(body.len(), 1);
         let vn = cast!(body.remove(0), IRNode::VNodeCall);
-        assert_simple(&vn.tag, "comp");
+        assert_simple(&vn.tag, "_component_comp");
         assert!(vn.is_component);
     }
 }

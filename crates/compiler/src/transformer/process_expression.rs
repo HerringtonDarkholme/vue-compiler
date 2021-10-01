@@ -5,6 +5,7 @@ use rslint_parser::AstNode;
 // 2. prefix expression
 use super::collect_entities::is_hoisted_asset;
 use super::{BaseInfo, CorePassExt, Scope, TransformOption};
+use crate::cast;
 use crate::converter::{BindingTypes, JsExpr as Js};
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
 use crate::util::{is_global_allow_listed, is_simple_identifier, rslint, VStr};
@@ -17,24 +18,24 @@ impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'a, 'b
     fn enter_fn_param(&mut self, p: &mut Js<'a>, shared: &mut Scope<'a>) {
         process_fn_param(p);
         match p {
-            Js::Simple(id, _) => shared.add_identifier(*id),
+            Js::Param(id) => shared.add_identifier(id),
             Js::Compound(ids) => {
                 for id in only_param_ids(ids) {
                     shared.add_identifier(id);
                 }
             }
-            _ => panic!("param should only be simple expression"),
+            _ => panic!("only Js::Param is legal"),
         }
     }
     fn exit_fn_param(&mut self, p: &mut Js<'a>, shared: &mut Scope<'a>) {
         match p {
-            Js::Simple(id, _) => shared.remove_identifier(*id),
+            Js::Param(id) => shared.remove_identifier(id),
             Js::Compound(ids) => {
                 for id in only_param_ids(ids) {
                     shared.remove_identifier(id);
                 }
             }
-            _ => panic!("param should only be simple expression"),
+            _ => panic!("only Js::Param is legal"),
         };
     }
     // only transform expression after its' sub-expression is transformed
@@ -170,20 +171,15 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
 }
 
 // This implementation assumes that broken param expression has only two kinds subexpr:
-// 1. param identifiers that has no prefix
+// 1. param identifiers represented by Js::Param
 // 2. expression in default binding that has been prefixed
-// so we just check is the vstr is prefixed to tell if it is a param name
-fn only_param_ids<'a, 'b>(ids: &'b [Js<'a>]) -> impl Iterator<Item = VStr<'a>> + 'b {
-    ids.iter()
-        .filter_map(|id| match id {
-            Js::Simple(v, _) => Some(*v),
-            Js::Src(_) => None,
-            _ => {
-                debug_assert!(false, "Illegal sub expr kind in param.");
-                None
-            }
-        })
-        .filter(|v| VStr::is_ctx_prefixed(v))
+fn only_param_ids<'a, 'b>(ids: &'b [Js<'a>]) -> impl Iterator<Item = &'a str> + 'b {
+    ids.iter().filter_map(|id| match id {
+        Js::Param(p) => Some(*p),
+        Js::Src(_) => None,
+        Js::Simple(..) => None,
+        _ => panic!("Illegal sub expr kind in param."),
+    })
 }
 
 struct Atom<'a> {
@@ -207,11 +203,8 @@ enum CtxType<'a> {
 // 1. breaks down binding pattern e.g. [a, b, c] => identifiers a, b and c
 // 2. patch default parameter like v-slot="a = 123" -> (a = 123)
 fn process_fn_param(p: &mut Js) {
-    let v = match p {
-        Js::Simple(v, _) => v,
-        _ => todo!(),
-    };
-    if is_simple_identifier(*v) {
+    let v = cast!(p, Js::Param);
+    if is_simple_identifier(VStr::raw(v)) {
         // nothing LOL
         return;
     }
@@ -295,7 +288,7 @@ mod test {
     };
     use super::*;
     use crate::cast;
-    use crate::converter::{BaseIR, IRNode};
+    use crate::converter::{test::assert_simple, BaseIR, IRNode};
 
     fn transform(s: &str) -> BaseRoot {
         let option = TransformOption {
@@ -321,8 +314,7 @@ mod test {
             Js::Call(_, r) => &r[0],
             _ => panic!("wrong interpolation"),
         };
-        let expr = cast!(text, Js::Simple);
-        assert_eq!(expr.into_string(), "_ctx.test");
+        assert_simple(text, "_ctx.test");
     }
     #[test]
     fn test_prop_prefix() {
@@ -332,25 +324,22 @@ mod test {
         let props = cast!(props, Js::Props);
         let key = cast!(&props[0].0, Js::StrLit);
         assert_eq!(key.into_string(), "test");
-        let expr = cast!(&props[0].1, Js::Simple);
-        assert_eq!(expr.into_string(), "_ctx.a");
+        assert_simple(&props[0].1, "_ctx.a");
     }
     #[test]
     fn test_v_bind_prefix() {
         let ir = transform("<p v-bind='b'/>");
         let vn = cast!(&ir.body[0], IRNode::VNodeCall);
         let props = vn.props.as_ref().unwrap();
-        let expr = cast!(props, Js::Simple);
-        assert_eq!(expr.into_string(), "_ctx.b");
+        assert_simple(props, "_ctx.b");
     }
     #[test]
     fn test_prefix_v_for() {
         let ir = transform("<p v-for='a in b'/>");
         let v_for = cast!(first_child(ir), IRNode::For);
-        let b = cast!(v_for.source, Js::Simple);
-        let a = cast!(v_for.parse_result.value, Js::Simple);
-        assert_eq!(a.into_string(), "a");
-        assert_eq!(b.into_string(), "_ctx.b");
+        let a = cast!(v_for.parse_result.value, Js::Param);
+        assert_eq!(a, "a");
+        assert_simple(&v_for.source, "_ctx.b");
     }
     #[test]
     fn test_complex_expression() {
@@ -361,9 +350,7 @@ mod test {
             _ => panic!("wrong interpolation"),
         };
         let expr = cast!(text, Js::Compound);
-        let a = cast!(expr[0], Js::Simple);
-        let b = cast!(expr[2], Js::Simple);
-        assert_eq!(a.into_string(), "_ctx.a");
-        assert_eq!(b.into_string(), "_ctx.b");
+        assert_simple(&expr[0], "_ctx.a");
+        assert_simple(&expr[2], "_ctx.b");
     }
 }

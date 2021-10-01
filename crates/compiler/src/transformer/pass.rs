@@ -1,6 +1,6 @@
 use super::{BaseInfo, BaseTransformer, BaseVNode, ConvertInfo, CoreTransformer, IRRoot, Js, C};
 use crate::util::VStr;
-
+use crate::Name;
 use rustc_hash::FxHashMap;
 
 pub trait CorePass<T: ConvertInfo> {
@@ -133,7 +133,7 @@ pub trait CorePassExt<T: ConvertInfo, Shared> {
     fn exit_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
 }
 
-type Identifiers<'a> = FxHashMap<VStr<'a>, usize>;
+type Identifiers<'a> = FxHashMap<Name<'a>, usize>;
 #[derive(Default)]
 pub struct Scope<'a> {
     pub identifiers: Identifiers<'a>,
@@ -147,12 +147,12 @@ pub struct Scope<'a> {
 // in practice it isn't a problem because stack overflow happens way faster :/
 impl<'a> Scope<'a> {
     pub fn has_identifier(&self, id: &VStr<'a>) -> bool {
-        self.identifiers.contains_key(id)
+        self.identifiers.contains_key(id.raw)
     }
-    pub fn add_identifier(&mut self, id: VStr<'a>) {
+    pub fn add_identifier(&mut self, id: Name<'a>) {
         *self.identifiers.entry(id).or_default() += 1;
     }
-    pub fn remove_identifier(&mut self, id: VStr<'a>) {
+    pub fn remove_identifier(&mut self, id: Name<'a>) {
         *self.identifiers.entry(id).or_default() -= 1;
     }
     pub fn has_ref_in_vnode(&self, node: &mut BaseVNode<'a>) -> bool {
@@ -174,7 +174,7 @@ struct RefFinder<'a, 'b>(&'b Identifiers<'a>, bool);
 impl<'a, 'b> CorePass<BaseInfo<'a>> for RefFinder<'a, 'b> {
     fn enter_js_expr(&mut self, e: &mut Js<'a>) {
         if let Js::Simple(e, _) = e {
-            if self.0.contains_key(e) {
+            if self.0.contains_key(e.raw) {
                 self.1 = true;
             }
         }

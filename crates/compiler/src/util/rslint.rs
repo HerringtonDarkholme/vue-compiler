@@ -419,6 +419,7 @@ mod test {
     #[test]
     fn test_walk_fn_param() {
         let cases = [
+            ("a={c}", vec!["a"]),
             ("a, b", vec!["a", "b"]),
             ("a = (b) => { var a = 123}", vec!["a"]),
             ("a=b", vec!["a"]),

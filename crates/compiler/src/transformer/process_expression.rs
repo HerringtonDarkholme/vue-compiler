@@ -29,10 +29,6 @@ impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'a, 'b
         match p {
             Js::Param(id) => shared.remove_identifier(id),
             Js::Compound(ids) => {
-                // process default expression before remove id
-                for id in ids.iter_mut() {
-                    self.process_expression(id, shared);
-                }
                 for id in only_param_ids(ids) {
                     shared.remove_identifier(id);
                 }
@@ -232,6 +228,7 @@ fn only_param_ids<'a, 'b>(ids: &'b [Js<'a>]) -> impl Iterator<Item = &'a str> + 
         Js::Param(p) => Some(*p),
         Js::Src(_) => None,
         Js::Simple(..) => None,
+        Js::Compound(..) => None, // object shorthand
         _ => panic!("Illegal sub expr kind in param."),
     })
 }
@@ -476,5 +473,18 @@ mod test {
         let dd = cast!(props[1].1, Js::Simple);
         assert_eq!(a.into_string(), "_ctx.a");
         assert_eq!(dd.into_string(), "dd");
+    }
+
+    #[test]
+    fn test_transform_default_shorthand() {
+        let ir = transform("<p v-for='a={c} in b'/>");
+        let v_for = cast!(first_child(ir), IRNode::For);
+        let val = cast!(v_for.parse_result.value, Js::Compound);
+        let c = cast!(&val[2], Js::Compound);
+        let prop = cast!(&c[1], Js::Compound);
+        let key = cast!(prop[0], Js::StrLit);
+        let val = cast!(prop[2], Js::Simple);
+        assert_eq!(key.into_string(), "c");
+        assert_eq!(val.into_string(), "_ctx.c");
     }
 }

@@ -130,11 +130,14 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
 
         let ForParseResult { value, key, index } = &mut f.parse_result;
         if let Some(i) = index {
+            Self::transform_js_expr(i, ps);
             ps.exit_fn_param(i);
         }
         if let Some(k) = key {
+            Self::transform_js_expr(k, ps);
             ps.exit_fn_param(k);
         }
+        Self::transform_js_expr(value, ps);
         ps.exit_fn_param(value);
     }
     fn transform_vnode(v: &mut C::VNodeIR<T>, ps: &mut P) {
@@ -190,6 +193,7 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
         }
         Self::transform_children(&mut slot.body, ps);
         if let Some(p) = &mut slot.param {
+            Self::transform_js_expr(p, ps);
             ps.exit_fn_param(p);
         }
         ps.exit_slot_fn(slot);

@@ -210,8 +210,8 @@ pub trait ErrorHandler {
 pub struct VecErrorHandler {
     errors: Rc<RefCell<Vec<CompilationError>>>,
 }
-impl VecErrorHandler {
-    fn new() -> Self {
+impl Default for VecErrorHandler {
+    fn default() -> Self {
         Self {
             errors: Rc::new(RefCell::new(vec![])),
         }

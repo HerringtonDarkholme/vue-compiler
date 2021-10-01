@@ -23,6 +23,7 @@ pub fn base_convert(s: &str) -> C::BaseRoot {
     let ast = base_parse(s);
     let converter = BaseConverter {
         option: ConvertOption::default(),
+        sfc_info: Default::default(),
         err_handle: Box::new(TestErrorHandler),
     };
     converter.convert_ir(ast)

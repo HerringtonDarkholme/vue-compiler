@@ -14,7 +14,7 @@ use std::io;
 pub struct CompileOption<'a, E: ErrorHandler + Clone> {
     pub scanning: ScanOption,
     pub parsing: ParseOption,
-    pub conversion: ConvertOption<'a>,
+    pub conversion: ConvertOption,
     pub transformation: TransformOption<'a>,
     pub codegen: CodeGenerateOption,
     pub error_handler: E,
@@ -95,6 +95,7 @@ where
         let option = self.option.conversion.clone();
         BaseConverter {
             err_handle: Box::new(eh),
+            sfc_info: Default::default(),
             option,
         }
     }

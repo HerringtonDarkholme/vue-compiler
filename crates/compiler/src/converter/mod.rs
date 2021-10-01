@@ -443,20 +443,34 @@ impl<'a> Deref for BindingMetadata<'a> {
 }
 
 #[derive(Clone)]
-pub struct ConvertOption<'a> {
+pub struct ConvertOption {
     /// For platform developers. Registers platform specific components written in JS.
     /// e.g. transition, transition-group. Components that require code in Vue runtime.
     pub get_builtin_component: fn(&str) -> Option<RuntimeHelper>,
-    pub scope_id: Option<String>,
+    pub is_dev: bool,
+    pub directive_converters: FxHashMap<&'static str, DirConvertFn>,
+}
+
+impl Default for ConvertOption {
+    fn default() -> Self {
+        Self {
+            get_builtin_component: get_core_component,
+            is_dev: true,
+            directive_converters: FxHashMap::default(),
+        }
+    }
+}
+
+/// SFC info of the current template
+pub struct SFCInfo<'a> {
+    /// Compile the function for inlining inside setup().
+    /// This allows the function to directly access setup() local bindings.
+    pub inline: bool,
     /// Indicates this SFC template has used :slotted in its styles
     /// Defaults to `true` for backwards compatibility - SFC tooling should set it
     /// to `false` if no `:slotted` usage is detected in `<style>`
     pub slotted: bool,
-    /// Compile the function for inlining inside setup().
-    /// This allows the function to directly access setup() local bindings.
-    pub inline: bool,
-    pub is_dev: bool,
-    pub directive_converters: FxHashMap<&'static str, DirConvertFn>,
+    pub scope_id: Option<String>,
     /// Optional binding metadata analyzed from script - used to optimize
     /// binding access when `prefixIdentifiers` is enabled.
     pub binding_metadata: Rc<BindingMetadata<'a>>,
@@ -464,15 +478,12 @@ pub struct ConvertOption<'a> {
     pub self_name: String,
 }
 
-impl<'a> Default for ConvertOption<'a> {
+impl<'a> Default for SFCInfo<'a> {
     fn default() -> Self {
         Self {
-            get_builtin_component: get_core_component,
             scope_id: None,
-            slotted: true,
             inline: false,
-            is_dev: true,
-            directive_converters: FxHashMap::default(),
+            slotted: true,
             binding_metadata: Rc::new(BindingMetadata::default()),
             self_name: "".into(),
         }
@@ -481,7 +492,8 @@ impl<'a> Default for ConvertOption<'a> {
 
 pub struct BaseConverter<'a> {
     pub err_handle: Box<dyn ErrorHandler>,
-    pub option: ConvertOption<'a>,
+    pub sfc_info: SFCInfo<'a>,
+    pub option: ConvertOption,
 }
 pub type BaseRoot<'a> = IRRoot<BaseConvertInfo<'a>>;
 pub type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
@@ -560,7 +572,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter<'a> {
 
 impl<'a> BaseConverter<'a> {
     fn no_slotted(&self) -> bool {
-        self.option.scope_id.is_some() && !self.option.slotted
+        self.sfc_info.scope_id.is_some() && !self.sfc_info.slotted
     }
 }
 
@@ -601,17 +613,12 @@ pub mod test {
             convs.insert(n, f);
         }
         let option = ConvertOption {
-            get_builtin_component: |_| None,
-            scope_id: None,
-            slotted: false,
-            inline: true,
-            is_dev: true,
             directive_converters: convs,
-            binding_metadata: Rc::new(BindingMetadata(FxHashMap::default(), false)),
-            self_name: "".into(),
+            ..Default::default()
         };
         let bc = BC {
             err_handle: Box::new(TestErrorHandler),
+            sfc_info: Default::default(),
             option,
         };
         let ast = base_parse(s);

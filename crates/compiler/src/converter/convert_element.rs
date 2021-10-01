@@ -113,8 +113,8 @@ pub fn resolve_element_tag<'a>(bc: &BC<'a>, e: &Element<'a>) -> Js<'a> {
     }
     // 4. User component or Self referencing component (inferred from filename)
     let mut comp = VStr::raw(tag);
-    if !bc.option.self_name.is_empty()
-        && VStr::raw(tag).pascalize().into_string() == bc.option.self_name
+    if !bc.sfc_info.self_name.is_empty()
+        && VStr::raw(tag).pascalize().into_string() == bc.sfc_info.self_name
     {
         // codegen special checks for __self postfix when generating component imports,
         // which will pass additional `maybeSelfReference` flag to `resolveComponent`.
@@ -307,11 +307,11 @@ fn resolve_setup_component<'a>(bc: &BC<'a>, tag: &'a str) -> Option<Js<'a>> {
 // TODO: externalize this into the CoreConverter trait
 /// returns the specific name created in script setup, modulo camel/pascal case
 fn resolve_setup_reference<'a>(bc: &BC<'a>, name: &'a str) -> Option<Js<'a>> {
-    let bindings = &bc.option.binding_metadata;
+    let bindings = &bc.sfc_info.binding_metadata;
     if bindings.is_empty() || !bindings.is_setup() {
         return None;
     }
-    let is_inline = bc.option.inline;
+    let is_inline = bc.sfc_info.inline;
     // the returned closure will find the name modulo casing
     let variety_by_type = get_variety_from_binding(name, bindings);
     if let Some(from_const) = variety_by_type(BindingTypes::SetupConst) {

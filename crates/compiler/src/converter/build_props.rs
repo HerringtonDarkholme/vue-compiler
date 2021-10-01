@@ -95,7 +95,7 @@ fn collect_attr<'a>(bc: &BC, e: &Element<'a>, attr: Attribute<'a>, cp: &mut Coll
     let mut value_expr = Js::StrLit(val);
     if name == "ref" {
         cp.prop_flags.has_ref = true;
-        if bc.option.inline && !val.is_empty() {
+        if bc.sfc_info.inline && !val.is_empty() {
             value_expr = process_inline_ref(val);
         }
     }

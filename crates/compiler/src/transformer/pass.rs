@@ -146,8 +146,8 @@ pub struct Scope<'a> {
 // we can optimize it by tracking how many IDs are introduced and skip unnecessary call
 // in practice it isn't a problem because stack overflow happens way faster :/
 impl<'a> Scope<'a> {
-    pub fn has_identifier(&self, id: &VStr<'a>) -> bool {
-        self.identifiers.contains_key(id.raw)
+    pub fn has_identifier(&self, id: Name<'a>) -> bool {
+        self.identifiers.contains_key(id)
     }
     pub fn add_identifier(&mut self, id: Name<'a>) {
         *self.identifiers.entry(id).or_default() += 1;

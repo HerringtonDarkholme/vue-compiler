@@ -54,7 +54,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         if is_hoisted_asset(e).is_some() {
             return;
         }
-        // complex expr will be handled recusively in transformer
+        // complex expr will be handled recursively in transformer
         if !matches!(e, Js::Simple(..)) {
             return;
         }
@@ -74,7 +74,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             return false;
         }
         let raw_exp = v.raw;
-        let is_scope_reference = scope.has_identifier(v);
+        let is_scope_reference = scope.has_identifier(raw_exp);
         let is_allowed_global = is_global_allow_listed(raw_exp);
         let is_literal = matches!(raw_exp, "true" | "false" | "null" | "this");
         if !is_scope_reference && !is_allowed_global && !is_literal {
@@ -119,7 +119,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         }
     }
 
-    fn break_down_complex_expression(&self, raw: &'a str, scope: &Scope) -> Vec<Atom<'a>> {
+    fn break_down_complex_expression(&self, raw: &'a str, scope: &Scope) -> Vec<Atom<CtxType<'a>>> {
         let expr = rslint::parse_js_expr(raw);
         let expr = match expr {
             Some(exp) => exp,
@@ -134,22 +134,20 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
                 return;
             }
             let range = Range::from(fv.range());
-            let id_str = VStr::raw(&raw[range.clone()]);
             // skip id defined in the template scope
-            if scope.has_identifier(&id_str) {
+            if scope.has_identifier(&raw[range.clone()]) {
                 return;
             }
             atoms.push(Atom {
                 range,
-                id_str,
-                ctx_type: if inline { todo!() } else { CtxType::NoWrite },
+                property: if inline { todo!() } else { CtxType::NoWrite },
             })
         });
         atoms.sort_by_key(|r| r.range.start);
         atoms
     }
 
-    fn reunite_atoms(&self, raw: &'a str, atoms: Vec<Atom<'a>>) -> Js<'a> {
+    fn reunite_atoms(&self, raw: &'a str, atoms: Vec<Atom<CtxType<'a>>>) -> Js<'a> {
         let mut inner = vec![];
         let mut last = 0;
         for atom in atoms {
@@ -159,8 +157,12 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
                 inner.push(comp);
             }
             last = range.end;
-            let rewritten =
-                self.rewrite_identifier(atom.id_str, StaticLevel::NotStatic, atom.ctx_type);
+            let ctx_type = atom.property;
+            let rewritten = self.rewrite_identifier(
+                VStr::raw(&raw[range.clone()]),
+                StaticLevel::NotStatic,
+                ctx_type,
+            );
             inner.push(rewritten);
         }
         if last < raw.len() {
@@ -182,10 +184,9 @@ fn only_param_ids<'a, 'b>(ids: &'b [Js<'a>]) -> impl Iterator<Item = &'a str> + 
     })
 }
 
-struct Atom<'a> {
+struct Atom<T> {
     range: std::ops::Range<usize>,
-    id_str: VStr<'a>,
-    ctx_type: CtxType<'a>,
+    property: T,
 }
 
 enum CtxType<'a> {
@@ -201,7 +202,8 @@ enum CtxType<'a> {
 
 // parse expr as function params:
 // 1. breaks down binding pattern e.g. [a, b, c] => identifiers a, b and c
-// 2. patch default parameter like v-slot="a = 123" -> (a = 123)
+// 2. breaks default parameter like v-slot="a = 123" -> (a = 123)
+// 3. reunite these 1 and 2 to a compound expression
 fn process_fn_param(p: &mut Js) {
     let v = cast!(p, Js::Param);
     if is_simple_identifier(VStr::raw(v)) {

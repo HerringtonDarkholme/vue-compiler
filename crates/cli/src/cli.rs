@@ -25,6 +25,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
         &mut SlotFlagMarker,
         &mut ExpressionProcessor {
             option: &Default::default(),
+            binding_metadata: &Default::default(),
         },
     ];
     let pass: &mut [&mut dyn CorePass<_>] = &mut [

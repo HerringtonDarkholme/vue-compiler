@@ -85,7 +85,10 @@ mod test {
     fn transform(mut ir: BaseRoot) -> BaseRoot {
         let option = TransformOption::default();
         let mut marker = SlotFlagMarker;
-        let mut exp = ExpressionProcessor { option: &option };
+        let mut exp = ExpressionProcessor {
+            option: &option,
+            binding_metadata: &Default::default(),
+        };
         let a: &mut [&mut dyn CorePassExt<_, _>] = &mut [&mut marker, &mut exp];
         let mut transformer = transformer_ext(a);
         transformer.transform(&mut ir);

@@ -29,11 +29,11 @@ pub mod pass;
 pub mod process_expression;
 
 use super::converter::{
-    self as C, BaseConvertInfo as BaseInfo, BaseRoot, BindingMetadata, ConvertInfo, IRNode, IRRoot,
-    JsExpr as Js, RuntimeDir,
+    self as C, BaseConvertInfo as BaseInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js,
+    RuntimeDir,
 };
 pub use pass::{CorePass, CorePassExt, MergedPass, Scope};
-use std::{marker::PhantomData, rc::Rc};
+use std::marker::PhantomData;
 
 pub trait Transformer {
     type IR;
@@ -43,13 +43,11 @@ pub trait Transformer {
 }
 
 #[derive(Default)]
-pub struct TransformOption<'a> {
+pub struct TransformOption {
     is_ts: bool,
     inline: bool,
     prefix_identifier: bool,
     is_dev: bool,
-    // TODO: move this out
-    binding_metadata: Rc<BindingMetadata<'a>>,
 }
 
 pub type BaseText<'a> = C::TextIR<BaseInfo<'a>>;

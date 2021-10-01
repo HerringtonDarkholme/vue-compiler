@@ -60,11 +60,7 @@ fn main() -> Result<()> {
     compile_to_stdout(cli_input)
 }
 
-type CliInput = (
-    String,
-    CompileOption<'static, PrettyErrorHandler>,
-    ShowOption,
-);
+type CliInput = (String, CompileOption<PrettyErrorHandler>, ShowOption);
 fn process(opts: Opts) -> Result<CliInput> {
     let (name, source) = get_file(opts.input_file_name)?;
     let err_hanlde = PrettyErrorHandler::new(name, source.clone());

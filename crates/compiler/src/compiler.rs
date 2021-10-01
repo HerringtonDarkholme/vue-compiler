@@ -11,11 +11,11 @@ use std::io;
 
 // TODO: we have internal option that diverges from vue's option
 // CompileOption should behave like Vue option and be normalized to internal option
-pub struct CompileOption<'a, E: ErrorHandler + Clone> {
+pub struct CompileOption<E: ErrorHandler + Clone> {
     pub scanning: ScanOption,
     pub parsing: ParseOption,
     pub conversion: ConvertOption,
-    pub transformation: TransformOption<'a>,
+    pub transformation: TransformOption,
     pub codegen: CodeGenerateOption,
     pub error_handler: E,
 }
@@ -54,7 +54,7 @@ type Passes<'a, 'b> = &'b mut dyn CorePass<BaseInfo<'a>>;
 pub struct BaseCompiler<'a, 'b, Eh: ErrorHandler + Clone, W: io::Write> {
     writer: Option<W>,
     passes: Option<&'b mut [Passes<'a, 'b>]>,
-    option: CompileOption<'a, Eh>,
+    option: CompileOption<Eh>,
 }
 
 impl<'a, 'b, Eh, W> BaseCompiler<'a, 'b, Eh, W>
@@ -62,7 +62,7 @@ where
     W: io::Write,
     Eh: ErrorHandler + Clone + 'static,
 {
-    pub fn new(writer: W, passes: &'b mut [Passes<'a, 'b>], option: CompileOption<'a, Eh>) -> Self {
+    pub fn new(writer: W, passes: &'b mut [Passes<'a, 'b>], option: CompileOption<Eh>) -> Self {
         Self {
             writer: Some(writer),
             passes: Some(passes),

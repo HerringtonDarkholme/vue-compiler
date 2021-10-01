@@ -193,7 +193,12 @@ fn parse_param_impl(text: &str, file_id: usize) -> rl::Parse<ParameterList> {
     let tok_source = rl::TokenSource::new(text, &tokens);
     let mut tree_sink = rl::LosslessTreeSink::new(text, &tokens);
 
-    let mut parser = rl::Parser::new(tok_source, file_id, rl::Syntax::default());
+    // TODO: set is TS
+    let syntax = rl::Syntax {
+        file_kind: rl::FileKind::TypeScript,
+        ..Default::default()
+    };
+    let mut parser = rl::Parser::new(tok_source, file_id, syntax);
     rl::syntax::decl::formal_parameters(&mut parser);
     let (events, p_diags) = parser.finish();
     errors.extend(p_diags);
@@ -351,6 +356,8 @@ mod test {
             ("{a, b, c}", vec!["a", "b", "c"]),
             // ("{a=b}", vec!["a"]), // need https://github.com/rslint/rslint/issues/120
             ("[a, b, c]", vec!["a", "b", "c"]),
+            // ts annotation
+            ("a: A", vec!["a"]),
         ];
         for (src, expect) in cases {
             assert_eq!(walk_param(src), expect);

@@ -11,7 +11,7 @@ use std::{
     ops::Deref,
 };
 
-mod rslint;
+pub mod rslint;
 mod v_str;
 pub use v_str::VStr;
 

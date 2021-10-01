@@ -1,3 +1,5 @@
+use rslint_parser::AstNode;
+
 // 1. track variables introduced in template
 // currently only v-for and v-slot
 // 2. prefix expression
@@ -5,7 +7,7 @@ use super::collect_entities::is_hoisted_asset;
 use super::{BaseInfo, CorePassExt, Scope, TransformOption};
 use crate::converter::{BindingTypes, JsExpr as Js};
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
-use crate::util::{is_global_allow_listed, is_simple_identifier, VStr};
+use crate::util::{is_global_allow_listed, is_simple_identifier, rslint, VStr};
 
 pub struct ExpressionProcessor<'a, 'b> {
     pub option: &'b TransformOption<'a>,
@@ -14,20 +16,18 @@ pub struct ExpressionProcessor<'a, 'b> {
 impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'a, 'b> {
     fn enter_fn_param(&mut self, p: &mut Js<'a>, shared: &mut Scope<'a>) {
         process_fn_param(p);
-        let id = match p {
-            Js::Simple(v, _) => *v,
-            Js::Compound(_) => todo!(),
+        match p {
+            Js::Simple(id, _) => shared.add_identifier(*id),
+            Js::Compound(ids) => todo!(),
             _ => panic!("param should only be simple expression"),
-        };
-        shared.add_identifier(id);
+        }
     }
     fn exit_fn_param(&mut self, p: &mut Js<'a>, shared: &mut Scope<'a>) {
-        let id = match p {
-            Js::Simple(v, _) => *v,
-            Js::Compound(_) => todo!(),
+        match p {
+            Js::Simple(id, _) => shared.remove_identifier(*id),
+            Js::Compound(ids) => todo!(),
             _ => panic!("param should only be simple expression"),
         };
-        shared.remove_identifier(id);
     }
     // only transform expression after its' sub-expression is transformed
     // e.g. compound/array/call expression
@@ -52,7 +52,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         if self.process_expr_fast(e, scope) {
             return;
         }
-        self.process_with_swc(e);
+        self.process_with_js_parser(e);
     }
 
     /// prefix _ctx without parsing JS
@@ -87,8 +87,14 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         true
     }
 
-    fn process_with_swc(&self, _: &mut Js) {
-        todo!()
+    fn process_with_js_parser(&self, e: &mut Js<'a>) {
+        let (v, level) = match e {
+            Js::Simple(v, level) => (v, level),
+            _ => return,
+        };
+        let raw = v.raw;
+        let broken_atoms = break_down_complex_expression(raw, self.option.inline);
+        *e = self.reunite_atoms(raw, broken_atoms);
     }
     fn rewrite_identifier(&self, raw: VStr<'a>, level: StaticLevel, ctx: CtxType<'a>) -> Js<'a> {
         let binding = self.option.binding_metadata.get(&raw.raw);
@@ -103,6 +109,55 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             Js::simple(*raw.clone().prefix_ctx())
         }
     }
+    fn reunite_atoms(&self, raw: &'a str, atoms: Vec<Atom<'a>>) -> Js<'a> {
+        let mut inner = vec![];
+        let mut last = 0;
+        for atom in atoms {
+            let range = atom.range;
+            if last < range.start {
+                let comp = Js::Src(&raw[last..range.start]);
+                inner.push(comp);
+            }
+            last = range.end;
+            let prefixed = self.rewrite_identifier(
+                VStr::raw(&raw[range]),
+                StaticLevel::NotStatic,
+                atom.ctx_type,
+            );
+            inner.push(prefixed);
+        }
+        if last < raw.len() {
+            inner.push(Js::Src(&raw[last..]));
+        }
+        Js::Compound(inner)
+    }
+}
+
+struct Atom<'a> {
+    range: std::ops::Range<usize>,
+    ctx_type: CtxType<'a>,
+}
+
+fn break_down_complex_expression(raw: &str, inline: bool) -> Vec<Atom> {
+    let expr = rslint::parse_js_expr(raw);
+    let expr = match expr {
+        Some(exp) => exp,
+        None => todo!("add error handler"),
+    };
+    let mut atoms = vec![];
+    use std::ops::Range;
+    rslint::walk_free_variables(expr, |fv| {
+        let id_text = fv.text();
+        if is_global_allow_listed(&id_text) || id_text == "require" {
+            return;
+        }
+        atoms.push(Atom {
+            range: Range::from(fv.range()),
+            ctx_type: if inline { CtxType::NoWrite } else { todo!() },
+        })
+    });
+    atoms.sort_by_key(|r| r.range.start);
+    atoms
 }
 
 enum CtxType<'a> {

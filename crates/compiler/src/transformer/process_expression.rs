@@ -16,7 +16,7 @@ pub struct ExpressionProcessor<'a, 'b> {
 
 impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'a, 'b> {
     fn enter_fn_param(&mut self, p: &mut Js<'a>, shared: &mut Scope<'a>) {
-        process_fn_param(p);
+        self.process_fn_param(p);
         match p {
             Js::Param(id) => shared.add_identifier(id),
             Js::Compound(ids) => {
@@ -46,6 +46,29 @@ impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'a, 'b
 }
 
 impl<'a, 'b> ExpressionProcessor<'a, 'b> {
+    // parse expr as function params:
+    fn process_fn_param(&self, p: &mut Js) {
+        if !self.option.prefix_identifier {
+            return;
+        }
+        let raw = *cast!(p, Js::Param);
+        if is_simple_identifier(VStr::raw(raw)) {
+            return;
+        }
+        // 1. breaks down binding pattern e.g. [a, b, c] => identifiers a, b and c
+        // 2. breaks default parameter like v-slot="a = 123" -> (a = 123)
+        let broken_atoms = self.break_down_fn_params(raw);
+        // 3. reunite these 1 and 2 to a compound expression
+        *p = reunite_atoms(raw, broken_atoms, |atom| {
+            let is_param = atom.property;
+            let text = &raw[atom.range];
+            if is_param {
+                Js::Param(text)
+            } else {
+                Js::Simple(VStr::raw(text), StaticLevel::NotStatic)
+            }
+        })
+    }
     fn process_expression(&self, e: &mut Js<'a>, scope: &Scope) {
         if !self.option.prefix_identifier {
             return;
@@ -103,6 +126,9 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         };
         let raw = v.raw;
         let broken_atoms = self.break_down_complex_expression(raw, scope);
+        if broken_atoms.is_empty() {
+            return;
+        }
         *e = reunite_atoms(raw, broken_atoms, |atom| {
             let ctx_type = atom.property;
             self.rewrite_identifier(
@@ -153,6 +179,26 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         atoms.sort_by_key(|r| r.range.start);
         atoms
     }
+
+    /// Atom's property records if it is param identifier
+    fn break_down_fn_params(&self, raw: &'a str) -> Vec<Atom<bool>> {
+        let param = rslint::parse_fn_param(raw);
+        let param = match param {
+            Some(exp) => exp,
+            None => todo!("add error handler"),
+        };
+        // range is offset by -1 due to the wrapping parens when parsed
+        let offset = if raw.starts_with('(') { 0 } else { 1 };
+        let mut atoms = vec![];
+        rslint::walk_param_and_default_arg(param, |range, is_param| {
+            atoms.push(Atom {
+                range: range.start - offset..range.end - offset,
+                property: is_param,
+            });
+        });
+        atoms.sort_by_key(|r| r.range.start);
+        atoms
+    }
 }
 
 // This implementation assumes that broken param expression has only two kinds subexpr:
@@ -167,6 +213,8 @@ fn only_param_ids<'a, 'b>(ids: &'b [Js<'a>]) -> impl Iterator<Item = &'a str> + 
     })
 }
 
+/// Atom is the atomic identifier text range in the expression.
+/// Property is the additional information for rewriting.
 struct Atom<T> {
     range: std::ops::Range<usize>,
     property: T,
@@ -183,23 +231,14 @@ enum CtxType<'a> {
     NoWrite,
 }
 
-// parse expr as function params:
-// 1. breaks down binding pattern e.g. [a, b, c] => identifiers a, b and c
-// 2. breaks default parameter like v-slot="a = 123" -> (a = 123)
-// 3. reunite these 1 and 2 to a compound expression
-fn process_fn_param(p: &mut Js) {
-    let v = cast!(p, Js::Param);
-    if is_simple_identifier(VStr::raw(v)) {
-        // nothing LOL
-        return;
-    }
-    todo!()
-}
-
 fn reunite_atoms<'a, T, F>(raw: &'a str, atoms: Vec<Atom<T>>, mut rewrite: F) -> Js<'a>
 where
     F: FnMut(Atom<T>) -> Js<'a>,
 {
+    // expr without atoms have specific processing outside
+    debug_assert!(!atoms.is_empty());
+    // the only one atom that spans the text should be handled in fast path
+    debug_assert!(atoms.len() > 1 || atoms[0].range.len() < raw.len());
     let mut inner = vec![];
     let mut last = 0;
     for atom in atoms {

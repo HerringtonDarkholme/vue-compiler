@@ -3,7 +3,7 @@
 //! * we can also cache camelize/capitalize result.
 //! * if VStr raw already satisfy StrOps, setting the ops flag is noop.
 //! * interning/cache can be optional, e.g. Text Token can skip it at all.
-use super::{is_event_prop, non_whitespace};
+use super::{is_event_prop, non_whitespace, not_js_identifier};
 use bitflags::bitflags;
 use std::{
     io::{self, Write},
@@ -125,10 +125,6 @@ fn write_decoded<W: Write>(s: &str, mut w: W) -> io::Result<()> {
         return w.write_all(s.as_bytes());
     }
     todo!()
-}
-
-fn not_js_identifier(c: char) -> bool {
-    !c.is_alphanumeric() && c != '$' && c != '_'
 }
 
 fn write_valid_asset<W: Write>(mut s: &str, mut w: W, asset: &str) -> io::Result<()> {

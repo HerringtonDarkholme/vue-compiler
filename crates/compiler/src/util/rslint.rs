@@ -4,9 +4,9 @@ use rslint_parser::{
     parse_expr, AstNode, SyntaxKind, SyntaxNodeExt,
 };
 use std::cell::RefCell;
+use std::ops::Range;
 
 fn is_sole_child<N: AstNode>(n: &N, expect_len: usize) -> bool {
-    use std::ops::Range;
     let r: Range<usize> = Range::from(n.syntax().trimmed_range());
     r.end - r.start == expect_len
 }
@@ -229,11 +229,30 @@ where
     })
 }
 
-pub fn walk_fn_param<F>(list: ParameterList, f: F)
+fn walk_fn_param<F>(list: ParameterList, f: F)
 where
     F: FnMut(ast::Name) -> bool,
 {
     collect_name(list.syntax(), f);
+}
+
+/// returns param and default argument's range in text
+pub fn walk_param_and_default_arg<F>(list: ParameterList, mut f: F)
+where
+    F: FnMut(Range<usize>, bool),
+{
+    list.syntax().descendants_with(&mut |d| {
+        let kind = d.kind();
+        if kind == SyntaxKind::NAME {
+            f(Range::from(d.text_range()), true);
+            false
+        } else if d.is::<Expr>() {
+            f(Range::from(d.text_range()), false);
+            false
+        } else {
+            PATTERNS.contains(&kind)
+        }
+    })
 }
 
 #[cfg(test)]

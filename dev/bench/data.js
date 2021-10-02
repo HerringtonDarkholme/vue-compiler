@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1633161321824,
+  "lastUpdate": 1633163106328,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -675,6 +675,92 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 6247,
             "range": "± 803",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "HerringtonDarkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "committer": {
+            "name": "HerringtonDarkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "id": "d8b7a97f085139451dca64d77239d10c52069ad8",
+          "message": "Update actions/setup-node action to v2",
+          "timestamp": "2021-10-02T07:52:57Z",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/pull/22/commits/d8b7a97f085139451dca64d77239d10c52069ad8"
+        },
+        "date": 1633163105441,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 6652,
+            "range": "± 244",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4297,
+            "range": "± 113",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 51392,
+            "range": "± 1831",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 38377,
+            "range": "± 2019",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 24050,
+            "range": "± 1476",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 107410,
+            "range": "± 7802",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 27244,
+            "range": "± 1858",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 6367,
+            "range": "± 425",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 7535,
+            "range": "± 503",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 6264,
+            "range": "± 410",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 5555,
+            "range": "± 310",
             "unit": "ns/iter"
           }
         ]

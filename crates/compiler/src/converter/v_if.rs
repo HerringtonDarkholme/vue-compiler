@@ -160,7 +160,10 @@ fn check_v_if_group<'a>(c: &BC<'a>, elems: &[Element<'a>]) {
     if find_dir_empty(&elems[0], "if").is_none() {
         report_dangling_else(c, &elems[0]);
     }
-    // 2. check duplicate v-if
+    if !c.option.is_dev {
+        return;
+    }
+    // 2. check duplicate v-if key in dev build
     let mut dirs = FxHashSet::default();
     let mut attrs = FxHashSet::default();
     let mut has_else = false;

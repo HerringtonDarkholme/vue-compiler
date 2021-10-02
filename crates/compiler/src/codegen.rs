@@ -616,7 +616,11 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
     #[inline(always)]
     fn write_patch(&mut self, flag: PatchFlag) -> io::Result<()> {
-        write!(self.writer, "{} /*{:?}*/", flag.bits(), flag)
+        if self.option.is_dev {
+            write!(self.writer, "{} /*{:?}*/", flag.bits(), flag)
+        } else {
+            write!(self.writer, "{}", flag.bits())
+        }
     }
 }
 

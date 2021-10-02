@@ -4,7 +4,7 @@
   "description": "Benchmark for Vue compiler",
   "main": "index.js",
   "scripts": {
-    "bench": "ts-node-transpile-only bench.ts",
+    "bench": "NODE_ENV=production ts-node-transpile-only bench.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

@@ -54,7 +54,7 @@ pub struct CompileOption {
 
     /// Whether to keep comments in the templates AST.
     /// This defaults to `true` in development and `false` in production builds.
-    pub preserve_comments: bool,
+    pub preserve_comments: Option<bool>,
     /// Whether the output is dev build which includes v-if comment and dev patch flags.
     pub is_dev: bool,
 
@@ -123,7 +123,7 @@ impl Default for CompileOption {
             delimiters: ("{{".into(), "}}".into()),
             whitespace: WhitespaceStrategy::Preserve,
             decode_entities: |s, _| DecodedStr::from(s),
-            preserve_comments: true,
+            preserve_comments: None,
             is_dev: true,
             directive_converters: FxHashMap::default(),
             hoist_static: false,
@@ -148,7 +148,7 @@ impl CompileOption {
     pub fn parsing(&self) -> ParseOption {
         ParseOption {
             whitespace: self.whitespace.clone(),
-            preserve_comment: self.preserve_comments,
+            preserve_comment: self.preserve_comments.unwrap_or(self.is_dev),
             get_namespace: self.get_namespace,
             get_text_mode: self.get_text_mode,
             is_native_element: self.is_native_tag,

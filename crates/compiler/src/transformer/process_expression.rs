@@ -4,13 +4,13 @@
 use super::collect_entities::is_hoisted_asset;
 use super::{BaseInfo, CorePassExt, Scope, TransformOption};
 use crate::cast;
-use crate::converter::{BindingMetadata, BindingTypes, JsExpr as Js};
+use crate::converter::{BindingTypes, JsExpr as Js, SFCInfo};
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
 use crate::util::{is_global_allow_listed, is_simple_identifier, rslint, VStr};
 
 pub struct ExpressionProcessor<'a, 'b> {
     pub option: &'b TransformOption,
-    pub binding_metadata: &'b BindingMetadata<'a>,
+    pub sfc_info: &'b SFCInfo<'a>,
 }
 
 impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'a, 'b> {
@@ -102,7 +102,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         if !is_scope_reference && !is_allowed_global && !is_literal {
             // const bindings from setup can skip patching but cannot be hoisted
             // NB: this only applies to simple expression. e.g :prop="constBind()"
-            let bindings = &self.binding_metadata;
+            let bindings = &self.sfc_info.binding_metadata;
             let lvl = match bindings.get(raw_exp) {
                 Some(BindingTypes::SetupConst) => StaticLevel::CanSkipPatch,
                 _ => *level,
@@ -149,9 +149,9 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         });
     }
     fn rewrite_identifier(&self, raw: VStr<'a>, level: StaticLevel, ctx: CtxType<'a>) -> Js<'a> {
-        let binding = self.binding_metadata.get(&raw.raw);
+        let binding = self.sfc_info.binding_metadata.get(&raw.raw);
         if let Some(bind) = binding {
-            if self.option.inline {
+            if self.sfc_info.inline {
                 rewrite_inline_identifier(raw, level, bind, ctx)
             } else {
                 bind.get_js_prop(raw, level)
@@ -172,7 +172,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             Some(exp) => exp,
             None => todo!("add error handler"),
         };
-        let inline = self.option.inline;
+        let inline = self.sfc_info.inline;
         let mut atoms = vec![];
         let mut has_local_ref = false;
         rslint::walk_free_variables(expr, |fv| {
@@ -371,7 +371,7 @@ mod test {
         let mut ir = base_convert(s);
         let mut exp = ExpressionProcessor {
             option: &option,
-            binding_metadata: &Default::default(),
+            sfc_info: &Default::default(),
         };
         let a: &mut [&mut dyn CorePassExt<_, _>] = &mut [&mut exp];
         let mut transformer = transformer_ext(a);

@@ -1,19 +1,22 @@
 use super::{
-    codegen::{CodeGenerateOption, CodeGenerator, CodeWriter, EntityDecoder, ScriptMode},
+    codegen::{
+        CodeGenerateOption, CodeGenerator, CodeWriter, DecodedStr, EntityDecoder, ScriptMode,
+    },
     converter::{
         BaseConvertInfo as BaseInfo, BaseConverter, BaseRoot, ConvertOption, Converter,
         DirConvertFn,
     },
-    error::RcErrHandle,
+    error::{NoopErrorHandler, RcErrHandle},
     flags::RuntimeHelper,
     parser::{Element, ParseOption, Parser, WhitespaceStrategy},
     scanner::{ScanOption, Scanner, TextMode},
     transformer::{BaseTransformer, CorePass, MergedPass, TransformOption, Transformer},
+    util::{no, yes},
     Namespace,
 };
 
 use rustc_hash::FxHashMap;
-use std::io;
+use std::{io, rc::Rc};
 
 pub struct CompileOption {
     /// e.g. platform native elements, e.g. `<div>` for browsers
@@ -29,7 +32,7 @@ pub struct CompileOption {
     /// The pairing runtime provides additional built-in elements,
     /// Platform developer can use this to mark them as built-in
     /// so the compiler will generate component vnodes for them.
-    pub is_builtin_component: fn(&str) -> Option<RuntimeHelper>,
+    pub get_builtin_component: fn(&str) -> Option<RuntimeHelper>,
 
     /// Separate option for end users to extend the native elements list
     pub is_custom_element: fn(&str) -> bool,
@@ -51,8 +54,8 @@ pub struct CompileOption {
 
     /// Whether to keep comments in the templates AST.
     /// This defaults to `true` in development and `false` in production builds.
-    pub comments: bool,
-    /// Whether the output is dev build
+    pub preserve_comments: bool,
+    /// Whether the output is dev build which includes v-if comment and dev patch flags.
     pub is_dev: bool,
 
     /// An object of { name: transform } to be applied to every directive attribute
@@ -84,6 +87,7 @@ pub struct CompileOption {
     /// Generate source map?
     /// @default false
     pub source_map: bool,
+    /// Custom error reporter. Default is noop.
     pub error_handler: RcErrHandle,
     // deleted options
     // nodeTransforms?: NodeTransform[]
@@ -108,25 +112,78 @@ pub struct CompileOption {
 
 impl Default for CompileOption {
     fn default() -> Self {
-        todo!()
+        Self {
+            is_native_tag: yes,
+            is_void_tag: no,
+            is_pre_tag: no,
+            get_builtin_component: |_| None,
+            is_custom_element: no,
+            get_namespace: |_, _| Namespace::Html,
+            get_text_mode: |_| TextMode::Data,
+            delimiters: ("{{".into(), "}}".into()),
+            whitespace: WhitespaceStrategy::Preserve,
+            decode_entities: |s, _| DecodedStr::from(s),
+            preserve_comments: true,
+            is_dev: true,
+            directive_converters: FxHashMap::default(),
+            hoist_static: false,
+            cache_handlers: false,
+            mode: ScriptMode::Function {
+                prefix_identifier: false,
+                runtime_global_name: "Vue".into(),
+            },
+            source_map: false,
+            error_handler: Rc::new(NoopErrorHandler),
+        }
     }
 }
 
 impl CompileOption {
     pub fn scanning(&self) -> ScanOption {
-        todo!()
+        ScanOption {
+            delimiters: self.delimiters.clone(),
+            get_text_mode: self.get_text_mode,
+        }
     }
     pub fn parsing(&self) -> ParseOption {
-        todo!()
+        ParseOption {
+            whitespace: self.whitespace.clone(),
+            preserve_comment: self.preserve_comments,
+            get_namespace: self.get_namespace,
+            get_text_mode: self.get_text_mode,
+            is_native_element: self.is_native_tag,
+            is_void_tag: self.is_void_tag,
+            is_pre_tag: self.is_pre_tag,
+            get_builtin_component: self.get_builtin_component,
+            is_custom_element: self.is_custom_element,
+        }
     }
     pub fn converting(&self) -> ConvertOption {
-        todo!()
+        ConvertOption {
+            get_builtin_component: self.get_builtin_component,
+            is_dev: self.is_dev,
+            directive_converters: self.directive_converters.clone(),
+        }
     }
     pub fn transforming(&self) -> TransformOption {
-        todo!()
+        let prefix = match self.mode {
+            ScriptMode::Function {
+                prefix_identifier, ..
+            } => prefix_identifier,
+            ScriptMode::Module { .. } => true,
+        };
+        TransformOption {
+            prefix_identifier: prefix,
+            is_dev: self.is_dev,
+        }
     }
     pub fn codegen(&self) -> CodeGenerateOption {
-        todo!()
+        CodeGenerateOption {
+            is_dev: self.is_dev,
+            mode: self.mode.clone(),
+            source_map: self.source_map,
+            decode_entities: self.decode_entities,
+        }
     }
 }
 
@@ -212,7 +269,7 @@ where
     fn get_code_generator(&mut self) -> Self::Gen {
         let option = self.option.codegen();
         let writer = self.writer.take().unwrap();
-        CodeWriter::new(writer, option)
+        CodeWriter::new(writer, option, Default::default())
     }
     fn get_error_handler(&self) -> RcErrHandle {
         self.option.error_handler.clone()

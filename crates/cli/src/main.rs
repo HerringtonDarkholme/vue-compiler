@@ -11,8 +11,7 @@ use std::{
 use anyhow::{bail, Result};
 use clap::{AppSettings, Clap};
 
-use compiler::{compiler::CompileOption, scanner::ScanOption};
-use dom::scan_option;
+use compiler::compiler::CompileOption;
 
 use cli::compile_to_stdout;
 use path_clean::PathClean;

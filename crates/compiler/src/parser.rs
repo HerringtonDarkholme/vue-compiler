@@ -16,6 +16,7 @@
 
 use super::{
     error::{CompilationError, CompilationErrorKind as ErrorKind, RcErrHandle},
+    flags::RuntimeHelper,
     scanner::{Attribute, AttributeValue, Tag, TextMode, Token, TokenSource},
     util::{find_dir, is_core_component, no, non_whitespace, yes, VStr},
     Name, Namespace, SourceLocation,
@@ -230,7 +231,7 @@ pub struct ParseOption {
     pub is_custom_element: fn(&str) -> bool,
     /// For platform developers. Registers platform specific components written in JS.
     /// e.g. transition, transition-group. Components that require code in Vue runtime.
-    pub is_builtin_component: fn(&str) -> bool,
+    pub get_builtin_component: fn(&str) -> Option<RuntimeHelper>,
     /// For platform developer. Registers platform components written in host language like C++.
     pub is_native_element: fn(&str) -> bool,
 }
@@ -245,7 +246,7 @@ impl Default for ParseOption {
             is_void_tag: no,
             is_pre_tag: |s| s == "pre",
             is_custom_element: no,
-            is_builtin_component: no,
+            get_builtin_component: |_| None,
             is_native_element: yes,
         }
     }
@@ -604,7 +605,7 @@ where
         if tag_name == "component"
             || tag_name.starts_with(|c| matches!(c, 'A'..='Z'))
             || is_core_component(tag_name)
-            || (opt.is_builtin_component)(tag_name)
+            || (opt.get_builtin_component)(tag_name).is_some()
             || !(opt.is_native_element)(tag_name)
         {
             return true;

@@ -87,7 +87,7 @@ mod test {
         let mut marker = SlotFlagMarker;
         let mut exp = ExpressionProcessor {
             option: &option,
-            binding_metadata: &Default::default(),
+            sfc_info: &Default::default(),
         };
         let a: &mut [&mut dyn CorePassExt<_, _>] = &mut [&mut marker, &mut exp];
         let mut transformer = transformer_ext(a);

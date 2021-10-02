@@ -34,7 +34,7 @@ pub use crate::parser::{AstNode, AstRoot, Directive, Element};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::{smallvec, SmallVec};
 use std::hash::Hash;
-use std::{marker::PhantomData, ops::Deref, rc::Rc};
+use std::{marker::PhantomData, ops::Deref};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -431,6 +431,9 @@ pub type DirectiveConverter = (&'static str, DirConvertFn);
 #[derive(Default)]
 pub struct BindingMetadata<'a>(FxHashMap<&'a str, BindingTypes>, bool);
 impl<'a> BindingMetadata<'a> {
+    pub fn new(map: FxHashMap<&'a str, BindingTypes>, from_setup: bool) -> Self {
+        Self(map, from_setup)
+    }
     pub fn is_setup(&self) -> bool {
         self.1
     }
@@ -474,7 +477,7 @@ pub struct SFCInfo<'a> {
     pub scope_id: Option<String>,
     /// Optional binding metadata analyzed from script - used to optimize
     /// binding access when `prefixIdentifiers` is enabled.
-    pub binding_metadata: Rc<BindingMetadata<'a>>,
+    pub binding_metadata: BindingMetadata<'a>,
     /// Filename for source map generation.
     /// Also used for self-recursive reference in templates
     /// @default 'template.vue.html'
@@ -487,7 +490,7 @@ impl<'a> Default for SFCInfo<'a> {
             scope_id: None,
             inline: false,
             slotted: true,
-            binding_metadata: Rc::new(BindingMetadata::default()),
+            binding_metadata: BindingMetadata::default(),
             self_name: "".into(),
         }
     }
@@ -583,6 +586,7 @@ impl<'a> BaseConverter<'a> {
 pub mod test {
     use super::*;
     use crate::{cast, error::test::TestErrorHandler, parser::test::base_parse};
+    use std::rc::Rc;
     use BaseConverter as BC;
     use JsExpr as Js;
 

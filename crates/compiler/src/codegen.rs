@@ -1,4 +1,4 @@
-use crate::converter::RenderSlotIR;
+use crate::converter::{RenderSlotIR, SFCInfo};
 
 use super::converter::{
     BaseConvertInfo, BaseIR, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir,
@@ -53,13 +53,7 @@ pub struct CodeGenerateOption {
     pub is_dev: bool,
     pub mode: ScriptMode,
     pub source_map: bool,
-    pub has_binding: bool,
     pub decode_entities: EntityDecoder,
-
-    // filename for source map
-    pub filename: String,
-    pub is_ts: bool,
-    pub inline: bool,
 }
 impl CodeGenerateOption {
     fn use_with_scope(&self) -> bool {
@@ -75,15 +69,11 @@ impl Default for CodeGenerateOption {
     fn default() -> Self {
         Self {
             is_dev: true,
-            is_ts: false,
             mode: ScriptMode::Function {
                 prefix_identifier: false,
                 runtime_global_name: "Vue".into(),
             },
             source_map: false,
-            inline: false,
-            filename: String::new(),
-            has_binding: false,
             decode_entities: |s, _| DecodedStr::from(s),
         }
     }
@@ -120,6 +110,7 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
 
 pub struct CodeWriter<'a, T: Write> {
     pub writer: T,
+    sfc_info: SFCInfo<'a>,
     indent_level: usize,
     closing_brackets: usize,
     in_alterable: bool,
@@ -128,10 +119,11 @@ pub struct CodeWriter<'a, T: Write> {
     pd: PhantomData<&'a ()>,
 }
 impl<'a, T: Write> CodeWriter<'a, T> {
-    pub fn new(writer: T, option: CodeGenerateOption) -> Self {
+    pub fn new(writer: T, option: CodeGenerateOption, sfc_info: SFCInfo<'a>) -> Self {
         Self {
             writer,
             option,
+            sfc_info,
             indent_level: 0,
             closing_brackets: 0,
             in_alterable: false,
@@ -381,8 +373,8 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
     /// render() or ssrRender() and their parameters
     fn generate_function_signature(&mut self) -> io::Result<()> {
-        let option = &self.option;
-        let args = if option.has_binding && !option.inline {
+        let option = &self.sfc_info;
+        let args = if !option.binding_metadata.is_empty() && !option.inline {
             "_ctx, _cache, $props, $setup, $data, $options"
         } else {
             "_ctx, _cache"
@@ -864,18 +856,19 @@ fn runtime_dirs_to_js_arr(dirs: Vec<RuntimeDir<BaseConvertInfo>>) -> Js {
 #[cfg(test)]
 mod test {
     use super::super::converter::test::base_convert;
+    use super::super::converter::{BindingMetadata, BindingTypes};
     use super::*;
     use crate::cast;
-    fn gen(mut ir: BaseRoot, option: CodeGenerateOption) -> String {
+    fn gen<'a>(mut ir: BaseRoot<'a>, info: SFCInfo<'a>) -> String {
         ir.top_scope.helpers.ignore_missing();
-        let mut writer = CodeWriter::new(vec![], option);
+        let mut writer = CodeWriter::new(vec![], Default::default(), info);
         writer.generate(ir).unwrap();
         String::from_utf8(writer.writer).unwrap()
     }
     fn base_gen(s: &str) -> String {
         let ir = base_convert(s);
-        let option = CodeGenerateOption::default();
-        gen(ir, option)
+        let info = SFCInfo::default();
+        gen(ir, info)
     }
     #[test]
     fn test_text() {
@@ -892,7 +885,7 @@ mod test {
         let world = cast!(world, IRNode::TextCall);
         let hello = cast!(&mut ir.body[0], IRNode::TextCall);
         hello.texts.extend(world.texts);
-        let s = gen(ir, CodeGenerateOption::default());
+        let s = gen(ir, SFCInfo::default());
         assert!(s.contains("\"hello\" + _toDisplayString(world)"), "{}", s);
     }
     #[test]
@@ -900,7 +893,7 @@ mod test {
         let mut ir = base_convert("hello");
         let hello = cast!(&mut ir.body[0], IRNode::TextCall);
         hello.fast_path = true;
-        let s = gen(ir, CodeGenerateOption::default());
+        let s = gen(ir, SFCInfo::default());
         assert!(!s.contains("_createTextVNode"), "{}", s);
     }
     #[test]
@@ -917,7 +910,7 @@ mod test {
         let mut ir = base_convert("<p/>");
         let vn = cast!(&mut ir.body[0], IRNode::VNodeCall);
         vn.is_block = true;
-        let s = gen(ir, CodeGenerateOption::default());
+        let s = gen(ir, SFCInfo::default());
         assert!(s.contains("openBlock"), "{}", s);
     }
     #[test]
@@ -966,7 +959,7 @@ mod test {
         let i = cast!(&mut ir.body[0], IRNode::If);
         let vn = cast!(&mut *i.branches[0].child, IRNode::VNodeCall);
         vn.is_block = true;
-        let s = gen(ir, CodeGenerateOption::default());
+        let s = gen(ir, SFCInfo::default());
         assert!(s.contains("openBlock"), "{}", s);
     }
     #[test]
@@ -1020,8 +1013,11 @@ mod test {
 
     #[test]
     fn test_render_func_args() {
-        let option = CodeGenerateOption {
-            has_binding: true,
+        use rustc_hash::FxHashMap;
+        let mut map = FxHashMap::default();
+        map.insert("test", BindingTypes::Props);
+        let option = SFCInfo {
+            binding_metadata: BindingMetadata::new(map, false),
             ..Default::default()
         };
         let ir = base_convert("hello world");

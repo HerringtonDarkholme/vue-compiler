@@ -74,10 +74,8 @@ pub struct ScanOption {
 
 impl Default for ScanOption {
     fn default() -> Self {
-        Self {
-            delimiters: ("{{".into(), "}}".into()),
-            get_text_mode: |_| TextMode::Data,
-        }
+        use crate::compiler::CompileOption;
+        CompileOption::default().scanning()
     }
 }
 

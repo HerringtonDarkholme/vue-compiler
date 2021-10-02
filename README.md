@@ -1,4 +1,4 @@
-# vue template compiler in Rust
+# Vue Compiler in Rust
 
 https://github.com/vuejs/rfcs/discussions/369#discussioncomment-1192421
 

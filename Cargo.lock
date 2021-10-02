@@ -84,19 +84,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "codespan-reporting",
- "compiler",
- "dom",
- "path-clean",
- "serde_yaml",
-]
-
-[[package]]
 name = "codespan-reporting"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -118,19 +105,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "compiler"
-version = "0.1.0"
-dependencies = [
- "bitflags",
- "insta",
- "json",
- "rslint_parser",
- "rustc-hash",
- "serde",
- "smallvec",
-]
-
-[[package]]
 name = "console"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -141,13 +115,6 @@ dependencies = [
  "libc",
  "terminal_size",
  "winapi",
-]
-
-[[package]]
-name = "dom"
-version = "0.1.0"
-dependencies = [
- "compiler",
 ]
 
 [[package]]
@@ -515,14 +482,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sfc"
-version = "0.1.0"
-dependencies = [
- "compiler",
- "smallvec",
-]
-
-[[package]]
 name = "similar"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -552,13 +511,6 @@ name = "smol_str"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b203e79e90905594272c1c97c7af701533d42adaab0beb3859018e477d54a3b0"
-
-[[package]]
-name = "ssr"
-version = "0.1.0"
-dependencies = [
- "compiler",
-]
 
 [[package]]
 name = "stable_deref_trait"
@@ -669,6 +621,54 @@ name = "version_check"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
+
+[[package]]
+name = "vue-compiler-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "codespan-reporting",
+ "path-clean",
+ "serde_yaml",
+ "vue-compiler-core",
+ "vue-compiler-dom",
+]
+
+[[package]]
+name = "vue-compiler-core"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "insta",
+ "json",
+ "rslint_parser",
+ "rustc-hash",
+ "serde",
+ "smallvec",
+]
+
+[[package]]
+name = "vue-compiler-dom"
+version = "0.1.0"
+dependencies = [
+ "vue-compiler-core",
+]
+
+[[package]]
+name = "vue-compiler-sfc"
+version = "0.1.0"
+dependencies = [
+ "smallvec",
+ "vue-compiler-core",
+]
+
+[[package]]
+name = "vue-compiler-ssr"
+version = "0.1.0"
+dependencies = [
+ "vue-compiler-core",
+]
 
 [[package]]
 name = "winapi"

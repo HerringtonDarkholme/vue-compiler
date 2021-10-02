@@ -1,5 +1,5 @@
 [package]
-name = "cli"
+name = "vue-compiler-cli"
 version = "0.1.0"
 edition = "2018"
 
@@ -8,8 +8,8 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0.44"
 clap = "3.0.0-beta.4"
-compiler = { path = "../compiler" }
-dom = { path = "../dom" }
+compiler = { path = "../compiler", package = "vue-compiler-core" }
+dom = { path = "../dom", package = "vue-compiler-dom" }
 path-clean = "0.1.0"
 codespan-reporting = "0.11.1"
 serde_yaml = "0.8.21"

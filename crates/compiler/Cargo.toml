@@ -1,8 +1,11 @@
 [package]
-name = "compiler"
+name = "vue-compiler-core"
 version = "0.1.0"
 authors = ["Herrington Darkholme <2883231+HerringtonDarkholme@users.noreply.github.com>"]
 edition = "2018"
+description = "Vue compiler in Rust's core component"
+keywords = ["vue", "compiler", "frontend"]
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

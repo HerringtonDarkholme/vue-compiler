@@ -1,5 +1,5 @@
 [package]
-name = "sfc"
+name = "vue-compiler-sfc"
 version = "0.1.0"
 authors = ["Herrington Darkholme <2883231+HerringtonDarkholme@users.noreply.github.com>"]
 edition = "2018"
@@ -8,4 +8,4 @@ edition = "2018"
 
 [dependencies]
 smallvec = "1.7.0"
-compiler = { path = "../compiler", default-features = false }
+compiler = { path = "../compiler", default-features = false, features = [], package = "vue-compiler-core" }

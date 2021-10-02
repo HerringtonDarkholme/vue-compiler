@@ -32,7 +32,7 @@ jobs:
           version: 6.16.0
           run_install: true
       - name: Run benchmark
-        run: cd benches && pnpm install && npm run bench | tee output-js.txt
+        run: cd benches && pnpm install && npm run bench --silent | tee output-js.txt
       - name: Store benchmark result
         uses:  benchmark-action/github-action-benchmark@v1
         with:

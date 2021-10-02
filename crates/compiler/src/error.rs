@@ -47,7 +47,7 @@ pub enum CompilationErrorKind {
     VElseNoAdjacentIf,
     VForNoExpression,
     VForMalformedExpression,
-    VForTemplateKeyPlacement, // TODO
+    VForTemplateKeyPlacement,
     VBindNoExpression,
     VOnNoExpression,
     VSlotUnexpectedDirectiveOnSlotOutlet,

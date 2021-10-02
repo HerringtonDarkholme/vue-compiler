@@ -317,7 +317,7 @@ pub trait CoreConverter<'a, T: ConvertInfo> {
         // order is defined as @vue/compiler-core/src/compile.ts
         let once = pre_convert_once(&mut e);
         let memo = pre_convert_memo(&mut e);
-        let vfor = pre_convert_for(&mut e);
+        let vfor = pre_convert_for(self, &mut e);
         let mut n = self.dispatch_element(e);
         if let Some(d) = vfor {
             n = self.convert_for(d, n);

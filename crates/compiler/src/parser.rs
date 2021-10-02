@@ -131,6 +131,15 @@ pub enum ElemProp<'a> {
     Dir(Directive<'a>),
 }
 
+impl<'a> ElemProp<'a> {
+    pub fn get_location(&self) -> &SourceLocation {
+        match self {
+            Self::Attr(a) => &a.location,
+            Self::Dir(d) => &d.location,
+        }
+    }
+}
+
 #[derive(PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum ElementType {

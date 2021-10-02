@@ -1,18 +1,22 @@
 use super::{
-    find_dir, BaseConvertInfo, BaseConverter, BaseIR, CompilationError, CoreConverter, Directive,
-    Element, ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
+    find_dir, BaseConvertInfo, BaseConverter, BaseIR, CompilationError, ConvertInfo, CoreConverter,
+    Directive, Element, ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
 };
 use crate::error::CompilationErrorKind as ErrorKind;
 use crate::flags::PatchFlag;
-use crate::util::VStr;
+use crate::parser::ElementType;
+use crate::util::{find_prop, VStr};
 
 /// Pre converts v-if or v-for like structural dir
-pub fn pre_convert_for<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
+pub fn pre_convert_for<'a, T: ConvertInfo, C: CoreConverter<'a, T> + ?Sized>(
+    bc: &C,
+    elem: &mut Element<'a>,
+) -> Option<Directive<'a>> {
     // convert v-for, v-if is converted elsewhere
     let dir = find_dir(&mut *elem, "for")?;
     let b = dir.take();
     debug_assert!(find_dir(&mut *elem, "for").is_none());
-    check_template_v_for_key();
+    check_template_v_for_key(bc, elem);
     Some(b)
 }
 
@@ -86,8 +90,26 @@ fn split_v_for_iter(mut lhs: &str) -> (&str, Option<&str>, Option<&str>) {
     }
 }
 
-// TODO: check <template v-for> key placement
-fn check_template_v_for_key() {}
+// check <template v-for> key placement
+fn check_template_v_for_key<'a, T: ConvertInfo, C: CoreConverter<'a, T> + ?Sized>(
+    bc: &C,
+    elem: &Element,
+) {
+    if elem.tag_type != ElementType::Template {
+        return;
+    }
+    let first_wrong = elem
+        .children
+        .iter()
+        .filter_map(|child| child.get_element())
+        .find_map(|child| find_prop(child, "key"));
+    if let Some(wrong) = first_wrong {
+        let key_loc = wrong.get_ref().get_location().clone();
+        let error =
+            CompilationError::new(ErrorKind::VForTemplateKeyPlacement).with_location(key_loc);
+        bc.emit_error(error);
+    }
+}
 
 #[cfg(test)]
 mod test {

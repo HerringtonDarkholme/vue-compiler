@@ -44,10 +44,11 @@ pub trait Transformer {
 
 #[derive(Default)]
 pub struct TransformOption {
-    is_ts: bool,
-    inline: bool,
     prefix_identifier: bool,
     is_dev: bool,
+    // should in SFCInfo
+    is_ts: bool,
+    inline: bool,
 }
 
 pub type BaseText<'a> = C::TextIR<BaseInfo<'a>>;

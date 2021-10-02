@@ -39,20 +39,12 @@ fn base_compile(source: &str) {
         },
     ];
     let mut s = Vec::new();
-    let parsing = ParseOption {
-        is_native_element: |t| t != "draggable-header-view" && t != "tree-item",
-        ..Default::default()
-    };
     let mut compiler = BaseCompiler::new(
         &mut s,
         pass,
         CompileOption {
-            scanning: Default::default(),
-            parsing,
-            conversion: Default::default(),
-            transformation: Default::default(),
-            codegen: Default::default(),
-            error_handler: Rc::new(VecErrorHandler::default()),
+            is_native_element: |t| t != "draggable-header-view" && t != "tree-item",
+            ..Default::default()
         },
     );
     compiler.compile(source).unwrap();

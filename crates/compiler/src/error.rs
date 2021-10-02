@@ -208,6 +208,9 @@ pub trait ErrorHandler {
 
 pub type RcErrHandle = Rc<dyn ErrorHandler>;
 
+pub struct NoopErrorHandler;
+impl ErrorHandler for NoopErrorHandler {}
+
 pub struct VecErrorHandler {
     errors: RefCell<Vec<CompilationError>>,
 }

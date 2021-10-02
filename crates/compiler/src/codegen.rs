@@ -27,27 +27,47 @@ pub trait CodeGenerator {
 
 #[derive(PartialEq, Eq, Clone)]
 pub enum ScriptMode {
-    Function { prefix_identifier: bool },
-    Module,
+    Function {
+        /// Transform expressions like {{ foo }} to `_ctx.foo`.
+        /// If this option is false, the generated code will be wrapped in a
+        /// `with (this) { ... }` block.
+        /// - This is force-enabled in module mode, since modules are by default strict
+        /// and cannot use `with`
+        /// @default mode === 'module'
+        prefix_identifier: bool,
+
+        /// Customize the global variable name of `Vue` to get helpers from
+        /// in function mode
+        /// @default 'Vue'
+        runtime_global_name: String,
+    },
+    Module {
+        /// Customize where to import runtime helpers from.
+        /// @default 'vue'
+        runtime_module_name: String,
+    },
 }
 
 #[derive(Clone)]
 pub struct CodeGenerateOption {
     pub is_dev: bool,
-    pub is_ts: bool,
     pub mode: ScriptMode,
     pub source_map: bool,
-    pub inline: bool,
     pub has_binding: bool,
+    pub decode_entities: EntityDecoder,
+
     // filename for source map
     pub filename: String,
-    pub decode_entities: EntityDecoder,
+    pub is_ts: bool,
+    pub inline: bool,
 }
 impl CodeGenerateOption {
     fn use_with_scope(&self) -> bool {
         match self.mode {
-            ScriptMode::Function { prefix_identifier } => !prefix_identifier,
-            ScriptMode::Module => false,
+            ScriptMode::Function {
+                prefix_identifier, ..
+            } => !prefix_identifier,
+            ScriptMode::Module { .. } => false,
         }
     }
 }
@@ -58,6 +78,7 @@ impl Default for CodeGenerateOption {
             is_ts: false,
             mode: ScriptMode::Function {
                 prefix_identifier: false,
+                runtime_global_name: "Vue".into(),
             },
             source_map: false,
             inline: false,
@@ -304,10 +325,9 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
     /// for import helpers or hoist that not in function
     fn generate_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {
-        if self.option.mode == ScriptMode::Module {
-            self.gen_module_preamble()
-        } else {
-            self.gen_function_preamble(top)
+        match self.option.mode {
+            ScriptMode::Module { .. } => self.gen_module_preamble(),
+            ScriptMode::Function { .. } => self.gen_function_preamble(top),
         }
     }
     fn gen_function_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {

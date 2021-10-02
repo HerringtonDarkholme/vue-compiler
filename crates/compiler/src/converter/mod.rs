@@ -470,11 +470,14 @@ pub struct SFCInfo<'a> {
     /// Defaults to `true` for backwards compatibility - SFC tooling should set it
     /// to `false` if no `:slotted` usage is detected in `<style>`
     pub slotted: bool,
+    /// SFC scoped styles ID
     pub scope_id: Option<String>,
     /// Optional binding metadata analyzed from script - used to optimize
     /// binding access when `prefixIdentifiers` is enabled.
     pub binding_metadata: Rc<BindingMetadata<'a>>,
-    /// current SFC filename for self-referencing
+    /// Filename for source map generation.
+    /// Also used for self-recursive reference in templates
+    /// @default 'template.vue.html'
     pub self_name: String,
 }
 

@@ -64,19 +64,12 @@ fn main() -> Result<()> {
 type CliInput = (String, CompileOption, ShowOption);
 fn process(opts: Opts) -> Result<CliInput> {
     let (name, source) = get_file(opts.input_file_name)?;
-    let err_hanlde = PrettyErrorHandler::new(name, source.clone());
+    let err_handle = PrettyErrorHandler::new(name, source.clone());
     let delimiters = get_delimiters(opts.delimiters)?;
-    let scanning = ScanOption {
-        delimiters,
-        ..scan_option()
-    };
     let option = CompileOption {
-        scanning,
-        parsing: Default::default(),
-        conversion: Default::default(),
-        transformation: Default::default(),
-        codegen: Default::default(),
-        error_handler: Rc::new(err_hanlde),
+        delimiters,
+        error_handler: Rc::new(err_handle),
+        ..Default::default()
     };
     let show = ShowOption {
         dump_scan: opts.dump_scan,

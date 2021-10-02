@@ -37,10 +37,9 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
             shared_info: Scope::default(),
         },
     ];
-    let error_handler = option.error_handler;
-    let eh = || error_handler.clone();
+    let eh = || option.error_handler.clone();
 
-    let scanner = scanner::Scanner::new(option.scanning);
+    let scanner = scanner::Scanner::new(option.scanning());
     let tokens = scanner.scan(&source, eh());
     if show.dump_scan {
         let tokens: Vec<_> = scanner.scan(&source, eh()).collect();
@@ -50,7 +49,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
         println!(r#"========== End of Tokens =========="#);
     }
 
-    let parser = parser::Parser::new(option.parsing);
+    let parser = parser::Parser::new(option.parsing());
     let ast = parser.parse(tokens, eh());
     if show.dump_parse {
         println!(r#"=============== AST =============="#);
@@ -62,7 +61,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let converter = converter::BaseConverter {
         err_handle: eh(),
         sfc_info: Default::default(),
-        option: option.conversion,
+        option: option.converting(),
     };
     let mut ir = converter.convert_ir(ast);
     if show.dump_convert {
@@ -79,7 +78,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
         println!(r#"======== End of Transform ========"#);
     }
 
-    let mut generator = codegen::CodeWriter::new(io::stdout(), option.codegen);
+    let mut generator = codegen::CodeWriter::new(io::stdout(), option.codegen());
     generator.generate(ir)?;
     Ok(())
 }

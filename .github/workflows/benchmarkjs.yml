@@ -19,6 +19,8 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
       - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.16.0
       - name: Run benchmark
         run: cd benches && pnpm install && npm run bench | tee output-js.txt
       - name: Store benchmark result

@@ -2,6 +2,7 @@ use super::base_parse;
 use crate::common::serialize_yaml;
 use compiler::parser;
 use insta::assert_snapshot;
+use vue_compiler_core as compiler;
 
 fn test_dir(case: &str) {
     let mut elem = mock_element(case);

@@ -1,6 +1,7 @@
 use compiler::error::ErrorHandler;
 pub use compiler::{Position, SourceLocation};
 use serde::Serialize;
+use vue_compiler_core as compiler;
 
 #[derive(Clone)]
 pub struct TestErrorHandler;

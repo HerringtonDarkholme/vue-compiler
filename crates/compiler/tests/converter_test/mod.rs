@@ -3,6 +3,7 @@ use super::common::TestErrorHandler;
 use super::parser_test::base_parse;
 use compiler::converter::{self as C, BaseConverter, ConvertOption, Converter};
 use insta::assert_snapshot;
+use vue_compiler_core as compiler;
 
 fn test_ir(case: &str) {
     let name = insta::_macro_support::AutoName;

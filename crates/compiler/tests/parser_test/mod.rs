@@ -1,3 +1,4 @@
+use vue_compiler_core as compiler;
 mod dir;
 use super::common::{serialize_yaml, TestErrorHandler};
 use super::scanner_test::base_scan;

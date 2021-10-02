@@ -35,8 +35,11 @@ function getHumanReadableUnitValue(seconds: number): [number, string] {
 suite
     .on('cycle', (event: Benchmark.Event) => {
         const bench = event.target
-        const [val, unit] = getHumanReadableUnitValue(bench.stats.mean)
-        const time =  val.toFixed(2) + unit
-        console.log(String(event.target), `Time: ${time}`);
+        let time = ''
+        if (!process.env.CI) {
+            const [val, unit] = getHumanReadableUnitValue(bench.stats.mean)
+            time =  `Time: ${val.toFixed(2) + unit}`
+        }
+        console.log(String(event.target), time)
     })
     .run()

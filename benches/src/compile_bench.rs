@@ -41,6 +41,7 @@ fn base_compile(source: &str) {
         pass,
         CompileOption {
             is_native_tag: |t| t != "draggable-header-view" && t != "tree-item",
+            is_dev: false,
             ..Default::default()
         },
     );

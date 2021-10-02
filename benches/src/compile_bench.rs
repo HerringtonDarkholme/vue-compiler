@@ -4,6 +4,7 @@ use compiler::compiler::BaseCompiler;
 use compiler::{
     compiler::{CompileOption, TemplateCompiler},
     error::VecErrorHandler,
+    parser::ParseOption,
     transformer::{
         collect_entities::EntityCollector,
         mark_patch_flag::PatchFlagMarker,
@@ -37,12 +38,16 @@ fn base_compile(source: &str) {
         },
     ];
     let mut s = Vec::new();
+    let parsing = ParseOption {
+        is_native_element: |t| t != "draggable-header-view" && t != "tree-item",
+        ..Default::default()
+    };
     let mut compiler = BaseCompiler::new(
         &mut s,
         pass,
         CompileOption {
             scanning: Default::default(),
-            parsing: Default::default(),
+            parsing,
             conversion: Default::default(),
             transformation: Default::default(),
             codegen: Default::default(),

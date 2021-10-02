@@ -1,0 +1,24 @@
+{
+  "name": "benches",
+  "version": "1.0.0",
+  "description": "Benchmark for Vue compiler",
+  "main": "index.js",
+  "scripts": {
+    "bench": "ts-node-transpile-only bench.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/benchmark": "^2.1.1",
+    "@types/glob": "^7.1.4",
+    "@vue/compiler-core": "^3.2.19",
+    "benchmark": "^2.1.4",
+    "glob": "^7.2.0",
+    "microtime": "^3.0.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.2.1",
+    "typescript": "^4.4.3"
+  }
+}

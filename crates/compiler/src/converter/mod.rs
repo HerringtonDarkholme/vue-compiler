@@ -29,7 +29,7 @@ use crate::{
     Name,
 };
 
-pub use crate::error::{CompilationError, ErrorHandler};
+pub use crate::error::{CompilationError, ErrorHandler, RcErrHandle};
 pub use crate::parser::{AstNode, AstRoot, Directive, Element};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::{smallvec, SmallVec};
@@ -491,7 +491,7 @@ impl<'a> Default for SFCInfo<'a> {
 }
 
 pub struct BaseConverter<'a> {
-    pub err_handle: Box<dyn ErrorHandler>,
+    pub err_handle: RcErrHandle,
     pub sfc_info: SFCInfo<'a>,
     pub option: ConvertOption,
 }
@@ -617,7 +617,7 @@ pub mod test {
             ..Default::default()
         };
         let bc = BC {
-            err_handle: Box::new(TestErrorHandler),
+            err_handle: Rc::new(TestErrorHandler),
             sfc_info: Default::default(),
             option,
         };

@@ -7,24 +7,23 @@ use super::{
     transformer::{BaseTransformer, CorePass, MergedPass, TransformOption, Transformer},
 };
 
-use std::io;
+use std::{io, rc::Rc};
 
 // TODO: we have internal option that diverges from vue's option
 // CompileOption should behave like Vue option and be normalized to internal option
-pub struct CompileOption<E: ErrorHandler + Clone> {
+pub struct CompileOption {
     pub scanning: ScanOption,
     pub parsing: ParseOption,
     pub conversion: ConvertOption,
     pub transformation: TransformOption,
     pub codegen: CodeGenerateOption,
-    pub error_handler: E,
+    pub error_handler: Rc<dyn ErrorHandler>,
 }
 
 // TODO: refactor this ownership usage
 pub trait TemplateCompiler<'a> {
     type IR;
     type Output;
-    type Eh: ErrorHandler;
     type Conv: Converter<'a, IR = Self::IR>;
     type Trans: Transformer<IR = Self::IR>;
     type Gen: CodeGenerator<IR = Self::IR, Output = Self::Output>;
@@ -34,7 +33,7 @@ pub trait TemplateCompiler<'a> {
     fn get_converter(&self) -> Self::Conv;
     fn get_transformer(&mut self) -> Self::Trans;
     fn get_code_generator(&mut self) -> Self::Gen;
-    fn get_error_handler(&self) -> Self::Eh;
+    fn get_error_handler(&self) -> Rc<dyn ErrorHandler>;
 
     fn compile(&mut self, source: &'a str) -> Self::Output {
         let scanner = self.get_scanner();
@@ -51,18 +50,17 @@ pub trait TemplateCompiler<'a> {
 
 type Passes<'a, 'b> = &'b mut dyn CorePass<BaseInfo<'a>>;
 
-pub struct BaseCompiler<'a, 'b, Eh: ErrorHandler + Clone, W: io::Write> {
+pub struct BaseCompiler<'a, 'b, W: io::Write> {
     writer: Option<W>,
     passes: Option<&'b mut [Passes<'a, 'b>]>,
-    option: CompileOption<Eh>,
+    option: CompileOption,
 }
 
-impl<'a, 'b, Eh, W> BaseCompiler<'a, 'b, Eh, W>
+impl<'a, 'b, W> BaseCompiler<'a, 'b, W>
 where
     W: io::Write,
-    Eh: ErrorHandler + Clone + 'static,
 {
-    pub fn new(writer: W, passes: &'b mut [Passes<'a, 'b>], option: CompileOption<Eh>) -> Self {
+    pub fn new(writer: W, passes: &'b mut [Passes<'a, 'b>], option: CompileOption) -> Self {
         Self {
             writer: Some(writer),
             passes: Some(passes),
@@ -71,13 +69,11 @@ where
     }
 }
 
-impl<'a, 'b, Eh, W> TemplateCompiler<'a> for BaseCompiler<'a, 'b, Eh, W>
+impl<'a, 'b, W> TemplateCompiler<'a> for BaseCompiler<'a, 'b, W>
 where
     W: io::Write,
-    Eh: ErrorHandler + Clone + 'static,
 {
     type IR = BaseRoot<'a>;
-    type Eh = Eh;
     type Output = io::Result<()>;
     type Conv = BaseConverter<'a>;
     type Trans = BaseTransformer<'a, MergedPass<'b, Passes<'a, 'b>>>;
@@ -94,7 +90,7 @@ where
         let eh = self.get_error_handler();
         let option = self.option.conversion.clone();
         BaseConverter {
-            err_handle: Box::new(eh),
+            err_handle: eh,
             sfc_info: Default::default(),
             option,
         }
@@ -108,7 +104,7 @@ where
         let writer = self.writer.take().unwrap();
         CodeWriter::new(writer, option)
     }
-    fn get_error_handler(&self) -> Self::Eh {
+    fn get_error_handler(&self) -> Rc<dyn ErrorHandler> {
         self.option.error_handler.clone()
     }
 }

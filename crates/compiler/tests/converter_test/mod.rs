@@ -25,7 +25,7 @@ pub fn base_convert(s: &str) -> C::BaseRoot {
     let converter = BaseConverter {
         option: ConvertOption::default(),
         sfc_info: Default::default(),
-        err_handle: Box::new(TestErrorHandler),
+        err_handle: std::rc::Rc::new(TestErrorHandler),
     };
     converter.convert_ir(ast)
 }

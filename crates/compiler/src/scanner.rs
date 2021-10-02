@@ -3,7 +3,7 @@
 //! https://html.spec.whatwg.org/multipage/parsing.html#tokenization
 
 use super::{
-    error::{CompilationError, CompilationErrorKind as ErrorKind, ErrorHandler},
+    error::{CompilationError, CompilationErrorKind as ErrorKind, RcErrHandle},
     util::{non_whitespace, VStr},
     Name, Position, SourceLocation,
 };
@@ -143,10 +143,7 @@ impl Scanner {
             delimiter_first_char,
         }
     }
-    pub fn scan<'a, E>(&self, source: &'a str, err_handle: E) -> impl TokenSource<'a>
-    where
-        E: ErrorHandler,
-    {
+    pub fn scan<'a>(&self, source: &'a str, err_handle: RcErrHandle) -> impl TokenSource<'a> {
         Tokens {
             source,
             err_handle,
@@ -161,9 +158,9 @@ impl Scanner {
     }
 }
 
-pub struct Tokens<'a, E: ErrorHandler> {
+pub struct Tokens<'a> {
     source: &'a str,
-    err_handle: E,
+    err_handle: RcErrHandle,
     position: Position,
     last_pos: Position,
     mode: TextMode,
@@ -183,7 +180,7 @@ pub struct Tokens<'a, E: ErrorHandler> {
 // because Rust ownership can help us to prevent invalid state.
 // e.g. `let src = self.source` causes a stale src after [`move_by`].
 // while `let src= &self.source` forbids any src usage after a mut call.
-impl<'a, C: ErrorHandler> Tokens<'a, C> {
+impl<'a> Tokens<'a> {
     // https://html.spec.whatwg.org/multipage/parsing.html#data-state
     // NB: & is not handled here but instead in `decode_entities`
     fn scan_data(&mut self) -> Token<'a> {
@@ -681,7 +678,7 @@ impl<'a, C: ErrorHandler> Tokens<'a, C> {
 }
 
 // utility methods
-impl<'a, C: ErrorHandler> Tokens<'a, C> {
+impl<'a> Tokens<'a> {
     fn emit_error(&self, error_kind: ErrorKind) {
         let start = self.current_position();
         let loc = self.get_location_from(start);
@@ -770,7 +767,7 @@ fn scan_tag_name_length(mut bytes: Bytes<'_>) -> usize {
     l + 1
 }
 
-impl<'a, C: ErrorHandler> Iterator for Tokens<'a, C> {
+impl<'a> Iterator for Tokens<'a> {
     type Item = Token<'a>;
     // https://html.spec.whatwg.org/multipage/parsing.html#concept-frag-parse-context
     fn next(&mut self) -> Option<Self::Item> {
@@ -787,9 +784,9 @@ impl<'a, C: ErrorHandler> Iterator for Tokens<'a, C> {
 }
 
 // Parser requires Tokens always yield None when exhausted.
-impl<'a, C: ErrorHandler> FusedIterator for Tokens<'a, C> {}
+impl<'a> FusedIterator for Tokens<'a> {}
 
-impl<'a, C: ErrorHandler> FlagCDataNs for Tokens<'a, C> {
+impl<'a> FlagCDataNs for Tokens<'a> {
     fn set_is_in_html(&mut self, in_html: bool) {
         self.is_in_html_namespace = in_html;
     }
@@ -798,7 +795,7 @@ impl<'a, C: ErrorHandler> FlagCDataNs for Tokens<'a, C> {
     }
 }
 
-impl<'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
+impl<'a> Locatable for Tokens<'a> {
     fn current_position(&self) -> Position {
         self.position.clone()
     }
@@ -816,7 +813,7 @@ impl<'a, C: ErrorHandler> Locatable for Tokens<'a, C> {
 }
 
 pub trait TokenSource<'a>: FusedIterator<Item = Token<'a>> + FlagCDataNs + Locatable {}
-impl<'a, C> TokenSource<'a> for Tokens<'a, C> where C: ErrorHandler {}
+impl<'a> TokenSource<'a> for Tokens<'a> {}
 
 #[cfg(test)]
 pub mod test {
@@ -836,7 +833,7 @@ pub mod test {
 
     fn scan_with_opt(s: &str, opt: ScanOption) -> impl TokenSource {
         let scanner = Scanner::new(opt);
-        let ctx = TestErrorHandler;
+        let ctx = std::rc::Rc::new(TestErrorHandler);
         scanner.scan(s, ctx)
     }
 

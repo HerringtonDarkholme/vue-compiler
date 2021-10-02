@@ -15,6 +15,7 @@ use compiler::{
         CorePass, CorePassExt, MergedPass,
     },
 };
+use std::rc::Rc;
 
 use criterion::BenchmarkId;
 use criterion::Criterion;
@@ -51,7 +52,7 @@ fn base_compile(source: &str) {
             conversion: Default::default(),
             transformation: Default::default(),
             codegen: Default::default(),
-            error_handler: VecErrorHandler::default(),
+            error_handler: Rc::new(VecErrorHandler::default()),
         },
     );
     compiler.compile(source).unwrap();

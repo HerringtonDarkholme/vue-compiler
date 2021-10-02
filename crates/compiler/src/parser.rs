@@ -15,15 +15,16 @@
 // Instead, we use a simple stack to construct AST.
 
 use super::{
-    error::{CompilationError, CompilationErrorKind as ErrorKind, ErrorHandler},
+    error::{CompilationError, CompilationErrorKind as ErrorKind, RcErrHandle},
     scanner::{Attribute, AttributeValue, Tag, TextMode, Token, TokenSource},
     util::{find_dir, is_core_component, no, non_whitespace, yes, VStr},
     Name, Namespace, SourceLocation,
 };
-#[cfg(feature = "serde")]
-use serde::Serialize;
 use smallvec::{smallvec, SmallVec};
 use std::ops::Deref;
+
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum AstNode<'a> {
@@ -259,10 +260,9 @@ impl Parser {
         Self { option }
     }
 
-    pub fn parse<'a, Ts, E>(&self, tokens: Ts, err_handle: E) -> AstRoot<'a>
+    pub fn parse<'a, Ts>(&self, tokens: Ts, err_handle: RcErrHandle) -> AstRoot<'a>
     where
         Ts: TokenSource<'a>,
-        E: ErrorHandler,
     {
         let need_flag_namespace = tokens.need_flag_hint();
         AstBuilder {
@@ -280,13 +280,12 @@ impl Parser {
 }
 
 // TODO: remove Eh as generic
-struct AstBuilder<'a, Ts, Eh>
+struct AstBuilder<'a, Ts>
 where
     Ts: TokenSource<'a>,
-    Eh: ErrorHandler,
 {
     tokens: Ts,
-    err_handle: Eh,
+    err_handle: RcErrHandle,
     option: ParseOption,
     open_elems: Vec<Element<'a>>,
     root_nodes: Vec<AstNode<'a>>,
@@ -299,10 +298,9 @@ where
 }
 
 // utility method
-impl<'a, Ts, Eh> AstBuilder<'a, Ts, Eh>
+impl<'a, Ts> AstBuilder<'a, Ts>
 where
     Ts: TokenSource<'a>,
-    Eh: ErrorHandler,
 {
     // Insert node into current insertion point.
     // It's the last open element's children if open_elems is not empty.
@@ -322,10 +320,9 @@ where
 }
 
 // parse logic
-impl<'a, Ts, Eh> AstBuilder<'a, Ts, Eh>
+impl<'a, Ts> AstBuilder<'a, Ts>
 where
     Ts: TokenSource<'a>,
-    Eh: ErrorHandler,
 {
     fn build_ast(mut self) -> AstRoot<'a> {
         let start = self.tokens.current_position();
@@ -637,14 +634,14 @@ const SHORTHANDS: &[char] = &[BIND_CHAR, ON_CHAR, SLOT_CHAR, MOD_CHAR];
 const DIR_MARK: &str = "v-";
 
 type StrPair<'a> = (&'a str, &'a str);
-struct DirectiveParser<'a, 'e, Eh: ErrorHandler> {
-    eh: &'e Eh,
+struct DirectiveParser<'a, 'b> {
+    eh: &'b RcErrHandle,
     name_loc: SourceLocation,
     location: SourceLocation,
     cached: Option<StrPair<'a>>,
 }
-impl<'a, 'e, Eh: ErrorHandler> DirectiveParser<'a, 'e, Eh> {
-    fn new(eh: &'e Eh) -> Self {
+impl<'a, 'b> DirectiveParser<'a, 'b> {
+    fn new(eh: &'b RcErrHandle) -> Self {
         Self {
             eh,
             name_loc: Default::default(),
@@ -923,7 +920,7 @@ pub mod test {
             is_native_element: |s| s != "comp",
             ..Default::default()
         });
-        let eh = TestErrorHandler;
+        let eh = std::rc::Rc::new(TestErrorHandler);
         parser.parse(tokens, eh)
     }
 

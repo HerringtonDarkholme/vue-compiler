@@ -5,6 +5,7 @@ use std::{
     env, fs,
     io::{self, Read},
     path::{Path, PathBuf},
+    rc::Rc,
 };
 
 use anyhow::{bail, Result};
@@ -60,7 +61,7 @@ fn main() -> Result<()> {
     compile_to_stdout(cli_input)
 }
 
-type CliInput = (String, CompileOption<PrettyErrorHandler>, ShowOption);
+type CliInput = (String, CompileOption, ShowOption);
 fn process(opts: Opts) -> Result<CliInput> {
     let (name, source) = get_file(opts.input_file_name)?;
     let err_hanlde = PrettyErrorHandler::new(name, source.clone());
@@ -75,7 +76,7 @@ fn process(opts: Opts) -> Result<CliInput> {
         conversion: Default::default(),
         transformation: Default::default(),
         codegen: Default::default(),
-        error_handler: err_hanlde,
+        error_handler: Rc::new(err_hanlde),
     };
     let show = ShowOption {
         dump_scan: opts.dump_scan,

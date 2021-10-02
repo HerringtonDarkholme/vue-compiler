@@ -60,7 +60,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     }
 
     let converter = converter::BaseConverter {
-        err_handle: Box::new(eh()),
+        err_handle: eh(),
         sfc_info: Default::default(),
         option: option.conversion,
     };

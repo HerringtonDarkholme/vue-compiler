@@ -32,6 +32,6 @@ pub fn base_parse(s: &str) -> p::AstRoot {
         is_native_element: |s| s != "comp",
         ..ParseOption::default()
     });
-    let eh = TestErrorHandler;
+    let eh = std::rc::Rc::new(TestErrorHandler);
     parser.parse(tokens, eh)
 }

@@ -206,14 +206,15 @@ pub trait ErrorHandler {
     fn on_error(&self, _: CompilationError) {}
 }
 
-#[derive(Clone)]
+pub type RcErrHandle = Rc<dyn ErrorHandler>;
+
 pub struct VecErrorHandler {
-    errors: Rc<RefCell<Vec<CompilationError>>>,
+    errors: RefCell<Vec<CompilationError>>,
 }
 impl Default for VecErrorHandler {
     fn default() -> Self {
         Self {
-            errors: Rc::new(RefCell::new(vec![])),
+            errors: RefCell::new(vec![]),
         }
     }
 }

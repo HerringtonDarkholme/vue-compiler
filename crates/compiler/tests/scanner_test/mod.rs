@@ -6,7 +6,7 @@ use vue_compiler_core as compiler;
 
 fn scan_with_opt(s: &str, opt: ScanOption) -> impl TokenSource {
     let scanner = Scanner::new(opt);
-    let ctx = TestErrorHandler;
+    let ctx = std::rc::Rc::new(TestErrorHandler);
     scanner.scan(s, ctx)
 }
 

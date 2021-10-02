@@ -6,6 +6,7 @@ use crate::error::CompilationErrorKind as ErrorKind;
 use crate::flags::PatchFlag;
 use crate::parser::ElementType;
 use crate::util::{find_prop, VStr};
+use smallvec::SmallVec;
 
 /// Pre converts v-if or v-for like structural dir
 pub fn pre_convert_for<'a, T: ConvertInfo, C: CoreConverter<'a, T> + ?Sized>(
@@ -73,7 +74,7 @@ fn parse_for_expr(expr: VStr) -> Option<ParsedFor> {
 
 const DESTRUCTING: &[char] = &['}', ']'];
 fn split_v_for_iter(mut lhs: &str) -> (&str, Option<&str>, Option<&str>) {
-    let mut split = Vec::with_capacity(3);
+    let mut split = SmallVec::<[&str; 3]>::new();
     while let Some((pre, post)) = lhs.rsplit_once(',') {
         if post.contains(DESTRUCTING) || split.len() == 2 {
             break;

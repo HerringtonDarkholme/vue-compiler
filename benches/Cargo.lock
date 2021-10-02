@@ -38,9 +38,9 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 name = "benches"
 version = "0.1.0"
 dependencies = [
- "compiler",
  "criterion",
  "glob",
+ "vue-compiler-core",
 ]
 
 [[package]]
@@ -102,18 +102,6 @@ dependencies = [
  "atty",
  "lazy_static",
  "winapi",
-]
-
-[[package]]
-name = "compiler"
-version = "0.1.0"
-dependencies = [
- "bitflags",
- "json",
- "rslint_parser",
- "rustc-hash",
- "serde",
- "smallvec",
 ]
 
 [[package]]
@@ -755,6 +743,18 @@ name = "unicode-xid"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
+
+[[package]]
+name = "vue-compiler-core"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "json",
+ "rslint_parser",
+ "rustc-hash",
+ "serde",
+ "smallvec",
+]
 
 [[package]]
 name = "walkdir"

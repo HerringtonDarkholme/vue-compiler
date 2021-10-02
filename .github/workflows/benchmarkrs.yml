@@ -1,0 +1,47 @@
+name: Benchmark rusty vue compiler
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  deployments: write
+
+jobs:
+  benchmark:
+    name: Run vue compiler-core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install rust
+        uses: hecrj/setup-rust-action@v1.3.4
+        with:
+            rust-version: stable
+      - name: Cache cargo
+        uses: actions/cache@v2
+        with:
+            path: |
+                ~/.cargo/registry
+                ~/.cargo/git
+                benches/target/
+            key: ${{ runner.os }}-${{ github.sha }}
+            restore-keys: ${{ runner.os }}-
+      - name: Run benchmark
+        run: cd benches && cargo bench -- --noplot --output-format bencher | tee output-rs.txt
+      - name: Store benchmark result
+        uses:  benchmark-action/github-action-benchmark@v1
+        with:
+          name: Benchmark rusty vue compiler
+          tool: 'cargo'
+          output-file-path: benches/output-rs.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          # Show alert with commit comment on detecting possible performance regression
+          alert-threshold: '200%'
+          comment-on-alert: true
+          fail-on-alert: true
+          alert-comment-cc-users: '@HerringtonDarkholme'

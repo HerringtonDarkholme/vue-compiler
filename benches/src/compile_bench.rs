@@ -3,8 +3,6 @@ mod bench_util;
 use compiler::compiler::BaseCompiler;
 use compiler::{
     compiler::{CompileOption, TemplateCompiler},
-    error::VecErrorHandler,
-    parser::ParseOption,
     transformer::{
         collect_entities::EntityCollector,
         mark_patch_flag::PatchFlagMarker,
@@ -15,7 +13,6 @@ use compiler::{
         CorePass, CorePassExt, MergedPass,
     },
 };
-use std::rc::Rc;
 
 use criterion::BenchmarkId;
 use criterion::Criterion;
@@ -26,7 +23,7 @@ fn base_compile(source: &str) {
         &mut SlotFlagMarker,
         &mut ExpressionProcessor {
             option: &Default::default(),
-            binding_metadata: &Default::default(),
+            sfc_info: &Default::default(),
         },
     ];
     let pass: &mut [&mut dyn CorePass<_>] = &mut [
@@ -43,7 +40,7 @@ fn base_compile(source: &str) {
         &mut s,
         pass,
         CompileOption {
-            is_native_element: |t| t != "draggable-header-view" && t != "tree-item",
+            is_native_tag: |t| t != "draggable-header-view" && t != "tree-item",
             ..Default::default()
         },
     );

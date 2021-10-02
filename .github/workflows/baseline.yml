@@ -1,11 +1,5 @@
-name: Benchmark @vue canonical compiler
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+name: Benchmark Baseline
+on: [workflow_dispatch]
 
 permissions:
   contents: write

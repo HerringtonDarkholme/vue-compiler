@@ -1,4 +1,4 @@
-name: Benchmark rusty vue compiler
+name: Benchmark
 on:
   push:
     branches:

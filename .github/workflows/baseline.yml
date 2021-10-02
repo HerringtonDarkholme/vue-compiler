@@ -1,5 +1,8 @@
 name: Benchmark Baseline
-on: [workflow_dispatch]
+on:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write

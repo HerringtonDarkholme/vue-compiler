@@ -3,8 +3,8 @@ use super::{
         CodeGenerateOption, CodeGenerator, CodeWriter, DecodedStr, EntityDecoder, ScriptMode,
     },
     converter::{
-        BaseConvertInfo as BaseInfo, BaseConverter, BaseRoot, ConvertOption, Converter,
-        DirConvertFn,
+        no_op_directive_convert, BaseConvertInfo as BaseInfo, BaseConverter, BaseRoot,
+        ConvertOption, Converter, DirConvertFn, V_BIND, V_MODEL,
     },
     error::{NoopErrorHandler, RcErrHandle},
     flags::RuntimeHelper,
@@ -112,6 +112,10 @@ pub struct CompileOption {
 
 impl Default for CompileOption {
     fn default() -> Self {
+        let mut directive_converters = FxHashMap::default();
+        directive_converters.insert(V_BIND.0, V_BIND.1);
+        directive_converters.insert(V_MODEL.0, V_MODEL.1);
+        directive_converters.insert("on", no_op_directive_convert);
         Self {
             is_native_tag: yes,
             is_void_tag: no,
@@ -125,7 +129,7 @@ impl Default for CompileOption {
             decode_entities: |s, _| DecodedStr::from(s),
             preserve_comments: None,
             is_dev: true,
-            directive_converters: FxHashMap::default(),
+            directive_converters,
             hoist_static: false,
             cache_handlers: false,
             mode: ScriptMode::Function {

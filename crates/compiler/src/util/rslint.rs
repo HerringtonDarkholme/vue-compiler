@@ -298,6 +298,10 @@ where
     })
 }
 
+pub fn is_member_expression(s: &str) -> bool {
+    todo!()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

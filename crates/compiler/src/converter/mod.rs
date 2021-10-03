@@ -22,12 +22,24 @@ Convert module roughly corresponds to following transform in vue-next.
 * vOn (noop)
 */
 
+mod build_props;
+mod cache_dir;
+mod convert_element;
+mod convert_slot_outlet;
+mod v_bind;
+mod v_for;
+mod v_if;
+mod v_model;
+mod v_slot;
+
 use crate::{
     flags::{HelperCollector, PatchFlag, RuntimeHelper, SlotFlag, StaticLevel},
     parser::{SourceNode, TextNode},
     util::{find_dir, get_core_component, VStr},
     Name,
 };
+pub use v_bind::V_BIND;
+pub use v_model::V_MODEL;
 
 pub use crate::error::{CompilationError, ErrorHandler, RcErrHandle};
 pub use crate::parser::{AstNode, AstRoot, Directive, Element};
@@ -38,15 +50,6 @@ use std::{marker::PhantomData, ops::Deref};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
-
-mod build_props;
-mod cache_dir;
-mod convert_element;
-mod convert_slot_outlet;
-mod v_bind;
-mod v_for;
-mod v_if;
-mod v_slot;
 
 use cache_dir::{pre_convert_memo, pre_convert_once};
 use v_for::pre_convert_for;

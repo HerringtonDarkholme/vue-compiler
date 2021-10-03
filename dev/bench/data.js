@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1633191855483,
+  "lastUpdate": 1633281685188,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -1312,6 +1312,48 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 6945,
             "range": "± 469",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "committer": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "distinct": true,
+          "id": "463b3c20b9cf2b5e71cd4fc7bdad86a855af2522",
+          "message": "[feat] add vmodel impl",
+          "timestamp": "2021-10-04T01:20:01+08:00",
+          "tree_id": "a8bb4c654d66e674122efe04f370538cf6b404c5",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/463b3c20b9cf2b5e71cd4fc7bdad86a855af2522"
+        },
+        "date": 1633281684295,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 5842,
+            "range": "± 162",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4188,
+            "range": "± 205",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 43783,
+            "range": "± 1252",
             "unit": "ns/iter"
           }
         ]

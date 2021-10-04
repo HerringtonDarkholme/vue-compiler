@@ -4,7 +4,7 @@ use crate::{
     cast,
     error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
     parser::DirectiveArg,
-    util::{is_simple_identifier, not_js_identifier, rslint, VStr},
+    util::{is_simple_identifier, rslint, VStr},
 };
 
 use super::{

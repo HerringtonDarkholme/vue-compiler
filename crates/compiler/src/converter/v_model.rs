@@ -4,7 +4,7 @@ use crate::{
     cast,
     error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
     parser::DirectiveArg,
-    util::{is_simple_identifier, rslint, VStr},
+    util::{is_simple_identifier, not_js_identifier, rslint, VStr},
 };
 
 use super::{
@@ -59,6 +59,9 @@ pub fn convert_v_model<'a>(
 
 fn is_member_expression(expr: VStr) -> bool {
     // TODO: looks like pattern can also work?
+    if !expr.raw.starts_with(char::is_alphabetic) {
+        return false;
+    }
     is_simple_identifier(expr) || rslint::is_member_expression(&expr)
 }
 

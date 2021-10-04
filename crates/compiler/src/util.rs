@@ -45,7 +45,7 @@ pub fn is_mergeable_prop(prop: &str) -> bool {
 }
 
 #[inline]
-fn not_js_identifier(c: char) -> bool {
+pub fn not_js_identifier(c: char) -> bool {
     !c.is_alphanumeric() && c != '$' && c != '_'
 }
 

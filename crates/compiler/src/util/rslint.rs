@@ -298,8 +298,20 @@ where
     })
 }
 
-pub fn is_member_expression(s: &str) -> bool {
-    todo!()
+pub fn is_member_expression(text: &str) -> bool {
+    is_member_expr_impl(parse_js_expr(text))
+}
+fn is_member_expr_impl(expr_opt: Option<Expr>) -> bool {
+    let expr = match expr_opt {
+        Some(e) => e,
+        None => return false,
+    };
+    use Expr as E;
+    match expr {
+        E::NameRef(_) | E::DotExpr(_) | E::BracketExpr(_) => true,
+        E::GroupingExpr(e) => is_member_expr_impl(e.inner()),
+        _ => false,
+    }
 }
 
 #[cfg(test)]

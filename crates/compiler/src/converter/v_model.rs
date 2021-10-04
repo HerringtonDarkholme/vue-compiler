@@ -44,18 +44,13 @@ pub fn convert_v_model<'a>(
             DirectiveArg::Dynamic(d) => Js::simple(d),
         })
         .unwrap_or_else(|| Js::str_lit("modelValue"));
-    let event_name = todo!();
-    let assignment = todo!();
-    let props = Js::Props(vec![
-        (prop_name, Js::Simple(val, StaticLevel::NotStatic)),
-        (event_name, assignment),
-    ]);
-    if need_cache() {
-        // TODO, change assignment expr
-    }
+    let mut props = vec![(prop_name, Js::Simple(val, StaticLevel::NotStatic))];
     // TODO process modifiers
+    if !modifiers.is_empty() {
+        props.push(modifiers_ir());
+    }
     DirectiveConvertResult::Converted {
-        value: props,
+        value: Js::Props(props),
         runtime: Err(false),
     }
 }
@@ -64,7 +59,8 @@ fn is_member_expression(expr: VStr) -> bool {
     // TODO: looks like pattern can also work?
     is_simple_identifier(expr) || rslint::is_member_expression(&expr)
 }
-fn need_cache() -> bool {
+
+fn modifiers_ir<'a>() -> (Js<'a>, Js<'a>) {
     todo!()
 }
 

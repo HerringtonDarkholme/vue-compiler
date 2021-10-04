@@ -18,18 +18,19 @@ bitflags! {
     #[derive(Default)]
     pub struct StrOps: u16 {
         const HANDLER_KEY         = 1 << 0;
-        const VALID_DIR           = 1 << 1;
-        const VALID_COMP          = 1 << 2;
-        const V_DIR_PREFIX        = 1 << 3;
-        const COMPRESS_WHITESPACE = 1 << 4;
-        const DECODE_ENTITY       = 1 << 5;
-        const CAMEL_CASE          = 1 << 6;
-        const CAPITALIZED         = 1 << 7;
-        const JS_STRING           = 1 << 8;
-        const CTX_PREFIX          = 1 << 9;
+        const MODEL_HANDLER       = 1 << 1;
+        const VALID_DIR           = 1 << 2;
+        const VALID_COMP          = 1 << 3;
+        const V_DIR_PREFIX        = 1 << 4;
+        const COMPRESS_WHITESPACE = 1 << 5;
+        const DECODE_ENTITY       = 1 << 6;
+        const CAMEL_CASE          = 1 << 7;
+        const CAPITALIZED         = 1 << 8;
+        const JS_STRING           = 1 << 9;
+        const CTX_PREFIX          = 1 << 11;
         // marker op is placed at the end
-        const SELF_SUFFIX         = 1 << 10;
-        const IS_ATTR             = 1 << 11;
+        const SELF_SUFFIX         = 1 << 12;
+        const IS_ATTR             = 1 << 13;
         /// Ops that can be safely carried out multiple times
         const IDEMPOTENT_OPS =
             Self::COMPRESS_WHITESPACE.bits | Self::DECODE_ENTITY.bits |
@@ -37,9 +38,9 @@ bitflags! {
         /// Ops that can only be performed at most once. Name comes from
         /// https://en.wikipedia.org/wiki/Substructural_type_system
         const AFFINE_OPS =
-            Self::HANDLER_KEY.bits | Self::VALID_DIR.bits | Self::VALID_COMP.bits |
-            Self::SELF_SUFFIX.bits | Self::V_DIR_PREFIX.bits | Self::JS_STRING.bits |
-            Self::CTX_PREFIX.bits;
+            Self::HANDLER_KEY.bits | Self::MODEL_HANDLER.bits | Self::VALID_DIR.bits |
+            Self::VALID_COMP.bits | Self::SELF_SUFFIX.bits | Self::V_DIR_PREFIX.bits |
+            Self::JS_STRING.bits | Self::CTX_PREFIX.bits;
         /// Ops that mark the string is an hoisted asset
         const ASSET_OPS = Self::VALID_DIR.bits | Self::VALID_COMP.bits |
             Self::SELF_SUFFIX.bits;
@@ -98,9 +99,9 @@ fn write_hyphenated<W: Write>(s: &str, mut w: W) -> io::Result<()> {
     Ok(())
 }
 
-fn write_json_string<W: Write>(s: &str, w: &mut W) -> io::Result<()> {
+fn write_json_string<W: Write>(s: &str, mut w: W) -> io::Result<()> {
     use json::codegen::{Generator, WriterGenerator};
-    let mut gen = WriterGenerator::new(w);
+    let mut gen = WriterGenerator::new(&mut w);
     gen.write_string(s)
 }
 
@@ -174,7 +175,7 @@ impl StrOps {
         match op {
             StrOps::COMPRESS_WHITESPACE => write_compressed(s, w),
             StrOps::DECODE_ENTITY => write_decoded(s, w),
-            StrOps::JS_STRING => write_json_string(s, &mut w),
+            StrOps::JS_STRING => write_json_string(s, w),
             StrOps::CAMEL_CASE => write_camelized(s, w),
             StrOps::CAPITALIZED => write_capitalized(s, w),
             StrOps::VALID_DIR => write_valid_asset(s, w, "directive"),
@@ -186,6 +187,16 @@ impl StrOps {
             }
             StrOps::V_DIR_PREFIX => {
                 w.write_all(b"v-")?;
+                w.write_all(s.as_bytes())
+            }
+            StrOps::HANDLER_KEY => {
+                w.write_all(b"on")?;
+                let len = s.chars().next().unwrap().len_utf8();
+                write_capitalized(&s[0..len], &mut w)?;
+                w.write_all(s[len..].as_bytes())
+            }
+            StrOps::MODEL_HANDLER => {
+                w.write_all(b"onUpdate:")?;
                 w.write_all(s.as_bytes())
             }
             StrOps::CTX_PREFIX => {
@@ -240,7 +251,9 @@ impl<'a> VStr<'a> {
         }
     }
     pub fn is_handler(s: &VStr) -> bool {
-        if s.ops.contains(StrOps::HANDLER_KEY) {
+        if s.ops
+            .intersects(StrOps::HANDLER_KEY | StrOps::MODEL_HANDLER)
+        {
             return true;
         }
         is_event_prop(s.raw)
@@ -284,6 +297,11 @@ impl<'a> VStr<'a> {
     /// convert v-on arg to handler key: click -> onClick
     pub fn be_handler(&mut self) -> &mut Self {
         self.ops |= StrOps::HANDLER_KEY;
+        self
+    }
+    /// convert v-model:arg to onModelUpdate:arg
+    pub fn be_vmodel(&mut self) -> &mut Self {
+        self.ops |= StrOps::MODEL_HANDLER;
         self
     }
     /// add __self suffix for self referring component

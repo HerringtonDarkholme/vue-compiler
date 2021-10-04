@@ -788,6 +788,7 @@ impl<'a, 'b> DirectiveParser<'a, 'b> {
             DirectiveArg::Dynamic(&arg[1..])
         })
     }
+    // TODO: check duplicate modifiers
     fn parse_directive_mods(&self, mods: &'a str, is_prop: bool) -> Vec<&'a str> {
         debug_assert!(mods.is_empty() || mods.starts_with(MOD_CHAR));
         let report_missing_mod = |s: &&str| {

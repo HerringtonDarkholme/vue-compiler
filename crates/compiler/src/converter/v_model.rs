@@ -1,4 +1,5 @@
 use crate::flags::StaticLevel;
+use crate::parser::ElementType;
 use crate::{
     error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
     parser::DirectiveArg,
@@ -7,11 +8,11 @@ use crate::{
 
 use super::{
     v_bind::get_non_empty_expr, CoreDirConvRet, Directive, DirectiveConvertResult,
-    DirectiveConverter, Element, ErrorHandler, JsExpr as Js,
+    DirectiveConverter, Element, ErrorHandler, JsExpr as Js, Prop,
 };
 pub fn convert_v_model<'a>(
     dir: &mut Directive<'a>,
-    _: &Element<'a>,
+    element: &Element<'a>,
     eh: &dyn ErrorHandler,
 ) -> CoreDirConvRet<'a> {
     let Directive {
@@ -37,17 +38,17 @@ pub fn convert_v_model<'a>(
     }
     // TODO: add scope variable check
 
-    let prop_name = argument
-        .take()
-        .map(|arg| match arg {
-            DirectiveArg::Static(s) => Js::str_lit(s),
-            DirectiveArg::Dynamic(d) => Js::simple(d),
-        })
-        .unwrap_or_else(|| Js::str_lit("modelValue"));
+    let prop_name = if let Some(arg) = argument {
+        match arg {
+            DirectiveArg::Static(s) => Js::str_lit(*s),
+            DirectiveArg::Dynamic(d) => Js::simple(*d),
+        }
+    } else {
+        Js::str_lit("modelValue")
+    };
     let mut props = vec![(prop_name, Js::Simple(val, StaticLevel::NotStatic))];
-    // TODO process modifiers
-    if !modifiers.is_empty() {
-        props.push(modifiers_ir());
+    if let Some(mods) = component_mods_prop(dir, element) {
+        props.push(mods);
     }
     DirectiveConvertResult::Converted {
         value: Js::Props(props),
@@ -60,8 +61,32 @@ fn is_member_expression(expr: VStr) -> bool {
     is_simple_identifier(expr) || rslint::is_member_expression(&expr)
 }
 
-fn modifiers_ir<'a>() -> (Js<'a>, Js<'a>) {
-    todo!()
+fn component_mods_prop<'a>(dir: &Directive<'a>, elem: &Element<'a>) -> Option<Prop<'a>> {
+    let Directive {
+        argument,
+        modifiers,
+        ..
+    } = dir;
+    // only v-model on component need compile modifiers in the props
+    // native inputs have v-model inside the children
+    if modifiers.is_empty() || elem.tag_type != ElementType::Component {
+        return None;
+    }
+    let modifiers_key = if let Some(arg) = argument {
+        match arg {
+            DirectiveArg::Static(s) => Js::StrLit(*VStr::raw(s).suffix_mod()),
+            DirectiveArg::Dynamic(d) => {
+                Js::Compound(vec![Js::simple(*d), Js::Src(" + 'Modifiers'")])
+            }
+        }
+    } else {
+        Js::str_lit("modelModifiers")
+    };
+    let mod_value = modifiers
+        .iter()
+        .map(|s| (Js::str_lit(*s), Js::Src("true")))
+        .collect();
+    Some((modifiers_key, Js::Props(mod_value)))
 }
 
 pub const V_MODEL: DirectiveConverter = ("model", convert_v_model);

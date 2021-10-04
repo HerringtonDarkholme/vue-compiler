@@ -14,7 +14,7 @@ use crate::{
 
 /// Returns the expression string if it is non-empty, or the error location
 pub fn get_non_empty_expr<'a>(
-    expression: &mut Option<AttributeValue<'a>>,
+    expression: &Option<AttributeValue<'a>>,
     head_loc: &SourceLocation,
 ) -> (Option<VStr<'a>>, SourceLocation) {
     let (val, loc) = if let Some(e) = expression {

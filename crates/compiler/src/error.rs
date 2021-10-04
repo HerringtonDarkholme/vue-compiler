@@ -3,7 +3,11 @@ use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
 
-#[derive(PartialEq, Eq, Debug)]
+trait ErrorKind: fmt::Debug {
+    fn msg(&self) -> &'static str;
+}
+
+#[derive(Debug)]
 pub enum CompilationErrorKind {
     AbruptClosingOfEmptyComment,
     CDataInHtmlContent,
@@ -73,7 +77,7 @@ pub enum CompilationErrorKind {
 
     // Special value for higher-order compilers to pick up the last code
     // to avoid collision of error codes. This should always be kept as the last item.
-    ExtendPoint,
+    ExtendPoint(Box<dyn ErrorKind>),
 }
 
 pub struct CompilationError {
@@ -181,7 +185,13 @@ fn msg(kind: &CompilationErrorKind) -> &'static str {
         CacheHandlerNotSupported =>
             r#""cacheHandlers" option is only supported when the "prefixIdentifiers" option is enabled."#,
         ScopeIdNotSupported => r#""scopeId" option is only supported in module mode."#,
-        ExtendPoint => "",
+        ExtendPoint(ref err) => err.msg(),
+    }
+}
+
+impl ErrorKind for CompilationErrorKind {
+    fn msg(&self) -> &'static str {
+        msg(self)
     }
 }
 

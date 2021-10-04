@@ -28,9 +28,10 @@ bitflags! {
         const CAPITALIZED         = 1 << 8;
         const JS_STRING           = 1 << 9;
         const CTX_PREFIX          = 1 << 11;
+        const MOD_SUFFIX          = 1 << 12;
         // marker op is placed at the end
-        const SELF_SUFFIX         = 1 << 12;
-        const IS_ATTR             = 1 << 13;
+        const SELF_SUFFIX         = 1 << 13;
+        const IS_ATTR             = 1 << 14;
         /// Ops that can be safely carried out multiple times
         const IDEMPOTENT_OPS =
             Self::COMPRESS_WHITESPACE.bits | Self::DECODE_ENTITY.bits |
@@ -203,6 +204,10 @@ impl StrOps {
                 w.write_all(b"_ctx.")?;
                 w.write_all(s.as_bytes())
             }
+            StrOps::MOD_SUFFIX => {
+                w.write_all(s.as_bytes())?;
+                w.write_all(b"Modifiers")
+            }
             _ => todo!("{:?} not implemented", op),
         }
     }
@@ -337,6 +342,10 @@ impl<'a> VStr<'a> {
     }
     pub fn prefix_ctx(&mut self) -> &mut Self {
         self.ops |= StrOps::CTX_PREFIX;
+        self
+    }
+    pub fn suffix_mod(&mut self) -> &mut Self {
+        self.ops |= StrOps::MOD_SUFFIX;
         self
     }
     pub fn into_string(self) -> String {

@@ -268,6 +268,9 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
                 self.gen_list(args)?;
                 self.write_str(")")
             }
+            Js::Func(v, ..) => {
+                todo!()
+            }
         }
     }
     fn generate_alterable_slot(&mut self, s: BaseSlotFn<'a>) -> io::Result<()> {

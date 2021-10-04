@@ -4,12 +4,12 @@ use crate::{
     cast,
     error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
     parser::DirectiveArg,
-    util::{is_simple_identifier, rslint, VStr},
+    util::VStr,
 };
 
 use super::{
-    CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
-    JsExpr as Js, Prop,
+    v_on::is_member_expression, CoreDirConvRet, Directive, DirectiveConvertResult,
+    DirectiveConverter, Element, ErrorHandler, HandlerType, JsExpr as Js, Prop,
 };
 pub fn convert_v_model<'a>(
     dir: &mut Directive<'a>,
@@ -55,14 +55,6 @@ pub fn convert_v_model<'a>(
     }
 }
 
-fn is_member_expression(expr: VStr) -> bool {
-    // TODO: looks like pattern can also work?
-    if !expr.raw.starts_with(char::is_alphabetic) {
-        return false;
-    }
-    is_simple_identifier(expr) || rslint::is_member_expression(&expr)
-}
-
 fn component_mods_prop<'a>(dir: &Directive<'a>, elem: &Element<'a>) -> Option<Prop<'a>> {
     let Directive {
         argument,
@@ -105,7 +97,7 @@ pub fn convert_v_model_event(converted: &mut DirectiveConvertResult<Js>) {
         _ => Js::Compound(vec![Js::Src("'onUpdate:' + "), prop_name.clone()]),
     };
     let val_expr = *cast!(val, Js::Simple).clone().assign_event();
-    let assignment = Js::Simple(val_expr, StaticLevel::NotStatic);
+    let assignment = Js::Func(val_expr, HandlerType::InlineStmt, StaticLevel::NotStatic);
     // TODO, cache assignment expr
     props.push((event_name, assignment));
 }

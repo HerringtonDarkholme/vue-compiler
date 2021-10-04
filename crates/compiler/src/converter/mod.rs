@@ -185,6 +185,19 @@ pub struct VSlotIR<T: ConvertInfo> {
     pub slot_flag: SlotFlag,
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize))]
+#[derive(Clone)]
+/// Records how v-on handler is written in the template.
+/// Variants will be compiled differently (also depends on `cache_handlers`).
+pub enum HandlerType {
+    /// e.g. @click="c++"
+    InlineStmt,
+    /// e.g. @click="obj.method"
+    MemberExpr,
+    /// e.g. @click="() => func()"
+    FuncExpr,
+}
+
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
 #[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -200,6 +213,8 @@ pub enum JsExpr<'a> {
     Simple(VStr<'a>, StaticLevel),
     /// variable in parameter
     Param(Name<'a>),
+    /// event handler function
+    Func(VStr<'a>, HandlerType, StaticLevel),
     /// alternative to join string as JsExpr
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),

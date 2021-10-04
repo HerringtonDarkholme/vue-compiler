@@ -1,10 +1,13 @@
 use super::{
     CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
-    JsExpr as Js,
+    HandlerType, JsExpr as Js,
 };
 use crate::{
-    error::CompilationErrorKind as ErrorKind, flags::RuntimeHelper, parser::DirectiveArg,
-    scanner::AttributeValue, util::VStr,
+    error::CompilationErrorKind as ErrorKind,
+    flags::{RuntimeHelper, StaticLevel},
+    parser::DirectiveArg,
+    scanner::AttributeValue,
+    util::{is_simple_identifier, rslint, VStr},
 };
 
 // this module process v-on without arg and with arg.
@@ -56,11 +59,41 @@ pub fn convert_v_on<'a>(
 }
 
 pub fn convert_v_on_expr(expr: Option<AttributeValue>) -> Js {
+    let val = match expr {
+        Some(val) => val.content,
+        None => return Js::Src("() => {}"),
+    };
+    let handler_type = if is_member_expression(val) {
+        HandlerType::MemberExpr
+    } else if is_fn_exp(val) {
+        HandlerType::FuncExpr
+    } else {
+        HandlerType::InlineStmt
+    };
+    Js::Func(val, handler_type, StaticLevel::NotStatic)
+}
+
+fn is_fn_exp(expr: VStr) -> bool {
+    todo!()
+}
+
+// cache handlers so that it's always the same handler being passed down.
+// this avoids unnecessary re-renders when users use inline handlers on
+// components.
+pub fn cache_handlers() {
     todo!()
 }
 
 pub fn add_modifiers<'a>(evt_name: &Js<'a>, expr: Js<'a>, mods: &[&'a str]) -> Js<'a> {
     todo!()
+}
+
+pub fn is_member_expression(expr: VStr) -> bool {
+    // TODO: looks like pattern can also work?
+    if !expr.raw.starts_with(char::is_alphabetic) {
+        return false;
+    }
+    is_simple_identifier(expr) || rslint::is_member_expression(&expr)
 }
 
 pub const V_ON: DirectiveConverter = ("on", convert_v_on);

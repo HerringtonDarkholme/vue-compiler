@@ -68,7 +68,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             }
         })
     }
-    fn process_expression(&self, e: &mut Js<'a>, scope: &Scope) {
+    fn process_expression(&self, e: &mut Js<'a>, scope: &mut Scope) {
         if !self.option.prefix_identifier {
             return;
         }
@@ -76,21 +76,30 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         if is_hoisted_asset(e).is_some() {
             return;
         }
+        use crate::converter::HandlerType::InlineStmt;
         // complex expr will be handled recursively in transformer
-        if !matches!(e, Js::Simple(..)) {
-            return;
+        let add_id = match e {
+            Js::Func(_, InlineStmt, _) => {
+                scope.add_identifier("$event");
+                true
+            }
+            Js::Simple(..) | Js::Func(..) => false,
+            _ => return,
+        };
+        if !self.process_expr_fast(e, scope) {
+            self.process_with_js_parser(e, scope);
         }
-        if self.process_expr_fast(e, scope) {
-            return;
+        if add_id {
+            scope.remove_identifier("$event");
         }
-        self.process_with_js_parser(e, scope);
     }
 
     /// prefix _ctx without parsing JS
     fn process_expr_fast(&self, e: &mut Js<'a>, scope: &Scope) -> bool {
         let (v, level) = match e {
             Js::Simple(v, level) => (v, level),
-            _ => return false,
+            Js::Func(v, _, level) => (v, level),
+            _ => panic!("impossible"),
         };
         if !is_simple_identifier(*v) {
             return false;
@@ -121,7 +130,8 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
     fn process_with_js_parser(&self, e: &mut Js<'a>, scope: &Scope) {
         let (v, level) = match e {
             Js::Simple(v, level) => (v, level),
-            _ => return,
+            Js::Func(v, _, level) => (v, level),
+            _ => panic!("impossible"),
         };
         let raw = v.raw;
         let (broken_atoms, has_local_ref) = self.break_down_complex_expression(raw, scope);

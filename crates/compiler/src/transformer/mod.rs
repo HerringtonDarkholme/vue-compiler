@@ -258,6 +258,7 @@ where
             | Js::Num(_)
             | Js::Simple(..)
             | Js::Param(_)
+            | Js::Func(..)
             | Js::StrLit(_)
             | Js::Symbol(_) => {
                 // no further recursion.

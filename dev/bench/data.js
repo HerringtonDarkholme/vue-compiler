@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1633281702565,
+  "lastUpdate": 1633331252144,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -1455,6 +1455,60 @@ window.BENCHMARK_DATA = {
             "name": "compile/ElasticHeader",
             "value": 43783,
             "range": "± 1252",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "committer": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "distinct": true,
+          "id": "743c173ca59b277f507b30fc0b0e5aa8f552e5eb",
+          "message": "[feat] add more vmodel impl",
+          "timestamp": "2021-10-04T15:05:43+08:00",
+          "tree_id": "10388c54a27df67ebf832e3e0fcefa3ee51fd4d7",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/743c173ca59b277f507b30fc0b0e5aa8f552e5eb"
+        },
+        "date": 1633331251691,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 5606,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4049,
+            "range": "± 16",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 40648,
+            "range": "± 645",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 37230,
+            "range": "± 50",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 23299,
+            "range": "± 79",
             "unit": "ns/iter"
           }
         ]

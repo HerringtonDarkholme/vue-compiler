@@ -294,6 +294,9 @@ fn rewrite_inline_identifier<'a>(
     debug_assert!(level == StaticLevel::NotStatic || bind == &BT::SetupConst);
     let expr = move || Js::Simple(raw, level);
     let dot_value = Js::Compound(vec![expr(), Js::Src(".value")]);
+    if VStr::is_event_assign(&raw) {
+        todo!("handle event assign differently")
+    }
     match bind {
         BT::SetupConst => expr(),
         BT::SetupRef => dot_value,

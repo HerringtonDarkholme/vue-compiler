@@ -1,9 +1,10 @@
-use compiler::flags::RuntimeHelper;
-
 use super::{
-    error::CompilationErrorKind as ErrorKind, parser::DirectiveArg, scanner::AttributeValue,
-    util::VStr, CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element,
-    ErrorHandler, JsExpr as Js,
+    CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
+    JsExpr as Js,
+};
+use crate::{
+    error::CompilationErrorKind as ErrorKind, flags::RuntimeHelper, parser::DirectiveArg,
+    scanner::AttributeValue, util::VStr,
 };
 
 // this module process v-on without arg and with arg.

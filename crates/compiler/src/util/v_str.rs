@@ -29,9 +29,10 @@ bitflags! {
         const JS_STRING           = 1 << 9;
         const CTX_PREFIX          = 1 << 11;
         const MOD_SUFFIX          = 1 << 12;
+        const ASSIGN_EVT          = 1 << 13;
         // marker op is placed at the end
-        const SELF_SUFFIX         = 1 << 13;
-        const IS_ATTR             = 1 << 14;
+        const SELF_SUFFIX         = 1 << 14;
+        const IS_ATTR             = 1 << 15;
         /// Ops that can be safely carried out multiple times
         const IDEMPOTENT_OPS =
             Self::COMPRESS_WHITESPACE.bits | Self::DECODE_ENTITY.bits |
@@ -208,6 +209,11 @@ impl StrOps {
                 w.write_all(s.as_bytes())?;
                 w.write_all(b"Modifiers")
             }
+            StrOps::ASSIGN_EVT => {
+                w.write_all(b"((")?;
+                w.write_all(s.as_bytes())?;
+                w.write_all(b") = $event)")
+            }
             _ => todo!("{:?} not implemented", op),
         }
     }
@@ -271,6 +277,9 @@ impl<'a> VStr<'a> {
     }
     pub fn is_ctx_prefixed(s: &VStr) -> bool {
         s.ops.contains(StrOps::CTX_PREFIX)
+    }
+    pub fn is_event_assign(s: &VStr) -> bool {
+        s.ops.contains(StrOps::ASSIGN_EVT)
     }
 }
 impl<'a> VStr<'a> {
@@ -346,6 +355,10 @@ impl<'a> VStr<'a> {
     }
     pub fn suffix_mod(&mut self) -> &mut Self {
         self.ops |= StrOps::MOD_SUFFIX;
+        self
+    }
+    pub fn assign_event(&mut self) -> &mut Self {
+        self.ops |= StrOps::ASSIGN_EVT;
         self
     }
     pub fn into_string(self) -> String {

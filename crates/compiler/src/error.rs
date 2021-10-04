@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
 
-trait ErrorKind: fmt::Debug {
+pub trait ErrorKind: fmt::Debug {
     fn msg(&self) -> &'static str;
 }
 

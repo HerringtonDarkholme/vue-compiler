@@ -1,6 +1,7 @@
 use crate::flags::StaticLevel;
 use crate::parser::ElementType;
 use crate::{
+    cast,
     error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
     parser::DirectiveArg,
     util::{is_simple_identifier, rslint, VStr},
@@ -87,6 +88,25 @@ fn component_mods_prop<'a>(dir: &Directive<'a>, elem: &Element<'a>) -> Option<Pr
         .map(|s| (Js::str_lit(*s), Js::Src("true")))
         .collect();
     Some((modifiers_key, Js::Props(mod_value)))
+}
+
+pub fn convert_v_model_event(converted: &mut DirectiveConvertResult<Js>) {
+    use DirectiveConvertResult as DirRet;
+    let props = match converted {
+        DirRet::Dropped | DirRet::Preserve => return,
+        DirRet::Converted { value, runtime } => {
+            cast!(value, Js::Props)
+        }
+    };
+    let (prop_name, val) = &mut props[0];
+    let event_name = match prop_name {
+        Js::StrLit(v) => Js::StrLit(*v.clone().be_vmodel()),
+        _ => Js::Compound(vec![Js::Src("'onUpdate:' + "), prop_name.clone()]),
+    };
+    let val_expr = *cast!(val, Js::Simple).clone().assign_event();
+    let assignment = Js::Simple(val_expr, StaticLevel::NotStatic);
+    // TODO, cache assignment expr
+    props.push((event_name, assignment));
 }
 
 pub const V_MODEL: DirectiveConverter = ("model", convert_v_model);

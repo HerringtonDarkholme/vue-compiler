@@ -1,33 +1,11 @@
-use crate::error::{CompilationError as Error, CompilationErrorKind as ErrorKind};
+use crate::error::CompilationErrorKind as ErrorKind;
 use crate::flags::RuntimeHelper;
 
 use super::{
     CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
     JsExpr as Js,
 };
-use crate::{
-    parser::DirectiveArg,
-    scanner::AttributeValue,
-    util::{non_whitespace, VStr},
-    SourceLocation,
-};
-
-/// Returns the expression string if it is non-empty, or the error location
-pub fn get_non_empty_expr<'a>(
-    expression: &Option<AttributeValue<'a>>,
-    head_loc: &SourceLocation,
-) -> (Option<VStr<'a>>, SourceLocation) {
-    let (val, loc) = if let Some(e) = expression {
-        (e.content, e.location.clone())
-    } else {
-        return (None, head_loc.clone());
-    };
-    if val.contains(non_whitespace) {
-        (Some(val), loc)
-    } else {
-        (None, loc)
-    }
-}
+use crate::parser::DirectiveArg;
 
 // this module process v-bind without arg and with arg.
 pub fn convert_v_bind<'a>(
@@ -35,27 +13,27 @@ pub fn convert_v_bind<'a>(
     _: &Element<'a>,
     eh: &dyn ErrorHandler,
 ) -> CoreDirConvRet<'a> {
+    let expr = if let Some(error) = dir.check_empty_expr(ErrorKind::VBindNoExpression) {
+        eh.on_error(error);
+        if dir.argument.is_none() {
+            return DirectiveConvertResult::Dropped;
+        } else {
+            // <p :test> returns {test: ""}
+            Js::str_lit("")
+        }
+    } else {
+        let expr = dir
+            .expression
+            .take()
+            .expect("dir without value should be dropped");
+        Js::simple(expr.content)
+    };
     let Directive {
-        expression,
         modifiers,
         argument,
         head_loc,
         ..
     } = dir;
-    let (expr_val, err_loc) = get_non_empty_expr(expression, head_loc);
-    let expr = match expr_val {
-        Some(val) => Js::simple(val),
-        None => {
-            let error = Error::new(ErrorKind::VBindNoExpression).with_location(err_loc);
-            eh.on_error(error);
-            if argument.is_none() {
-                return DirectiveConvertResult::Dropped;
-            } else {
-                // <p :test> returns {test: ""}
-                Js::str_lit("")
-            }
-        }
-    };
     let value = if let Some(arg) = argument {
         let mut arg = match arg {
             DirectiveArg::Static(s) => Js::str_lit(*s),

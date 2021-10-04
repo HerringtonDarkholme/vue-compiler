@@ -194,6 +194,7 @@ impl<'a> Directive<'a> {
             .as_ref()
             .map_or(true, |v| !v.content.contains(non_whitespace))
     }
+    /// Returns the error if expression is empty
     pub fn check_empty_expr(&self, kind: ErrorKind) -> Option<CompilationError> {
         if !self.has_empty_expr() {
             return None;

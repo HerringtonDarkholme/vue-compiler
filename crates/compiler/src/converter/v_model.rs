@@ -8,14 +8,18 @@ use crate::{
 };
 
 use super::{
-    v_bind::get_non_empty_expr, CoreDirConvRet, Directive, DirectiveConvertResult,
-    DirectiveConverter, Element, ErrorHandler, JsExpr as Js, Prop,
+    CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
+    JsExpr as Js, Prop,
 };
 pub fn convert_v_model<'a>(
     dir: &mut Directive<'a>,
     element: &Element<'a>,
     eh: &dyn ErrorHandler,
 ) -> CoreDirConvRet<'a> {
+    if let Some(error) = dir.check_empty_expr(ErrorKind::VModelNoExpression) {
+        eh.on_error(error);
+        return DirectiveConvertResult::Dropped;
+    }
     let Directive {
         expression,
         modifiers,
@@ -23,17 +27,11 @@ pub fn convert_v_model<'a>(
         head_loc,
         ..
     } = dir;
-    let (expr_val, loc) = get_non_empty_expr(expression, head_loc);
-    let val = match expr_val {
-        Some(val) => val,
-        None => {
-            let error = Error::new(ErrorKind::VModelNoExpression).with_location(loc);
-            eh.on_error(error);
-            return DirectiveConvertResult::Dropped;
-        }
-    };
+    let attr_value = expression.take().expect("empty dir should be dropped");
+    let val = attr_value.content;
     if !is_member_expression(val) {
-        let error = Error::new(ErrorKind::VModelMalformedExpression).with_location(loc);
+        let error =
+            Error::new(ErrorKind::VModelMalformedExpression).with_location(attr_value.location);
         eh.on_error(error);
         return DirectiveConvertResult::Dropped;
     }

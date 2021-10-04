@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1633331252144,
+  "lastUpdate": 1633331254831,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -606,6 +606,107 @@ window.BENCHMARK_DATA = {
             "range": "±0.74%",
             "unit": "ops/sec",
             "extra": "88 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "committer": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "distinct": true,
+          "id": "743c173ca59b277f507b30fc0b0e5aa8f552e5eb",
+          "message": "[feat] add more vmodel impl",
+          "timestamp": "2021-10-04T15:05:43+08:00",
+          "tree_id": "10388c54a27df67ebf832e3e0fcefa3ee51fd4d7",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/743c173ca59b277f507b30fc0b0e5aa8f552e5eb"
+        },
+        "date": 1633331253891,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "Attribute.vue",
+            "value": 37192,
+            "range": "±1.84%",
+            "unit": "ops/sec",
+            "extra": "83 samples"
+          },
+          {
+            "name": "Counter.vue",
+            "value": 59319,
+            "range": "±2.13%",
+            "unit": "ops/sec",
+            "extra": "83 samples"
+          },
+          {
+            "name": "ElasticHeader.vue",
+            "value": 4051,
+            "range": "±1.95%",
+            "unit": "ops/sec",
+            "extra": "85 samples"
+          },
+          {
+            "name": "GithubCommit.vue",
+            "value": 5910,
+            "range": "±3.08%",
+            "unit": "ops/sec",
+            "extra": "79 samples"
+          },
+          {
+            "name": "ModalComponent.vue",
+            "value": 9821,
+            "range": "±1.95%",
+            "unit": "ops/sec",
+            "extra": "83 samples"
+          },
+          {
+            "name": "TodoApp.vue",
+            "value": 2097,
+            "range": "±1.82%",
+            "unit": "ops/sec",
+            "extra": "83 samples"
+          },
+          {
+            "name": "TreeView.vue",
+            "value": 5175,
+            "range": "±2.24%",
+            "unit": "ops/sec",
+            "extra": "81 samples"
+          },
+          {
+            "name": "TwoWayBinding.vue",
+            "value": 27648,
+            "range": "±1.48%",
+            "unit": "ops/sec",
+            "extra": "87 samples"
+          },
+          {
+            "name": "UserInput.vue",
+            "value": 24896,
+            "range": "±1.42%",
+            "unit": "ops/sec",
+            "extra": "86 samples"
+          },
+          {
+            "name": "VFor.vue",
+            "value": 25958,
+            "range": "±1.50%",
+            "unit": "ops/sec",
+            "extra": "80 samples"
+          },
+          {
+            "name": "VIf.vue",
+            "value": 38424,
+            "range": "±1.66%",
+            "unit": "ops/sec",
+            "extra": "84 samples"
           }
         ]
       }

@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 criterion = "0.3"
-compiler = { path = "../crates/compiler", package = "vue-compiler-core" }
+compiler = { path = "../crates/compiler", package = "vue-compiler-core", default-features = false, features = [] }
 glob = "0.3.0"
 
 [dev-dependencies]

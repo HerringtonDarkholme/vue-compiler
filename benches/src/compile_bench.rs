@@ -13,7 +13,7 @@ use compiler::{
         optimize_text::TextOptimizer,
         pass::{Scope, SharedInfoPasses},
         process_expression::ExpressionProcessor,
-        CorePass, CorePassExt, MergedPass,
+        CorePassExt, MergedPass,
     },
 };
 

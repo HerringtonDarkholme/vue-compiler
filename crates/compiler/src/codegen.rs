@@ -1,9 +1,11 @@
-use super::converter::{BaseConvertInfo, BaseIR, BaseRoot, IRRoot, SFCInfo, TopScope};
+use super::converter::{BaseConvertInfo, BaseIR, BaseRoot, SFCInfo, TopScope};
 use super::flags::{HelperCollector, PatchFlag, RuntimeHelper as RH, SlotFlag};
 use super::transformer::{
     BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot,
 };
-use crate::ir::{self as C, ConvertInfo, IRNode, JsExpr as Js, RenderSlotIR, RuntimeDir, VNodeIR};
+use crate::ir::{
+    self as C, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RenderSlotIR, RuntimeDir, VNodeIR,
+};
 use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use smallvec::{smallvec, SmallVec};
 use std::marker::PhantomData;

@@ -35,7 +35,7 @@ mod v_slot;
 
 use crate::{
     flags::{HelperCollector, RuntimeHelper, StaticLevel},
-    ir::{ConvertInfo, IRNode, JsExpr, TextIR},
+    ir::{ConvertInfo, IRNode, IRRoot, JsExpr, TextIR},
     parser::{SourceNode, TextNode},
     util::{find_dir, get_core_component, VStr},
 };
@@ -96,13 +96,6 @@ impl BindingTypes {
         let prop = JsExpr::Simple(name, lvl);
         JsExpr::Compound(vec![obj_dot, prop])
     }
-}
-
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub struct IRRoot<T: ConvertInfo> {
-    pub body: Vec<IRNode<T>>,
-    /// entities to define/import in top level scope
-    pub top_scope: T::TopType,
 }
 
 /// Default implementation  sketch can be used in DOM/SSR.

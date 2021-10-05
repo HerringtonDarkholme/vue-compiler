@@ -130,6 +130,13 @@ pub struct VSlotIR<T: ConvertInfo> {
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct IRRoot<T: ConvertInfo> {
+    pub body: Vec<IRNode<T>>,
+    /// entities to define/import in top level scope
+    pub top_scope: T::TopType,
+}
+
+#[cfg_attr(feature = "serde", derive(Serialize))]
 #[derive(Clone)]
 /// Records how v-on handler is written in the template.
 /// Variants will be compiled differently (also depends on `cache_handlers`).

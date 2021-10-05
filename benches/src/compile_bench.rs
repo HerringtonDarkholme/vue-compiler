@@ -1,7 +1,9 @@
 mod bench_util;
 
+use std::rc::Rc;
 use compiler::compiler::BaseCompiler;
 use compiler::{
+    error::{NoopErrorHandler, RcErrHandle},
     compiler::{CompileOption, TemplateCompiler},
     transformer::{
         collect_entities::EntityCollector,
@@ -18,12 +20,13 @@ use criterion::BenchmarkId;
 use criterion::Criterion;
 use criterion::{criterion_group, criterion_main};
 
-fn base_compile(source: &str) {
+fn base_compile(source: &str, eh: RcErrHandle) {
     let shared: &mut [&mut dyn CorePassExt<_, _>] = &mut [
         &mut SlotFlagMarker,
         &mut ExpressionProcessor {
             option: &Default::default(),
             sfc_info: &Default::default(),
+            err_handle: eh,
         },
     ];
     let pass: &mut [&mut dyn CorePass<_>] = &mut [
@@ -49,9 +52,10 @@ fn base_compile(source: &str) {
 }
 
 fn test_enum_eq(c: &mut Criterion) {
+    let eh = Rc::new(NoopErrorHandler);
     for (name, content) in bench_util::get_fixtures() {
         c.bench_with_input(BenchmarkId::new("compile", name), &content, |b, c| {
-            b.iter(|| base_compile(c));
+            b.iter(|| base_compile(c, eh.clone()));
         });
     }
 }

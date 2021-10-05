@@ -2,8 +2,9 @@
 // runtime helpers
 // component/directive asset
 use super::{BaseFor, BaseIf, BaseInfo, BaseRenderSlot, BaseText, BaseVNode, BaseVSlot, CorePass};
-use crate::converter::{BaseRoot, IRNode as IR, JsExpr as Js};
+use crate::converter::BaseRoot;
 use crate::flags::{HelperCollector, RuntimeHelper as RH};
+use crate::ir::{IRNode as IR, JsExpr as Js};
 use crate::util::{get_vnode_call_helper, VStr};
 use rustc_hash::FxHashSet;
 use std::mem::swap;

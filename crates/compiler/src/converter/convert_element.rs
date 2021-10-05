@@ -1,12 +1,13 @@
 use super::{
     build_props::{build_props, BuildProps},
     v_slot, BaseConvertInfo, BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes,
-    CoreConverter, Element, IRNode, JsExpr as Js, RuntimeDir, VNodeIR, VStr,
+    CoreConverter, Element, VStr,
 };
 use crate::{
     converter::v_slot::check_wrong_slot,
     error::{CompilationError, CompilationErrorKind as ErrorKind},
     flags::{PatchFlag, RuntimeHelper, StaticLevel},
+    ir::{IRNode, JsExpr as Js, RuntimeDir, VNodeIR},
     parser::{AstNode, Directive, ElemProp, ElementType},
     scanner::Attribute,
     util::{find_dir, get_core_component, is_builtin_symbol, is_component_tag, prop_finder},

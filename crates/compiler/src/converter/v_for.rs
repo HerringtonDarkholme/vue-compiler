@@ -1,11 +1,14 @@
 use super::{
     find_dir, BaseConvertInfo, BaseConverter, BaseIR, CompilationError, ConvertInfo, CoreConverter,
-    Directive, Element, ForNodeIR, ForParseResult, IRNode, JsExpr as Js,
+    Directive, Element,
 };
-use crate::error::CompilationErrorKind as ErrorKind;
-use crate::flags::PatchFlag;
-use crate::parser::ElementType;
-use crate::util::{find_prop, VStr};
+use crate::{
+    error::CompilationErrorKind as ErrorKind,
+    flags::PatchFlag,
+    ir::{ForNodeIR, ForParseResult, IRNode, JsExpr as Js},
+    parser::ElementType,
+    util::{find_prop, VStr},
+};
 use smallvec::SmallVec;
 
 /// Pre converts v-if or v-for like structural dir

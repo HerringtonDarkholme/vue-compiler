@@ -1,6 +1,7 @@
-use super::{BaseConverter as BC, CoreConverter, Element, JsExpr as Js, Prop, VStr};
+use super::{BaseConverter as BC, CoreConverter, Element, VStr};
 use crate::{
     flags::{self, PatchFlag, RuntimeHelper},
+    ir::{JsExpr as Js, Prop},
     parser::{Directive, ElemProp},
     scanner::Attribute,
     util::{self, is_bind_key, is_component_tag, is_reserved_prop},

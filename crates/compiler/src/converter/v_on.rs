@@ -1,10 +1,10 @@
 use super::{
     CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
-    HandlerType, JsExpr as Js,
 };
 use crate::{
     error::CompilationErrorKind as ErrorKind,
     flags::{RuntimeHelper, StaticLevel},
+    ir::{HandlerType, JsExpr as Js},
     parser::DirectiveArg,
     scanner::AttributeValue,
     util::{is_simple_identifier, rslint, VStr},

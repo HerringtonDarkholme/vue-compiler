@@ -4,8 +4,9 @@
 use super::collect_entities::is_hoisted_asset;
 use super::{BaseInfo, CorePassExt, Scope, TransformOption};
 use crate::cast;
-use crate::converter::{BindingTypes, JsExpr as Js, SFCInfo};
+use crate::converter::{BindingTypes, SFCInfo};
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
+use crate::ir::JsExpr as Js;
 use crate::util::{is_global_allow_listed, is_simple_identifier, rslint, VStr};
 
 pub struct ExpressionProcessor<'a, 'b> {
@@ -76,7 +77,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         if is_hoisted_asset(e).is_some() {
             return;
         }
-        use crate::converter::HandlerType::InlineStmt;
+        use crate::ir::HandlerType::InlineStmt;
         // complex expr will be handled recursively in transformer
         let add_id = match e {
             Js::Func(_, InlineStmt, _) => {
@@ -374,7 +375,8 @@ mod test {
     };
     use super::*;
     use crate::cast;
-    use crate::converter::{BaseIR, IRNode};
+    use crate::converter::BaseIR;
+    use crate::ir::IRNode;
 
     fn transform(s: &str) -> BaseRoot {
         let option = TransformOption {

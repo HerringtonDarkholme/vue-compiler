@@ -5,11 +5,11 @@ use rustc_hash::FxHashSet;
 
 use super::{
     AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, CoreConverter, Directive, Element,
-    IRNode, JsExpr as Js, Slot, VSlotIR,
 };
 use crate::{
     error::{CompilationError, CompilationErrorKind as ErrorKind},
     flags::{RuntimeHelper, SlotFlag},
+    ir::{IRNode, IfBranch, JsExpr as Js, Slot, VSlotIR},
     parser::{DirectiveArg, ElementType},
     util::dir_finder,
 };
@@ -189,8 +189,7 @@ fn build_alterable_slots<'a>(bc: &BC<'a>, mut templates: Vec<Element<'a>>) -> Ve
 }
 
 // NB: get_child must be elevated to a fn pointer instead of closure
-// to avoid recusion limit of rustc's polymorphic code instantiation
-use super::IfBranch;
+// to avoid recursion limit of rustc's polymorphic code instantiation
 fn get_child<'a, 'b>(b: &'b mut IfBranch<BaseConvertInfo<'a>>) -> &'b mut BaseIR<'a> {
     &mut *b.child
 }

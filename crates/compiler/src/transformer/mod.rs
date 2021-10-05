@@ -28,10 +28,8 @@ pub mod optimize_text;
 pub mod pass;
 pub mod process_expression;
 
-use super::converter::{
-    self as C, BaseConvertInfo as BaseInfo, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js,
-    RuntimeDir,
-};
+use super::converter::{BaseConvertInfo as BaseInfo, BaseRoot, IRRoot};
+use crate::ir::{self as C, ConvertInfo, IRNode, JsExpr as Js, RuntimeDir};
 pub use pass::{CorePass, CorePassExt, MergedPass, Scope};
 use std::marker::PhantomData;
 
@@ -107,7 +105,7 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
     fn transform_for(f: &mut C::ForNodeIR<T>, ps: &mut P) {
         // 1. first transform source in for node
         Self::transform_js_expr(&mut f.source, ps);
-        use crate::converter::ForParseResult;
+        use crate::ir::ForParseResult;
         // 2. process renderList param
         // val, key, index should counted as param
         let ForParseResult { value, key, index } = &mut f.parse_result;

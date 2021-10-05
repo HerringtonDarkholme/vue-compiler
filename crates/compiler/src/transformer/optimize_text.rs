@@ -2,7 +2,8 @@ use smallvec::SmallVec;
 
 use super::{BaseInfo, BaseRenderSlot, BaseSlotFn, BaseVNode, CorePass, IRNode as IR};
 use crate::cast;
-use crate::converter::{BaseIR, BaseRoot, JsExpr as Js};
+use crate::converter::{BaseIR, BaseRoot};
+use crate::ir::JsExpr as Js;
 
 pub struct TextOptimizer;
 

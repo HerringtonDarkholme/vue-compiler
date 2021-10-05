@@ -1,6 +1,7 @@
 use super::{
-    converter::{BaseConvertInfo, JsExpr as Js, VNodeIR},
+    converter::BaseConvertInfo,
     flags::RuntimeHelper,
+    ir::{JsExpr as Js, VNodeIR},
     parser::{Directive, DirectiveArg, ElemProp, Element},
     scanner::Attribute,
 };

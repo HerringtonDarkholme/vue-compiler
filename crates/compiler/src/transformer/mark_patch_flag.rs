@@ -1,8 +1,9 @@
 // mark patch flag and is_block for runtime
 // it should happen after process_expression
 use super::{BaseFor, BaseIf, BaseInfo, BaseText, BaseVNode, CorePass};
-use crate::converter::{BaseIR, IRNode as IR, JsExpr as Js, Prop};
+use crate::converter::BaseIR;
 use crate::flags::{PatchFlag, RuntimeHelper as RH, StaticLevel};
+use crate::ir::{IRNode as IR, JsExpr as Js, Prop};
 use crate::util::is_builtin_symbol;
 
 pub struct PatchFlagMarker;

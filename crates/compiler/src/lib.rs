@@ -9,6 +9,7 @@ pub mod compiler;
 pub mod converter;
 pub mod error;
 pub mod flags;
+pub mod ir;
 pub mod parser;
 pub mod scanner;
 pub mod transformer;

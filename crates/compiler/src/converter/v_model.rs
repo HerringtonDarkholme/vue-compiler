@@ -3,13 +3,14 @@ use crate::parser::ElementType;
 use crate::{
     cast,
     error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
+    ir::{HandlerType, JsExpr as Js, Prop},
     parser::DirectiveArg,
     util::VStr,
 };
 
 use super::{
     v_on::is_member_expression, CoreDirConvRet, Directive, DirectiveConvertResult,
-    DirectiveConverter, Element, ErrorHandler, HandlerType, JsExpr as Js, Prop,
+    DirectiveConverter, Element, ErrorHandler,
 };
 pub fn convert_v_model<'a>(
     dir: &mut Directive<'a>,

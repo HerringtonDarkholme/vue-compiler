@@ -1,10 +1,10 @@
 use super::{
     build_props::{build_props, BuildProps},
     BaseConverter as BC, BaseIR, CoreConverter, Directive, Element, IRNode, JsExpr as Js,
-    RenderSlotIR,
 };
 use crate::{
     error::{CompilationError, CompilationErrorKind::VSlotUnexpectedDirectiveOnSlotOutlet},
+    ir::RenderSlotIR,
     parser::{DirectiveArg, ElemProp},
     scanner::Attribute,
     util::is_bind_key,

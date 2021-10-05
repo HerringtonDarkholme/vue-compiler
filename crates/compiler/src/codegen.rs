@@ -1,13 +1,9 @@
-use crate::converter::{RenderSlotIR, SFCInfo};
-
-use super::converter::{
-    BaseConvertInfo, BaseIR, BaseRoot, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir,
-    TopScope, VNodeIR,
-};
+use super::converter::{BaseConvertInfo, BaseIR, BaseRoot, IRRoot, SFCInfo, TopScope};
 use super::flags::{HelperCollector, PatchFlag, RuntimeHelper as RH, SlotFlag};
 use super::transformer::{
     BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot,
 };
+use crate::ir::{self as C, ConvertInfo, IRNode, JsExpr as Js, RenderSlotIR, RuntimeDir, VNodeIR};
 use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use smallvec::{smallvec, SmallVec};
 use std::marker::PhantomData;
@@ -79,7 +75,6 @@ impl Default for CodeGenerateOption {
     }
 }
 
-use super::converter as C;
 trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
     type Written;
     fn generate_ir(&mut self, ir: IRNode<T>) -> Self::Written {

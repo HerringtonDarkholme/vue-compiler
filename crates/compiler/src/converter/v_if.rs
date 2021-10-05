@@ -1,10 +1,11 @@
 use super::{
     super::parser::ElemProp, AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR,
-    CompilationError, Directive, Element, IRNode, IfBranch, IfNodeIR,
+    CompilationError, Directive, Element, IRNode,
 };
 use crate::{
     converter::{CoreConverter, JsExpr as Js},
     error::CompilationErrorKind as ErrorKind,
+    ir::{IfBranch, IfNodeIR},
     scanner::Attribute,
     util::{find_dir_empty, find_prop, VStr},
 };

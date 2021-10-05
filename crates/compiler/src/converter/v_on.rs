@@ -7,7 +7,7 @@ use crate::{
     ir::{HandlerType, JsExpr as Js},
     parser::DirectiveArg,
     scanner::AttributeValue,
-    util::{is_simple_identifier, rslint, VStr},
+    util::{is_simple_identifier, not_js_identifier, rslint, VStr},
 };
 
 // this module process v-on without arg and with arg.
@@ -65,7 +65,7 @@ pub fn convert_v_on_expr(expr: Option<AttributeValue>) -> Js {
     };
     let handler_type = if is_member_expression(val) {
         HandlerType::MemberExpr
-    } else if is_fn_exp(val) {
+    } else if is_fn_exp(val.raw) {
         HandlerType::FuncExpr
     } else {
         HandlerType::InlineStmt
@@ -73,8 +73,43 @@ pub fn convert_v_on_expr(expr: Option<AttributeValue>) -> Js {
     Js::func(val, handler_type)
 }
 
-fn is_fn_exp(expr: VStr) -> bool {
-    todo!()
+fn is_js_identifier(c: char) -> bool {
+    !not_js_identifier(c)
+}
+
+// equivalent to this JS regexp
+// /^\s*([\w$_]+|(async\s*)?\([^)]*?\))\s*=>|^\s*(async\s+)?function(?:\s+[\w$]+)?\s*\(/
+fn is_fn_exp(raw: &str) -> bool {
+    // 0. strip whitespace
+    let mut raw = raw.trim_start();
+    // 1. strip potential async
+    raw = raw.trim_start_matches("async ").trim_start();
+    // 2.a  async => 123
+    if raw.starts_with("=>") {
+        return true;
+    }
+    // 2.b function keyword
+    if raw.starts_with("function ") {
+        raw = raw.trim_start_matches("function ").trim_start();
+        // 3. trim function name
+        raw = raw.trim_start_matches(is_js_identifier).trim_start();
+        return raw.starts_with('(');
+    }
+    // 2.c arrow func shorthand. e.g: argName => expr
+    if raw.starts_with(is_js_identifier) {
+        // 3. strip argName
+        raw = raw.trim_start_matches(is_js_identifier).trim_start();
+        return raw.starts_with("=>");
+    }
+    // 2.d arrow func full (arg, arg, ...arg) => expr
+    if raw.starts_with('(') {
+        raw = raw[1..] // skip (
+            .trim_start_matches(|c| c != ')') // skip inside paren
+            [1..] // skip )
+            .trim_start();
+        return raw.starts_with("=>");
+    }
+    false
 }
 
 // cache handlers so that it's always the same handler being passed down.
@@ -97,3 +132,30 @@ pub fn is_member_expression(expr: VStr) -> bool {
 }
 
 pub const V_ON: DirectiveConverter = ("on", convert_v_on);
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn test_is_fn_expr() {
+        let positive_cases = [
+            "() => 123",
+            "([a,b,c]) => 123",
+            "(arg) => 123",
+            "async => 123",
+            "async arg => 123",
+            "async (arg) => 123",
+            "function (arg) {}",
+            "function (arg) {}",
+            "async    function   (  arg)  {}",
+            "    function   (  arg)  {}",
+        ];
+        for case in positive_cases {
+            assert!(is_fn_exp(case), "{}", case);
+        }
+        let negative_cases = ["a", "a.b.c", "call()"];
+        for case in negative_cases {
+            assert!(!is_fn_exp(case), "{}", case);
+        }
+    }
+}

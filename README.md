@@ -92,17 +92,17 @@ Todo tasks grouped by scopes.
 - [x] scanner
     - [x] UTF8 support
 - [x] parser
-- [ ] IR converter
+- [x] IR converter
     - [x] v-if
     - [x] v-for
     - [x] v-slot
-    - [ ] v-model
+    - [x] v-model
     - [x] slot outlet
     - [x] element
     - [x] build props
 - [x] transformer
     - [x] ~~SWC~~ RSLint integration
-    - [ ] Rewrite MergePass struct
+    - [x] Rewrite MergePass struct
 - [x] code generator
     - [ ] module preamble
 - [ ] wrap error handler in Rc

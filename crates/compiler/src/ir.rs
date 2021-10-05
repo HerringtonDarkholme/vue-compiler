@@ -136,6 +136,10 @@ pub struct IRRoot<T: ConvertInfo> {
     pub top_scope: T::TopType,
 }
 
+// for macro
+pub type JsExpression<T> = <T as ConvertInfo>::JsExpression;
+pub type CommentType<T> = <T as ConvertInfo>::CommentType;
+
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[derive(Clone)]
 /// Records how v-on handler is written in the template.

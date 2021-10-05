@@ -3,31 +3,92 @@ use crate::ir::IRRoot;
 use crate::Name;
 use rustc_hash::FxHashMap;
 
+macro_rules! impl_enter {
+    ($impl: ident) => {
+        $impl!(enter_root, IRRoot);
+        $impl!(enter_text, TextIR);
+        $impl!(enter_if, IfNodeIR);
+        $impl!(enter_for, ForNodeIR);
+        $impl!(enter_vnode, VNodeIR);
+        $impl!(enter_slot_outlet, RenderSlotIR);
+        $impl!(enter_v_slot, VSlotIR);
+        $impl!(enter_slot_fn, Slot);
+        $impl!(enter_js_expr, JsExpression);
+        $impl!(enter_fn_param, JsExpression);
+        $impl!(enter_comment, CommentType);
+    };
+}
+macro_rules! impl_exit {
+    ($impl: ident) => {
+        $impl!(exit_root, IRRoot);
+        $impl!(exit_text, TextIR);
+        $impl!(exit_if, IfNodeIR);
+        $impl!(exit_for, ForNodeIR);
+        $impl!(exit_vnode, VNodeIR);
+        $impl!(exit_slot_outlet, RenderSlotIR);
+        $impl!(exit_v_slot, VSlotIR);
+        $impl!(exit_slot_fn, Slot);
+        $impl!(exit_js_expr, JsExpression);
+        $impl!(exit_fn_param, JsExpression);
+        $impl!(exit_comment, CommentType);
+    };
+}
+macro_rules! noop_pass {
+    ($method: ident, $ty: ident) => {
+        #[inline]
+        fn $method(&mut self, r: &mut C::$ty<T>) {}
+    };
+}
+
 pub trait CorePass<T: ConvertInfo> {
-    fn enter_root(&mut self, _: &mut IRRoot<T>) {}
-    fn exit_root(&mut self, _: &mut IRRoot<T>) {}
-    fn enter_text(&mut self, _: &mut C::TextIR<T>) {}
-    fn exit_text(&mut self, _: &mut C::TextIR<T>) {}
-    fn enter_if(&mut self, _: &mut C::IfNodeIR<T>) {}
-    fn exit_if(&mut self, _: &mut C::IfNodeIR<T>) {}
-    fn enter_for(&mut self, _: &mut C::ForNodeIR<T>) {}
-    fn exit_for(&mut self, _: &mut C::ForNodeIR<T>) {}
-    fn enter_vnode(&mut self, _: &mut C::VNodeIR<T>) {}
-    fn exit_vnode(&mut self, _: &mut C::VNodeIR<T>) {}
-    fn enter_slot_outlet(&mut self, _: &mut C::RenderSlotIR<T>) {}
-    fn exit_slot_outlet(&mut self, _: &mut C::RenderSlotIR<T>) {}
-    fn enter_v_slot(&mut self, _: &mut C::VSlotIR<T>) {}
-    fn exit_v_slot(&mut self, _: &mut C::VSlotIR<T>) {}
-    fn enter_slot_fn(&mut self, _: &mut C::Slot<T>) {}
-    fn exit_slot_fn(&mut self, _: &mut C::Slot<T>) {}
-    fn enter_js_expr(&mut self, _: &mut T::JsExpression) {}
-    fn exit_js_expr(&mut self, _: &mut T::JsExpression) {}
-    /// only v-for or slot fn
-    fn enter_fn_param(&mut self, _: &mut T::JsExpression) {}
-    /// only v-for or slot fn
-    fn exit_fn_param(&mut self, _: &mut T::JsExpression) {}
-    fn enter_comment(&mut self, _: &mut T::CommentType) {}
-    fn exit_comment(&mut self, _: &mut T::CommentType) {}
+    impl_enter!(noop_pass);
+    impl_exit!(noop_pass);
+    // fn enter_root(&mut self, _: &mut IRRoot<T>) {}
+    // fn exit_root(&mut self, _: &mut IRRoot<T>) {}
+}
+
+macro_rules! chain_enter {
+    ($method: ident, $ty: ident) => {
+        #[inline]
+        fn $method(&mut self, r: &mut C::$ty<T>) {
+            self.first.$method(r);
+            self.second.$method(r);
+        }
+    };
+}
+macro_rules! chain_exit {
+    ($method: ident, $ty: ident) => {
+        #[inline]
+        fn $method(&mut self, r: &mut C::$ty<T>) {
+            self.second.$method(r);
+            self.first.$method(r);
+        }
+    };
+}
+
+pub struct Chain<A, B> {
+    first: A,
+    second: B,
+}
+impl<'b, T, A, B> CorePass<T> for Chain<A, B>
+where
+    T: ConvertInfo,
+    A: CorePass<T>,
+    B: CorePass<T>,
+{
+    impl_enter!(chain_enter);
+    impl_exit!(chain_exit);
+    // macro output example:
+    // #[inline]
+    // fn enter_root(&mut self, r: &mut IRRoot<T>) {
+    //     self.first.enter_root(r);
+    //     self.second.enter_root(r);
+    // }
+    // #[inline]
+    // fn exit_root(&mut self, r: &mut IRRoot<T>) {
+    //     self.second.exit_root(r);
+    //     self.first.exit_root(r);
+    // }
 }
 
 // TODO: refactor this to Future like chain

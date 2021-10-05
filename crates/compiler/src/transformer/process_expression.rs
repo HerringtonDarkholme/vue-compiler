@@ -406,13 +406,12 @@ mod test {
             ..Default::default()
         };
         let mut ir = base_convert(s);
-        let mut exp = ExpressionProcessor {
+        let exp = ExpressionProcessor {
             option: &option,
             sfc_info: &Default::default(),
             err_handle: handler,
         };
-        let a: &mut [&mut dyn CorePassExt<_, _>] = &mut [&mut exp];
-        let mut transformer = transformer_ext(a);
+        let mut transformer = transformer_ext(exp);
         transformer.transform(&mut ir);
         ir
     }

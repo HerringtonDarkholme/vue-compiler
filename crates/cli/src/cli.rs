@@ -13,32 +13,33 @@ use compiler::{
         optimize_text::TextOptimizer,
         pass::{Scope, SharedInfoPasses},
         process_expression::ExpressionProcessor,
-        CorePassExt, MergedPass, Transformer,
+        Transformer,
     },
 };
 use serde_yaml::to_writer;
-use std::io;
+use std::{io, marker::PhantomData};
 
 pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let (source, option, show) = debug;
 
-    let shared: &mut [&mut dyn CorePassExt<_, _>] = &mut [
-        &mut SlotFlagMarker,
-        &mut ExpressionProcessor {
+    let shared = chain![
+        SlotFlagMarker,
+        ExpressionProcessor {
             option: &Default::default(),
             sfc_info: &Default::default(),
             err_handle: option.error_handler.clone(),
         },
     ];
-    let pass = chain!(
+    let pass = chain![
         TextOptimizer,
         EntityCollector::default(),
         PatchFlagMarker,
         SharedInfoPasses {
-            passes: MergedPass::new(shared),
+            passes: shared,
             shared_info: Scope::default(),
+            pd: PhantomData,
         },
-    );
+    ];
     let eh = || option.error_handler.clone();
 
     let scanner = scanner::Scanner::new(option.scanning());

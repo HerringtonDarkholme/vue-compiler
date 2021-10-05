@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use super::{BaseInfo, BaseTransformer, BaseVNode, ConvertInfo, CoreTransformer, Js, C};
 use crate::ir::IRRoot;
 use crate::Name;
@@ -191,16 +193,6 @@ where
     }
 }
 
-pub trait CorePassExt<T: ConvertInfo, Shared> {
-    fn enter_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
-    fn exit_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
-    fn enter_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
-    fn exit_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
-
-    fn enter_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
-    fn exit_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
-}
-
 type Identifiers<'a> = FxHashMap<Name<'a>, usize>;
 #[derive(Default)]
 pub struct Scope<'a> {
@@ -234,7 +226,7 @@ impl<'a> Scope<'a> {
 }
 struct RefFinder<'a, 'b>(&'b Identifiers<'a>, bool);
 // TODO: implement interruptible transformer for early return
-// TODO: current implmentaion has false alarms in code like below
+// TODO: current implementation has false alarms in code like below
 // <comp v-for="a in source">
 //  <p v-for="a in s">{{a}}</p> <- expect stable, got dynamic
 // </comp>
@@ -249,37 +241,85 @@ impl<'a, 'b> CorePass<BaseInfo<'a>> for RefFinder<'a, 'b> {
     }
 }
 
-pub struct SharedInfoPasses<'b, Pass, Shared> {
-    pub passes: MergedPass<'b, Pass>,
-    pub shared_info: Shared,
+pub trait CorePassExt<T: ConvertInfo, Shared> {
+    fn enter_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
+    fn exit_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
+    fn enter_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
+    fn exit_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
+
+    fn enter_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
+    fn exit_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
 }
-// TODO: add transform used
-impl<'b, T, Shared> CorePass<T> for SharedInfoPasses<'b, &'b mut dyn CorePassExt<T, Shared>, Shared>
+impl<'b, T, A, B, Shared> CorePassExt<T, Shared> for Chain<A, B>
 where
     T: ConvertInfo,
+    A: CorePassExt<T, Shared>,
+    B: CorePassExt<T, Shared>,
+{
+    fn enter_js_expr(&mut self, j: &mut T::JsExpression, s: &mut Shared) {
+        self.first.enter_js_expr(j, s);
+        self.second.enter_js_expr(j, s);
+    }
+    fn exit_js_expr(&mut self, j: &mut T::JsExpression, s: &mut Shared) {
+        self.second.exit_js_expr(j, s);
+        self.first.exit_js_expr(j, s);
+    }
+    fn enter_fn_param(&mut self, p: &mut T::JsExpression, s: &mut Shared) {
+        self.first.enter_fn_param(p, s);
+        self.second.enter_fn_param(p, s);
+    }
+    fn exit_fn_param(&mut self, p: &mut T::JsExpression, s: &mut Shared) {
+        self.second.exit_fn_param(p, s);
+        self.first.exit_fn_param(p, s);
+    }
+
+    fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>, s: &mut Shared) {
+        self.first.enter_vnode(v, s);
+        self.second.enter_vnode(v, s);
+    }
+    fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>, s: &mut Shared) {
+        self.second.exit_vnode(v, s);
+        self.first.exit_vnode(v, s);
+    }
+}
+
+pub struct SharedInfoPasses<T, Passes, Shared>
+where
+    T: ConvertInfo,
+    Passes: CorePassExt<T, Shared>,
+{
+    pub passes: Passes,
+    pub shared_info: Shared,
+    pub pd: PhantomData<T>,
+}
+// TODO: add transform used
+impl<T, P, Shared> CorePass<T> for SharedInfoPasses<T, P, Shared>
+where
+    T: ConvertInfo,
+    P: CorePassExt<T, Shared>,
 {
     fn enter_js_expr(&mut self, e: &mut T::JsExpression) {
         let shared = &mut self.shared_info;
-        self.passes.enter(|p| p.enter_js_expr(e, shared));
+        self.passes.enter_js_expr(e, shared);
     }
     fn exit_js_expr(&mut self, e: &mut T::JsExpression) {
         let shared = &mut self.shared_info;
-        self.passes.exit(|p| p.exit_js_expr(e, shared));
+        self.passes.exit_js_expr(e, shared);
     }
     fn enter_fn_param(&mut self, prm: &mut T::JsExpression) {
         let shared = &mut self.shared_info;
-        self.passes.enter(|p| p.enter_fn_param(prm, shared));
+        self.passes.enter_fn_param(prm, shared);
     }
     fn exit_fn_param(&mut self, prm: &mut T::JsExpression) {
         let shared = &mut self.shared_info;
-        self.passes.exit(|p| p.exit_fn_param(prm, shared));
+        self.passes.exit_fn_param(prm, shared);
     }
     fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>) {
         let shared = &mut self.shared_info;
-        self.passes.enter(|p| p.enter_vnode(v, shared))
+        self.passes.enter_vnode(v, shared)
     }
     fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>) {
         let shared = &mut self.shared_info;
-        self.passes.exit(|p| p.exit_vnode(v, shared))
+        self.passes.exit_vnode(v, shared)
     }
 }

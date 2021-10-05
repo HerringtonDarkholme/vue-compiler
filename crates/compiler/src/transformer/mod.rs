@@ -273,7 +273,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::pass::{MergedPass, Scope, SharedInfoPasses};
+    use super::pass::{Scope, SharedInfoPasses};
     use super::*;
     pub use crate::converter::test::base_convert;
     use rustc_hash::FxHashMap;
@@ -287,17 +287,15 @@ mod test {
         }
     }
 
-    pub fn transformer_ext<'a, 'b>(
-        passes: &'b mut [&'b mut dyn CorePassExt<BaseInfo<'a>, Scope<'a>>],
-    ) -> BaseTransformer<
-        'a,
-        SharedInfoPasses<'b, &'b mut dyn CorePassExt<BaseInfo<'a>, Scope<'a>>, Scope<'a>>,
-    > {
+    pub fn transformer_ext<'a, Ps: CorePassExt<BaseInfo<'a>, Scope<'a>>>(
+        passes: Ps,
+    ) -> BaseTransformer<'a, SharedInfoPasses<BaseInfo<'a>, Ps, Scope<'a>>> {
         let pass = SharedInfoPasses {
-            passes: MergedPass::new(passes),
+            passes,
             shared_info: Scope {
                 identifiers: FxHashMap::default(),
             },
+            pd: PhantomData,
         };
         BaseTransformer {
             pass,

@@ -34,10 +34,11 @@ mod v_on;
 mod v_slot;
 
 use crate::{
-    flags::{HelperCollector, RuntimeHelper, StaticLevel},
+    flags::{HelperCollector, RuntimeHelper},
     ir::{ConvertInfo, IRNode, IRRoot, JsExpr, TextIR},
     parser::{SourceNode, TextNode},
     util::{find_dir, get_core_component, VStr},
+    SFCInfo,
 };
 pub use v_bind::V_BIND;
 pub use v_model::V_MODEL;
@@ -46,7 +47,7 @@ pub use crate::error::{CompilationError, ErrorHandler, RcErrHandle};
 pub use crate::parser::{AstNode, AstRoot, Directive, Element};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::{smallvec, SmallVec};
-use std::{marker::PhantomData, ops::Deref};
+use std::marker::PhantomData;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -62,40 +63,6 @@ use v_if::{pre_group_v_if, PreGroup};
 pub trait Converter<'a>: Sized {
     type IR;
     fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR;
-}
-
-#[derive(PartialEq, Eq)]
-pub enum BindingTypes {
-    /// returned from data()
-    Data,
-    /// declared as a prop
-    Props,
-    /// a let binding (may or may not be a ref)
-    SetupLet,
-    ///a const binding that can never be a ref.
-    ///these bindings don't need `unref()` calls when processed in inlined
-    ///template expressions.
-    SetupConst,
-    /// a const binding that may be a ref.
-    SetupMaybeRef,
-    /// bindings that are guaranteed to be refs
-    SetupRef,
-    /// declared by other options, e.g. computed, inject
-    Options,
-}
-
-impl BindingTypes {
-    pub fn get_js_prop<'a>(&self, name: VStr<'a>, lvl: StaticLevel) -> JsExpr<'a> {
-        use BindingTypes::*;
-        let obj_dot = JsExpr::Src(match self {
-            Data => "$data.",
-            Props => "$props.",
-            Options => "$options.",
-            _ => "$setup.",
-        });
-        let prop = JsExpr::Simple(name, lvl);
-        JsExpr::Compound(vec![obj_dot, prop])
-    }
 }
 
 /// Default implementation  sketch can be used in DOM/SSR.
@@ -246,25 +213,6 @@ pub type DirConvertFn =
     for<'a> fn(&mut Directive<'a>, &Element<'a>, &dyn ErrorHandler) -> CoreDirConvRet<'a>;
 pub type DirectiveConverter = (&'static str, DirConvertFn);
 
-/// stores binding variables exposed by data/prop/setup script.
-/// also stores if the binding is from setup script.
-#[derive(Default)]
-pub struct BindingMetadata<'a>(FxHashMap<&'a str, BindingTypes>, bool);
-impl<'a> BindingMetadata<'a> {
-    pub fn new(map: FxHashMap<&'a str, BindingTypes>, from_setup: bool) -> Self {
-        Self(map, from_setup)
-    }
-    pub fn is_setup(&self) -> bool {
-        self.1
-    }
-}
-impl<'a> Deref for BindingMetadata<'a> {
-    type Target = FxHashMap<&'a str, BindingTypes>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 #[derive(Clone)]
 pub struct ConvertOption {
     /// For platform developers. Registers platform specific components written in JS.
@@ -280,38 +228,6 @@ impl Default for ConvertOption {
             get_builtin_component: get_core_component,
             is_dev: true,
             directive_converters: FxHashMap::default(),
-        }
-    }
-}
-
-/// SFC info of the current template
-pub struct SFCInfo<'a> {
-    /// Compile the function for inlining inside setup().
-    /// This allows the function to directly access setup() local bindings.
-    pub inline: bool,
-    /// Indicates this SFC template has used :slotted in its styles
-    /// Defaults to `true` for backwards compatibility - SFC tooling should set it
-    /// to `false` if no `:slotted` usage is detected in `<style>`
-    pub slotted: bool,
-    /// SFC scoped styles ID
-    pub scope_id: Option<String>,
-    /// Optional binding metadata analyzed from script - used to optimize
-    /// binding access when `prefixIdentifiers` is enabled.
-    pub binding_metadata: BindingMetadata<'a>,
-    /// Filename for source map generation.
-    /// Also used for self-recursive reference in templates
-    /// @default 'template.vue.html'
-    pub self_name: String,
-}
-
-impl<'a> Default for SFCInfo<'a> {
-    fn default() -> Self {
-        Self {
-            scope_id: None,
-            inline: false,
-            slotted: true,
-            binding_metadata: BindingMetadata::default(),
-            self_name: "".into(),
         }
     }
 }

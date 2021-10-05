@@ -1,12 +1,13 @@
-use super::converter::{BaseConvertInfo, BaseIR, BaseRoot, SFCInfo, TopScope};
-use super::flags::{HelperCollector, PatchFlag, RuntimeHelper as RH, SlotFlag};
-use super::transformer::{
-    BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot,
-};
+use crate::converter::{BaseConvertInfo, BaseIR, BaseRoot, TopScope};
+use crate::flags::{HelperCollector, PatchFlag, RuntimeHelper as RH, SlotFlag};
 use crate::ir::{
     self as C, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RenderSlotIR, RuntimeDir, VNodeIR,
 };
+use crate::transformer::{
+    BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot,
+};
 use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
+use crate::SFCInfo;
 use smallvec::{smallvec, SmallVec};
 use std::marker::PhantomData;
 use std::{
@@ -860,9 +861,9 @@ fn runtime_dirs_to_js_arr(dirs: Vec<RuntimeDir<BaseConvertInfo>>) -> Js {
 #[cfg(test)]
 mod test {
     use super::super::converter::test::base_convert;
-    use super::super::converter::{BindingMetadata, BindingTypes};
     use super::*;
     use crate::cast;
+    use crate::{BindingMetadata, BindingTypes};
     fn gen<'a>(mut ir: BaseRoot<'a>, info: SFCInfo<'a>) -> String {
         ir.top_scope.helpers.ignore_missing();
         let mut writer = CodeWriter::new(vec![], Default::default(), info);

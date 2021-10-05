@@ -3,11 +3,10 @@
 // 2. prefix expression
 use super::collect_entities::is_hoisted_asset;
 use super::{BaseInfo, CorePassExt, Scope, TransformOption};
-use crate::cast;
-use crate::converter::{BindingTypes, SFCInfo};
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
 use crate::ir::JsExpr as Js;
 use crate::util::{is_global_allow_listed, is_simple_identifier, rslint, VStr};
+use crate::{cast, BindingTypes, SFCInfo};
 
 pub struct ExpressionProcessor<'a, 'b> {
     pub option: &'b TransformOption,

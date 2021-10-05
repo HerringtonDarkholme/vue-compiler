@@ -1,7 +1,6 @@
 use super::{
     build_props::{build_props, BuildProps},
-    v_slot, BaseConvertInfo, BaseConverter as BC, BaseIR, BindingMetadata, BindingTypes,
-    CoreConverter, Element, VStr,
+    v_slot, BaseConvertInfo, BaseConverter as BC, BaseIR, CoreConverter, Element, VStr,
 };
 use crate::{
     converter::v_slot::check_wrong_slot,
@@ -11,7 +10,7 @@ use crate::{
     parser::{AstNode, Directive, ElemProp, ElementType},
     scanner::Attribute,
     util::{find_dir, get_core_component, is_builtin_symbol, is_component_tag, prop_finder},
-    SourceLocation,
+    BindingMetadata, BindingTypes, SourceLocation,
 };
 use std::{iter, mem};
 

@@ -1,7 +1,12 @@
 #![allow(dead_code, unused_variables)]
 //! See README.md
 
+use flags::StaticLevel;
+use ir::JsExpr as Js;
+use rustc_hash::FxHashMap;
+use std::ops::Deref;
 use std::ops::Range;
+use util::VStr;
 
 // TODO: reorg pub
 pub mod codegen;
@@ -82,6 +87,91 @@ pub enum Namespace {
     Svg,
     MathMl,
     UserDefined(&'static str),
+}
+
+#[derive(PartialEq, Eq)]
+pub enum BindingTypes {
+    /// returned from data()
+    Data,
+    /// declared as a prop
+    Props,
+    /// a let binding (may or may not be a ref)
+    SetupLet,
+    ///a const binding that can never be a ref.
+    ///these bindings don't need `unref()` calls when processed in inlined
+    ///template expressions.
+    SetupConst,
+    /// a const binding that may be a ref.
+    SetupMaybeRef,
+    /// bindings that are guaranteed to be refs
+    SetupRef,
+    /// declared by other options, e.g. computed, inject
+    Options,
+}
+
+impl BindingTypes {
+    pub fn get_js_prop<'a>(&self, name: VStr<'a>, lvl: StaticLevel) -> Js<'a> {
+        use BindingTypes::*;
+        let obj_dot = Js::Src(match self {
+            Data => "$data.",
+            Props => "$props.",
+            Options => "$options.",
+            _ => "$setup.",
+        });
+        let prop = Js::Simple(name, lvl);
+        Js::Compound(vec![obj_dot, prop])
+    }
+}
+
+/// stores binding variables exposed by data/prop/setup script.
+/// also stores if the binding is from setup script.
+#[derive(Default)]
+pub struct BindingMetadata<'a>(FxHashMap<&'a str, BindingTypes>, bool);
+impl<'a> BindingMetadata<'a> {
+    pub fn new(map: FxHashMap<&'a str, BindingTypes>, from_setup: bool) -> Self {
+        Self(map, from_setup)
+    }
+    pub fn is_setup(&self) -> bool {
+        self.1
+    }
+}
+impl<'a> Deref for BindingMetadata<'a> {
+    type Target = FxHashMap<&'a str, BindingTypes>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// SFC info of the current template
+pub struct SFCInfo<'a> {
+    /// Compile the function for inlining inside setup().
+    /// This allows the function to directly access setup() local bindings.
+    pub inline: bool,
+    /// Indicates this SFC template has used :slotted in its styles
+    /// Defaults to `true` for backwards compatibility - SFC tooling should set it
+    /// to `false` if no `:slotted` usage is detected in `<style>`
+    pub slotted: bool,
+    /// SFC scoped styles ID
+    pub scope_id: Option<String>,
+    /// Optional binding metadata analyzed from script - used to optimize
+    /// binding access when `prefixIdentifiers` is enabled.
+    pub binding_metadata: BindingMetadata<'a>,
+    /// Filename for source map generation.
+    /// Also used for self-recursive reference in templates
+    /// @default 'template.vue.html'
+    pub self_name: String,
+}
+
+impl<'a> Default for SFCInfo<'a> {
+    fn default() -> Self {
+        Self {
+            scope_id: None,
+            inline: false,
+            slotted: true,
+            binding_metadata: BindingMetadata::default(),
+            self_name: "".into(),
+        }
+    }
 }
 
 #[macro_export]

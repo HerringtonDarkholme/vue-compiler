@@ -63,14 +63,7 @@ pub fn convert_v_on_expr(expr: Option<AttributeValue>) -> Js {
         Some(val) => val.content,
         None => return Js::Src("() => {}"),
     };
-    let handler_type = if is_member_expression(val) {
-        HandlerType::MemberExpr
-    } else if is_fn_exp(val.raw) {
-        HandlerType::FuncExpr
-    } else {
-        HandlerType::InlineStmt
-    };
-    Js::func(val, handler_type)
+    Js::func(val)
 }
 
 fn is_js_identifier(c: char) -> bool {
@@ -114,7 +107,7 @@ fn is_fn_exp(raw: &str) -> bool {
 
 // cache handlers so that it's always the same handler being passed down.
 // this avoids unnecessary re-renders when users use inline handlers on
-// components.
+// components. NB. requires prefix_identifiers
 pub fn cache_handlers() {
     todo!()
 }
@@ -124,11 +117,20 @@ pub fn add_modifiers<'a>(evt_name: &Js<'a>, expr: Js<'a>, mods: &[&'a str]) -> J
 }
 
 pub fn is_member_expression(expr: VStr) -> bool {
-    // TODO: looks like pattern can also work?
     if !expr.raw.starts_with(char::is_alphabetic) {
         return false;
     }
     is_simple_identifier(expr) || rslint::is_member_expression(&expr)
+}
+
+pub fn get_handler_type(val: VStr) -> HandlerType {
+    if is_member_expression(val) {
+        HandlerType::MemberExpr
+    } else if is_fn_exp(val.raw) {
+        HandlerType::FuncExpr
+    } else {
+        HandlerType::InlineStmt
+    }
 }
 
 pub const V_ON: DirectiveConverter = ("on", convert_v_on);

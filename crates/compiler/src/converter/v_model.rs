@@ -3,7 +3,7 @@ use crate::parser::ElementType;
 use crate::{
     cast,
     error::{CompilationError as Error, CompilationErrorKind as ErrorKind},
-    ir::{HandlerType, JsExpr as Js, Prop},
+    ir::{JsExpr as Js, Prop},
     parser::DirectiveArg,
     util::VStr,
 };
@@ -30,6 +30,7 @@ pub fn convert_v_model<'a>(
     } = dir;
     let attr_value = expression.take().expect("empty dir should be dropped");
     let val = attr_value.content;
+    // TODO: looks like pattern can also work?
     if !is_member_expression(val) {
         let error =
             Error::new(ErrorKind::VModelMalformedExpression).with_location(attr_value.location);
@@ -98,7 +99,7 @@ pub fn convert_v_model_event(converted: &mut DirectiveConvertResult<Js>) {
         _ => Js::Compound(vec![Js::Src("'onUpdate:' + "), prop_name.clone()]),
     };
     let val_expr = *cast!(val, Js::Simple).clone().assign_event();
-    let assignment = Js::func(val_expr, HandlerType::InlineStmt);
+    let assignment = Js::func(val_expr);
     // TODO, cache assignment expr
     props.push((event_name, assignment));
 }

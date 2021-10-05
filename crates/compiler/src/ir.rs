@@ -153,7 +153,7 @@ pub enum HandlerType {
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum FuncRep<'a> {
     Simple(VStr<'a>, StaticLevel),
-    Compound(Vec<JsExpr<'a>>),
+    Compound(Box<[JsExpr<'a>]>),
 }
 
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
@@ -165,14 +165,15 @@ pub enum JsExpr<'a> {
     /// representing a number, either id or key
     Num(usize),
     /// String Literal. output after quoted, used by attr/static arg.
-    // TODO: StaticLevel + Simple can mock StrLit?
+    // NB: StaticLevel = CanStringify does not imply StrLit. e.g.
+    // in :num="4", 4 is stringifiable but not StrLit
     StrLit(VStr<'a>),
     /// non-string js expression, will be processed like prefixing
     Simple(VStr<'a>, StaticLevel),
     /// variable in parameter
     Param(Name<'a>),
     /// event handler function
-    Func(FuncRep<'a>, HandlerType),
+    Func(FuncRep<'a>),
     /// alternative to join string as JsExpr
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),
@@ -198,9 +199,9 @@ impl<'a> JsExpr<'a> {
     pub fn str_lit<V: Into<VStr<'a>>>(v: V) -> Self {
         JsExpr::StrLit(v.into())
     }
-    pub fn func<V: Into<VStr<'a>>>(v: V, ty: HandlerType) -> Self {
+    pub fn func<V: Into<VStr<'a>>>(v: V) -> Self {
         let func_rep = FuncRep::Simple(v.into(), StaticLevel::NotStatic);
-        JsExpr::Func(func_rep, ty)
+        JsExpr::Func(func_rep)
     }
     pub fn static_level(&self) -> StaticLevel {
         use JsExpr::*;
@@ -211,8 +212,8 @@ impl<'a> JsExpr<'a> {
             Symbol(_) | Src(_) | Param(_) => S::CanHoist,
             Compound(v) | Array(v) | Call(_, v) => vec_static_level(v),
             Props(ps) => ps.iter().map(prop_level).min().unwrap_or(S::CanStringify),
-            Func(FuncRep::Simple(_, level), _) => *level,
-            Func(FuncRep::Compound(v), _) => vec_static_level(v),
+            Func(FuncRep::Simple(_, level)) => *level,
+            Func(FuncRep::Compound(v)) => vec_static_level(v),
         }
     }
 }

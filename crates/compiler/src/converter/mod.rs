@@ -30,7 +30,7 @@ mod v_bind;
 mod v_for;
 mod v_if;
 pub mod v_model;
-mod v_on;
+pub mod v_on;
 mod v_slot;
 
 use crate::{

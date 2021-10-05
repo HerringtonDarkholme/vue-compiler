@@ -685,11 +685,12 @@ impl<'a, 'b> DirectiveParser<'a, 'b> {
         let argument = self.parse_directive_arg(arg_str);
         let modifiers = self.parse_directive_mods(mods_str, is_prop);
         self.cached = None; // cleanup
+        let expression = Self::trim_attr_value(attr.value);
         Directive {
             name,
             argument,
             modifiers,
-            expression: attr.value,
+            expression,
             head_loc: attr.name_loc,
             location: attr.location,
         }
@@ -812,6 +813,15 @@ impl<'a, 'b> DirectiveParser<'a, 'b> {
             ret.push("prop")
         }
         ret
+    }
+
+    fn trim_attr_value(attr_val: Option<AttributeValue>) -> Option<AttributeValue> {
+        if let Some(mut val) = attr_val {
+            val.content.raw = val.content.raw.trim();
+            Some(val)
+        } else {
+            None
+        }
     }
 }
 

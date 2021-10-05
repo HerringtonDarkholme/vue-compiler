@@ -69,6 +69,8 @@ fn has_forwarded_slots(v_slot: &BaseVSlot) -> bool {
 #[cfg(test)]
 mod test {
     use crate::cast;
+    use crate::error::NoopErrorHandler;
+    use std::rc::Rc;
 
     use super::super::{
         process_expression::ExpressionProcessor,
@@ -88,6 +90,7 @@ mod test {
         let mut exp = ExpressionProcessor {
             option: &option,
             sfc_info: &Default::default(),
+            err_handle: Rc::new(NoopErrorHandler),
         };
         let a: &mut [&mut dyn CorePassExt<_, _>] = &mut [&mut marker, &mut exp];
         let mut transformer = transformer_ext(a);

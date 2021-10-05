@@ -1,11 +1,7 @@
-use compiler::error::ErrorHandler;
+pub use compiler::error::NoopErrorHandler as TestErrorHandler;
 pub use compiler::{Position, SourceLocation};
 use serde::Serialize;
 use vue_compiler_core as compiler;
-
-#[derive(Clone)]
-pub struct TestErrorHandler;
-impl ErrorHandler for TestErrorHandler {}
 
 // insta does not support yaml with customized expr :(
 // https://github.com/mitsuhiko/insta/issues/177

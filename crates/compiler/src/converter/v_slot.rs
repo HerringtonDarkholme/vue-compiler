@@ -37,7 +37,6 @@ pub fn check_build_as_slot(bc: &BC, e: &Element, tag: &Js) -> bool {
 
 type BaseVSlot<'a> = VSlotIR<BaseConvertInfo<'a>>;
 
-// TODO: add has_alterable_slot
 // we have three forms of slot:
 // 1. On component slot: <comp v-slot="">
 // 2. Full template slot: <template v-slot>

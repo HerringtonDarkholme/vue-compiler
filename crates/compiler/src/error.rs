@@ -1,5 +1,5 @@
 use super::SourceLocation;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::fmt;
 use std::rc::Rc;
 
@@ -223,6 +223,11 @@ impl ErrorHandler for NoopErrorHandler {}
 
 pub struct VecErrorHandler {
     errors: RefCell<Vec<CompilationError>>,
+}
+impl VecErrorHandler {
+    pub fn errors(&self) -> Ref<Vec<CompilationError>> {
+        self.errors.borrow()
+    }
 }
 impl Default for VecErrorHandler {
     fn default() -> Self {

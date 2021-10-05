@@ -4,14 +4,16 @@
 use super::collect_entities::is_hoisted_asset;
 use super::{BaseInfo, CorePassExt, Scope, TransformOption};
 use crate::converter::v_on::get_handler_type;
+use crate::error::{CompilationError, CompilationErrorKind as ErrorKind, RcErrHandle};
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
 use crate::ir::JsExpr as Js;
 use crate::util::{is_global_allow_listed, is_simple_identifier, rslint, VStr};
-use crate::{cast, BindingTypes, SFCInfo};
+use crate::{cast, BindingTypes, SFCInfo, SourceLocation};
 
 pub struct ExpressionProcessor<'a, 'b> {
     pub option: &'b TransformOption,
     pub sfc_info: &'b SFCInfo<'a>,
+    pub err_handle: RcErrHandle,
 }
 
 impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'a, 'b> {
@@ -57,7 +59,13 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         }
         // 1. breaks down binding pattern e.g. [a, b, c] => identifiers a, b and c
         // 2. breaks default parameter like v-slot="a = 123" -> (a = 123)
-        let broken_atoms = self.break_down_fn_params(raw);
+        let broken_atoms = if let Some(atoms) = self.break_down_fn_params(raw) {
+            atoms
+        } else {
+            // TODO: add identifier location
+            self.report_wrong_identifier(SourceLocation::default());
+            return;
+        };
         // 3. reunite these 1 and 2 to a compound expression
         *p = reunite_atoms(raw, broken_atoms, |atom| {
             let is_param = atom.property;
@@ -144,13 +152,20 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             _ => panic!("impossible"),
         };
         let raw = v.raw;
-        let (broken_atoms, has_local_ref) = self.break_down_complex_expression(raw, scope);
+        let broken = self.break_down_complex_expression(raw, scope);
+        let (broken_atoms, local_ref) = if let Some(pair) = broken {
+            pair
+        } else {
+            // TODO: add identifier location
+            self.report_wrong_identifier(SourceLocation::default());
+            return;
+        };
         // no prefixed identifier found
         if broken_atoms.is_empty() {
             // if expr has no template var nor prefixed var, it can be hoisted as static
             // NOTE: func call and member access must be bailed for potential side-effect
             let side_effect = raw.contains('(') || raw.contains('.');
-            *level = if !has_local_ref && !side_effect {
+            *level = if !local_ref && !side_effect {
                 StaticLevel::CanStringify
             } else {
                 StaticLevel::NotStatic
@@ -181,17 +196,17 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             Js::simple(*raw.clone().prefix_ctx())
         }
     }
+    fn report_wrong_identifier(&self, loc: SourceLocation) {
+        let error = CompilationError::new(ErrorKind::InvalidExpression).with_location(loc);
+        self.err_handle.on_error(error);
+    }
 
     fn break_down_complex_expression(
         &self,
         raw: &'a str,
         scope: &Scope,
-    ) -> (FreeVarAtoms<'a>, bool) {
-        let expr = rslint::parse_js_expr(raw);
-        let expr = match expr {
-            Some(exp) => exp,
-            None => todo!("add error handler"),
-        };
+    ) -> Option<(FreeVarAtoms<'a>, bool)> {
+        let expr = rslint::parse_js_expr(raw)?;
         let inline = self.sfc_info.inline;
         let mut atoms = vec![];
         let mut has_local_ref = false;
@@ -217,16 +232,12 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             })
         });
         atoms.sort_by_key(|r| r.range.start);
-        (atoms, has_local_ref)
+        Some((atoms, has_local_ref))
     }
 
     /// Atom's property records if it is param identifier
-    fn break_down_fn_params(&self, raw: &'a str) -> Vec<Atom<bool>> {
-        let param = rslint::parse_fn_param(raw);
-        let param = match param {
-            Some(exp) => exp,
-            None => todo!("add error handler"),
-        };
+    fn break_down_fn_params(&self, raw: &'a str) -> Option<Vec<Atom<bool>>> {
+        let param = rslint::parse_fn_param(raw)?;
         // range is offset by -1 due to the wrapping parens when parsed
         let offset = if raw.starts_with('(') { 0 } else { 1 };
         let mut atoms = vec![];
@@ -237,7 +248,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             });
         });
         atoms.sort_by_key(|r| r.range.start);
-        atoms
+        Some(atoms)
     }
 }
 
@@ -385,9 +396,11 @@ mod test {
     use super::*;
     use crate::cast;
     use crate::converter::BaseIR;
+    use crate::error::{NoopErrorHandler, RcErrHandle, VecErrorHandler};
     use crate::ir::IRNode;
+    use std::rc::Rc;
 
-    fn transform(s: &str) -> BaseRoot {
+    fn transform_with_err(s: &str, handler: RcErrHandle) -> BaseRoot {
         let option = TransformOption {
             prefix_identifier: true,
             ..Default::default()
@@ -396,11 +409,16 @@ mod test {
         let mut exp = ExpressionProcessor {
             option: &option,
             sfc_info: &Default::default(),
+            err_handle: handler,
         };
         let a: &mut [&mut dyn CorePassExt<_, _>] = &mut [&mut exp];
         let mut transformer = transformer_ext(a);
         transformer.transform(&mut ir);
         ir
+    }
+
+    fn transform(s: &str) -> BaseRoot {
+        transform_with_err(s, Rc::new(NoopErrorHandler))
     }
     fn first_child(ir: BaseRoot) -> BaseIR {
         ir.body.into_iter().next().unwrap()
@@ -514,5 +532,15 @@ mod test {
         let val = cast!(prop[2], Js::Simple);
         assert_eq!(key.into_string(), "c");
         assert_eq!(val.into_string(), "_ctx.c");
+    }
+
+    #[test]
+    fn test_error_expression() {
+        let error_handler = Rc::new(VecErrorHandler::default());
+        transform_with_err("{{ +invalid+ }}", error_handler.clone());
+        let errs = error_handler.errors();
+        assert!(!errs.is_empty());
+        let kind = &errs[0].kind;
+        assert!(matches!(kind, ErrorKind::InvalidExpression));
     }
 }

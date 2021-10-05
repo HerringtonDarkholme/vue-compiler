@@ -26,6 +26,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
         &mut ExpressionProcessor {
             option: &Default::default(),
             sfc_info: &Default::default(),
+            err_handle: option.error_handler.clone(),
         },
     ];
     let pass: &mut [&mut dyn CorePass<_>] = &mut [

@@ -28,8 +28,10 @@ pub mod optimize_text;
 pub mod pass;
 pub mod process_expression;
 
-use super::converter::{BaseConvertInfo as BaseInfo, BaseRoot};
-use crate::ir::{self as C, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir};
+use crate::{
+    converter::{BaseConvertInfo as BaseInfo, BaseRoot},
+    ir::{self as C, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir},
+};
 pub use pass::{CorePass, CorePassExt, MergedPass, Scope};
 use std::marker::PhantomData;
 

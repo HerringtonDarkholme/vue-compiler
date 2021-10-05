@@ -13,7 +13,6 @@ use compiler::{
         optimize_text::TextOptimizer,
         pass::{Scope, SharedInfoPasses},
         process_expression::ExpressionProcessor,
-        CorePassExt, MergedPass,
     },
 };
 
@@ -22,9 +21,9 @@ use criterion::Criterion;
 use criterion::{criterion_group, criterion_main};
 
 fn base_compile(source: &str, eh: RcErrHandle) {
-    let shared: &mut [&mut dyn CorePassExt<_, _>] = &mut [
-        &mut SlotFlagMarker,
-        &mut ExpressionProcessor {
+    let shared = chain![
+        SlotFlagMarker,
+        ExpressionProcessor {
             option: &Default::default(),
             sfc_info: &Default::default(),
             err_handle: eh,
@@ -35,8 +34,9 @@ fn base_compile(source: &str, eh: RcErrHandle) {
         EntityCollector::default(),
         PatchFlagMarker,
         SharedInfoPasses {
-            passes: MergedPass::new(shared),
+            passes: shared,
             shared_info: Scope::default(),
+            pd: std::marker::PhantomData,
         },
     ];
     let mut s = Vec::new();

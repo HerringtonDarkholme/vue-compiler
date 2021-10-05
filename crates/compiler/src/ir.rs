@@ -195,14 +195,25 @@ impl<'a> JsExpr<'a> {
         use JsExpr::*;
         use StaticLevel as S;
         match self {
-            Src(_) | StrLit(_) => S::CanStringify,
+            Num(_) | StrLit(_) => S::CanStringify,
             Simple(_, level) => *level,
+            Symbol(_) | Src(_) | Param(_) => S::CanHoist,
             Compound(v) | Array(v) | Call(_, v) => v
                 .iter()
                 .map(Self::static_level)
                 .min()
-                .unwrap_or(S::CanHoist),
-            _ => S::NotStatic,
+                .unwrap_or(S::CanStringify),
+            Props(ps) => {
+                let prop_level = |prop: &Prop<'a>| {
+                    let key_level = Self::static_level(&prop.0);
+                    let val_level = Self::static_level(&prop.1);
+                    key_level.min(val_level)
+                };
+                ps.iter().map(prop_level).min().unwrap_or(S::CanStringify)
+            }
+            Func(..) => {
+                todo!()
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 use super::CliInput;
 use anyhow::Result;
 use compiler::{
+    chain,
     codegen::{self, CodeGenerator},
     converter::{self, Converter},
     parser, scanner,
@@ -12,7 +13,7 @@ use compiler::{
         optimize_text::TextOptimizer,
         pass::{Scope, SharedInfoPasses},
         process_expression::ExpressionProcessor,
-        CorePass, CorePassExt, MergedPass, Transformer,
+        CorePassExt, MergedPass, Transformer,
     },
 };
 use serde_yaml::to_writer;
@@ -29,15 +30,15 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
             err_handle: option.error_handler.clone(),
         },
     ];
-    let pass: &mut [&mut dyn CorePass<_>] = &mut [
-        &mut TextOptimizer,
-        &mut EntityCollector::default(),
-        &mut PatchFlagMarker,
-        &mut SharedInfoPasses {
+    let pass = chain!(
+        TextOptimizer,
+        EntityCollector::default(),
+        PatchFlagMarker,
+        SharedInfoPasses {
             passes: MergedPass::new(shared),
             shared_info: Scope::default(),
         },
-    ];
+    );
     let eh = || option.error_handler.clone();
 
     let scanner = scanner::Scanner::new(option.scanning());
@@ -71,7 +72,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
         println!(r#"========== End of IR ==========="#);
     }
 
-    let mut transformer = transformer::BaseTransformer::new(MergedPass::new(pass));
+    let mut transformer = transformer::BaseTransformer::new(pass);
     transformer.transform(&mut ir);
     if show.dump_transform {
         println!(r#"======= Transformed ========="#);

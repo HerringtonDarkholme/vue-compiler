@@ -1,15 +1,9 @@
 #![allow(dead_code, unused_variables)]
 //! See README.md
 
-use flags::StaticLevel;
-use ir::JsExpr as Js;
-use rustc_hash::FxHashMap;
-use std::ops::Deref;
-use std::ops::Range;
-pub use transformer::pass::Chain;
-use util::VStr;
-
 // TODO: reorg pub
+#[macro_use]
+pub mod util;
 pub mod codegen;
 pub mod compiler;
 pub mod converter;
@@ -19,8 +13,14 @@ pub mod ir;
 pub mod parser;
 pub mod scanner;
 pub mod transformer;
-#[macro_use]
-pub mod util;
+
+use flags::StaticLevel;
+use ir::JsExpr as Js;
+use rustc_hash::FxHashMap;
+use std::ops::Deref;
+use std::ops::Range;
+pub use transformer::pass::Chain;
+use util::VStr;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -175,17 +175,6 @@ impl<'a> Default for SFCInfo<'a> {
     }
 }
 
-#[macro_export]
-macro_rules! cast {
-    ($target: expr, $pat: path) => {{
-        if let $pat(a, ..) = $target {
-            a
-        } else {
-            panic!("mismatch variant when cast to {}", stringify!($pat));
-        }
-    }};
-}
-
 /// Chains multiple transform pass.
 #[macro_export]
 macro_rules! chain {
@@ -205,7 +194,7 @@ macro_rules! chain {
     ($a:expr, $b:expr,  $($rest:tt)+) => {{
         use $crate::Chain;
 
-        AndThen{
+        Chain {
             first: $a,
             second: chain!($b, $($rest)*),
         }

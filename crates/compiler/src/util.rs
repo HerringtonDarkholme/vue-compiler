@@ -12,6 +12,17 @@ use std::{
     ops::Deref,
 };
 
+#[macro_export]
+macro_rules! cast {
+    ($target: expr, $pat: path) => {{
+        if let $pat(a, ..) = $target {
+            a
+        } else {
+            panic!("mismatch variant when cast to {}", stringify!($pat));
+        }
+    }};
+}
+
 pub mod rslint;
 mod v_str;
 pub use v_str::VStr;

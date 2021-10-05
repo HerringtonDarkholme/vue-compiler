@@ -1,6 +1,4 @@
-use compiler::converter::v_model::{
-    convert_v_model as convert_v_model_core, convert_v_model_event,
-};
+use compiler::converter::v_model::{convert_v_model as convert_v_model_core, convert_v_model_event};
 
 use super::{CoreDirConvRet, Directive, DirectiveConverter, Element, ErrorHandler};
 pub fn convert_v_model<'a>(

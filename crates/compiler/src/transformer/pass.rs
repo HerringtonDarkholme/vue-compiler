@@ -68,8 +68,8 @@ macro_rules! chain_exit {
 }
 
 pub struct Chain<A, B> {
-    first: A,
-    second: B,
+    pub first: A,
+    pub second: B,
 }
 impl<'b, T, A, B> CorePass<T> for Chain<A, B>
 where

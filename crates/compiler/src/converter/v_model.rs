@@ -98,7 +98,7 @@ pub fn convert_v_model_event(converted: &mut DirectiveConvertResult<Js>) {
         _ => Js::Compound(vec![Js::Src("'onUpdate:' + "), prop_name.clone()]),
     };
     let val_expr = *cast!(val, Js::Simple).clone().assign_event();
-    let assignment = Js::Func(val_expr, HandlerType::InlineStmt, StaticLevel::NotStatic);
+    let assignment = Js::func(val_expr, HandlerType::InlineStmt);
     // TODO, cache assignment expr
     props.push((event_name, assignment));
 }

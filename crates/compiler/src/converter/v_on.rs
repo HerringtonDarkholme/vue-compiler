@@ -3,7 +3,7 @@ use super::{
 };
 use crate::{
     error::CompilationErrorKind as ErrorKind,
-    flags::{RuntimeHelper, StaticLevel},
+    flags::RuntimeHelper,
     ir::{HandlerType, JsExpr as Js},
     parser::DirectiveArg,
     scanner::AttributeValue,
@@ -70,7 +70,7 @@ pub fn convert_v_on_expr(expr: Option<AttributeValue>) -> Js {
     } else {
         HandlerType::InlineStmt
     };
-    Js::Func(val, handler_type, StaticLevel::NotStatic)
+    Js::func(val, handler_type)
 }
 
 fn is_fn_exp(expr: VStr) -> bool {

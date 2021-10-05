@@ -149,6 +149,13 @@ pub enum HandlerType {
     FuncExpr,
 }
 
+#[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum FuncRep<'a> {
+    Simple(VStr<'a>, StaticLevel),
+    Compound(Vec<JsExpr<'a>>),
+}
+
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
 #[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -165,7 +172,7 @@ pub enum JsExpr<'a> {
     /// variable in parameter
     Param(Name<'a>),
     /// event handler function
-    Func(VStr<'a>, HandlerType, StaticLevel),
+    Func(FuncRep<'a>, HandlerType),
     /// alternative to join string as JsExpr
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),
@@ -191,6 +198,10 @@ impl<'a> JsExpr<'a> {
     pub fn str_lit<V: Into<VStr<'a>>>(v: V) -> Self {
         JsExpr::StrLit(v.into())
     }
+    pub fn func<V: Into<VStr<'a>>>(v: V, ty: HandlerType) -> Self {
+        let func_rep = FuncRep::Simple(v.into(), StaticLevel::NotStatic);
+        JsExpr::Func(func_rep, ty)
+    }
     pub fn static_level(&self) -> StaticLevel {
         use JsExpr::*;
         use StaticLevel as S;
@@ -198,22 +209,23 @@ impl<'a> JsExpr<'a> {
             Num(_) | StrLit(_) => S::CanStringify,
             Simple(_, level) => *level,
             Symbol(_) | Src(_) | Param(_) => S::CanHoist,
-            Compound(v) | Array(v) | Call(_, v) => v
-                .iter()
-                .map(Self::static_level)
-                .min()
-                .unwrap_or(S::CanStringify),
-            Props(ps) => {
-                let prop_level = |prop: &Prop<'a>| {
-                    let key_level = Self::static_level(&prop.0);
-                    let val_level = Self::static_level(&prop.1);
-                    key_level.min(val_level)
-                };
-                ps.iter().map(prop_level).min().unwrap_or(S::CanStringify)
-            }
-            Func(..) => {
-                todo!()
-            }
+            Compound(v) | Array(v) | Call(_, v) => vec_static_level(v),
+            Props(ps) => ps.iter().map(prop_level).min().unwrap_or(S::CanStringify),
+            Func(FuncRep::Simple(_, level), _) => *level,
+            Func(FuncRep::Compound(v), _) => vec_static_level(v),
         }
     }
+}
+
+fn vec_static_level(v: &[JsExpr]) -> StaticLevel {
+    v.iter()
+        .map(JsExpr::static_level)
+        .min()
+        .unwrap_or(StaticLevel::CanStringify)
+}
+
+fn prop_level(prop: &Prop) -> StaticLevel {
+    let key_level = prop.0.static_level();
+    let val_level = prop.1.static_level();
+    key_level.min(val_level)
 }

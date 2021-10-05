@@ -4,7 +4,7 @@
 use super::collect_entities::is_hoisted_asset;
 use super::{BaseInfo, CorePassExt, Scope, TransformOption};
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
-use crate::ir::JsExpr as Js;
+use crate::ir::{FuncRep, JsExpr as Js};
 use crate::util::{is_global_allow_listed, is_simple_identifier, rslint, VStr};
 use crate::{cast, BindingTypes, SFCInfo};
 
@@ -78,27 +78,40 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         }
         use crate::ir::HandlerType::InlineStmt;
         // complex expr will be handled recursively in transformer
-        let add_id = match e {
-            Js::Func(_, InlineStmt, _) => {
-                scope.add_identifier("$event");
-                true
-            }
-            Js::Simple(..) | Js::Func(..) => false,
+        let (rep, ty) = match e {
+            Js::Func(rep, ty) => (rep, ty),
+            Js::Simple(..) => return self.process_simple_expr(e, scope),
             _ => return,
         };
-        if !self.process_expr_fast(e, scope) {
-            self.process_with_js_parser(e, scope);
+        let mut mock_js = match rep {
+            FuncRep::Simple(a, l) => Js::Simple(*a, *l),
+            _ => return,
+        };
+        if matches!(ty, InlineStmt) {
+            scope.add_identifier("$event");
         }
-        if add_id {
+        self.process_simple_expr(&mut mock_js, scope);
+        *rep = match mock_js {
+            Js::Simple(s, l) => FuncRep::Simple(s, l),
+            Js::Compound(v) => FuncRep::Compound(v),
+            _ => panic!("impossible"),
+        };
+        if matches!(ty, InlineStmt) {
             scope.remove_identifier("$event");
         }
+    }
+
+    fn process_simple_expr(&self, e: &mut Js<'a>, scope: &Scope) {
+        if self.process_expr_fast(e, scope) {
+            return;
+        }
+        self.process_with_js_parser(e, scope)
     }
 
     /// prefix _ctx without parsing JS
     fn process_expr_fast(&self, e: &mut Js<'a>, scope: &Scope) -> bool {
         let (v, level) = match e {
             Js::Simple(v, level) => (v, level),
-            Js::Func(v, _, level) => (v, level),
             _ => panic!("impossible"),
         };
         if !is_simple_identifier(*v) {
@@ -130,7 +143,6 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
     fn process_with_js_parser(&self, e: &mut Js<'a>, scope: &Scope) {
         let (v, level) = match e {
             Js::Simple(v, level) => (v, level),
-            Js::Func(v, _, level) => (v, level),
             _ => panic!("impossible"),
         };
         let raw = v.raw;

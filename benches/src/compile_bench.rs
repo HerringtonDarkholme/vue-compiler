@@ -3,6 +3,7 @@ mod bench_util;
 use std::rc::Rc;
 use compiler::compiler::BaseCompiler;
 use compiler::{
+    chain,
     error::{NoopErrorHandler, RcErrHandle},
     compiler::{CompileOption, TemplateCompiler},
     transformer::{
@@ -29,11 +30,11 @@ fn base_compile(source: &str, eh: RcErrHandle) {
             err_handle: eh,
         },
     ];
-    let pass: &mut [&mut dyn CorePass<_>] = &mut [
-        &mut TextOptimizer,
-        &mut EntityCollector::default(),
-        &mut PatchFlagMarker,
-        &mut SharedInfoPasses {
+    let pass = chain![
+        TextOptimizer,
+        EntityCollector::default(),
+        PatchFlagMarker,
+        SharedInfoPasses {
             passes: MergedPass::new(shared),
             shared_info: Scope::default(),
         },

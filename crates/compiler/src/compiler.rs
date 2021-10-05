@@ -10,7 +10,7 @@ use super::{
     flags::RuntimeHelper,
     parser::{Element, ParseOption, Parser, WhitespaceStrategy},
     scanner::{ScanOption, Scanner, TextMode},
-    transformer::{BaseTransformer, CorePass, MergedPass, TransformOption, Transformer},
+    transformer::{BaseTransformer, CorePass, TransformOption, Transformer},
     util::{no, yes},
     Namespace,
 };
@@ -219,35 +219,41 @@ pub trait TemplateCompiler<'a> {
     }
 }
 
-type Passes<'a, 'b> = &'b mut dyn CorePass<BaseInfo<'a>>;
-
-pub struct BaseCompiler<'a, 'b, W: io::Write> {
-    writer: Option<W>,
-    passes: Option<&'b mut [Passes<'a, 'b>]>,
-    option: CompileOption,
-}
-
-impl<'a, 'b, W> BaseCompiler<'a, 'b, W>
+pub struct BaseCompiler<'a, P, W>
 where
     W: io::Write,
+    P: CorePass<BaseInfo<'a>>,
 {
-    pub fn new(writer: W, passes: &'b mut [Passes<'a, 'b>], option: CompileOption) -> Self {
+    writer: Option<W>,
+    passes: Option<P>,
+    option: CompileOption,
+    pd: std::marker::PhantomData<&'a ()>,
+}
+
+impl<'a, P, W> BaseCompiler<'a, P, W>
+where
+    W: io::Write,
+    P: CorePass<BaseInfo<'a>>,
+{
+    pub fn new(writer: W, passes: P, option: CompileOption) -> Self {
         Self {
             writer: Some(writer),
             passes: Some(passes),
             option,
+            pd: std::marker::PhantomData,
         }
     }
 }
 
-impl<'a, 'b, W> TemplateCompiler<'a> for BaseCompiler<'a, 'b, W>
+impl<'a, P, W> TemplateCompiler<'a> for BaseCompiler<'a, P, W>
 where
     W: io::Write,
+    P: CorePass<BaseInfo<'a>>,
 {
     type IR = BaseRoot<'a>;
     type Output = io::Result<()>;
     type Conv = BaseConverter<'a>;
-    type Trans = BaseTransformer<'a, MergedPass<'b, Passes<'a, 'b>>>;
+    type Trans = BaseTransformer<'a, P>;
     type Gen = CodeWriter<'a, W>;
 
     fn get_scanner(&self) -> Scanner {
@@ -267,7 +273,7 @@ where
         }
     }
     fn get_transformer(&mut self) -> Self::Trans {
-        let pass = MergedPass::new(self.passes.take().unwrap());
+        let pass = self.passes.take().unwrap();
         BaseTransformer::new(pass)
     }
     fn get_code_generator(&mut self) -> Self::Gen {

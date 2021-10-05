@@ -149,13 +149,6 @@ pub enum HandlerType {
     FuncExpr,
 }
 
-#[derive(Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum FuncRep<'a> {
-    Simple(VStr<'a>, StaticLevel),
-    Compound(Box<[JsExpr<'a>]>),
-}
-
 pub type Prop<'a> = (JsExpr<'a>, JsExpr<'a>);
 #[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -173,7 +166,9 @@ pub enum JsExpr<'a> {
     /// variable in parameter
     Param(Name<'a>),
     /// event handler function
-    Func(FuncRep<'a>),
+    // NB: inline the VStr here for smaller struct size
+    FuncSimple(VStr<'a>, StaticLevel),
+    FuncCompound(Box<[JsExpr<'a>]>),
     /// alternative to join string as JsExpr
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),
@@ -200,8 +195,7 @@ impl<'a> JsExpr<'a> {
         JsExpr::StrLit(v.into())
     }
     pub fn func<V: Into<VStr<'a>>>(v: V) -> Self {
-        let func_rep = FuncRep::Simple(v.into(), StaticLevel::NotStatic);
-        JsExpr::Func(func_rep)
+        Self::FuncSimple(v.into(), StaticLevel::NotStatic)
     }
     pub fn static_level(&self) -> StaticLevel {
         use JsExpr::*;
@@ -212,8 +206,8 @@ impl<'a> JsExpr<'a> {
             Symbol(_) | Src(_) | Param(_) => S::CanHoist,
             Compound(v) | Array(v) | Call(_, v) => vec_static_level(v),
             Props(ps) => ps.iter().map(prop_level).min().unwrap_or(S::CanStringify),
-            Func(FuncRep::Simple(_, level)) => *level,
-            Func(FuncRep::Compound(v)) => vec_static_level(v),
+            FuncSimple(_, level) => *level,
+            FuncCompound(v) => vec_static_level(v),
         }
     }
 }

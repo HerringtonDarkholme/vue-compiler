@@ -5,7 +5,7 @@ use super::collect_entities::is_hoisted_asset;
 use super::{BaseInfo, CorePassExt, Scope, TransformOption};
 use crate::converter::v_on::get_handler_type;
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
-use crate::ir::{FuncRep, JsExpr as Js};
+use crate::ir::JsExpr as Js;
 use crate::util::{is_global_allow_listed, is_simple_identifier, rslint, VStr};
 use crate::{cast, BindingTypes, SFCInfo};
 
@@ -79,13 +79,9 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         }
         use crate::ir::HandlerType::InlineStmt;
         // complex expr will be handled recursively in transformer
-        let rep = match e {
-            Js::Func(rep) => (rep),
+        let (exp, mut mock_js) = match e {
+            Js::FuncSimple(v, l) => (*v, Js::Simple(*v, *l)),
             Js::Simple(..) => return self.process_simple_expr(e, scope),
-            _ => return,
-        };
-        let (exp, mut mock_js) = match rep {
-            FuncRep::Simple(e, l) => (*e, Js::Simple(*e, *l)),
             _ => return,
         };
         let ty = get_handler_type(exp);
@@ -93,9 +89,9 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
             scope.add_identifier("$event");
         }
         self.process_simple_expr(&mut mock_js, scope);
-        *rep = match mock_js {
-            Js::Simple(s, l) => FuncRep::Simple(s, l),
-            Js::Compound(v) => FuncRep::Compound(v.into_boxed_slice()),
+        *e = match mock_js {
+            Js::Simple(s, l) => Js::FuncSimple(s, l),
+            Js::Compound(v) => Js::FuncCompound(v.into_boxed_slice()),
             _ => panic!("impossible"),
         };
         if matches!(ty, InlineStmt) {

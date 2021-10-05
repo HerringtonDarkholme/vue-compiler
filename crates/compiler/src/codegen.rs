@@ -266,7 +266,10 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
                 self.gen_list(args)?;
                 self.write_str(")")
             }
-            Js::Func(v, ..) => {
+            Js::FuncSimple(v, ..) => {
+                todo!()
+            }
+            Js::FuncCompound(v) => {
                 todo!()
             }
         }

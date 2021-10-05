@@ -252,11 +252,14 @@ where
                     Self::transform_js_expr(val, ps);
                 }
             }
+            Js::FuncCompound(..) => {
+                panic!("synthetic func expr should not be transformed")
+            }
             Js::Src(_)
             | Js::Num(_)
             | Js::Simple(..)
             | Js::Param(_)
-            | Js::Func(..)
+            | Js::FuncSimple(..)
             | Js::StrLit(_)
             | Js::Symbol(_) => {
                 // no further recursion.

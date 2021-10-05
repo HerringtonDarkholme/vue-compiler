@@ -29,7 +29,6 @@ pub fn convert_v_on<'a>(
     }
     let Directive {
         expression,
-        modifiers,
         argument,
         ..
     } = dir;
@@ -41,13 +40,12 @@ pub fn convert_v_on<'a>(
                 Js::Call(RuntimeHelper::ToHandlerKey, vec![e])
             }
         };
-        let exp = convert_v_on_expr(expression.take());
-        let exp = add_modifiers(&event_name, exp, modifiers);
+        let exp = convert_v_on_expr(expression.as_ref());
         Js::Props(vec![(event_name, exp)])
     } else {
         // bare v-on="" does not have mods
         let exp = expression
-            .take()
+            .as_ref()
             .expect("v-on with no expr nor arg should be dropped.");
         let exp = Js::simple(exp.content);
         Js::Call(RuntimeHelper::ToHandlers, vec![exp])
@@ -58,7 +56,7 @@ pub fn convert_v_on<'a>(
     }
 }
 
-pub fn convert_v_on_expr(expr: Option<AttributeValue>) -> Js {
+pub fn convert_v_on_expr<'a>(expr: Option<&AttributeValue<'a>>) -> Js<'a> {
     let val = match expr {
         Some(val) => val.content,
         None => return Js::Src("() => {}"),
@@ -109,10 +107,6 @@ fn is_fn_exp(raw: &str) -> bool {
 // this avoids unnecessary re-renders when users use inline handlers on
 // components. NB. requires prefix_identifiers
 pub fn cache_handlers() {
-    todo!()
-}
-
-pub fn add_modifiers<'a>(evt_name: &Js<'a>, expr: Js<'a>, mods: &[&'a str]) -> Js<'a> {
     todo!()
 }
 

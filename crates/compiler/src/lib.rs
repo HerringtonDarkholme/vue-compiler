@@ -6,6 +6,7 @@ use ir::JsExpr as Js;
 use rustc_hash::FxHashMap;
 use std::ops::Deref;
 use std::ops::Range;
+pub use transformer::pass::Chain;
 use util::VStr;
 
 // TODO: reorg pub
@@ -181,6 +182,32 @@ macro_rules! cast {
             a
         } else {
             panic!("mismatch variant when cast to {}", stringify!($pat));
+        }
+    }};
+}
+
+/// Chains multiple transform pass.
+#[macro_export]
+macro_rules! chain {
+    ($a:expr, $b:expr) => {{
+        use $crate::Chain;
+
+        Chain {
+            first: $a,
+            second: $b,
+        }
+    }};
+
+    ($a:expr, $b:expr,) => {
+        chain!($a, $b)
+    };
+
+    ($a:expr, $b:expr,  $($rest:tt)+) => {{
+        use $crate::Chain;
+
+        AndThen{
+            first: $a,
+            second: chain!($b, $($rest)*),
         }
     }};
 }

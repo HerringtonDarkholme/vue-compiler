@@ -43,6 +43,7 @@ macro_rules! noop_pass {
 pub trait CorePass<T: ConvertInfo> {
     impl_enter!(noop_pass);
     impl_exit!(noop_pass);
+    // macro output example:
     // fn enter_root(&mut self, _: &mut IRRoot<T>) {}
     // fn exit_root(&mut self, _: &mut IRRoot<T>) {}
 }

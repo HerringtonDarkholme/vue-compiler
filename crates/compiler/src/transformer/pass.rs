@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
 use super::{BaseInfo, BaseTransformer, BaseVNode, ConvertInfo, CoreTransformer, Js, C};
-use crate::ir::IRRoot;
 use crate::Name;
 use rustc_hash::FxHashMap;
 
@@ -92,105 +91,6 @@ where
     //     self.second.exit_root(r);
     //     self.first.exit_root(r);
     // }
-}
-
-// TODO: refactor this to Future like chain
-pub struct MergedPass<'b, P> {
-    passes: &'b mut [P],
-}
-
-impl<'b, P> MergedPass<'b, P> {
-    pub fn new(passes: &'b mut [P]) -> Self {
-        Self { passes }
-    }
-    fn enter<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut P),
-    {
-        for p in &mut self.passes.iter_mut() {
-            f(p)
-        }
-    }
-    fn exit<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut P),
-    {
-        for p in self.passes.iter_mut().rev() {
-            f(p)
-        }
-    }
-}
-
-impl<'b, T> CorePass<T> for MergedPass<'b, &'b mut dyn CorePass<T>>
-where
-    T: ConvertInfo,
-{
-    fn enter_root(&mut self, r: &mut IRRoot<T>) {
-        self.enter(|p| p.enter_root(r))
-    }
-    fn exit_root(&mut self, r: &mut IRRoot<T>) {
-        self.exit(|p| p.exit_root(r))
-    }
-    fn enter_text(&mut self, t: &mut C::TextIR<T>) {
-        self.enter(|p| p.enter_text(t))
-    }
-    fn exit_text(&mut self, t: &mut C::TextIR<T>) {
-        self.exit(|p| p.exit_text(t))
-    }
-    fn enter_if(&mut self, i: &mut C::IfNodeIR<T>) {
-        self.enter(|p| p.enter_if(i))
-    }
-    fn exit_if(&mut self, i: &mut C::IfNodeIR<T>) {
-        self.exit(|p| p.exit_if(i))
-    }
-    fn enter_for(&mut self, f: &mut C::ForNodeIR<T>) {
-        self.enter(|p| p.enter_for(f))
-    }
-    fn exit_for(&mut self, f: &mut C::ForNodeIR<T>) {
-        self.exit(|p| p.exit_for(f))
-    }
-    fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>) {
-        self.enter(|p| p.enter_vnode(v))
-    }
-    fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>) {
-        self.exit(|p| p.exit_vnode(v))
-    }
-    fn enter_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>) {
-        self.enter(|p| p.enter_slot_outlet(r))
-    }
-    fn exit_slot_outlet(&mut self, r: &mut C::RenderSlotIR<T>) {
-        self.exit(|p| p.exit_slot_outlet(r))
-    }
-    fn enter_v_slot(&mut self, s: &mut C::VSlotIR<T>) {
-        self.enter(|p| p.enter_v_slot(s))
-    }
-    fn exit_v_slot(&mut self, s: &mut C::VSlotIR<T>) {
-        self.exit(|p| p.exit_v_slot(s))
-    }
-    fn enter_slot_fn(&mut self, s: &mut C::Slot<T>) {
-        self.enter(|p| p.enter_slot_fn(s))
-    }
-    fn exit_slot_fn(&mut self, s: &mut C::Slot<T>) {
-        self.exit(|p| p.exit_slot_fn(s))
-    }
-    fn enter_js_expr(&mut self, e: &mut T::JsExpression) {
-        self.enter(|p| p.enter_js_expr(e))
-    }
-    fn exit_js_expr(&mut self, e: &mut T::JsExpression) {
-        self.exit(|p| p.exit_js_expr(e))
-    }
-    fn enter_fn_param(&mut self, m: &mut T::JsExpression) {
-        self.enter(|p| p.enter_fn_param(m))
-    }
-    fn exit_fn_param(&mut self, m: &mut T::JsExpression) {
-        self.exit(|p| p.exit_fn_param(m))
-    }
-    fn enter_comment(&mut self, c: &mut T::CommentType) {
-        self.enter(|p| p.enter_comment(c))
-    }
-    fn exit_comment(&mut self, c: &mut T::CommentType) {
-        self.exit(|p| p.exit_comment(c))
-    }
 }
 
 type Identifiers<'a> = FxHashMap<Name<'a>, usize>;

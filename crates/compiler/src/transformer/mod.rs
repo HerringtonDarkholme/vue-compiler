@@ -32,7 +32,7 @@ use crate::{
     converter::{BaseConvertInfo as BaseInfo, BaseRoot},
     ir::{self as C, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir},
 };
-pub use pass::{CorePass, CorePassExt, MergedPass, Scope};
+pub use pass::{CorePass, CorePassExt, Scope};
 use std::marker::PhantomData;
 
 pub trait Transformer {

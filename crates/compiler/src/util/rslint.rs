@@ -440,7 +440,7 @@ mod test {
             ("a = (b) => { var a = 123}", vec!["a"]),
             ("a=b", vec!["a"]),
             ("{a, b, c}", vec!["a", "b", "c"]),
-            // ("{a=b}", vec!["a"]), // need https://github.com/rslint/rslint/issues/120
+            ("{a=b}", vec!["a"]),
             ("[a, b, c]", vec!["a", "b", "c"]),
             // ts annotation
             ("a: A", vec!["a"]),

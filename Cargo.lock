@@ -380,9 +380,9 @@ dependencies = [
 
 [[package]]
 name = "rslint_parser"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28d3443074ca9c164277f054a6380fa84c510a956a8d29b57ec7ef2047617c5f"
+checksum = "21563e0df87aa30700615a6d1262dd0ce0c8b207e7caec3fb4a1ab455bf891ab"
 dependencies = [
  "lexical",
  "num-bigint",

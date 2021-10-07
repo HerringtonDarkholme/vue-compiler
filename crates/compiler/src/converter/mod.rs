@@ -101,6 +101,15 @@ pub trait CoreConverter<'a, T: ConvertInfo> {
         }
     }
     fn pre_convert_element(&self, mut e: Element<'a>) -> IRNode<T> {
+        // in non reactive build, we can skip cache related dir
+        if !self.is_reactive_build() {
+            let vfor = pre_convert_for(self, &mut e);
+            let mut n = self.dispatch_element(e);
+            if let Some(d) = vfor {
+                n = self.convert_for(d, n);
+            }
+            return n;
+        }
         // order is defined as @vue/compiler-core/src/compile.ts
         let once = pre_convert_once(&mut e);
         let vfor = pre_convert_for(self, &mut e);
@@ -148,6 +157,8 @@ pub trait CoreConverter<'a, T: ConvertInfo> {
     fn convert_interpolation(&self, i: SourceNode<'a>) -> IRNode<T>;
     fn convert_template(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_comment(&self, c: SourceNode<'a>) -> IRNode<T>;
+
+    fn is_reactive_build(&self) -> bool;
 }
 
 /// Directive's prop argument passed to VNodeCall after conversion.
@@ -218,8 +229,9 @@ pub struct ConvertOption {
     /// For platform developers. Registers platform specific components written in JS.
     /// e.g. transition, transition-group. Components that require code in Vue runtime.
     pub get_builtin_component: fn(&str) -> Option<RuntimeHelper>,
-    pub is_dev: bool,
     pub directive_converters: FxHashMap<&'static str, DirConvertFn>,
+    pub is_dev: bool,
+    pub need_reactivity: bool,
 }
 
 impl Default for ConvertOption {
@@ -227,6 +239,7 @@ impl Default for ConvertOption {
         Self {
             get_builtin_component: get_core_component,
             is_dev: true,
+            need_reactivity: true,
             directive_converters: FxHashMap::default(),
         }
     }
@@ -248,6 +261,9 @@ impl<'a> Converter<'a> for BaseConverter<'a> {
 impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter<'a> {
     fn emit_error(&self, error: CompilationError) {
         self.err_handle.on_error(error)
+    }
+    fn is_reactive_build(&self) -> bool {
+        self.option.need_reactivity
     }
 
     // platform specific methods
@@ -274,11 +290,19 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter<'a> {
         v_for::convert_for(self, d, e)
     }
     // once/memo are noop on SSR/SSR-fallback. They only work in re-render
-    fn convert_memo(&self, _: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
-        n
+    fn convert_memo(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+        if self.is_reactive_build() {
+            cache_dir::convert_memo(self, d, n)
+        } else {
+            n
+        }
     }
-    fn convert_once(&self, _: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
-        n
+    fn convert_once(&self, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+        if self.is_reactive_build() {
+            cache_dir::convert_once(self, d, n)
+        } else {
+            n
+        }
     }
     fn convert_slot_outlet(&self, e: Element<'a>) -> BaseIR<'a> {
         convert_slot_outlet::convert_slot_outlet(self, e)

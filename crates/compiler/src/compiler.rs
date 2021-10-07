@@ -87,6 +87,10 @@ pub struct CompileOption {
     /// Generate source map?
     /// @default false
     pub source_map: bool,
+    /// Whether the output JS needs re-rendering when Vue runtime data change.
+    /// e.g. SSR can set it to false since SSR is executed only once per request.
+    /// @default true
+    pub need_reactivity: bool,
     /// Custom error reporter. Default is noop.
     pub error_handler: RcErrHandle,
     // deleted options
@@ -103,7 +107,7 @@ pub struct CompileOption {
     // scopeId?: string | null
     // slotted?: boolean
 
-    // moved to SSR
+    // moved to SSR or need_reactivity
     // ssr: bool // will be false in fallback node
     // inSSR?: bool // always true in ssr build
     // ssrCssVars?: string
@@ -137,6 +141,7 @@ impl Default for CompileOption {
                 runtime_global_name: "Vue".into(),
             },
             source_map: false,
+            need_reactivity: false,
             error_handler: Rc::new(NoopErrorHandler),
         }
     }
@@ -167,6 +172,7 @@ impl CompileOption {
             get_builtin_component: self.get_builtin_component,
             is_dev: self.is_dev,
             directive_converters: self.directive_converters.clone(),
+            need_reactivity: self.need_reactivity,
         }
     }
     pub fn transforming(&self) -> TransformOption {

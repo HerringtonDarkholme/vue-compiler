@@ -9,7 +9,6 @@ use crate::transformer::{
 use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use crate::SFCInfo;
 use smallvec::{smallvec, SmallVec};
-use std::marker::PhantomData;
 use std::{
     borrow::Cow,
     io::{self, Write},
@@ -116,7 +115,6 @@ pub struct CodeWriter<'a, T: Write> {
     in_alterable: bool,
     helpers: HelperCollector,
     option: CodeGenerateOption,
-    pd: PhantomData<&'a ()>,
 }
 impl<'a, T: Write> CodeWriter<'a, T> {
     pub fn new(writer: T, option: CodeGenerateOption, sfc_info: SFCInfo<'a>) -> Self {
@@ -128,7 +126,6 @@ impl<'a, T: Write> CodeWriter<'a, T> {
             closing_brackets: 0,
             in_alterable: false,
             helpers: Default::default(),
-            pd: PhantomData,
         }
     }
 }

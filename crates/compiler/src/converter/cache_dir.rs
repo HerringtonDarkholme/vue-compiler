@@ -12,6 +12,11 @@ pub fn pre_convert_memo<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
 pub fn pre_convert_once<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
     let dir = find_dir(&mut *elem, "once")?;
     let b = dir.take();
+    // don't use cache if ancestor already in v-once/v-memo
+    let children = elem.children.iter_mut().filter_map(|c| c.get_element_mut());
+    for child in children {
+        pre_convert_once(child);
+    }
     Some(b)
 }
 
@@ -38,7 +43,6 @@ pub fn convert_memo<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> 
 }
 
 pub fn convert_once<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
-    // TODO: don't use cache if ancestor already in v-once/v-memo
     IRNode::CacheNode(CacheIR {
         kind: CacheKind::Once,
         child: Box::new(n),

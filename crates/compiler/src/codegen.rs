@@ -11,7 +11,8 @@ use crate::SFCInfo;
 use smallvec::{smallvec, SmallVec};
 use std::{
     borrow::Cow,
-    io::{self, Write},
+    fmt::{self, Write},
+    io::{self, Write as ioWrite},
     iter,
 };
 
@@ -107,8 +108,39 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
     fn generate_comment(&mut self, c: T::CommentType) -> Self::Written;
 }
 
-pub struct CodeWriter<'a, T: Write> {
-    pub writer: T,
+struct WriteAdaptor<T: ioWrite> {
+    inner: T,
+    io_error: Option<io::Error>,
+}
+impl<T: ioWrite> WriteAdaptor<T> {
+    fn new(inner: T) -> Self {
+        Self {
+            inner,
+            io_error: None,
+        }
+    }
+    fn get_io_error(&mut self) -> io::Error {
+        self.io_error
+            .take()
+            .unwrap_or_else(|| io::Error::new(io::ErrorKind::Other, "unexpected fmt error"))
+    }
+}
+
+impl<T: ioWrite> fmt::Write for WriteAdaptor<T> {
+    #[inline(always)]
+    fn write_str(&mut self, s: &str) -> Output {
+        match self.inner.write_all(s.as_bytes()) {
+            Ok(()) => Ok(()),
+            Err(err) => {
+                self.io_error = Some(err);
+                Err(fmt::Error)
+            }
+        }
+    }
+}
+
+pub struct CodeWriter<'a, T: ioWrite> {
+    writer: WriteAdaptor<T>,
     sfc_info: SFCInfo<'a>,
     indent_level: usize,
     closing_brackets: usize,
@@ -117,10 +149,10 @@ pub struct CodeWriter<'a, T: Write> {
     helpers: HelperCollector,
     option: CodeGenerateOption,
 }
-impl<'a, T: Write> CodeWriter<'a, T> {
+impl<'a, T: ioWrite> CodeWriter<'a, T> {
     pub fn new(writer: T, option: CodeGenerateOption, sfc_info: SFCInfo<'a>) -> Self {
         Self {
-            writer,
+            writer: WriteAdaptor::new(writer),
             option,
             sfc_info,
             indent_level: 0,
@@ -131,26 +163,30 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         }
     }
 }
-impl<'a, T: Write> CodeGenerator for CodeWriter<'a, T> {
+
+type Output = fmt::Result;
+
+impl<'a, T: ioWrite> CodeGenerator for CodeWriter<'a, T> {
     type IR = BaseRoot<'a>;
     type Output = io::Result<()>;
     fn generate(&mut self, root: Self::IR) -> Self::Output {
         // get top scope entities
         self.helpers = root.top_scope.helpers.clone();
         self.generate_root(root)
+            .map_err(|_| self.writer.get_io_error())
     }
 }
 
-impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
-    type Written = io::Result<()>;
-    fn generate_prologue(&mut self, root: &BaseRoot<'a>) -> io::Result<()> {
+impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
+    type Written = Output;
+    fn generate_prologue(&mut self, root: &BaseRoot<'a>) -> Output {
         self.generate_preamble(&root.top_scope)?;
         self.generate_function_signature()?;
         self.generate_with_scope()?;
         self.generate_assets(&root.top_scope)?;
         self.write_str("return ")
     }
-    fn generate_epilogue(&mut self) -> io::Result<()> {
+    fn generate_epilogue(&mut self) -> Output {
         for _ in 0..self.closing_brackets {
             self.deindent()?;
             self.write_str("}")?;
@@ -158,7 +194,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         debug_assert_eq!(self.indent_level, 0);
         Ok(())
     }
-    fn generate_text(&mut self, t: BaseText<'a>) -> io::Result<()> {
+    fn generate_text(&mut self, t: BaseText<'a>) -> Output {
         if t.fast_path {
             return self.gen_concate_str(t.texts);
         }
@@ -171,7 +207,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         }
         self.write_str(")")
     }
-    fn generate_if(&mut self, i: BaseIf<'a>) -> io::Result<()> {
+    fn generate_if(&mut self, i: BaseIf<'a>) -> Output {
         let mut indent = 0;
         for branch in i.branches {
             if branch.condition.is_none() {
@@ -201,7 +237,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         }
         self.flush_deindent(indent)
     }
-    fn generate_for(&mut self, f: BaseFor<'a>) -> io::Result<()> {
+    fn generate_for(&mut self, f: BaseFor<'a>) -> Output {
         // skip block creation or Fragment in alterable_slots
         if self.in_alterable {
             return self.generate_render_list(f);
@@ -214,16 +250,16 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
             gen.write_str(")")
         })
     }
-    fn generate_vnode(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
+    fn generate_vnode(&mut self, v: BaseVNode<'a>) -> Output {
         self.gen_vnode_with_dir(v)
     }
-    fn generate_slot_outlet(&mut self, r: BaseRenderSlot<'a>) -> io::Result<()> {
+    fn generate_slot_outlet(&mut self, r: BaseRenderSlot<'a>) -> Output {
         self.write_helper(RH::RenderSlot)?;
         self.write_str("(")?;
         gen_render_slot_args(self, r)?;
         self.write_str(")")
     }
-    fn generate_v_slot(&mut self, s: BaseVSlot<'a>) -> io::Result<()> {
+    fn generate_v_slot(&mut self, s: BaseVSlot<'a>) -> Output {
         use Slot::*;
         let flag = (Js::str_lit("_"), Flag(s.slot_flag));
         let stable_obj = s
@@ -272,7 +308,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.cache_count += 1;
         Ok(())
     }
-    fn generate_js_expr(&mut self, expr: Js<'a>) -> io::Result<()> {
+    fn generate_js_expr(&mut self, expr: Js<'a>) -> Output {
         match expr {
             Js::Src(s) | Js::Param(s) => self.write_str(s),
             Js::Num(n) => write!(self.writer, "{}", n),
@@ -305,7 +341,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
             }
         }
     }
-    fn generate_alterable_slot(&mut self, s: BaseSlotFn<'a>) -> io::Result<()> {
+    fn generate_alterable_slot(&mut self, s: BaseSlotFn<'a>) -> Output {
         debug_assert!(self.in_alterable);
         // switch back to normal mode
         self.in_alterable = false;
@@ -322,7 +358,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.in_alterable = true;
         Ok(())
     }
-    fn generate_comment(&mut self, c: &'a str) -> io::Result<()> {
+    fn generate_comment(&mut self, c: &'a str) -> Output {
         let comment = Js::str_lit(c);
         let call = Js::Call(RH::CreateComment, vec![comment]);
         self.generate_js_expr(call)
@@ -331,8 +367,8 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
 
 // TODO: put runtimeGlobalName in option
 const RUNTIME_GLOBAL_NAME: &str = "Vue";
-impl<'a, T: Write> CodeWriter<'a, T> {
-    fn generate_root(&mut self, mut root: BaseRoot<'a>) -> io::Result<()> {
+impl<'a, T: ioWrite> CodeWriter<'a, T> {
+    fn generate_root(&mut self, mut root: BaseRoot<'a>) -> Output {
         self.generate_prologue(&root)?;
         if root.body.is_empty() {
             self.write_str("null")?;
@@ -351,13 +387,13 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.generate_epilogue()
     }
     /// for import helpers or hoist that not in function
-    fn generate_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+    fn generate_preamble(&mut self, top: &TopScope<'a>) -> Output {
         match self.option.mode {
             ScriptMode::Module { .. } => self.gen_module_preamble(),
             ScriptMode::Function { .. } => self.gen_function_preamble(top),
         }
     }
-    fn gen_function_preamble(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+    fn gen_function_preamble(&mut self, top: &TopScope<'a>) -> Output {
         debug_assert!(top.helpers == self.helpers);
         if !self.helpers.is_empty() {
             if self.option.use_with_scope() {
@@ -379,10 +415,10 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.newline()?;
         self.write_str("return ")
     }
-    fn gen_module_preamble(&mut self) -> io::Result<()> {
+    fn gen_module_preamble(&mut self) -> Output {
         todo!()
     }
-    fn gen_helper_destruct(&mut self, helpers: HelperCollector, from: &str) -> io::Result<()> {
+    fn gen_helper_destruct(&mut self, helpers: HelperCollector, from: &str) -> Output {
         self.write_str("const {")?;
         self.indent()?;
         self.gen_helper_import_list(helpers)?;
@@ -391,7 +427,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.write_str(from)?;
         self.newline()
     }
-    fn gen_helper_import_list(&mut self, helpers: HelperCollector) -> io::Result<()> {
+    fn gen_helper_import_list(&mut self, helpers: HelperCollector) -> Output {
         for rh in helpers.into_iter() {
             self.write_str(rh.helper_str())?;
             self.write_str(": _")?;
@@ -400,14 +436,14 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         }
         Ok(())
     }
-    fn gen_hoist(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+    fn gen_hoist(&mut self, top: &TopScope<'a>) -> Output {
         if top.hoists.is_empty() {
             return Ok(());
         }
         todo!()
     }
     /// render() or ssrRender() and their parameters
-    fn generate_function_signature(&mut self) -> io::Result<()> {
+    fn generate_function_signature(&mut self) -> Output {
         let option = &self.sfc_info;
         let args = if !option.binding_metadata.is_empty() && !option.inline {
             "_ctx, _cache, $props, $setup, $data, $options"
@@ -423,7 +459,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.indent()
     }
     /// with (ctx) for not prefixIdentifier
-    fn generate_with_scope(&mut self) -> io::Result<()> {
+    fn generate_with_scope(&mut self) -> Output {
         let helpers = self.helpers.clone();
         if !self.option.use_with_scope() {
             return Ok(());
@@ -439,7 +475,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.gen_helper_destruct(helpers, "_Vue")
     }
     /// component/directive resolution inside render
-    fn generate_assets(&mut self, top: &TopScope<'a>) -> io::Result<()> {
+    fn generate_assets(&mut self, top: &TopScope<'a>) -> Output {
         if !top.components.is_empty() {
             self.newline()?;
             let components = top.components.iter().cloned();
@@ -453,7 +489,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         Ok(())
     }
 
-    fn gen_concate_str(&mut self, t: SmallVec<[Js<'a>; 1]>) -> io::Result<()> {
+    fn gen_concate_str(&mut self, t: SmallVec<[Js<'a>; 1]>) -> Output {
         let mut texts = t.into_iter();
         match texts.next() {
             Some(t) => self.generate_js_expr(t)?,
@@ -466,7 +502,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         Ok(())
     }
 
-    fn generate_children(&mut self, children: Vec<BaseIR<'a>>) -> io::Result<()> {
+    fn generate_children(&mut self, children: Vec<BaseIR<'a>>) -> Output {
         debug_assert!(!children.is_empty());
         let fast = if let IRNode::TextCall(t) = &children[0] {
             t.fast_path
@@ -487,7 +523,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.deindent()?;
         self.write_str("]")
     }
-    fn generate_render_list(&mut self, f: BaseFor<'a>) -> io::Result<()> {
+    fn generate_render_list(&mut self, f: BaseFor<'a>) -> Output {
         self.write_helper(RH::RenderList)?;
         self.write_str("(")?;
         self.generate_js_expr(f.source)?;
@@ -498,7 +534,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.write_str(")")
     }
     // TODO: add newline
-    fn gen_func_expr(&mut self, params: Vec<Option<Js<'a>>>, body: BaseIR<'a>) -> io::Result<()> {
+    fn gen_func_expr(&mut self, params: Vec<Option<Js<'a>>>, body: BaseIR<'a>) -> Output {
         const PLACE_HOLDER: &[&str] = &[
             "_", "_1", "_2", "_3", "_4", "_5", "_6", "_7", "_8", "_9", "_0",
         ];
@@ -526,7 +562,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.write_str("}")
     }
     /// generate a comma separated list
-    fn gen_list<I>(&mut self, exprs: I) -> io::Result<()>
+    fn gen_list<I>(&mut self, exprs: I) -> Output
     where
         I: IntoIterator<Item = Js<'a>>,
     {
@@ -542,10 +578,10 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         }
         Ok(())
     }
-    fn gen_obj_props<V, P, K>(&mut self, props: P, cont: K) -> io::Result<()>
+    fn gen_obj_props<V, P, K>(&mut self, props: P, cont: K) -> Output
     where
         P: IntoIterator<Item = (Js<'a>, V)>,
-        K: Fn(&mut Self, V) -> io::Result<()>,
+        K: Fn(&mut Self, V) -> Output,
     {
         let mut props = props.into_iter().peekable();
         if props.peek().is_none() {
@@ -563,7 +599,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.deindent()?;
         self.write_str("}")
     }
-    fn gen_obj_key(&mut self, key: Js<'a>) -> io::Result<()> {
+    fn gen_obj_key(&mut self, key: Js<'a>) -> Output {
         if let Js::StrLit(mut k) = key {
             if is_simple_identifier(k) {
                 k.write_to(&mut self.writer)
@@ -576,7 +612,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
             self.write_str("]")
         }
     }
-    fn gen_vnode_with_dir(&mut self, mut v: BaseVNode<'a>) -> io::Result<()> {
+    fn gen_vnode_with_dir(&mut self, mut v: BaseVNode<'a>) -> Output {
         if v.directives.is_empty() {
             return self.gen_vnode_with_block(v);
         }
@@ -589,15 +625,15 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.generate_js_expr(dir_arr)?;
         self.write_str(")")
     }
-    fn gen_vnode_with_block(&mut self, v: BaseVNode<'a>) -> io::Result<()> {
+    fn gen_vnode_with_block(&mut self, v: BaseVNode<'a>) -> Output {
         if !v.is_block {
             return gen_vnode_real(self, v);
         }
         self.gen_open_block(v.disable_tracking, move |gen| gen_vnode_real(gen, v))
     }
-    fn gen_open_block<K>(&mut self, no_track: bool, cont: K) -> io::Result<()>
+    fn gen_open_block<K>(&mut self, no_track: bool, cont: K) -> Output
     where
-        K: FnOnce(&mut Self) -> io::Result<()>,
+        K: FnOnce(&mut Self) -> Output,
     {
         self.write_str("(")?;
         self.write_helper(RH::OpenBlock)?;
@@ -610,7 +646,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.write_str(")")
     }
 
-    fn newline(&mut self) -> io::Result<()> {
+    fn newline(&mut self) -> Output {
         self.write_str("\n")?;
         // TODO: use exponential adding + lazy static
         for _ in 0..self.indent_level {
@@ -618,16 +654,16 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         }
         Ok(())
     }
-    fn indent(&mut self) -> io::Result<()> {
+    fn indent(&mut self) -> Output {
         self.indent_level += 1;
         self.newline()
     }
-    fn deindent(&mut self) -> io::Result<()> {
+    fn deindent(&mut self) -> Output {
         debug_assert!(self.indent_level > 0);
         self.indent_level -= 1;
         self.newline()
     }
-    fn flush_deindent(&mut self, mut indent: usize) -> io::Result<()> {
+    fn flush_deindent(&mut self, mut indent: usize) -> Output {
         debug_assert!(self.indent_level >= indent);
         while indent > 0 {
             self.indent_level -= 1;
@@ -637,17 +673,18 @@ impl<'a, T: Write> CodeWriter<'a, T> {
     }
 
     #[inline(always)]
-    fn write_str(&mut self, s: &str) -> io::Result<()> {
-        self.writer.write_all(s.as_bytes())
+    fn write_str(&mut self, s: &str) -> Output {
+        self.writer.write_str(s)
     }
+
     #[inline(always)]
-    fn write_helper(&mut self, h: RH) -> io::Result<()> {
+    fn write_helper(&mut self, h: RH) -> Output {
         debug_assert!(self.helpers.contains(h));
         self.write_str("_")?;
         self.write_str(h.helper_str())
     }
     #[inline(always)]
-    fn write_patch(&mut self, flag: PatchFlag) -> io::Result<()> {
+    fn write_patch(&mut self, flag: PatchFlag) -> Output {
         if self.option.is_dev {
             write!(self.writer, "{} /*{:?}*/", flag.bits(), flag)
         } else {
@@ -670,7 +707,7 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
 
 pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
 
-fn gen_vnode_real<'a, T: Write>(gen: &mut CodeWriter<'a, T>, v: BaseVNode<'a>) -> io::Result<()> {
+fn gen_vnode_real<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, v: BaseVNode<'a>) -> Output {
     let call_helper = get_vnode_call_helper(&v);
     gen.write_helper(call_helper)?;
     gen.write_str("(")?;
@@ -721,10 +758,7 @@ macro_rules! gen_vnode_args {
 // TODO: unit test this monster
 /// Generate variadic vnode call argument list separated by comma.
 /// VNode arg is a heterogeneous list we need hard code the generation.
-fn gen_vnode_call_args<'a, T: Write>(
-    gen: &mut CodeWriter<'a, T>,
-    v: BaseVNode<'a>,
-) -> io::Result<()> {
+fn gen_vnode_call_args<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, v: BaseVNode<'a>) -> Output {
     let VNodeIR {
         tag,
         props,
@@ -752,7 +786,7 @@ fn gen_vnode_call_args<'a, T: Write>(
     Ok(())
 }
 
-fn gen_v_for_args<'a, T: Write>(gen: &mut CodeWriter<'a, T>, f: BaseFor<'a>) -> io::Result<()> {
+fn gen_v_for_args<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, f: BaseFor<'a>) -> Output {
     let flag = f.fragment_flag;
     gen_vnode_args!(
         gen,
@@ -766,10 +800,10 @@ fn gen_v_for_args<'a, T: Write>(gen: &mut CodeWriter<'a, T>, f: BaseFor<'a>) -> 
     Ok(())
 }
 
-fn gen_render_slot_args<'a, T: Write>(
+fn gen_render_slot_args<'a, T: ioWrite>(
     gen: &mut CodeWriter<'a, T>,
     r: BaseRenderSlot<'a>,
-) -> io::Result<()> {
+) -> Output {
     let RenderSlotIR {
         slot_obj,
         slot_name,
@@ -807,7 +841,7 @@ enum Slot<'a> {
     SlotFn(Option<Js<'a>>, Vec<BaseIR<'a>>),
     Flag(SlotFlag),
 }
-fn gen_stable_slot_fn<'a, T: Write>(gen: &mut CodeWriter<'a, T>, slot: Slot<'a>) -> io::Result<()> {
+fn gen_stable_slot_fn<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, slot: Slot<'a>) -> Output {
     match slot {
         Slot::SlotFn(param, body) => gen_slot_fn(gen, (param, body)),
         Slot::Flag(flag) => {
@@ -815,10 +849,10 @@ fn gen_stable_slot_fn<'a, T: Write>(gen: &mut CodeWriter<'a, T>, slot: Slot<'a>)
         }
     }
 }
-fn gen_slot_fn<'a, T: Write>(
+fn gen_slot_fn<'a, T: ioWrite>(
     gen: &mut CodeWriter<'a, T>,
     (param, body): (Option<Js<'a>>, Vec<BaseIR<'a>>),
-) -> io::Result<()> {
+) -> Output {
     gen.write_helper(RH::WithCtx)?;
     gen.write_str("(")?;
     gen.write_str("(")?;
@@ -840,11 +874,11 @@ fn gen_slot_fn<'a, T: Write>(
     gen.write_str("]")?;
     gen.write_str(")")
 }
-fn gen_assets<'a, T: Write>(
+fn gen_assets<'a, T: ioWrite>(
     gen: &mut CodeWriter<'a, T>,
     assets: impl Iterator<Item = VStr<'a>>,
     resolver: RH,
-) -> io::Result<()> {
+) -> Output {
     for asset in assets {
         let hint = if VStr::is_self_suffixed(&asset) {
             ", true"
@@ -899,7 +933,7 @@ mod test {
         ir.top_scope.helpers.ignore_missing();
         let mut writer = CodeWriter::new(vec![], Default::default(), info);
         writer.generate(ir).unwrap();
-        String::from_utf8(writer.writer).unwrap()
+        String::from_utf8(writer.writer.inner).unwrap()
     }
     fn base_gen(s: &str) -> String {
         let ir = base_convert(s);

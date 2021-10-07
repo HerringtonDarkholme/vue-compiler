@@ -3,10 +3,10 @@
 //! * we can also cache camelize/capitalize result.
 //! * if VStr raw already satisfy StrOps, setting the ops flag is noop.
 //! * interning/cache can be optional, e.g. Text Token can skip it at all.
-use super::{is_event_prop, non_whitespace, not_js_identifier};
+use super::{is_event_prop, non_whitespace, not_js_identifier, write_json_string};
 use bitflags::bitflags;
 use std::{
-    io::{self, Write},
+    fmt::{self, Write},
     ops::Deref,
 };
 
@@ -50,7 +50,7 @@ bitflags! {
 }
 
 // NB: JS word boundary is `\w`: `[a-zA-Z0-9-]`.
-fn write_camelized<W: Write>(s: &str, mut w: W) -> io::Result<()> {
+fn write_camelized<W: Write>(s: &str, mut w: W) -> fmt::Result {
     // str.replace(/-(\w)/g, (_, c) => c.toUpperCase())
     let mut is_minus = false;
     for c in s.chars() {
@@ -74,24 +74,23 @@ fn write_camelized<W: Write>(s: &str, mut w: W) -> io::Result<()> {
         Ok(())
     }
 }
-fn write_capitalized<W: Write>(s: &str, mut w: W) -> io::Result<()> {
+fn write_capitalized<W: Write>(s: &str, mut w: W) -> fmt::Result {
     if s.is_empty() {
         return Ok(());
     }
     let c = s.chars().next().unwrap();
     write!(w, "{}", c.to_uppercase())?;
     let s = &s[c.len_utf8()..];
-    w.write_all(s.as_bytes())
+    w.write_str(s)
 }
 
-fn write_hyphenated<W: Write>(s: &str, mut w: W) -> io::Result<()> {
+fn write_hyphenated<W: Write>(s: &str, mut w: W) -> fmt::Result {
     // https://javascript.info/regexp-boundary
     // str.replace(/\B([A-Z])/g, '-$1').toLowerCase()
     let mut is_boundary = true;
     for c in s.chars() {
         if !is_boundary && c.is_ascii_uppercase() {
-            w.write_all(b"-")?;
-            write!(w, "{}", c.to_ascii_lowercase())?;
+            write!(w, "-{}", c.to_ascii_lowercase())?;
             is_boundary = false;
         } else {
             write!(w, "{}", c)?;
@@ -101,36 +100,30 @@ fn write_hyphenated<W: Write>(s: &str, mut w: W) -> io::Result<()> {
     Ok(())
 }
 
-fn write_json_string<W: Write>(s: &str, mut w: W) -> io::Result<()> {
-    use json::codegen::{Generator, WriterGenerator};
-    let mut gen = WriterGenerator::new(&mut w);
-    gen.write_string(s)
-}
-
 /// compress consecutive whitespaces into one.
-fn write_compressed<W: Write>(mut s: &str, mut w: W) -> io::Result<()> {
+fn write_compressed<W: Write>(mut s: &str, mut w: W) -> fmt::Result {
     while let Some(p) = s.find(|c: char| c.is_ascii_whitespace()) {
         let (prev, after) = s.split_at(p);
-        w.write_all(prev.as_bytes())?;
-        w.write_all(b" ")?;
+        w.write_str(prev)?;
+        w.write_str(" ")?;
         if let Some(p) = after.find(non_whitespace) {
             s = after.split_at(p).1;
         } else {
             s = "";
         }
     }
-    w.write_all(s.as_bytes())
+    w.write_str(s)
 }
 
 /// decode html entity before writing.
-fn write_decoded<W: Write>(s: &str, mut w: W) -> io::Result<()> {
+fn write_decoded<W: Write>(s: &str, mut w: W) -> fmt::Result {
     if !s.contains('&') {
-        return w.write_all(s.as_bytes());
+        return w.write_str(s);
     }
     todo!()
 }
 
-fn write_valid_asset<W: Write>(mut s: &str, mut w: W, asset: &str) -> io::Result<()> {
+fn write_valid_asset<W: Write>(mut s: &str, mut w: W, asset: &str) -> fmt::Result {
     write!(w, "_{}_", asset)?;
     while let Some(n) = s.find(not_js_identifier) {
         let (prev, next) = s.split_at(n);
@@ -153,26 +146,26 @@ impl StrOps {
     fn is_satisfied_by(&self, s: &str) -> bool {
         todo!()
     }
-    fn write_ops<W: Write>(&self, s: &str, mut w: W) -> io::Result<()> {
+    fn write_ops<W: Write>(&self, s: &str, mut w: W) -> fmt::Result {
         let flag_count = self.bits().count_ones();
         if flag_count == 0 {
-            return w.write_all(s.as_bytes());
+            return w.write_str(s);
         }
         if flag_count == 1 {
             return Self::write_one_op(*self, s, w);
         }
         let mut src = s;
-        let mut temp = vec![];
-        let mut dest = vec![];
+        let mut temp = String::new();
+        let mut dest = String::new();
         for op in self.iter() {
             Self::write_one_op(op, src, &mut dest)?;
             std::mem::swap(&mut temp, &mut dest);
             dest.clear();
-            src = std::str::from_utf8(&temp).expect("must be valid string");
+            src = &temp;
         }
-        w.write_all(src.as_bytes())
+        w.write_str(src)
     }
-    fn write_one_op<W: Write>(op: Self, s: &str, mut w: W) -> io::Result<()> {
+    fn write_one_op<W: Write>(op: Self, s: &str, mut w: W) -> fmt::Result {
         debug_assert!(op.bits().count_ones() == 1);
         match op {
             StrOps::COMPRESS_WHITESPACE => write_compressed(s, w),
@@ -182,37 +175,37 @@ impl StrOps {
             StrOps::CAPITALIZED => write_capitalized(s, w),
             StrOps::VALID_DIR => write_valid_asset(s, w, "directive"),
             StrOps::VALID_COMP => write_valid_asset(s, w, "component"),
-            StrOps::IS_ATTR => w.write_all(s.as_bytes()), // NOOP
+            StrOps::IS_ATTR => w.write_str(s), // NOOP
             StrOps::SELF_SUFFIX => {
                 // noop, just a marker
-                w.write_all(s.as_bytes())
+                w.write_str(s)
             }
             StrOps::V_DIR_PREFIX => {
-                w.write_all(b"v-")?;
-                w.write_all(s.as_bytes())
+                w.write_str("v-")?;
+                w.write_str(s)
             }
             StrOps::HANDLER_KEY => {
-                w.write_all(b"on")?;
+                w.write_str("on")?;
                 let len = s.chars().next().unwrap().len_utf8();
                 write_capitalized(&s[0..len], &mut w)?;
-                w.write_all(s[len..].as_bytes())
+                w.write_str(&s[len..])
             }
             StrOps::MODEL_HANDLER => {
-                w.write_all(b"onUpdate:")?;
-                w.write_all(s.as_bytes())
+                w.write_str("onUpdate:")?;
+                w.write_str(s)
             }
             StrOps::CTX_PREFIX => {
-                w.write_all(b"_ctx.")?;
-                w.write_all(s.as_bytes())
+                w.write_str("_ctx.")?;
+                w.write_str(s)
             }
             StrOps::MOD_SUFFIX => {
-                w.write_all(s.as_bytes())?;
-                w.write_all(b"Modifiers")
+                w.write_str(s)?;
+                w.write_str("Modifiers")
             }
             StrOps::ASSIGN_EVT => {
-                w.write_all(b"((")?;
-                w.write_all(s.as_bytes())?;
-                w.write_all(b") = $event)")
+                w.write_str("((")?;
+                w.write_str(s)?;
+                w.write_str(") = $event)")
             }
             _ => todo!("{:?} not implemented", op),
         }
@@ -362,12 +355,12 @@ impl<'a> VStr<'a> {
         self
     }
     pub fn into_string(self) -> String {
-        let mut ret = vec![];
+        let mut ret = String::new();
         self.write_to(&mut ret).expect("string should never fail");
-        String::from_utf8(ret).expect("vstr should write valid utf8")
+        ret
     }
 
-    pub fn write_to<W: Write>(&self, w: W) -> io::Result<()> {
+    pub fn write_to<W: Write>(&self, w: W) -> fmt::Result {
         self.ops.write_ops(self.raw, w)
     }
 }
@@ -423,9 +416,9 @@ mod test {
     }
 
     fn write_string(ops: StrOps, s: &str) -> String {
-        let mut w = vec![];
+        let mut w = String::new();
         ops.write_ops(s, &mut w).unwrap();
-        String::from_utf8(w).unwrap()
+        w
     }
 
     #[test]

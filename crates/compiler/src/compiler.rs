@@ -8,8 +8,8 @@ use super::{
     },
     error::{NoopErrorHandler, RcErrHandle},
     flags::RuntimeHelper,
-    parser::{Element, ParseOption, Parser, WhitespaceStrategy},
-    scanner::{ScanOption, Scanner, TextMode},
+    parser::{Element, ParseOption, Parser, WhitespaceStrategy, AstRoot},
+    scanner::{ScanOption, Scanner, TextMode, Tokens},
     transformer::{BaseTransformer, CorePass, TransformOption, Transformer},
     util::{no, yes},
     Namespace,
@@ -201,27 +201,20 @@ impl CompileOption {
 pub trait TemplateCompiler<'a> {
     type IR;
     type Output;
-    type Conv: Converter<'a, IR = Self::IR>;
-    type Trans: Transformer<IR = Self::IR>;
-    type Gen: CodeGenerator<IR = Self::IR, Output = Self::Output>;
 
-    fn get_scanner(&self) -> Scanner;
-    fn get_parser(&self) -> Parser;
-    fn get_converter(&self) -> Self::Conv;
-    fn get_transformer(&mut self) -> Self::Trans;
-    fn get_code_generator(&mut self) -> Self::Gen;
+    fn scan(&self, source: &'a str) -> Tokens<'a>;
+    fn parse(&self, tokens: Tokens<'a>) -> AstRoot<'a>;
+    fn convert(&self, ast: AstRoot<'a>) -> Self::IR;
+    fn transform(&mut self, ir: &mut Self::IR);
+    fn generate(&mut self, ir: Self::IR) -> Self::Output;
     fn get_error_handler(&self) -> RcErrHandle;
 
     fn compile(&mut self, source: &'a str) -> Self::Output {
-        let scanner = self.get_scanner();
-        let parser = self.get_parser();
-        let eh = self.get_error_handler();
-        let tokens = scanner.scan(source, eh);
-        let eh = self.get_error_handler();
-        let ast = parser.parse(tokens, eh);
-        let mut ir = self.get_converter().convert_ir(ast);
-        self.get_transformer().transform(&mut ir);
-        self.get_code_generator().generate(ir)
+        let tokens = self.scan(source);
+        let ast = self.parse(tokens);
+        let mut ir = self.convert(ast);
+        self.transform(&mut ir);
+        self.generate(ir)
     }
 }
 
@@ -233,6 +226,8 @@ where
     writer: Option<W>,
     passes: Option<P>,
     option: CompileOption,
+    scanner: Scanner,
+    parser: Parser,
     pd: std::marker::PhantomData<&'a ()>,
 }
 
@@ -245,9 +240,28 @@ where
         Self {
             writer: Some(writer),
             passes: Some(passes),
+            scanner: Scanner::new(option.scanning()),
+            parser: Parser::new(option.parsing()),
             option,
             pd: std::marker::PhantomData,
         }
+    }
+    fn get_converter(&self) -> BaseConverter<'a> {
+        let eh = self.get_error_handler();
+        let option = self.option.converting();
+        BaseConverter {
+            err_handle: eh,
+            sfc_info: Default::default(),
+            option,
+        }
+    }
+    fn get_transformer(&mut self, pass: P) -> BaseTransformer<'a, P> {
+        BaseTransformer::new(pass)
+    }
+    fn get_code_generator(&mut self) -> CodeWriter<'a, W> {
+        let option = self.option.codegen();
+        let writer = self.writer.take().unwrap();
+        CodeWriter::new(writer, option, Default::default())
     }
 }
 
@@ -258,34 +272,23 @@ where
 {
     type IR = BaseRoot<'a>;
     type Output = io::Result<()>;
-    type Conv = BaseConverter<'a>;
-    type Trans = BaseTransformer<'a, P>;
-    type Gen = CodeWriter<'a, W>;
 
-    fn get_scanner(&self) -> Scanner {
-        Scanner::new(self.option.scanning())
+    fn scan(&self, source: &'a str) -> Tokens<'a> {
+        self.scanner.scan(source, self.get_error_handler())
     }
 
-    fn get_parser(&self) -> Parser {
-        Parser::new(self.option.parsing())
+    fn parse(&self, tokens: Tokens<'a>) -> AstRoot<'a> {
+        self.parser.parse(tokens, self.get_error_handler())
     }
-    fn get_converter(&self) -> Self::Conv {
-        let eh = self.get_error_handler();
-        let option = self.option.converting();
-        BaseConverter {
-            err_handle: eh,
-            sfc_info: Default::default(),
-            option,
-        }
+    fn convert(&self, ast: AstRoot<'a>) -> Self::IR {
+        self.get_converter().convert_ir(ast)
     }
-    fn get_transformer(&mut self) -> Self::Trans {
+    fn transform(&mut self, ir: &mut Self::IR) {
         let pass = self.passes.take().unwrap();
-        BaseTransformer::new(pass)
+        self.get_transformer(pass).transform(ir);
     }
-    fn get_code_generator(&mut self) -> Self::Gen {
-        let option = self.option.codegen();
-        let writer = self.writer.take().unwrap();
-        CodeWriter::new(writer, option, Default::default())
+    fn generate(&mut self, ir: Self::IR) -> Self::Output {
+        self.get_code_generator().generate(ir)
     }
     fn get_error_handler(&self) -> RcErrHandle {
         self.option.error_handler.clone()

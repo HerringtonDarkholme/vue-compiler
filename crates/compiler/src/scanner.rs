@@ -141,7 +141,7 @@ impl Scanner {
             delimiter_first_char,
         }
     }
-    pub fn scan<'a>(&self, source: &'a str, err_handle: RcErrHandle) -> impl TokenSource<'a> {
+    pub fn scan<'a>(&self, source: &'a str, err_handle: RcErrHandle) -> Tokens<'a> {
         Tokens {
             source,
             err_handle,

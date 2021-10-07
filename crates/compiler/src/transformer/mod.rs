@@ -209,6 +209,7 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
             }
             CK::Once => (), // nothing
         }
+        Self::transform_ir(&mut cache.child, ps);
         ps.exit_cache(cache);
     }
     fn transform_comment(c: &mut T::CommentType, ps: &mut P) {

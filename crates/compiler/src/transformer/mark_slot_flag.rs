@@ -76,7 +76,7 @@ mod test {
     use super::super::{
         process_expression::ExpressionProcessor,
         test::{base_convert, transformer_ext},
-        BaseRoot, TransformOption, Transformer,
+        BaseRoot, Transformer,
     };
     use super::*;
 
@@ -86,10 +86,9 @@ mod test {
     }
 
     fn transform(mut ir: BaseRoot) -> BaseRoot {
-        let option = TransformOption::default();
         let marker = SlotFlagMarker;
         let exp = ExpressionProcessor {
-            option: &option,
+            prefix_identifier: true,
             sfc_info: &Default::default(),
             err_handle: Rc::new(NoopErrorHandler),
         };

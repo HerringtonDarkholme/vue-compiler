@@ -1,4 +1,5 @@
 use super::{
+    SFCInfo,
     codegen::{
         CodeGenerateOption, CodeGenerator, CodeWriter, DecodedStr, EntityDecoder, ScriptMode,
     },
@@ -13,10 +14,18 @@ use super::{
     transformer::{BaseTransformer, CorePass, TransformOption, Transformer},
     util::{no, yes},
     Namespace,
+    transformer::{
+        collect_entities::EntityCollector,
+        mark_patch_flag::PatchFlagMarker,
+        mark_slot_flag::SlotFlagMarker,
+        optimize_text::TextOptimizer,
+        pass::{Scope, SharedInfoPasses},
+        process_expression::ExpressionProcessor,
+    },
 };
 
 use rustc_hash::FxHashMap;
-use std::{io, rc::Rc};
+use std::{io, rc::Rc, marker::PhantomData};
 
 pub struct CompileOption {
     /// e.g. platform native elements, e.g. `<div>` for browsers
@@ -228,7 +237,7 @@ where
     option: CompileOption,
     scanner: Scanner,
     parser: Parser,
-    pd: std::marker::PhantomData<&'a ()>,
+    pd: PhantomData<&'a ()>,
 }
 
 impl<'a, P, W> BaseCompiler<'a, P, W>
@@ -243,7 +252,7 @@ where
             scanner: Scanner::new(option.scanning()),
             parser: Parser::new(option.parsing()),
             option,
-            pd: std::marker::PhantomData,
+            pd: PhantomData,
         }
     }
     fn get_converter(&self) -> BaseConverter<'a> {
@@ -293,4 +302,30 @@ where
     fn get_error_handler(&self) -> RcErrHandle {
         self.option.error_handler.clone()
     }
+}
+
+pub fn get_base_pass<'a, 'b>(
+    sfc_info: &'b SFCInfo<'a>,
+    opt: &'b CompileOption,
+) -> impl CorePass<BaseInfo<'a>> + 'b {
+    use crate::chain;
+    let prefix_identifier = opt.transforming().prefix_identifier;
+    let shared = chain![
+        SlotFlagMarker,
+        ExpressionProcessor {
+            prefix_identifier,
+            sfc_info,
+            err_handle: opt.error_handler.clone(),
+        },
+    ];
+    chain![
+        TextOptimizer,
+        EntityCollector::default(),
+        PatchFlagMarker,
+        SharedInfoPasses {
+            passes: shared,
+            shared_info: Scope::default(),
+            pd: PhantomData,
+        },
+    ]
 }

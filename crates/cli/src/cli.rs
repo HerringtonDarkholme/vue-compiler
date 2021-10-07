@@ -21,11 +21,11 @@ use std::{io, marker::PhantomData};
 
 pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let (source, option, show) = debug;
-
+    let prefix_identifier = option.transforming().prefix_identifier;
     let shared = chain![
         SlotFlagMarker,
         ExpressionProcessor {
-            option: &Default::default(),
+            prefix_identifier,
             sfc_info: &Default::default(),
             err_handle: option.error_handler.clone(),
         },

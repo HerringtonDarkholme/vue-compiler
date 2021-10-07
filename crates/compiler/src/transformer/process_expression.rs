@@ -2,7 +2,7 @@
 // currently only v-for and v-slot
 // 2. prefix expression
 use super::collect_entities::is_hoisted_asset;
-use super::{BaseInfo, CorePassExt, Scope, TransformOption};
+use super::{BaseInfo, CorePassExt, Scope};
 use crate::converter::v_on::get_handler_type;
 use crate::error::{CompilationError, CompilationErrorKind as ErrorKind, RcErrHandle};
 use crate::flags::{RuntimeHelper as RH, StaticLevel};
@@ -11,7 +11,7 @@ use crate::util::{is_global_allow_listed, is_simple_identifier, rslint, VStr};
 use crate::{cast, BindingTypes, SFCInfo, SourceLocation};
 
 pub struct ExpressionProcessor<'a, 'b> {
-    pub option: &'b TransformOption,
+    pub prefix_identifier: bool,
     pub sfc_info: &'b SFCInfo<'a>,
     pub err_handle: RcErrHandle,
 }
@@ -50,7 +50,7 @@ impl<'a, 'b> CorePassExt<BaseInfo<'a>, Scope<'a>> for ExpressionProcessor<'a, 'b
 impl<'a, 'b> ExpressionProcessor<'a, 'b> {
     // parse expr as function params:
     fn process_fn_param(&self, p: &mut Js) {
-        if !self.option.prefix_identifier {
+        if !self.prefix_identifier {
             return;
         }
         let raw = *cast!(p, Js::Param);
@@ -78,7 +78,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         })
     }
     fn process_expression(&self, e: &mut Js<'a>, scope: &mut Scope) {
-        if !self.option.prefix_identifier {
+        if !self.prefix_identifier {
             return;
         }
         // hoisted component/directive does not need prefixing
@@ -391,7 +391,7 @@ where
 mod test {
     use super::super::{
         test::{base_convert, transformer_ext},
-        BaseRoot, TransformOption, Transformer,
+        BaseRoot, Transformer,
     };
     use super::*;
     use crate::cast;
@@ -401,13 +401,9 @@ mod test {
     use std::rc::Rc;
 
     fn transform_with_err(s: &str, handler: RcErrHandle) -> BaseRoot {
-        let option = TransformOption {
-            prefix_identifier: true,
-            ..Default::default()
-        };
         let mut ir = base_convert(s);
         let exp = ExpressionProcessor {
-            option: &option,
+            prefix_identifier: true,
             sfc_info: &Default::default(),
             err_handle: handler,
         };

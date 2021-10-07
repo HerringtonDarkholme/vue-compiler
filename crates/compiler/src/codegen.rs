@@ -1062,4 +1062,11 @@ mod test {
         let s = base_gen("hello world");
         assert!(!s.contains("$setup"), "{}", s);
     }
+
+    #[test]
+    fn test_v_once() {
+        let s = base_gen("<p v-once/>");
+        assert!(s.contains("_cache[0]"), "{}", s);
+        assert!(s.contains("setBlockTracking"), "{}", s);
+    }
 }

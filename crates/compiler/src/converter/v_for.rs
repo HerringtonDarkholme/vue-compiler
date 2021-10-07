@@ -1,5 +1,5 @@
 use super::{
-    find_dir, BaseConvertInfo, BaseConverter, BaseIR, CompilationError, ConvertInfo, CoreConverter,
+    BaseConvertInfo, BaseConverter, BaseIR, CompilationError, ConvertInfo, CoreConverter,
     Directive, Element,
 };
 use crate::{
@@ -7,7 +7,7 @@ use crate::{
     flags::PatchFlag,
     ir::{ForNodeIR, ForParseResult, IRNode, JsExpr as Js},
     parser::ElementType,
-    util::{find_prop, VStr},
+    util::{find_dir_empty, find_prop, VStr},
 };
 use smallvec::SmallVec;
 
@@ -17,9 +17,9 @@ pub fn pre_convert_for<'a, T: ConvertInfo, C: CoreConverter<'a, T> + ?Sized>(
     elem: &mut Element<'a>,
 ) -> Option<Directive<'a>> {
     // convert v-for, v-if is converted elsewhere
-    let dir = find_dir(&mut *elem, "for")?;
+    let dir = find_dir_empty(&mut *elem, "for")?;
     let b = dir.take();
-    debug_assert!(find_dir(&mut *elem, "for").is_none());
+    debug_assert!(find_dir_empty(&mut *elem, "for").is_none());
     check_template_v_for_key(bc, elem);
     Some(b)
 }

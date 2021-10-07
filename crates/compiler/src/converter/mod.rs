@@ -37,7 +37,7 @@ use crate::{
     flags::{HelperCollector, RuntimeHelper},
     ir::{ConvertInfo, IRNode, IRRoot, JsExpr, TextIR},
     parser::{SourceNode, TextNode},
-    util::{find_dir, get_core_component, VStr},
+    util::{get_core_component, VStr},
     SFCInfo,
 };
 pub use v_bind::V_BIND;

@@ -141,7 +141,7 @@ impl Default for CompileOption {
                 runtime_global_name: "Vue".into(),
             },
             source_map: false,
-            need_reactivity: false,
+            need_reactivity: true,
             error_handler: Rc::new(NoopErrorHandler),
         }
     }

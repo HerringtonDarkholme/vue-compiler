@@ -1,16 +1,17 @@
 // v-once / v-memo
-use super::{BaseConverter, BaseIR, CoreConverter, Directive, find_dir, Element};
+use super::{BaseConverter, BaseIR, CoreConverter, Directive, Element};
 use crate::ir::{IRNode, CacheIR, CacheKind, JsExpr as Js};
 use crate::error::CompilationErrorKind as ErrorKind;
+use crate::util::find_dir_empty;
 
 pub fn pre_convert_memo<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
-    let dir = find_dir(&mut *elem, "memo")?;
+    let dir = find_dir_empty(&mut *elem, "memo")?;
     let b = dir.take();
     Some(b)
 }
 
 pub fn pre_convert_once<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
-    let dir = find_dir(&mut *elem, "once")?;
+    let dir = find_dir_empty(&mut *elem, "once")?;
     let b = dir.take();
     // don't use cache if ancestor already in v-once/v-memo
     let children = elem.children.iter_mut().filter_map(|c| c.get_element_mut());

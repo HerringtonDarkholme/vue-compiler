@@ -152,7 +152,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
     }
     fn generate_epilogue(&mut self) -> io::Result<()> {
         for _ in 0..self.closing_brackets {
-            self.deindent(true)?;
+            self.deindent()?;
             self.write_str("}")?;
         }
         debug_assert_eq!(self.indent_level, 0);
@@ -263,7 +263,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
                 self.write_str("(1),")?;
                 self.newline()?;
                 write!(self.writer, "_cache[{}]", self.cache_count)?;
-                self.deindent(true)?;
+                self.deindent()?;
                 self.write_str(")")?;
             }
             CK::Memo(expr) => todo!(),
@@ -317,7 +317,7 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.newline()?;
         self.write_str("fn: ")?;
         gen_slot_fn(self, (s.param, s.body))?;
-        self.deindent(true)?;
+        self.deindent()?;
         self.write_str("}")?;
         self.in_alterable = true;
         Ok(())
@@ -386,7 +386,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.write_str("const {")?;
         self.indent()?;
         self.gen_helper_import_list(helpers)?;
-        self.deindent(true)?;
+        self.deindent()?;
         self.write_str("} = ")?;
         self.write_str(from)?;
         self.newline()
@@ -484,7 +484,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
             self.generate_ir(child)?;
             self.write_str(", ")?;
         }
-        self.deindent(true)?;
+        self.deindent()?;
         self.write_str("]")
     }
     fn generate_render_list(&mut self, f: BaseFor<'a>) -> io::Result<()> {
@@ -522,7 +522,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.indent()?;
         self.write_str("return ")?;
         self.generate_ir(body)?;
-        self.deindent(true)?;
+        self.deindent()?;
         self.write_str("}")
     }
     /// generate a comma separated list
@@ -560,7 +560,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
             cont(self, val)?;
             self.write_str(",")?;
         }
-        self.deindent(true)?;
+        self.deindent()?;
         self.write_str("}")
     }
     fn gen_obj_key(&mut self, key: Js<'a>) -> io::Result<()> {
@@ -622,18 +622,15 @@ impl<'a, T: Write> CodeWriter<'a, T> {
         self.indent_level += 1;
         self.newline()
     }
-    fn deindent(&mut self, with_new_line: bool) -> io::Result<()> {
+    fn deindent(&mut self) -> io::Result<()> {
         debug_assert!(self.indent_level > 0);
         self.indent_level -= 1;
-        if with_new_line {
-            self.newline()
-        } else {
-            Ok(())
-        }
+        self.newline()
     }
     fn flush_deindent(&mut self, mut indent: usize) -> io::Result<()> {
+        debug_assert!(self.indent_level >= indent);
         while indent > 0 {
-            self.deindent(false)?;
+            self.indent_level -= 1;
             indent -= 1;
         }
         Ok(())
@@ -839,7 +836,7 @@ fn gen_slot_fn<'a, T: Write>(
         gen.newline()?;
         gen.generate_ir(b)?;
     }
-    gen.deindent(true)?;
+    gen.deindent()?;
     gen.write_str("]")?;
     gen.write_str(")")
 }

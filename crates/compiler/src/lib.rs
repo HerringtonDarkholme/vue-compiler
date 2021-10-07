@@ -175,32 +175,6 @@ impl<'a> Default for SFCInfo<'a> {
     }
 }
 
-/// Chains multiple transform pass.
-#[macro_export]
-macro_rules! chain {
-    ($a:expr, $b:expr) => {{
-        use $crate::Chain;
-
-        Chain {
-            first: $a,
-            second: $b,
-        }
-    }};
-
-    ($a:expr, $b:expr,) => {
-        chain!($a, $b)
-    };
-
-    ($a:expr, $b:expr,  $($rest:tt)+) => {{
-        use $crate::Chain;
-
-        Chain {
-            first: $a,
-            second: chain!($b, $($rest)*),
-        }
-    }};
-}
-
 #[cfg(test)]
 mod test {
     use super::*;

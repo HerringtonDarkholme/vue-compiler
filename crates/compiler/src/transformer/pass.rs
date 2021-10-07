@@ -95,6 +95,32 @@ where
     // }
 }
 
+/// Chains multiple transform pass.
+#[macro_export]
+macro_rules! chain {
+    ($a:expr, $b:expr) => {{
+        use $crate::Chain;
+
+        Chain {
+            first: $a,
+            second: $b,
+        }
+    }};
+
+    ($a:expr, $b:expr,) => {
+        chain!($a, $b)
+    };
+
+    ($a:expr, $b:expr,  $($rest:tt)+) => {{
+        use $crate::Chain;
+
+        Chain {
+            first: $a,
+            second: chain!($b, $($rest)*),
+        }
+    }};
+}
+
 type Identifiers<'a> = FxHashMap<Name<'a>, usize>;
 #[derive(Default)]
 pub struct Scope<'a> {

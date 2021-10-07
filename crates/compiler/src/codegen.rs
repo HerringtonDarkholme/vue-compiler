@@ -302,7 +302,14 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
                 self.deindent()?;
                 self.write_str(")")?;
             }
-            CK::Memo(expr) => todo!(),
+            CK::Memo(expr) => {
+                self.write_helper(RH::WithMemo)?;
+                self.write_str("(")?;
+                self.generate_js_expr(expr)?;
+                self.write_str(", () => ")?;
+                self.generate_ir(*c.child)?;
+                write!(self.writer, ", _cache, {})", self.cache_count)?;
+            }
             CK::MemoInVFor { expr, v_for_key } => todo!(),
         }
         self.cache_count += 1;
@@ -1102,5 +1109,12 @@ mod test {
         let s = base_gen("<p v-once/>");
         assert!(s.contains("_cache[0]"), "{}", s);
         assert!(s.contains("setBlockTracking"), "{}", s);
+    }
+    #[test]
+    fn test_v_memo() {
+        let s = base_gen("<p v-memo='[a]'/>");
+        let expected =
+            r#"_withMemo([a], () => (_openBlock(), _createElementBlock("p")), _cache, 0)"#;
+        assert!(s.contains(expected), "{}", s);
     }
 }

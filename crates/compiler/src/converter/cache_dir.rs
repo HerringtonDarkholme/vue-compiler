@@ -32,12 +32,10 @@ pub fn convert_memo<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> 
             vnode.is_block = true;
         }
     }
-    let expr = d.expression.expect("v-memo should not be empty");
+    let expr_raw = d.expression.expect("v-memo should not be empty");
+    let expr = Js::simple(expr_raw.content);
     IRNode::CacheNode(CacheIR {
-        kind: CacheKind::Memo {
-            in_v_for: false,
-            expr: Js::simple(expr.content),
-        },
+        kind: CacheKind::Memo(expr),
         child: Box::new(n),
     })
 }

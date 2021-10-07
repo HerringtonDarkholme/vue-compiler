@@ -1,7 +1,9 @@
 // this module collects following entities:
 // runtime helpers
 // component/directive asset
-use super::{BaseFor, BaseIf, BaseInfo, BaseRenderSlot, BaseText, BaseVNode, BaseVSlot, CorePass};
+use super::{
+    BaseFor, BaseIf, BaseInfo, BaseRenderSlot, BaseText, BaseVNode, BaseVSlot, BaseCache, CorePass,
+};
 use crate::converter::BaseRoot;
 use crate::flags::{HelperCollector, RuntimeHelper as RH};
 use crate::ir::{IRNode as IR, JsExpr as Js};
@@ -103,6 +105,16 @@ impl<'a> CorePass<BaseInfo<'a>> for EntityCollector<'a> {
     fn exit_text(&mut self, t: &mut BaseText<'a>) {
         if !t.fast_path {
             self.helpers.collect(RH::CreateText);
+        }
+    }
+    fn enter_cache(&mut self, r: &mut BaseCache<'a>) {
+        use crate::ir::CacheKind::{Once, Memo, MemoInVFor};
+        match r.kind {
+            Once => self.helpers.collect(RH::SetBlockTracking),
+            Memo(_) => self.helpers.collect(RH::WithMemo),
+            MemoInVFor { .. } => {
+                self.helpers.collect(RH::IsMemoSame);
+            }
         }
     }
 }

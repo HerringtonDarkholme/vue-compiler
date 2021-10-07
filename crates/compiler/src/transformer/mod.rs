@@ -198,9 +198,16 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
     }
     fn transform_cache(cache: &mut C::CacheIR<T>, ps: &mut P) {
         ps.enter_cache(cache);
-        use C::CacheKind::Memo;
-        if let Memo { expr, .. } = &mut cache.kind {
-            Self::transform_js_expr(expr, ps);
+        use C::CacheKind as CK;
+        match &mut cache.kind {
+            CK::Memo(expr) => Self::transform_js_expr(expr, ps),
+            CK::MemoInVFor { expr, v_for_key } => {
+                Self::transform_js_expr(expr, ps);
+                if let Some(key) = v_for_key {
+                    Self::transform_js_expr(key, ps);
+                }
+            }
+            CK::Once => (), // nothing
         }
         ps.exit_cache(cache);
     }

@@ -133,8 +133,9 @@ pub struct VSlotIR<T: ConvertInfo> {
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum CacheKind<T: ConvertInfo> {
     Once,
-    Memo {
-        in_v_for: bool,
+    Memo(T::JsExpression),
+    MemoInVFor {
+        v_for_key: Option<T::JsExpression>,
         expr: T::JsExpression,
     },
 }

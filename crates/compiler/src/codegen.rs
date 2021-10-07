@@ -3,7 +3,9 @@ use crate::flags::{HelperCollector, PatchFlag, RuntimeHelper as RH, SlotFlag};
 use crate::ir::{
     self as C, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RenderSlotIR, RuntimeDir, VNodeIR,
 };
-use crate::transformer::{BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot};
+use crate::transformer::{
+    BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot, BaseCache,
+};
 use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use crate::SFCInfo;
 use smallvec::{smallvec, SmallVec};
@@ -87,8 +89,9 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
             IR::VNodeCall(vnode) => self.generate_vnode(vnode),
             IR::RenderSlotCall(r) => self.generate_slot_outlet(r),
             IR::VSlotUse(s) => self.generate_v_slot(s),
-            IR::CommentCall(c) => self.generate_comment(c),
             IR::AlterableSlot(a) => self.generate_alterable_slot(a),
+            IR::CacheNode(cache) => self.generate_cache(cache),
+            IR::CommentCall(c) => self.generate_comment(c),
         }
     }
     fn generate_prologue(&mut self, t: &IRRoot<T>) -> Self::Written;
@@ -100,6 +103,7 @@ trait CoreCodeGenerator<T: ConvertInfo>: CodeGenerator<IR = IRRoot<T>> {
     fn generate_slot_outlet(&mut self, r: C::RenderSlotIR<T>) -> Self::Written;
     fn generate_v_slot(&mut self, s: C::VSlotIR<T>) -> Self::Written;
     fn generate_alterable_slot(&mut self, s: C::Slot<T>) -> Self::Written;
+    fn generate_cache(&mut self, c: C::CacheIR<T>) -> Self::Written;
     fn generate_js_expr(&mut self, e: T::JsExpression) -> Self::Written;
     fn generate_comment(&mut self, c: T::CommentType) -> Self::Written;
 }
@@ -238,6 +242,9 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         debug_assert!(self.in_alterable);
         self.in_alterable = false;
         self.write_str(")")
+    }
+    fn generate_cache(&mut self, c: BaseCache<'a>) -> Self::Written {
+        todo!()
     }
     fn generate_js_expr(&mut self, expr: Js<'a>) -> io::Result<()> {
         match expr {

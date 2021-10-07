@@ -14,6 +14,7 @@ macro_rules! impl_enter {
         $impl!(enter_slot_outlet, RenderSlotIR);
         $impl!(enter_v_slot, VSlotIR);
         $impl!(enter_slot_fn, Slot);
+        $impl!(enter_cache, CacheIR);
         $impl!(enter_js_expr, JsExpression);
         $impl!(enter_fn_param, JsExpression);
         $impl!(enter_comment, CommentType);
@@ -29,6 +30,7 @@ macro_rules! impl_exit {
         $impl!(exit_slot_outlet, RenderSlotIR);
         $impl!(exit_v_slot, VSlotIR);
         $impl!(exit_slot_fn, Slot);
+        $impl!(exit_cache, CacheIR);
         $impl!(exit_js_expr, JsExpression);
         $impl!(exit_fn_param, JsExpression);
         $impl!(exit_comment, CommentType);

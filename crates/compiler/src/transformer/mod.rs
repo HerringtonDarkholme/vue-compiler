@@ -55,6 +55,7 @@ pub type BaseVNode<'a> = C::VNodeIR<BaseInfo<'a>>;
 pub type BaseRenderSlot<'a> = C::RenderSlotIR<BaseInfo<'a>>;
 pub type BaseVSlot<'a> = C::VSlotIR<BaseInfo<'a>>;
 pub type BaseSlotFn<'a> = C::Slot<BaseInfo<'a>>;
+pub type BaseCache<'a> = C::CacheIR<BaseInfo<'a>>;
 
 struct NoopTransformer<T>(PhantomData<T>);
 
@@ -79,6 +80,7 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
             I::RenderSlotCall(r) => Self::transform_slot_outlet(r, ps),
             I::CommentCall(c) => Self::transform_comment(c, ps),
             I::VSlotUse(s) => Self::transform_v_slot(s, ps),
+            I::CacheNode(c) => Self::transform_cache(c, ps),
             I::AlterableSlot(a) => Self::transform_slot_fn(a, ps),
         }
     }
@@ -193,6 +195,14 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
             ps.exit_fn_param(p);
         }
         ps.exit_slot_fn(slot);
+    }
+    fn transform_cache(cache: &mut C::CacheIR<T>, ps: &mut P) {
+        ps.enter_cache(cache);
+        use C::CacheKind::Memo;
+        if let Memo { expr, .. } = &mut cache.kind {
+            Self::transform_js_expr(expr, ps);
+        }
+        ps.exit_cache(cache);
     }
     fn transform_comment(c: &mut T::CommentType, ps: &mut P) {
         ps.enter_comment(c);

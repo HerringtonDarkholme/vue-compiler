@@ -103,14 +103,14 @@ pub trait CoreConverter<'a, T: ConvertInfo> {
     fn pre_convert_element(&self, mut e: Element<'a>) -> IRNode<T> {
         // order is defined as @vue/compiler-core/src/compile.ts
         let once = pre_convert_once(&mut e);
-        let memo = pre_convert_memo(&mut e);
         let vfor = pre_convert_for(self, &mut e);
+        let memo = pre_convert_memo(&mut e);
         let mut n = self.dispatch_element(e);
-        if let Some(d) = vfor {
-            n = self.convert_for(d, n);
-        }
         if let Some(d) = memo {
             n = self.convert_memo(d, n);
+        }
+        if let Some(d) = vfor {
+            n = self.convert_for(d, n);
         }
         if let Some(d) = once {
             n = self.convert_once(d, n);

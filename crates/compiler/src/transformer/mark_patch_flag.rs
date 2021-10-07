@@ -78,19 +78,23 @@ impl<'a> CorePass<BaseInfo<'a>> for PatchFlagMarker {
         }
     }
 }
-
-fn find_key(t: &BaseIR) -> bool {
-    let props = match t {
+fn find_prop<'a, 'b>(t: &'b BaseIR<'a>) -> &'b Option<Js<'a>> {
+    match t {
         IR::VNodeCall(v) => &v.props,
         IR::RenderSlotCall(r) => &r.slot_props,
-        IR::AlterableSlot(..) => return false,
+        IR::CacheNode(c) => find_prop(&c.child),
+        IR::AlterableSlot(..) => &None, // why this compile??
         IR::VSlotUse(_) => {
             panic!("v-slot with v-for must be alterable slots")
         }
         IR::TextCall(_) | IR::For(_) | IR::If(_) | IR::CommentCall(_) => {
             panic!("v-for child must be vnode/renderSlot/slotfn")
         }
-    };
+    }
+}
+
+fn find_key(t: &BaseIR) -> bool {
+    let props = find_prop(t);
     if let Some(prop) = props {
         find_key_on_js(prop)
     } else {

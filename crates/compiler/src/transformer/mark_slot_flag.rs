@@ -51,6 +51,7 @@ fn has_forward_one(ir: &BaseIR) -> bool {
         IR::If(i) => i.branches.iter().map(|b| &*b.child).any(has_forward_one),
         IR::For(f) => has_forward_one(&f.child),
         IR::VNodeCall(vn) => has_forward_list(&vn.children),
+        IR::CacheNode(c) => has_forward_one(&c.child),
         IR::VSlotUse(s) => has_forwarded_slots(s),
         IR::AlterableSlot(s) => has_forward_list(&s.body),
         IR::TextCall(_) => false,

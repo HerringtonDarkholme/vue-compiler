@@ -44,8 +44,10 @@ pub enum IRNode<T: ConvertInfo> {
     RenderSlotCall(RenderSlotIR<T>),
     /// v-slot used on component or template
     VSlotUse(VSlotIR<T>),
-    // internal type for v-slot to reuse v-if/for
+    /// internal type for v-slot to reuse v-if/for
     AlterableSlot(Slot<T>),
+    /// v-once/v-memo
+    CacheNode(CacheIR<T>),
     /// comment
     CommentCall(T::CommentType),
 }
@@ -127,6 +129,22 @@ pub struct VSlotIR<T: ConvertInfo> {
     /// v-slots templates dynamically declared with v-if/v-for
     pub alterable_slots: Vec<IRNode<T>>,
     pub slot_flag: SlotFlag,
+}
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum CacheKind<T: ConvertInfo> {
+    Once,
+    Memo {
+        in_v_for: bool,
+        expr: T::JsExpression,
+    },
+}
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct CacheIR<T: ConvertInfo> {
+    /// v-once or v-memo?
+    pub kind: CacheKind<T>,
+    /// relative index to read and write _cache
+    pub index: usize,
+    pub child: Box<IRNode<T>>,
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize))]

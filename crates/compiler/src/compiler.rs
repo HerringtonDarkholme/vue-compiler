@@ -306,7 +306,7 @@ where
 
 pub fn get_base_pass<'a, 'b>(
     sfc_info: &'b SFCInfo<'a>,
-    opt: &'b CompileOption,
+    opt: &CompileOption,
 ) -> impl CorePass<BaseInfo<'a>> + 'b {
     use crate::chain;
     let prefix_identifier = opt.transforming().prefix_identifier;

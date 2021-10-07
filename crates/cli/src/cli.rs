@@ -1,45 +1,19 @@
 use super::CliInput;
 use anyhow::Result;
 use compiler::{
-    chain,
     codegen::{self, CodeGenerator},
     converter::{self, Converter},
     parser, scanner,
-    transformer::{
-        self,
-        collect_entities::EntityCollector,
-        mark_patch_flag::PatchFlagMarker,
-        mark_slot_flag::SlotFlagMarker,
-        optimize_text::TextOptimizer,
-        pass::{Scope, SharedInfoPasses},
-        process_expression::ExpressionProcessor,
-        Transformer,
-    },
+    transformer::{self, Transformer},
+    compiler::get_base_pass,
 };
 use serde_yaml::to_writer;
-use std::{io, marker::PhantomData};
+use std::io;
 
 pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let (source, option, show) = debug;
-    let prefix_identifier = option.transforming().prefix_identifier;
-    let shared = chain![
-        SlotFlagMarker,
-        ExpressionProcessor {
-            prefix_identifier,
-            sfc_info: &Default::default(),
-            err_handle: option.error_handler.clone(),
-        },
-    ];
-    let pass = chain![
-        TextOptimizer,
-        EntityCollector::default(),
-        PatchFlagMarker,
-        SharedInfoPasses {
-            passes: shared,
-            shared_info: Scope::default(),
-            pd: PhantomData,
-        },
-    ];
+    let sfc_info = Default::default();
+    let pass = get_base_pass(&sfc_info, &option);
     let eh = || option.error_handler.clone();
 
     let scanner = scanner::Scanner::new(option.scanning());

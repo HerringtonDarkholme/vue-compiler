@@ -1,5 +1,6 @@
 // v-once / v-memo
 use super::{BaseConverter, BaseIR, CoreConverter, Directive, find_dir, Element};
+use crate::ir::{IRNode, CacheIR, CacheKind, JsExpr as Js};
 use crate::error::CompilationErrorKind as ErrorKind;
 
 pub fn pre_convert_memo<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
@@ -19,11 +20,29 @@ pub fn convert_memo<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> 
         bc.emit_error(error);
         return n;
     }
-    todo!()
+    let mut n = n;
+    // non-component sub tree should be turned into a block
+    if let IRNode::VNodeCall(vnode) = &mut n {
+        if !vnode.is_component {
+            vnode.is_block = true;
+        }
+    }
+    let expr = d.expression.expect("v-memo should not be empty");
+    IRNode::CacheNode(CacheIR {
+        kind: CacheKind::Memo {
+            in_v_for: false,
+            expr: Js::simple(expr.content),
+        },
+        child: Box::new(n),
+    })
 }
 
 pub fn convert_once<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
-    todo!()
+    // TODO: don't use cache if ancestor already in v-once/v-memo
+    IRNode::CacheNode(CacheIR {
+        kind: CacheKind::Once,
+        child: Box::new(n),
+    })
 }
 
 #[cfg(test)]

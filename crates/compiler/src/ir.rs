@@ -142,8 +142,6 @@ pub enum CacheKind<T: ConvertInfo> {
 pub struct CacheIR<T: ConvertInfo> {
     /// v-once or v-memo?
     pub kind: CacheKind<T>,
-    /// relative index to read and write _cache
-    pub index: usize,
     pub child: Box<IRNode<T>>,
 }
 

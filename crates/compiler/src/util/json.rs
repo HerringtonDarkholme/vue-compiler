@@ -67,3 +67,48 @@ pub fn write_json_string<W: Write>(string: &str, mut w: W) -> Ret {
     w.write_str(string)?;
     w.write_char('"')
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn stringify(s: &str) -> String {
+        let mut ret = String::new();
+        write_json_string(s, &mut ret).unwrap();
+        ret
+    }
+
+    #[test]
+    fn stringify_str() {
+        assert_eq!(stringify("Foo"), "\"Foo\"");
+    }
+
+    #[test]
+    fn stringify_escaped_characters() {
+        assert_eq!(
+            stringify("\r____\n___\t\u{8}\u{c}\\\"__"),
+            r#""\r____\n___\t\b\f\\\"__""#
+        );
+    }
+
+    #[test]
+    fn stringify_dont_escape_forward_slash() {
+        assert_eq!(stringify("foo/bar"), r#""foo/bar""#);
+    }
+
+    #[test]
+    fn stringify_escaped() {
+        assert_eq!(
+            stringify("http://www.google.com/\t"),
+            r#""http://www.google.com/\t""#
+        );
+    }
+
+    #[test]
+    fn stringify_control_escaped() {
+        assert_eq!(
+            stringify("foo\u{1f}bar\u{0}baz"),
+            r#""foo\u001fbar\u0000baz""#
+        );
+    }
+}

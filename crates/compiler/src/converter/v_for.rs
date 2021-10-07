@@ -40,6 +40,7 @@ pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> B
             return n;
         }
     };
+    let n = convert_memo_in_v_for(n, || parse_result.key.clone());
     IRNode::For(ForNodeIR {
         source,
         parse_result,
@@ -92,6 +93,29 @@ fn split_v_for_iter(mut lhs: &str) -> (&str, Option<&str>, Option<&str>) {
         3 => (split[0], Some(split[1]), Some(split[2])),
         _ => (split[0], None, None),
     }
+}
+
+fn convert_memo_in_v_for<'a, F>(n: BaseIR<'a>, get_key: F) -> BaseIR<'a>
+where
+    F: Fn() -> Option<Js<'a>>,
+{
+    use crate::ir::{
+        CacheIR,
+        CacheKind::{Memo, MemoInVFor},
+    };
+    use IRNode::CacheNode;
+    let (expr, child) = match n {
+        CacheNode(CacheIR {
+            kind: Memo(expr),
+            child,
+        }) => (expr, child),
+        _ => return n,
+    };
+    let kind = MemoInVFor {
+        v_for_key: get_key(),
+        expr,
+    };
+    CacheNode(CacheIR { kind, child })
 }
 
 // check <template v-for> key placement
@@ -156,5 +180,9 @@ mod test {
         for src in &["", "           in             "] {
             assert!(parse_for_expr(VStr::raw(src)).is_none());
         }
+    }
+
+    fn test_v_for_memo() {
+        // TODO
     }
 }

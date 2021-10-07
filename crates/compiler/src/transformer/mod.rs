@@ -22,8 +22,10 @@ seems patch flag can be extracted out
  */
 
 pub mod collect_entities;
+pub mod hoist_static;
 pub mod mark_patch_flag;
 pub mod mark_slot_flag;
+pub mod normalize_props;
 pub mod optimize_text;
 pub mod pass;
 pub mod process_expression;

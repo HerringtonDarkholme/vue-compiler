@@ -78,12 +78,13 @@ impl<'a> CorePass<BaseInfo<'a>> for PatchFlagMarker {
         }
     }
 }
-fn find_prop<'a, 'b>(t: &'b BaseIR<'a>) -> &'b Option<Js<'a>> {
+
+fn find_prop<'a, 'b>(t: &'b BaseIR<'a>) -> Option<&'b Js<'a>> {
     match t {
-        IR::VNodeCall(v) => &v.props,
-        IR::RenderSlotCall(r) => &r.slot_props,
+        IR::VNodeCall(v) => v.props.as_ref(),
+        IR::RenderSlotCall(r) => r.slot_props.as_ref(),
         IR::CacheNode(c) => find_prop(&c.child),
-        IR::AlterableSlot(..) => &None, // why this compile??
+        IR::AlterableSlot(..) => None, // why this compile??
         IR::VSlotUse(_) => {
             panic!("v-slot with v-for must be alterable slots")
         }

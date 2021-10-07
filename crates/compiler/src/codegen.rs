@@ -112,6 +112,7 @@ pub struct CodeWriter<'a, T: Write> {
     sfc_info: SFCInfo<'a>,
     indent_level: usize,
     closing_brackets: usize,
+    cache_count: usize,
     in_alterable: bool,
     helpers: HelperCollector,
     option: CodeGenerateOption,
@@ -124,6 +125,7 @@ impl<'a, T: Write> CodeWriter<'a, T> {
             sfc_info,
             indent_level: 0,
             closing_brackets: 0,
+            cache_count: 0,
             in_alterable: false,
             helpers: Default::default(),
         }
@@ -188,11 +190,15 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
             self.newline()?;
             self.write_str(": ")?;
         }
-        // TODO: generate undefined for alterable_slots
-        // generate default v-else comment
-        let s = if self.option.is_dev { "'v-if'" } else { "''" };
-        let comment = Js::Call(RH::CreateComment, vec![Js::Src(s), Js::Src("true")]);
-        self.generate_js_expr(comment)?;
+        if !self.in_alterable {
+            // generate default v-else comment
+            let s = if self.option.is_dev { "'v-if'" } else { "''" };
+            let comment = Js::Call(RH::CreateComment, vec![Js::Src(s), Js::Src("true")]);
+            self.generate_js_expr(comment)?;
+        } else {
+            // generate undefined for alterable_slots
+            self.write_str("undefined")?;
+        }
         self.flush_deindent(indent)
     }
     fn generate_for(&mut self, f: BaseFor<'a>) -> io::Result<()> {
@@ -241,7 +247,30 @@ impl<'a, T: Write> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> 
         self.write_str(")")
     }
     fn generate_cache(&mut self, c: BaseCache<'a>) -> Self::Written {
-        todo!()
+        use C::CacheKind as CK;
+        match c.kind {
+            CK::Once => {
+                write!(self.writer, "_cache[{}] || (", self.cache_count)?;
+                self.indent()?;
+                self.write_helper(RH::SetBlockTracking)?;
+                self.write_str("(-1),")?;
+                self.newline()?;
+                write!(self.writer, "_cache[{}] = ", self.cache_count)?;
+                self.generate_ir(*c.child)?;
+                self.write_str(",")?;
+                self.newline()?;
+                self.write_helper(RH::SetBlockTracking)?;
+                self.write_str("(1),")?;
+                self.newline()?;
+                write!(self.writer, "_cache[{}]", self.cache_count)?;
+                self.deindent(true)?;
+                self.write_str(")")?;
+            }
+            CK::Memo(expr) => todo!(),
+            CK::MemoInVFor { expr, v_for_key } => todo!(),
+        }
+        self.cache_count += 1;
+        Ok(())
     }
     fn generate_js_expr(&mut self, expr: Js<'a>) -> io::Result<()> {
         match expr {

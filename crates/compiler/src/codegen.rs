@@ -310,7 +310,27 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
                 self.generate_ir(*c.child)?;
                 write!(self.writer, ", _cache, {})", self.cache_count)?;
             }
-            CK::MemoInVFor { expr, v_for_key } => todo!(),
+            CK::MemoInVFor { expr, v_for_key } => {
+                self.write_str("const _memo=(")?;
+                self.generate_js_expr(expr)?;
+                self.write_str(")")?;
+                self.newline()?;
+                self.write_str("if (_cached")?;
+                if let Some(key) = v_for_key {
+                    self.write_str(" && _cache.key === ")?;
+                    self.generate_js_expr(key)?;
+                }
+                self.write_str(" && ")?;
+                self.write_helper(RH::IsMemoSame)?;
+                self.write_str("(_cached, _memo)) return _cached")?;
+                self.newline()?;
+                self.write_str("const _item = ")?;
+                self.generate_ir(*c.child)?;
+                self.newline()?;
+                self.write_str("_item.memo = _memo")?;
+                self.newline()?;
+                self.write_str("return _item")?;
+            }
         }
         self.cache_count += 1;
         Ok(())
@@ -531,17 +551,34 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         self.write_str("]")
     }
     fn generate_render_list(&mut self, f: BaseFor<'a>) -> Output {
+        let has_memo = if let IRNode::CacheNode(cn) = &*f.child {
+            debug_assert!(matches!(cn.kind, C::CacheKind::MemoInVFor { .. }));
+            true
+        } else {
+            false
+        };
         self.write_helper(RH::RenderList)?;
         self.write_str("(")?;
         self.generate_js_expr(f.source)?;
         self.write_str(", ")?;
         let p = f.parse_result;
-        let params = vec![Some(p.value), p.key, p.index];
-        self.gen_func_expr(params, *f.child)?;
+        let mut params = vec![Some(p.value), p.key, p.index];
+        if has_memo {
+            params.push(Some(Js::Src("_cached")));
+            self.gen_func_expr(params, *f.child, /*need_return*/ false)?;
+            write!(self.writer, ", _cache, {}", self.cache_count - 1)?;
+        } else {
+            self.gen_func_expr(params, *f.child, /*need_return*/ true)?;
+        }
         self.write_str(")")
     }
     // TODO: add newline
-    fn gen_func_expr(&mut self, params: Vec<Option<Js<'a>>>, body: BaseIR<'a>) -> Output {
+    fn gen_func_expr(
+        &mut self,
+        params: Vec<Option<Js<'a>>>,
+        body: BaseIR<'a>,
+        need_return: bool,
+    ) -> Output {
         const PLACE_HOLDER: &[&str] = &[
             "_", "_1", "_2", "_3", "_4", "_5", "_6", "_7", "_8", "_9", "_0",
         ];
@@ -563,7 +600,9 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         self.gen_list(normalized_params)?;
         self.write_str(") => {")?;
         self.indent()?;
-        self.write_str("return ")?;
+        if need_return {
+            self.write_str("return ")?;
+        }
         self.generate_ir(body)?;
         self.deindent()?;
         self.write_str("}")
@@ -1116,5 +1155,14 @@ mod test {
         let expected =
             r#"_withMemo([a], () => (_openBlock(), _createElementBlock("p")), _cache, 0)"#;
         assert!(s.contains(expected), "{}", s);
+    }
+    #[test]
+    fn test_v_memo_in_for() {
+        let s = base_gen("<p v-for='a in b' v-memo='[a]'/>");
+        let expected = r#"_renderList(b, (a, _1, _2, _cached)"#;
+        assert!(s.contains(expected), "{}", s);
+        assert!(s.contains("_item.memo = _memo"));
+        assert!(s.contains("return _item"));
+        assert!(!s.contains("_withMemo"), "{}", s);
     }
 }

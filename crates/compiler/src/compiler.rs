@@ -304,7 +304,7 @@ where
     }
 }
 
-pub fn get_base_pass<'a, 'b>(
+pub fn get_base_passes<'a, 'b>(
     sfc_info: &'b SFCInfo<'a>,
     opt: &CompileOption,
 ) -> impl CorePass<BaseInfo<'a>> + 'b {

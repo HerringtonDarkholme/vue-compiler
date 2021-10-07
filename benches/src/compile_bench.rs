@@ -1,7 +1,7 @@
 mod bench_util;
 
 use compiler::compiler::BaseCompiler;
-use compiler::compiler::{CompileOption, TemplateCompiler, get_base_pass};
+use compiler::compiler::{CompileOption, TemplateCompiler, get_base_passes};
 
 use criterion::BenchmarkId;
 use criterion::Criterion;
@@ -14,7 +14,7 @@ fn base_compile(source: &str) {
         ..Default::default()
     };
     let sfc_info = Default::default();
-    let pass = get_base_pass(&sfc_info, &option);
+    let pass = get_base_passes(&sfc_info, &option);
     let mut s = Vec::new();
     let mut compiler = BaseCompiler::new(&mut s, pass, option);
     compiler.compile(source).unwrap();

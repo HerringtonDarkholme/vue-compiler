@@ -49,7 +49,6 @@ pub struct Tag<'a> {
 pub enum Token<'a> {
     StartTag(Tag<'a>),
     EndTag(Name<'a>), // with no attrs or self_closing flag
-    // TODO: investigate if we can postpone decoding to codegen
     // 1. in SSR we don't need to output decoded entities
     // 2. in DOM we can output decoded text during transform
     // 3. parser/IRConverter does not read text content
@@ -489,8 +488,6 @@ impl<'a> Tokens<'a> {
 
     // https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state
     fn scan_comment_and_like(&mut self) -> Token<'a> {
-        // TODO: investigate https://github.com/jneem/teddy
-        // for simd string pattern matching
         let s = &self.source;
         if s.starts_with("<!--") {
             self.scan_comment()

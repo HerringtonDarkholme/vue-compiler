@@ -1,34 +1,32 @@
 use vue_compiler_core as compiler;
-use compiler::{
-    codegen::{CodeWriter, CodeGenerator, CodeGenerateOption},
-    SFCInfo,
-};
+use compiler::compiler::{BaseCompiler, TemplateCompiler, get_base_passes};
 use insta::assert_snapshot;
-use super::converter_test::base_convert;
 use rslint_parser::parse_text;
 
 fn test_codegen(case: &str) {
     let name = insta::_macro_support::AutoName;
     let val = base_compile(case);
-    let parsed = parse_text(&val, 0);
+    // `function target have return outside function
+    let wrap_in_func = format!("function () {{ {} }}", val);
+    let parsed = parse_text(&wrap_in_func, 0);
     assert!(parsed.errors().is_empty());
     assert_snapshot!(name, val, case);
 }
 
-pub fn base_compile(s: &str) -> String {
-    let ir = base_convert(s);
+pub fn base_compile(source: &str) -> String {
+    let sfc_info = Default::default();
+    let option = Default::default();
+    let passes = get_base_passes(&sfc_info, &option);
     let mut ret = vec![];
-    let mut writer = CodeWriter::new(&mut ret, CodeGenerateOption::default(), SFCInfo::default());
-    writer.generate(ir).unwrap();
+    let mut compiler = BaseCompiler::new(&mut ret, passes, option);
+    compiler.compile(source).unwrap();
     String::from_utf8(ret).unwrap()
 }
 
 #[test]
 fn test_basic_cases() {
-    // let cases = [
-    //     "Hello world"
-    // ];
-    // for case in cases {
-    //     test_codegen(case);
-    // }
+    let cases = ["Hello world"];
+    for case in cases {
+        test_codegen(case);
+    }
 }

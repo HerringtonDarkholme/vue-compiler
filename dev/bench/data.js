@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1633679201931,
+  "lastUpdate": 1633679323484,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -5804,6 +5804,96 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 6230,
             "range": "± 350",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "committer": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "distinct": true,
+          "id": "4b0ac8f36dd23a53bcd741602343806d4db8a453",
+          "message": "[fix] yml should have two space",
+          "timestamp": "2021-10-08T15:43:42+08:00",
+          "tree_id": "e0bcd83293d3ac58e800b9e80d49e56f841d97d7",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/4b0ac8f36dd23a53bcd741602343806d4db8a453"
+        },
+        "date": 1633679322639,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 5976,
+            "range": "± 283",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4302,
+            "range": "± 393",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 43672,
+            "range": "± 2337",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 39064,
+            "range": "± 1793",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 25160,
+            "range": "± 1303",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 115409,
+            "range": "± 6946",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 23845,
+            "range": "± 1750",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 7541,
+            "range": "± 389",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 7496,
+            "range": "± 327",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 7297,
+            "range": "± 327",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 6107,
+            "range": "± 393",
             "unit": "ns/iter"
           }
         ]

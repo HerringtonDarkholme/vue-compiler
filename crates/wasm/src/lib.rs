@@ -4,7 +4,7 @@ use compiler::compiler::{BaseCompiler, TemplateCompiler, get_base_passes};
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = baseCompile)]
 pub fn base_compile(source: &str) -> String {
     let sfc_info = Default::default();
     let option = Default::default();

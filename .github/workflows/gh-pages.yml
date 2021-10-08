@@ -51,7 +51,6 @@ jobs:
         run: cd playground && pnpm build
 
       - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@4.1.5
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          branch: gh-pages # The branch the action should deploy to.
-          folder: playground/dist # The folder the action should deploy.
+          publish_dir: ./playground/dist

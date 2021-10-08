@@ -1,6 +1,14 @@
 # Vue Compiler in Rust
 
-https://github.com/vuejs/rfcs/discussions/369#discussioncomment-1192421
+<p align="center">
+<a href="https://github.com/HerringtonDarkholme/vue-compiler"><img src="https://raw.githubusercontent.com/HerringtonDarkholme/vue-compiler/main/playground/src/assets/wasm-ferris.png" alt="WebAssembly ferris" width="317"></a>
+ <a href="https://github.com/vuejs/vue-next"><img src="https://raw.githubusercontent.com/HerringtonDarkholme/vue-compiler/main/playground/src/assets/logo.png" alt="Vue" width="200"></a>
+</p>
+
+<p align="center"><a href="https://herringtondarkholme.github.io/vue-compiler/">Try it out in the wasm playground!</a></p>
+
+
+Evan [says](https://github.com/vuejs/rfcs/discussions/369#discussioncomment-1192421):
 
 > Maybe in the long run we want the whole transform (and even the Vue compiler!) to be implemented in native Go/Rust so performance would no longer be a concern ;)
 

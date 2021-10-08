@@ -3,6 +3,10 @@ name = "vue-compiler-wasm"
 version = "0.1.0"
 authors = ["Herrington Darkholme <2883231+HerringtonDarkholme@users.noreply.github.com>"]
 edition = "2018"
+description = "Vue compiler WASM port"
+keywords = ["vue", "compiler", "frontend"]
+license = "MIT"
+repository = "https://github.com/HerringtonDarkholme/vue-compiler"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,6 +14,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
+compiler = { path = "../compiler", package = "vue-compiler-core", default-features = false, features = [] }
 wasm-bindgen = "0.2.78"
 wee_alloc = { version = "0.4.5" }
 

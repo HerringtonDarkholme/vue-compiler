@@ -1,13 +1,31 @@
 <script setup lang="ts">
 // This starter template is using Vue 3 <script setup> SFCs
 // Check out https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup
-import HelloWorld from './components/HelloWorld.vue'
+import Playground from './components/Playground.vue'
+import Header from './components/Header.vue'
+import Footer from './components/Footer.vue'
 </script>
 
 <template>
-  <img alt="Vue logo" src="./assets/logo.png" />
-  <HelloWorld msg="Hello Vue 3 + TypeScript + Vite" />
+  <Header/>
+  <main>
+    <suspense>
+      <Playground />
+      <template #fallback>
+        <h2>
+          Loading WASM...
+        </h2>
+      </template>
+    </suspense>
+  </main>
+  <Footer/>
 </template>
+
+<style scoped>
+main {
+  flex-grow: 1;
+}
+</style>
 
 <style>
 #app {
@@ -16,6 +34,8 @@ import HelloWorld from './components/HelloWorld.vue'
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 </style>

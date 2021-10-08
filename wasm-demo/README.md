@@ -1,4 +1,15 @@
-# Vue 3 + Typescript + Vite
+# Rusty Vue Compiler Demo
+
+Depends on the output under `crates/wasm/pkg`.
+
+## Build Instruction
+
+1. Install wasm-pack
+2. `cd ../crates/wasm && wasm-pack build`
+3. `cd ../../wasm-demo && cp ../crates/wasm/pkg/vue_compiler_wasm_bg.wasm`
+4. `npm run build`
+
+## Vue 3 + Typescript + Vite
 
 This template should help get you started developing with Vue 3 and Typescript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
 

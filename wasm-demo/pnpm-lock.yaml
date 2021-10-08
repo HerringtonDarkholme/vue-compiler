@@ -2,12 +2,14 @@ lockfileVersion: 5.3
 
 specifiers:
   '@vitejs/plugin-vue': ^1.9.3
+  rusty-vue-compiler: file:../crates/wasm/pkg/
   typescript: ^4.4.3
   vite: ^2.6.4
   vue: ^3.2.16
   vue-tsc: ^0.3.0
 
 dependencies:
+  rusty-vue-compiler: link:../crates/wasm/pkg
   vue: registry.npmmirror.com/vue/3.2.19
 
 devDependencies:

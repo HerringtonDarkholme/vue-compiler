@@ -28,6 +28,7 @@ jobs:
         with:
           version: 6.16.0
           run_install: true
+          cwd: ./benches
       - name: Run benchmark
         run: cd benches && pnpm install && npm run bench --silent | tee output-js.txt
       - name: Store benchmark result

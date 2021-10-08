@@ -1,7 +1,7 @@
 # Vue Compiler in Rust
 
 <p align="center">
-<a href="https://github.com/HerringtonDarkholme/vue-compiler"><img src="https://raw.githubusercontent.com/HerringtonDarkholme/vue-compiler/main/playground/src/assets/wasm-ferris.png" alt="WebAssembly ferris" width="317"></a>
+<a href="https://rustwasm.github.io/wasm-pack/"><img src="https://raw.githubusercontent.com/HerringtonDarkholme/vue-compiler/main/playground/src/assets/wasm-ferris.png" alt="WebAssembly ferris" width="317"></a>
  <a href="https://github.com/vuejs/vue-next"><img src="https://raw.githubusercontent.com/HerringtonDarkholme/vue-compiler/main/playground/src/assets/logo.png" alt="Vue" width="200"></a>
 </p>
 

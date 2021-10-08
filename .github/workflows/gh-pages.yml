@@ -48,7 +48,7 @@ jobs:
                 recursive: true
 
       - name: Vite Build 🔧
-        run: pnpm build
+        run: cd playground && pnpm build
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.1.5

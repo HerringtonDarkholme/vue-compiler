@@ -27,8 +27,9 @@ jobs:
       - uses: pnpm/action-setup@v2.0.1
         with:
           version: 6.16.0
-          run_install: true
-          cwd: ./benches
+          run_install: |
+              - cwd: ./benches
+                recursive: true
       - name: Run benchmark
         run: cd benches && pnpm install && npm run bench --silent | tee output-js.txt
       - name: Store benchmark result

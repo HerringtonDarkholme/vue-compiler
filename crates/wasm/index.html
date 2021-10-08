@@ -1,0 +1,27 @@
+<!DOCTYPE html>>
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+  </head>
+  <body>
+    <!-- Note the usage of `type=module` here as this is an ES6 module -->
+    <script type="module">
+      // Use ES module import syntax to import functionality from the module
+      // that we have compiled.
+      //
+      // Note that the `default` import is an initialization function which
+      // will "boot" the module and make it ready to use. Currently browsers
+      // don't support natively imported WebAssembly as an ES module, but
+      // eventually the manual initialization won't be required!
+      import init, { greet } from './pkg/vue_compiler_wasm.js';
+
+      async function run() {
+        await init();
+        // And afterwards we can use all the functionality defined in wasm.
+        greet("hellow");
+      }
+
+      run();
+    </script>
+  </body>
+</html>

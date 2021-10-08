@@ -21,6 +21,14 @@ fn test_base_parse() {
     }
 }
 
+// #[test]
+// fn test_script() {
+//     let cases = ["<script>abc", "<script><div/></script>", "<script>let a = 123</scrip></script>"];
+//     for case in cases {
+//         test_ast(case);
+//     }
+// }
+
 pub fn base_parse(s: &str) -> p::AstRoot {
     let tokens = base_scan(s);
     let parser = Parser::new(ParseOption {

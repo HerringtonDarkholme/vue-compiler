@@ -12,9 +12,9 @@ import Footer from './components/Footer.vue'
     <suspense>
       <Playground />
       <template #fallback>
-        <h2>
+        <h1>
           Loading WASM...
-        </h2>
+        </h1>
       </template>
     </suspense>
   </main>
@@ -24,10 +24,16 @@ import Footer from './components/Footer.vue'
 <style scoped>
 main {
   flex-grow: 1;
+  display: flex;
+  justify-content: center;
 }
 </style>
 
 <style>
+body, html {
+  margin: 0;
+  padding: 0;
+}
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -37,5 +43,6 @@ main {
   max-width: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
 }
 </style>

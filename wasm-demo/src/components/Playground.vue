@@ -23,17 +23,17 @@ watchEffect(async () => {
 .playground {
   display: flex;
   flex-wrap: wrap;
-  height: 50vh;
+  flex-grow: 1;
   text-align: left;
   font-family: monospace;
 }
 .playground > * {
-  flex: 1 0 400px;
-  min-width: 400px;
+  flex: 1 0 320px;
+  min-width: 320px;
   max-width: 100%;
   overflow-x: auto;
   padding: 1em;
-  margin: 1em;
+  margin: 0 1em 2em 1em;
 }
 textarea {
   resize: none;

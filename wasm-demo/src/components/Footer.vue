@@ -7,12 +7,16 @@
       Benchmark
   </a>
   <span>
-    Thank <a href="https://rustwasm.github.io/wasm-pack/">wasm-pack</a> for tooling and logo.
+    <a href="https://rustwasm.github.io/wasm-pack/">wasm-pack</a> for tooling and logo.
   </span>
   </footer>
 </template>
 
 <style scoped>
+footer {
+  padding: 1.5em;
+  border-top: 1px solid #eaeaea;
+}
 footer > a {
   display: inline-block;
   padding: 0 1em;

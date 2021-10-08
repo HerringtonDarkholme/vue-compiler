@@ -1,0 +1,57 @@
+name: Build and Deploy Github Pages
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+
+      - name: Install rust
+        uses: hecrj/setup-rust-action@v1.3.4
+        with:
+          rust-version: stable
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          # Optional version of wasm-pack to install(eg. 'v0.9.1', 'latest')
+          version: 'latest'
+
+      - name: Cache Rust Deps
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: ${{ runner.os }}-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-
+
+      - name: Build WASM
+        run: cd crates/wasm && wasm-pack build --target web
+
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '16'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.16.0
+          run_install: |
+              - cwd: ./playground
+                recursive: true
+
+      - name: Vite Build 🔧
+        run: pnpm build
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@4.1.5
+        with:
+          branch: gh-pages # The branch the action should deploy to.
+          folder: playground/dist # The folder the action should deploy.

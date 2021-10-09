@@ -2,9 +2,7 @@ mod code_writer;
 
 use crate::converter::BaseRoot;
 use crate::SFCInfo;
-use crate::ir::{
-    self as C, ConvertInfo, IRNode, IRRoot,
-};
+use crate::ir::{self as C, ConvertInfo, IRNode, IRRoot};
 use code_writer::CodeWriter;
 
 use smallvec::{smallvec, SmallVec};
@@ -113,8 +111,8 @@ pub struct CodeGen<T: ioWrite> {
     pd: PhantomData<T>,
 }
 pub struct CodeGenInfo<'a, T: ioWrite> {
-    writer: T,
-    sfc_info: Rc<SFCInfo<'a>>
+    pub writer: T,
+    pub sfc_info: Rc<SFCInfo<'a>>,
 }
 
 impl<T: ioWrite> CodeGen<T> {
@@ -126,14 +124,13 @@ impl<T: ioWrite> CodeGen<T> {
     }
 }
 
-
 impl<T: ioWrite> CodeGenerator for CodeGen<T> {
     type IR<'a> = BaseRoot<'a>;
     type Info<'a> = CodeGenInfo<'a, T>;
     type Output = io::Result<()>;
 
     fn generate<'a>(&self, root: BaseRoot<'a>, info: Self::Info<'a>) -> Self::Output {
-        let mut imp = CodeWriter::new(info.writer, self.option, info.sfc_info);
+        let mut imp = CodeWriter::new(info.writer, self.option.clone(), info.sfc_info);
         imp.generate_root(root)
             .map_err(|_| imp.writer.get_io_error())
     }

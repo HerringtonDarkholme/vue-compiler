@@ -5,10 +5,7 @@ use crate::converter::{BaseConvertInfo, BaseIR, BaseRoot, TopScope};
 use crate::transformer::{
     BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot, BaseCache,
 };
-use crate::ir::{
-    self as C, IRNode, JsExpr as Js, RenderSlotIR, RuntimeDir, VNodeIR,
-    HandlerType,
-};
+use crate::ir::{self as C, IRNode, JsExpr as Js, RenderSlotIR, RuntimeDir, VNodeIR, HandlerType};
 use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use crate::SFCInfo;
 
@@ -22,7 +19,7 @@ use std::{
 
 type Output = fmt::Result;
 
-struct WriteAdaptor<T: ioWrite> {
+pub struct WriteAdaptor<T: ioWrite> {
     inner: T,
     io_error: Option<io::Error>,
 }
@@ -645,7 +642,6 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         }
     }
 }
-
 
 fn gen_handler<'a, T, F>(gen: &mut CodeWriter<'a, T>, ty: HandlerType, func: F) -> Output
 where

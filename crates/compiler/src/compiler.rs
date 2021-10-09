@@ -1,7 +1,8 @@
 use super::{
     SFCInfo,
     codegen::{
-        CodeGenerateOption, CodeGenerator, CodeWriter, DecodedStr, EntityDecoder, ScriptMode,
+        CodeGenerateOption, CodeGenerator, CodeGen, DecodedStr, EntityDecoder, ScriptMode,
+        CodeGenInfo,
     },
     converter::{
         no_op_directive_convert, BaseConvertInfo as BaseInfo, BaseConverter, BaseRoot,
@@ -209,21 +210,22 @@ impl CompileOption {
 // TODO: refactor this ownership usage
 pub trait TemplateCompiler<'a> {
     type IR;
+    type Info;
     type Output;
 
     fn scan(&self, source: &'a str) -> Tokens<'a>;
     fn parse(&self, tokens: Tokens<'a>) -> AstRoot<'a>;
     fn convert(&self, ast: AstRoot<'a>) -> Self::IR;
     fn transform(&mut self, ir: &mut Self::IR);
-    fn generate(&mut self, ir: Self::IR) -> Self::Output;
+    fn generate(&mut self, ir: Self::IR, info: Self::Info) -> Self::Output;
     fn get_error_handler(&self) -> RcErrHandle;
 
-    fn compile(&mut self, source: &'a str) -> Self::Output {
+    fn compile(&mut self, source: &'a str, info: Self::Info) -> Self::Output {
         let tokens = self.scan(source);
         let ast = self.parse(tokens);
         let mut ir = self.convert(ast);
         self.transform(&mut ir);
-        self.generate(ir)
+        self.generate(ir, info)
     }
 }
 
@@ -267,10 +269,9 @@ where
     fn get_transformer(&mut self, pass: P) -> BaseTransformer<'a, P> {
         BaseTransformer::new(pass)
     }
-    fn get_code_generator(&mut self) -> CodeWriter<'a, W> {
+    fn get_code_generator(&mut self) -> CodeGen<W> {
         let option = self.option.codegen();
-        let writer = self.writer.take().unwrap();
-        CodeWriter::new(writer, option, Default::default())
+        CodeGen::new(option)
     }
 }
 
@@ -280,6 +281,7 @@ where
     P: CorePass<BaseInfo<'a>>,
 {
     type IR = BaseRoot<'a>;
+    type Info = Rc<SFCInfo<'a>>;
     type Output = io::Result<()>;
 
     fn scan(&self, source: &'a str) -> Tokens<'a> {
@@ -296,8 +298,10 @@ where
         let pass = self.passes.take().unwrap();
         self.get_transformer(pass).transform(ir);
     }
-    fn generate(&mut self, ir: Self::IR) -> Self::Output {
-        self.get_code_generator().generate(ir)
+    fn generate(&mut self, ir: Self::IR, sfc_info: Self::Info) -> Self::Output {
+        let writer = self.writer.take().unwrap();
+        self.get_code_generator()
+            .generate(ir, CodeGenInfo { writer, sfc_info })
     }
     fn get_error_handler(&self) -> RcErrHandle {
         self.option.error_handler.clone()

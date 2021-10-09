@@ -2,11 +2,11 @@ use super::CliInput;
 use anyhow::Result;
 use compiler::compiler::{get_base_passes, BaseCompiler, TemplateCompiler};
 use serde_yaml::to_writer;
-use std::io;
+use std::{io, rc::Rc};
 
 pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let (source, option, show) = debug;
-    let sfc_info = Default::default();
+    let sfc_info = Rc::new(Default::default());
     let passes = get_base_passes(&sfc_info, &option);
     let mut compiler = BaseCompiler::new(io::stdout(), passes, option);
 
@@ -43,6 +43,6 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
         println!(r#"======== End of Transform ========"#);
     }
 
-    compiler.generate(ir)?;
+    compiler.generate(ir, sfc_info.clone())?;
     Ok(())
 }

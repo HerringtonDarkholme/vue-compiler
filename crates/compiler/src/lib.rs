@@ -1,4 +1,5 @@
 #![allow(dead_code, unused_variables)]
+#![feature(generic_associated_types)]
 //! See README.md
 
 // TODO: reorg pub

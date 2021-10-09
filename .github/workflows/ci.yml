@@ -16,6 +16,8 @@ jobs:
 
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
+        with:
+          components: rustfmt, clippy
       - name: Cache
         uses: actions/cache@v2
         with:

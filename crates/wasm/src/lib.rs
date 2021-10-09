@@ -8,8 +8,8 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 pub fn base_compile(source: &str) -> String {
     let sfc_info = Default::default();
     let option = Default::default();
-    let mut ret = vec![];
-    let mut compiler = BaseCompiler::new(&mut ret, get_base_passes, option);
-    compiler.compile(source, &sfc_info).unwrap();
+    let dest = Vec::new;
+    let mut compiler = BaseCompiler::new(dest, get_base_passes, option);
+    let ret = compiler.compile(source, &sfc_info).unwrap();
     String::from_utf8(ret).unwrap()
 }

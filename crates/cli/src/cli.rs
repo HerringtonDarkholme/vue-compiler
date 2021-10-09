@@ -7,7 +7,8 @@ use std::io;
 pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let (source, option, show) = debug;
     let sfc_info = Default::default();
-    let mut compiler = BaseCompiler::new(io::stdout(), get_base_passes, option);
+    let dest = io::stdout;
+    let mut compiler = BaseCompiler::new(dest, get_base_passes, option);
 
     let tokens = compiler.scan(&source);
     if show.dump_scan {

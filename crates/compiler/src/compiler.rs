@@ -234,7 +234,7 @@ where
     W: io::Write,
     P: CorePass<BaseInfo<'a>>,
 {
-    writer: Option<W>,
+    writer: fn() -> W,
     passes: fn(&'a SFCInfo<'a>, &CompileOption) -> P,
     option: CompileOption,
     scanner: Scanner,
@@ -248,12 +248,12 @@ where
     P: CorePass<BaseInfo<'a>>,
 {
     pub fn new(
-        writer: W,
+        writer: fn() -> W,
         passes: fn(&'a SFCInfo<'a>, &CompileOption) -> P,
         option: CompileOption,
     ) -> Self {
         Self {
-            writer: Some(writer),
+            writer,
             passes,
             scanner: Scanner::new(option.scanning()),
             parser: Parser::new(option.parsing()),
@@ -269,10 +269,6 @@ where
     fn get_transformer(&mut self, pass: P) -> BaseTransformer {
         BaseTransformer(PhantomData)
     }
-    fn get_code_generator(&mut self) -> CodeGen<W> {
-        let option = self.option.codegen();
-        CodeGen::new(option)
-    }
 }
 
 impl<'a, P, W> TemplateCompiler<'a> for BaseCompiler<'a, P, W>
@@ -282,7 +278,7 @@ where
 {
     type IR = BaseRoot<'a>;
     type Info = &'a SFCInfo<'a>;
-    type Output = io::Result<()>;
+    type Output = io::Result<W>;
 
     fn scan(&self, source: &'a str) -> Tokens<'a> {
         self.scanner.scan(source, self.get_error_handler())
@@ -299,9 +295,15 @@ where
         BaseTransformer::transform(ir, pass)
     }
     fn generate(&mut self, ir: Self::IR, sfc_info: Self::Info) -> Self::Output {
-        let writer = self.writer.take().unwrap();
-        self.get_code_generator()
-            .generate(ir, CodeGenInfo { writer, sfc_info })
+        let mut writer = (self.writer)();
+        let option = self.option.codegen();
+        let generator = CodeGen::new(option);
+        let gen_info = CodeGenInfo {
+            writer: &mut writer,
+            sfc_info,
+        };
+        generator.generate(ir, gen_info)?;
+        Ok(writer)
     }
     fn get_error_handler(&self) -> RcErrHandle {
         self.option.error_handler.clone()

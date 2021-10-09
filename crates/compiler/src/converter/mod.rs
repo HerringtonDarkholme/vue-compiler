@@ -136,11 +136,6 @@ pub trait CoreConverter<'a, T: ConvertInfo> {
         }
     }
 
-    // emit error
-    fn emit_error(&self, error: CompilationError);
-    // platform specific options
-    fn get_builtin_component(&self, tag: &str) -> Option<RuntimeHelper>;
-
     // core template syntax conversion
     fn convert_directive(
         &self,
@@ -158,6 +153,11 @@ pub trait CoreConverter<'a, T: ConvertInfo> {
     fn convert_template(&self, e: Element<'a>) -> IRNode<T>;
     fn convert_comment(&self, c: SourceNode<'a>) -> IRNode<T>;
 
+    // emit error
+    fn emit_error(&self, error: CompilationError);
+    // platform specific options
+    fn get_builtin_component(&self, tag: &str) -> Option<RuntimeHelper>;
+    // is reactive
     fn is_reactive_build(&self) -> bool;
 }
 
@@ -392,9 +392,13 @@ pub mod test {
         bc.convert_ir(ast)
     }
     pub fn handler_convert(s: &str) -> BaseRoot {
-        let convs = vec![v_bind::V_BIND, v_on::V_ON, v_model::V_MODEL]
-            .into_iter()
-            .collect();
+        let convs = vec![
+            v_bind::V_BIND,
+            v_on::V_ON,
+            ("model", v_model::convert_v_model_event),
+        ]
+        .into_iter()
+        .collect();
         let option = ConvertOption {
             directive_converters: convs,
             ..Default::default()

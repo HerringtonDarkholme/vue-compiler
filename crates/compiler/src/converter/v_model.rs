@@ -12,7 +12,7 @@ use super::{
     v_on::is_member_expression, CoreDirConvRet, Directive, DirectiveConvertResult,
     DirectiveConverter, Element, ErrorHandler,
 };
-pub fn convert_v_model<'a>(
+pub fn convert_v_model_core<'a>(
     dir: &mut Directive<'a>,
     element: &Element<'a>,
     eh: &dyn ErrorHandler,
@@ -85,10 +85,15 @@ fn component_mods_prop<'a>(dir: &Directive<'a>, elem: &Element<'a>) -> Option<Pr
     Some((modifiers_key, Js::Props(mod_value)))
 }
 
-pub fn convert_v_model_event(converted: &mut DirectiveConvertResult<Js>) {
+pub fn convert_v_model_event<'a>(
+    dir: &mut Directive<'a>,
+    e: &Element<'a>,
+    eh: &dyn ErrorHandler,
+) -> CoreDirConvRet<'a> {
+    let mut converted = convert_v_model_core(dir, e, eh);
     use DirectiveConvertResult as DirRet;
-    let props = match converted {
-        DirRet::Dropped | DirRet::Preserve => return,
+    let props = match &mut converted {
+        DirRet::Dropped | DirRet::Preserve => return converted,
         DirRet::Converted { value, runtime } => {
             cast!(value, Js::Props)
         }
@@ -102,6 +107,7 @@ pub fn convert_v_model_event(converted: &mut DirectiveConvertResult<Js>) {
     let assignment = Js::func(val_expr);
     // TODO, cache assignment expr
     props.push((event_name, assignment));
+    converted
 }
 
-pub const V_MODEL: DirectiveConverter = ("model", convert_v_model);
+pub const V_MODEL: DirectiveConverter = ("model", convert_v_model_core);

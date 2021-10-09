@@ -1194,6 +1194,14 @@ mod test {
     }
 
     #[test]
+    fn test_v_model() {
+        let s = gen_on("<input v-model='a'/>");
+        assert!(s.contains("modelValue: a"), "{}", s);
+        // TODO: fix
+        // assert!(s.contains("'onUpdate:modelValue'"), "{}", s);
+    }
+
+    #[test]
     fn test_handler() {
         // inline statement
         let s = gen_on("<p @click='a()'/>");

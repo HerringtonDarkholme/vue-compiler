@@ -262,8 +262,8 @@ where
         let option = self.option.converting();
         BaseConverter::new(eh, option)
     }
-    fn get_transformer(&mut self, pass: P) -> BaseTransformer<'a, P> {
-        BaseTransformer::new(pass)
+    fn get_transformer(&mut self, pass: P) -> BaseTransformer {
+        BaseTransformer(PhantomData)
     }
     fn get_code_generator(&mut self) -> CodeGen<W> {
         let option = self.option.codegen();
@@ -292,7 +292,7 @@ where
     }
     fn transform(&mut self, ir: &mut Self::IR) {
         let pass = self.passes.take().unwrap();
-        self.get_transformer(pass).transform(ir);
+        BaseTransformer::transform(ir, pass)
     }
     fn generate(&mut self, ir: Self::IR, sfc_info: Self::Info) -> Self::Output {
         let writer = self.writer.take().unwrap();

@@ -76,7 +76,7 @@ mod test {
     use super::super::{
         process_expression::ExpressionProcessor,
         test::{base_convert, transformer_ext},
-        BaseRoot, Transformer,
+        BaseRoot, BaseTransformer, Transformer,
     };
     use super::*;
 
@@ -93,8 +93,8 @@ mod test {
             err_handle: Rc::new(NoopErrorHandler),
         };
         let a = chain![marker, exp];
-        let mut transformer = transformer_ext(a);
-        transformer.transform(&mut ir);
+        let pass = transformer_ext(a);
+        BaseTransformer::transform(&mut ir, pass);
         ir
     }
 

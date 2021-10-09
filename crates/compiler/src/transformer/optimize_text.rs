@@ -74,7 +74,8 @@ fn must_text<'a, 'b>(a: &'b mut BaseIR<'a>) -> &'b mut SmallVec<[Js<'a>; 1]> {
 
 #[cfg(test)]
 mod test {
-    use super::super::test::{base_convert, get_transformer};
+    use super::super::test::base_convert;
+    use crate::transformer::BaseTransformer;
     use super::super::{BaseText, Transformer};
     use super::*;
 
@@ -84,12 +85,11 @@ mod test {
 
     #[test]
     fn test_merge_text() {
-        let mut transformer = get_transformer(TextOptimizer);
         let mut ir = base_convert("hello {{world}}");
         assert_eq!(ir.body.len(), 2);
         assert_eq!(must_text(&mut ir.body[0]).len(), 1);
         assert_eq!(must_text(&mut ir.body[1]).len(), 1);
-        transformer.transform(&mut ir);
+        BaseTransformer::transform(&mut ir, TextOptimizer);
         assert_eq!(ir.body.len(), 1);
         assert_eq!(must_text(&mut ir.body[0]).len(), 2);
         let ir = must_ir(&ir.body[0]);
@@ -99,22 +99,20 @@ mod test {
 
     #[test]
     fn test_merge_text_with_element() {
-        let mut transformer = get_transformer(TextOptimizer);
         let mut ir = base_convert("hello <p/> {{world}}");
         assert_eq!(ir.body.len(), 4);
-        transformer.transform(&mut ir);
+        BaseTransformer::transform(&mut ir, TextOptimizer);
         assert_eq!(ir.body.len(), 3);
         assert_eq!(must_text(&mut ir.body[2]).len(), 2);
         assert!(!must_ir(&ir.body[2]).fast_path);
         let mut ir = base_convert("a <p/> a {{f}} b<p/> e {{c}}<p/>");
-        transformer.transform(&mut ir);
+        BaseTransformer::transform(&mut ir, TextOptimizer);
         assert_eq!(ir.body.len(), 6);
     }
     #[test]
     fn test_merge_text_with_slot() {
-        let mut transformer = get_transformer(TextOptimizer);
         let mut ir = base_convert("<slot>hello {{world}}</slot>");
-        transformer.transform(&mut ir);
+        BaseTransformer::transform(&mut ir, TextOptimizer);
         assert_eq!(ir.body.len(), 1);
         let slot = cast!(&mut ir.body[0], IR::RenderSlotCall);
         assert_eq!(slot.fallbacks.len(), 1);

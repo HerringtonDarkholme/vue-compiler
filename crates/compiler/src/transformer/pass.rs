@@ -74,7 +74,7 @@ pub struct Chain<A, B> {
     pub first: A,
     pub second: B,
 }
-impl<'b, T, A, B> CorePass<T> for Chain<A, B>
+impl<T, A, B> CorePass<T> for Chain<A, B>
 where
     T: ConvertInfo,
     A: CorePass<T>,

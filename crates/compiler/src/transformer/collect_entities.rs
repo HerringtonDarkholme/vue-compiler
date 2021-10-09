@@ -128,13 +128,12 @@ pub fn is_hoisted_asset<'a, 'b>(expr: &'b Js<'a>) -> Option<&'b VStr<'a>> {
 
 #[cfg(test)]
 mod test {
-    use super::super::test::{base_convert, get_transformer};
+    use super::super::test::base_convert;
     use super::*;
-    use crate::transformer::Transformer;
+    use crate::transformer::{Transformer, BaseTransformer};
     fn transform(s: &str) -> BaseRoot {
-        let mut transformer = get_transformer(EntityCollector::default());
         let mut ir = base_convert(s);
-        transformer.transform(&mut ir);
+        BaseTransformer::transform(&mut ir, EntityCollector::default());
         ir
     }
     #[test]

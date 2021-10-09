@@ -28,18 +28,19 @@ pub mod optimize_text;
 pub mod pass;
 pub mod process_expression;
 
+use std::marker::PhantomData;
+
 use crate::{
     converter::{BaseConvertInfo as BaseInfo, BaseRoot},
     ir::{self as C, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RuntimeDir},
 };
 pub use pass::{CorePass, CorePassExt, Scope};
-use std::marker::PhantomData;
 
-pub trait Transformer {
+pub trait Transformer<P> {
     type IR;
     /// transform will change ir node inplace
     /// usually transform will have multiple passes
-    fn transform(&mut self, root: &mut Self::IR);
+    fn transform(root: &mut Self::IR, passes: P);
 }
 
 #[derive(Default)]
@@ -57,16 +58,7 @@ pub type BaseVSlot<'a> = C::VSlotIR<BaseInfo<'a>>;
 pub type BaseSlotFn<'a> = C::Slot<BaseInfo<'a>>;
 pub type BaseCache<'a> = C::CacheIR<BaseInfo<'a>>;
 
-struct NoopTransformer<T>(PhantomData<T>);
-
-impl<T> Transformer for NoopTransformer<T> {
-    type IR = T;
-    fn transform(&mut self, _root: &mut Self::IR) {
-        // noop
-    }
-}
-
-trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
+trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer<P> {
     fn transform_root(root: &mut IRRoot<T>, ps: &mut P);
     fn transform_js_expr(e: &mut T::JsExpression, ps: &mut P);
 
@@ -218,27 +210,16 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer {
     }
 }
 
-pub struct BaseTransformer<'a, P: CorePass<BaseInfo<'a>>> {
-    pass: P,
-    pd: PhantomData<&'a ()>,
-}
-impl<'a, P: CorePass<BaseInfo<'a>>> BaseTransformer<'a, P> {
-    pub fn new(pass: P) -> Self {
-        Self {
-            pass,
-            pd: PhantomData,
-        }
-    }
-}
+pub struct BaseTransformer<'a>(pub PhantomData<&'a ()>);
 
-impl<'a, P: CorePass<BaseInfo<'a>>> Transformer for BaseTransformer<'a, P> {
+impl<'a, P: CorePass<BaseInfo<'a>>> Transformer<P> for BaseTransformer<'a> {
     type IR = BaseRoot<'a>;
-    fn transform(&mut self, node: &mut Self::IR) {
-        Self::transform_root(node, &mut self.pass);
+    fn transform(node: &mut Self::IR, mut pass: P) {
+        Self::transform_root(node, &mut pass);
     }
 }
 
-impl<'a, P> CoreTransformer<BaseInfo<'a>, P> for BaseTransformer<'a, P>
+impl<'a, P> CoreTransformer<BaseInfo<'a>, P> for BaseTransformer<'a>
 where
     P: CorePass<BaseInfo<'a>>,
 {
@@ -295,28 +276,16 @@ mod test {
     use super::*;
     pub use crate::converter::test::base_convert;
     use rustc_hash::FxHashMap;
-    pub fn get_transformer<'a, P>(pass: P) -> BaseTransformer<'a, P>
-    where
-        P: CorePass<BaseInfo<'a>> + 'static,
-    {
-        BaseTransformer {
-            pass,
-            pd: PhantomData,
-        }
-    }
+    use std::marker::PhantomData;
 
     pub fn transformer_ext<'a, Ps: CorePassExt<BaseInfo<'a>, Scope<'a>>>(
         passes: Ps,
-    ) -> BaseTransformer<'a, SharedInfoPasses<BaseInfo<'a>, Ps, Scope<'a>>> {
-        let pass = SharedInfoPasses {
+    ) -> SharedInfoPasses<BaseInfo<'a>, Ps, Scope<'a>> {
+        SharedInfoPasses {
             passes,
             shared_info: Scope {
                 identifiers: FxHashMap::default(),
             },
-            pd: PhantomData,
-        };
-        BaseTransformer {
-            pass,
             pd: PhantomData,
         }
     }

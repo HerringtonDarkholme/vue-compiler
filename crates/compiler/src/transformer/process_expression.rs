@@ -391,7 +391,7 @@ where
 mod test {
     use super::super::{
         test::{base_convert, transformer_ext},
-        BaseRoot, Transformer,
+        BaseRoot, Transformer, BaseTransformer,
     };
     use super::*;
     use crate::cast;
@@ -407,8 +407,8 @@ mod test {
             sfc_info: &Default::default(),
             err_handle: handler,
         };
-        let mut transformer = transformer_ext(exp);
-        transformer.transform(&mut ir);
+        let pass = transformer_ext(exp);
+        BaseTransformer::transform(&mut ir, pass);
         ir
     }
 

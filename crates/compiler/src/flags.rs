@@ -222,9 +222,6 @@ impl IntoIterator for HelperCollector {
 /// preamble helper needs collect helper when traversing template ast
 /// and generates corresponding JavaScript imports in compilation output
 impl RuntimeHelper {
-    pub fn generate_imports(&self) -> String {
-        todo!()
-    }
     pub fn helper_str(&self) -> &'static str {
         use RuntimeHelper::*;
         match *self {

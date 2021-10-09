@@ -31,7 +31,6 @@ pub fn convert_v_bind<'a>(
     let Directive {
         modifiers,
         argument,
-        head_loc,
         ..
     } = dir;
     let value = if let Some(arg) = argument {

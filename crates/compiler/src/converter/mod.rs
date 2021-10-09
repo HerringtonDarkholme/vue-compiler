@@ -350,7 +350,7 @@ impl<'a> CoreConversion<'a, BaseConvertInfo<'a>> for BaseConversion<'a> {
         })
     }
     fn convert_template(&self, e: Element<'a>) -> BaseIR<'a> {
-        convert_element::convert_template(self, e, false)
+        convert_element::convert_template(self, e)
     }
     fn convert_comment(&self, c: SourceNode<'a>) -> BaseIR<'a> {
         IRNode::CommentCall(c.source)

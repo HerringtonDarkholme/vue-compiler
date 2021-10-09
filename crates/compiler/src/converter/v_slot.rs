@@ -25,7 +25,7 @@ pub fn check_wrong_slot(bc: &BC, e: &Element, kind: ErrorKind) -> bool {
     }
 }
 
-pub fn check_build_as_slot(bc: &BC, e: &Element, tag: &Js) -> bool {
+pub fn check_build_as_slot(e: &Element, tag: &Js) -> bool {
     debug_assert!(e.tag_type != ElementType::Template);
     use RuntimeHelper::{KeepAlive, Teleport};
     match tag {

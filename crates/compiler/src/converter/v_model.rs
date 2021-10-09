@@ -23,9 +23,7 @@ pub fn convert_v_model_core<'a>(
     }
     let Directive {
         expression,
-        modifiers,
         argument,
-        head_loc,
         ..
     } = dir;
     let attr_value = expression.take().expect("empty dir should be dropped");
@@ -94,7 +92,7 @@ pub fn convert_v_model_event<'a>(
     use DirectiveConvertResult as DirRet;
     let props = match &mut converted {
         DirRet::Dropped | DirRet::Preserve => return converted,
-        DirRet::Converted { value, runtime } => {
+        DirRet::Converted { value, .. } => {
             cast!(value, Js::Props)
         }
     };

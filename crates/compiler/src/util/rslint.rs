@@ -103,7 +103,7 @@ where
             0
         }
     }
-    fn exit(&mut self, node: &rl::SyntaxNode, c: usize) {
+    fn exit(&mut self, _n: &rl::SyntaxNode, c: usize) {
         self.untrack_var(c);
     }
 }
@@ -324,7 +324,7 @@ mod test {
     #[should_panic]
     fn test_panic_wrong_cast() {
         let a = parse_expr("a + b", 0);
-        let b = a.syntax().to::<IfStmt>();
+        a.syntax().to::<IfStmt>();
     }
     #[test]
     fn test_no_panic() {

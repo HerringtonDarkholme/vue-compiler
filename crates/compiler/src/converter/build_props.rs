@@ -161,7 +161,7 @@ fn flush_pending_props(prop_args: &mut PropArgs) {
     prop_args.merge_args.push(Js::Props(arg));
 }
 
-fn process_inline_ref(val: VStr) -> Js {
+fn process_inline_ref(_val: VStr) -> Js {
     todo!("setup binding is pending")
 }
 

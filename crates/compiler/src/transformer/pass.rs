@@ -39,7 +39,7 @@ macro_rules! impl_exit {
 macro_rules! noop_pass {
     ($method: ident, $ty: ident) => {
         #[inline]
-        fn $method(&mut self, r: &mut C::$ty<T>) {}
+        fn $method(&mut self, _r: &mut C::$ty<T>) {}
     };
 }
 

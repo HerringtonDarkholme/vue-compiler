@@ -41,7 +41,7 @@ pub fn convert_memo<'a>(bc: &BaseConversion, d: Directive<'a>, n: BaseIR<'a>) ->
     })
 }
 
-pub fn convert_once<'a>(bc: &BaseConversion, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+pub fn convert_once<'a>(_bc: &BaseConversion, _: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
     IRNode::CacheNode(CacheIR {
         kind: CacheKind::Once,
         child: Box::new(n),
@@ -50,20 +50,28 @@ pub fn convert_once<'a>(bc: &BaseConversion, d: Directive<'a>, n: BaseIR<'a>) ->
 
 #[cfg(test)]
 mod test {
-    fn test_memo() {
-        let cases = [
-            "<template v-for='a in b'><p v-memo='a'/></template>",
-            "<p v-for='a in b' v-memo='a'/>",
-            "<p v-if='a' v-memo='a'/>",
-            "<p v-memo='a'/>",
-        ];
-    }
-    fn test_once() {
-        let cases = [
-            "<template v-for='a in b'><p v-once/></template>",
-            "<p v-for='a in b' v-once/>",
-            "<p v-if='a' v-once/>",
-            "<p v-once/>",
-        ];
-    }
+    // fn test_memo() {
+    //     let cases = [
+    //         "<p v-memo='a'/>",
+    //     ];
+    // }
+    // fn test_memo_in_v_if() {
+    //     let cases = [
+    //         "<p v-if='a' v-memo='a'/>",
+    //     ];
+    // }
+    // fn test_memo_in_v_for() {
+    //     let cases = [
+    //         "<template v-for='a in b'><p v-memo='a'/></template>",
+    //         "<p v-for='a in b' v-memo='a'/>",
+    //     ];
+    // }
+    // fn test_once() {
+    //     let cases = [
+    //         "<template v-for='a in b'><p v-once/></template>",
+    //         "<p v-for='a in b' v-once/>",
+    //         "<p v-if='a' v-once/>",
+    //         "<p v-once/>",
+    //     ];
+    // }
 }

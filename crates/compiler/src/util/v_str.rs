@@ -143,7 +143,7 @@ fn write_valid_asset<W: Write>(mut s: &str, mut w: W, asset: &str) -> fmt::Resul
 impl StrOps {
     // ideally it should be str.satisfy(op) but adding a trait
     // to str is too much. Use passive voice.
-    fn is_satisfied_by(&self, s: &str) -> bool {
+    fn is_satisfied_by(&self, _s: &str) -> bool {
         todo!()
     }
     fn write_ops<W: Write>(&self, s: &str, mut w: W) -> fmt::Result {

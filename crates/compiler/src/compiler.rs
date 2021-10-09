@@ -266,9 +266,6 @@ where
         let option = self.option.converting();
         BaseConverter::new(eh, option)
     }
-    fn get_transformer(&mut self, pass: P) -> BaseTransformer {
-        BaseTransformer(PhantomData)
-    }
 }
 
 impl<'a, P, W> TemplateCompiler<'a> for BaseCompiler<'a, P, W>

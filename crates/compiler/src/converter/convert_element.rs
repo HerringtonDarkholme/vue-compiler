@@ -47,8 +47,8 @@ pub fn convert_element<'a>(bc: &BC<'a>, mut e: Element<'a>) -> BaseIR<'a> {
     IRNode::VNodeCall(vnode)
 }
 
-// is_slot indicates if the template should be compiled to dynamic slot expr
-pub fn convert_template<'a>(bc: &BC<'a>, mut e: Element<'a>, is_slot: bool) -> BaseIR<'a> {
+// NB: template from dynamic slot expr should have different handling
+pub fn convert_template<'a>(bc: &BC<'a>, mut e: Element<'a>) -> BaseIR<'a> {
     debug_assert!(e.tag_type == ElementType::Template);
     check_wrong_slot(bc, &e, ErrorKind::VSlotTemplateMisplaced);
     // TODO: optimize away template if it has one stable element child
@@ -269,7 +269,7 @@ fn build_children<'a>(
     if e.children.is_empty() {
         return (vec![], more_flag);
     }
-    let should_build_as_slot = v_slot::check_build_as_slot(bc, e, tag);
+    let should_build_as_slot = v_slot::check_build_as_slot(e, tag);
     if is_builtin_symbol(tag, RuntimeHelper::KeepAlive) {
         let children = &e.children;
         // Builtin Component: 2. Force keep-alive always be updated.

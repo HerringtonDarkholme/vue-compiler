@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_variables)]
+#![allow(dead_code)]
 #![feature(generic_associated_types)]
 //! See README.md
 

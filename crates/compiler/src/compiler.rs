@@ -216,7 +216,7 @@ pub trait TemplateCompiler<'a> {
     fn scan(&self, source: &'a str) -> Tokens<'a>;
     fn parse(&self, tokens: Tokens<'a>) -> AstRoot<'a>;
     fn convert(&self, ast: AstRoot<'a>, info: Self::Info) -> Self::IR;
-    fn transform(&mut self, ir: &mut Self::IR);
+    fn transform(&mut self, ir: &mut Self::IR, info: Self::Info);
     fn generate(&mut self, ir: Self::IR, info: Self::Info) -> Self::Output;
     fn get_error_handler(&self) -> RcErrHandle;
 
@@ -224,7 +224,7 @@ pub trait TemplateCompiler<'a> {
         let tokens = self.scan(source);
         let ast = self.parse(tokens);
         let mut ir = self.convert(ast, info);
-        self.transform(&mut ir);
+        self.transform(&mut ir, info);
         self.generate(ir, info)
     }
 }
@@ -235,7 +235,7 @@ where
     P: CorePass<BaseInfo<'a>>,
 {
     writer: Option<W>,
-    passes: Option<P>,
+    passes: fn(&'a SFCInfo<'a>, &CompileOption) -> P,
     option: CompileOption,
     scanner: Scanner,
     parser: Parser,
@@ -247,10 +247,14 @@ where
     W: io::Write,
     P: CorePass<BaseInfo<'a>>,
 {
-    pub fn new(writer: W, passes: P, option: CompileOption) -> Self {
+    pub fn new(
+        writer: W,
+        passes: fn(&'a SFCInfo<'a>, &CompileOption) -> P,
+        option: CompileOption,
+    ) -> Self {
         Self {
             writer: Some(writer),
-            passes: Some(passes),
+            passes,
             scanner: Scanner::new(option.scanning()),
             parser: Parser::new(option.parsing()),
             option,
@@ -290,8 +294,8 @@ where
     fn convert(&self, ast: AstRoot<'a>, info: Self::Info) -> Self::IR {
         self.get_converter().convert_ir(ast, info)
     }
-    fn transform(&mut self, ir: &mut Self::IR) {
-        let pass = self.passes.take().unwrap();
+    fn transform(&mut self, ir: &mut Self::IR, info: Self::Info) {
+        let pass = (self.passes)(info, &self.option);
         BaseTransformer::transform(ir, pass)
     }
     fn generate(&mut self, ir: Self::IR, sfc_info: Self::Info) -> Self::Output {
@@ -304,10 +308,10 @@ where
     }
 }
 
-pub fn get_base_passes<'a, 'b>(
-    sfc_info: &'b SFCInfo<'a>,
+pub fn get_base_passes<'a>(
+    sfc_info: &'a SFCInfo<'a>,
     opt: &CompileOption,
-) -> impl CorePass<BaseInfo<'a>> + 'b {
+) -> impl CorePass<BaseInfo<'a>> {
     use crate::chain;
     let prefix_identifier = opt.transforming().prefix_identifier;
     let shared = chain![

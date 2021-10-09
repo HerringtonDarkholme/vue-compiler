@@ -10,10 +10,8 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v2
 
-      - name: Install rust
-        uses: hecrj/setup-rust-action@v1.3.4
-        with:
-          rust-version: stable
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
 
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0

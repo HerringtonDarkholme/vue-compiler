@@ -1,17 +1,12 @@
-use super::common::{serialize_yaml, TestErrorHandler};
-use compiler::scanner::{ScanOption, Scanner, TextMode, TokenSource};
+use super::common::{serialize_yaml, get_compiler};
+use compiler::scanner::TokenSource;
+use compiler::compiler::TemplateCompiler;
 use insta::assert_snapshot;
 use serde::Serialize;
 use vue_compiler_core as compiler;
 
-pub fn scan_with_opt(s: &str, opt: ScanOption) -> impl TokenSource {
-    let scanner = Scanner::new(opt);
-    let ctx = std::rc::Rc::new(TestErrorHandler);
-    scanner.scan(s, ctx)
-}
-
 pub fn base_scan(s: &str) -> impl TokenSource {
-    scan_with_opt(s, ScanOption::default())
+    get_compiler().scan(s)
 }
 
 fn assert_yaml<S: Serialize>(val: S, expr: &str) {
@@ -60,11 +55,7 @@ fn test_scan_raw_text() {
         r#"<style>abc</style>"#,
     ];
     for &case in cases.iter() {
-        let opt = ScanOption {
-            get_text_mode: |_| TextMode::RawText,
-            ..Default::default()
-        };
-        let t: Vec<_> = scan_with_opt(case, opt).collect();
+        let t: Vec<_> = base_scan(case).collect();
         assert_yaml(t, case);
     }
 }
@@ -85,11 +76,7 @@ fn test_scan_rc_data() {
         r#"<textarea>{{ garbage  {{ }}</textarea>"#,
     ];
     for &case in cases.iter() {
-        let opt = ScanOption {
-            get_text_mode: |_| TextMode::RcData,
-            ..Default::default()
-        };
-        let a: Vec<_> = scan_with_opt(case, opt).collect();
+        let a: Vec<_> = base_scan(case).collect();
         assert_yaml(a, case);
     }
 }

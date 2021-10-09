@@ -1,9 +1,8 @@
 use vue_compiler_core as compiler;
 mod dir;
-use super::common::{serialize_yaml, TestErrorHandler};
-use super::scanner_test::scan_with_opt;
-use compiler::parser::{self as p, ParseOption, Parser};
-use compiler::scanner::{TextMode, ScanOption};
+use super::common::{serialize_yaml, get_compiler};
+use compiler::compiler::TemplateCompiler;
+use compiler::parser::AstRoot;
 use insta::assert_snapshot;
 
 fn test_ast(case: &str) {
@@ -33,27 +32,8 @@ fn test_script() {
     }
 }
 
-pub fn base_parse(s: &str) -> p::AstRoot {
-    let tokens = scan_with_opt(
-        s,
-        ScanOption {
-            get_text_mode: |s| match s {
-                "script" => TextMode::RawText,
-                "textarea" => TextMode::RcData,
-                _ => TextMode::Data,
-            },
-            ..Default::default()
-        },
-    );
-    let parser = Parser::new(ParseOption {
-        get_text_mode: |s| match s {
-            "script" => TextMode::RawText,
-            "textarea" => TextMode::RcData,
-            _ => TextMode::Data,
-        },
-        is_native_element: |s| s != "comp",
-        ..ParseOption::default()
-    });
-    let eh = std::rc::Rc::new(TestErrorHandler);
-    parser.parse(tokens, eh)
+pub fn base_parse(s: &str) -> AstRoot {
+    let compiler = get_compiler();
+    let tokens = compiler.scan(s);
+    compiler.parse(tokens)
 }

@@ -7,8 +7,10 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "rusty-vue-compiler": "file:../crates/wasm/pkg/",
     "vue": "3.2.19"
+  },
+  "optionalDependencies": {
+    "rusty-vue-compiler": "file:../crates/wasm/pkg/"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "1.9.3",

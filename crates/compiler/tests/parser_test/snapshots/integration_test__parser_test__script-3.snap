@@ -1,0 +1,24 @@
+---
+source: crates/compiler/tests/parser_test/mod.rs
+expression: "<script>let a = 123</scrip></script>"
+
+---
+children:
+  - Element:
+      tag_name: script
+      tag_type: Plain
+      namespace: Html
+      properties: []
+      children:
+        - Text:
+            text: let a = 123</scrip>
+            location:
+              start: "Pos: 8, Ln: 1, Col: 9"
+              end: "Pos: 27, Ln: 1, Col: 28"
+      location:
+        start: "Pos: 0, Ln: 1, Col: 1"
+        end: "Pos: 36, Ln: 1, Col: 37"
+location:
+  start: "Pos: 0, Ln: 1, Col: 1"
+  end: "Pos: 36, Ln: 1, Col: 37"
+

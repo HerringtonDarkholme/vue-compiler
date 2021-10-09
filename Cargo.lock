@@ -990,6 +990,7 @@ version = "0.1.0"
 dependencies = [
  "bitflags",
  "insta",
+ "lazy_static",
  "rslint_parser",
  "rustc-hash",
  "serde",

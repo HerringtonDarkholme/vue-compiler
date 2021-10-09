@@ -5,7 +5,7 @@ use super::{
         CodeGenInfo,
     },
     converter::{
-        no_op_directive_convert, BaseConvertInfo as BaseInfo, BaseConversion, BaseRoot,
+        no_op_directive_convert, BaseConvertInfo as BaseInfo, BaseConverter, BaseRoot,
         ConvertOption, Converter, DirConvertFn, V_BIND, V_MODEL,
     },
     error::{NoopErrorHandler, RcErrHandle},
@@ -210,12 +210,12 @@ impl CompileOption {
 // TODO: refactor this ownership usage
 pub trait TemplateCompiler<'a> {
     type IR;
-    type Info;
+    type Info: Copy;
     type Output;
 
     fn scan(&self, source: &'a str) -> Tokens<'a>;
     fn parse(&self, tokens: Tokens<'a>) -> AstRoot<'a>;
-    fn convert(&self, ast: AstRoot<'a>) -> Self::IR;
+    fn convert(&self, ast: AstRoot<'a>, info: Self::Info) -> Self::IR;
     fn transform(&mut self, ir: &mut Self::IR);
     fn generate(&mut self, ir: Self::IR, info: Self::Info) -> Self::Output;
     fn get_error_handler(&self) -> RcErrHandle;
@@ -223,7 +223,7 @@ pub trait TemplateCompiler<'a> {
     fn compile(&mut self, source: &'a str, info: Self::Info) -> Self::Output {
         let tokens = self.scan(source);
         let ast = self.parse(tokens);
-        let mut ir = self.convert(ast);
+        let mut ir = self.convert(ast, info);
         self.transform(&mut ir);
         self.generate(ir, info)
     }
@@ -257,14 +257,10 @@ where
             pd: PhantomData,
         }
     }
-    fn get_converter(&self) -> BaseConversion<'a> {
+    fn get_converter(&self) -> BaseConverter {
         let eh = self.get_error_handler();
         let option = self.option.converting();
-        BaseConversion {
-            err_handle: eh,
-            sfc_info: Default::default(),
-            option,
-        }
+        BaseConverter::new(eh, option)
     }
     fn get_transformer(&mut self, pass: P) -> BaseTransformer<'a, P> {
         BaseTransformer::new(pass)
@@ -291,8 +287,8 @@ where
     fn parse(&self, tokens: Tokens<'a>) -> AstRoot<'a> {
         self.parser.parse(tokens, self.get_error_handler())
     }
-    fn convert(&self, ast: AstRoot<'a>) -> Self::IR {
-        self.get_converter().convert_ir(ast)
+    fn convert(&self, ast: AstRoot<'a>, info: Self::Info) -> Self::IR {
+        self.get_converter().convert_ir(ast, info)
     }
     fn transform(&mut self, ir: &mut Self::IR) {
         let pass = self.passes.take().unwrap();

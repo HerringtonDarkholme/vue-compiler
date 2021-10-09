@@ -1,13 +1,15 @@
 use super::common::serialize_yaml;
 use super::common::TestErrorHandler;
 use super::parser_test::base_parse;
-use compiler::converter::{self as C, BaseConversion, ConvertOption, Converter};
+use compiler::SFCInfo;
+use compiler::converter::{self as C, BaseConverter, ConvertOption, Converter};
 use insta::assert_snapshot;
 use vue_compiler_core as compiler;
 
 fn test_ir(case: &str) {
     let name = insta::_macro_support::AutoName;
-    let ir = base_convert(case);
+    let opt = SFCInfo::default();
+    let ir = base_convert(case, &opt);
     let val = serialize_yaml(ir.body);
     assert_snapshot!(name, val, case);
 }
@@ -20,12 +22,9 @@ fn test_text_call() {
     }
 }
 
-pub fn base_convert(s: &str) -> C::BaseRoot {
+pub fn base_convert<'a>(s: &'a str, opt: &'a SFCInfo<'a>) -> C::BaseRoot<'a> {
     let ast = base_parse(s);
-    let converter = BaseConversion {
-        option: ConvertOption::default(),
-        sfc_info: Default::default(),
-        err_handle: std::rc::Rc::new(TestErrorHandler),
-    };
-    converter.convert_ir(ast)
+    let converter =
+        BaseConverter::new(std::rc::Rc::new(TestErrorHandler), ConvertOption::default());
+    converter.convert_ir(ast, opt)
 }

@@ -48,6 +48,7 @@ pub use crate::parser::{AstNode, AstRoot, Directive, Element};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::{smallvec, SmallVec};
 use std::marker::PhantomData;
+use std::rc::Rc;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -60,9 +61,10 @@ use v_if::{pre_group_v_if, PreGroup};
 /// It defines the most generic Converter interface.
 /// The IR format can be platform specific.
 /// e.g Platfroms other than DOM/SSR can have different IR
-pub trait Converter<'a>: Sized {
-    type IR;
-    fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR;
+pub trait Converter: Sized {
+    type IR<'a>;
+    type Info<'a>;
+    fn convert_ir<'a>(&self, ast: AstRoot<'a>, info: Self::Info<'a>) -> Self::IR<'a>;
 }
 
 /// Default implementation  sketch can be used in DOM/SSR.
@@ -245,19 +247,38 @@ impl Default for ConvertOption {
     }
 }
 
+pub struct BaseConverter {
+    err_handle: RcErrHandle,
+    option: Rc<ConvertOption>,
+}
+impl BaseConverter {
+    pub fn new(err_handle: RcErrHandle, opt: ConvertOption) -> Self {
+        Self {
+            err_handle,
+            option: Rc::new(opt),
+        }
+    }
+}
+impl Converter for BaseConverter {
+    type IR<'a> = BaseRoot<'a>;
+    type Info<'a> = &'a SFCInfo<'a>;
+    fn convert_ir<'a>(&self, ast: AstRoot<'a>, info: Self::Info<'a>) -> Self::IR<'a> {
+        let conversion = BaseConversion {
+            err_handle: self.err_handle.clone(),
+            sfc_info: info,
+            option: self.option.clone(),
+        };
+        conversion.convert_core_ir(ast)
+    }
+}
+
 pub struct BaseConversion<'a> {
     pub err_handle: RcErrHandle,
-    pub sfc_info: SFCInfo<'a>,
-    pub option: ConvertOption,
+    pub sfc_info: &'a SFCInfo<'a>,
+    pub option: Rc<ConvertOption>,
 }
 pub type BaseRoot<'a> = IRRoot<BaseConvertInfo<'a>>;
 pub type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
-impl<'a> Converter<'a> for BaseConversion<'a> {
-    type IR = BaseRoot<'a>;
-    fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR {
-        self.convert_core_ir(ast)
-    }
-}
 impl<'a> CoreConversion<'a, BaseConvertInfo<'a>> for BaseConversion<'a> {
     fn emit_error(&self, error: CompilationError) {
         self.err_handle.on_error(error)
@@ -347,8 +368,49 @@ pub mod test {
     use super::*;
     use crate::{cast, error::test::TestErrorHandler, ir::VNodeIR, parser::test::base_parse};
     use std::rc::Rc;
-    use BaseConversion as BC;
+    use BaseConverter as BC;
     use JsExpr as Js;
+    use lazy_static::lazy_static;
+
+    lazy_static! {
+        static ref SFC_INFO: SFCInfo<'static> = SFCInfo::default();
+    }
+
+    pub fn base_convert(s: &str) -> BaseRoot {
+        let mut convs = FxHashMap::default();
+        for (n, f) in [v_bind::V_BIND, ("on", no_op_directive_convert)] {
+            convs.insert(n, f);
+        }
+        let option = ConvertOption {
+            directive_converters: convs,
+            ..Default::default()
+        };
+        let bc = BC {
+            err_handle: Rc::new(TestErrorHandler),
+            option: Rc::new(option),
+        };
+        let ast = base_parse(s);
+        bc.convert_ir(ast, &SFC_INFO)
+    }
+    pub fn handler_convert(s: &str) -> BaseRoot {
+        let convs = vec![
+            v_bind::V_BIND,
+            v_on::V_ON,
+            ("model", v_model::convert_v_model_event),
+        ]
+        .into_iter()
+        .collect();
+        let option = ConvertOption {
+            directive_converters: convs,
+            ..Default::default()
+        };
+        let bc = BC {
+            err_handle: Rc::new(TestErrorHandler),
+            option: Rc::new(option),
+        };
+        let ast = base_parse(s);
+        bc.convert_ir(ast, &SFC_INFO)
+    }
 
     pub fn assert_str_lit(expr: &Js, s: &str) {
         let v = cast!(expr, Js::StrLit);
@@ -372,43 +434,5 @@ pub mod test {
     #[test]
     fn test_abort() {
         base_convert("hello <p/> {{world}}");
-    }
-
-    pub fn base_convert(s: &str) -> BaseRoot {
-        let mut convs = FxHashMap::default();
-        for (n, f) in [v_bind::V_BIND, ("on", no_op_directive_convert)] {
-            convs.insert(n, f);
-        }
-        let option = ConvertOption {
-            directive_converters: convs,
-            ..Default::default()
-        };
-        let bc = BC {
-            err_handle: Rc::new(TestErrorHandler),
-            sfc_info: Default::default(),
-            option,
-        };
-        let ast = base_parse(s);
-        bc.convert_ir(ast)
-    }
-    pub fn handler_convert(s: &str) -> BaseRoot {
-        let convs = vec![
-            v_bind::V_BIND,
-            v_on::V_ON,
-            ("model", v_model::convert_v_model_event),
-        ]
-        .into_iter()
-        .collect();
-        let option = ConvertOption {
-            directive_converters: convs,
-            ..Default::default()
-        };
-        let bc = BC {
-            err_handle: Rc::new(TestErrorHandler),
-            sfc_info: Default::default(),
-            option,
-        };
-        let ast = base_parse(s);
-        bc.convert_ir(ast)
     }
 }

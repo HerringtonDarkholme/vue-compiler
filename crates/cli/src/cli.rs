@@ -27,7 +27,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
         println!(r#"=========== End of AST ==========="#);
     }
 
-    let mut ir = compiler.convert(ast);
+    let mut ir = compiler.convert(ast, &sfc_info);
     if show.dump_convert {
         println!(r#"============= IR ============"#);
         let stdout = io::stdout();

@@ -1,5 +1,6 @@
 use vue_compiler_core as compiler;
-use compiler::compiler::{BaseCompiler, TemplateCompiler, get_base_passes};
+use super::common::get_compiler;
+use compiler::compiler::TemplateCompiler;
 use insta::assert_snapshot;
 use rslint_parser::parse_text;
 
@@ -15,9 +16,7 @@ fn test_codegen(case: &str) {
 
 pub fn base_compile(source: &str) -> String {
     let sfc_info = Default::default();
-    let option = Default::default();
-    let dest = Vec::new;
-    let mut compiler = BaseCompiler::new(dest, get_base_passes, option);
+    let compiler = get_compiler();
     let ret = compiler.compile(source, &sfc_info).unwrap();
     String::from_utf8(ret).unwrap()
 }

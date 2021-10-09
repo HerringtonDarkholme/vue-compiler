@@ -15,7 +15,7 @@ fn base_compile(source: &str) {
     };
     let sfc_info = Default::default();
     let dest = || vec![];
-    let mut compiler = BaseCompiler::new(dest, get_base_passes, option);
+    let compiler = BaseCompiler::new(dest, get_base_passes, option);
     compiler.compile(source, &sfc_info).unwrap();
 }
 

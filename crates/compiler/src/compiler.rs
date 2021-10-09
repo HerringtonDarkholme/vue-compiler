@@ -216,11 +216,11 @@ pub trait TemplateCompiler<'a> {
     fn scan(&self, source: &'a str) -> Tokens<'a>;
     fn parse(&self, tokens: Tokens<'a>) -> AstRoot<'a>;
     fn convert(&self, ast: AstRoot<'a>, info: Self::Info) -> Self::IR;
-    fn transform(&mut self, ir: &mut Self::IR, info: Self::Info);
-    fn generate(&mut self, ir: Self::IR, info: Self::Info) -> Self::Output;
+    fn transform(&self, ir: &mut Self::IR, info: Self::Info);
+    fn generate(&self, ir: Self::IR, info: Self::Info) -> Self::Output;
     fn get_error_handler(&self) -> RcErrHandle;
 
-    fn compile(&mut self, source: &'a str, info: Self::Info) -> Self::Output {
+    fn compile(&self, source: &'a str, info: Self::Info) -> Self::Output {
         let tokens = self.scan(source);
         let ast = self.parse(tokens);
         let mut ir = self.convert(ast, info);
@@ -287,11 +287,11 @@ where
     fn convert(&self, ast: AstRoot<'a>, info: Self::Info) -> Self::IR {
         self.get_converter().convert_ir(ast, info)
     }
-    fn transform(&mut self, ir: &mut Self::IR, info: Self::Info) {
+    fn transform(&self, ir: &mut Self::IR, info: Self::Info) {
         let pass = (self.passes)(info, &self.option);
         BaseTransformer::transform(ir, pass)
     }
-    fn generate(&mut self, ir: Self::IR, sfc_info: Self::Info) -> Self::Output {
+    fn generate(&self, ir: Self::IR, sfc_info: Self::Info) -> Self::Output {
         let mut writer = (self.writer)();
         let option = self.option.codegen();
         let generator = CodeGen::new(option);

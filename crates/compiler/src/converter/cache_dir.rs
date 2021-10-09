@@ -50,22 +50,46 @@ pub fn convert_once<'a>(_bc: &BaseConversion, _: Directive<'a>, n: BaseIR<'a>) -
 
 #[cfg(test)]
 mod test {
-    // fn test_memo() {
-    //     let cases = [
-    //         "<p v-memo='a'/>",
-    //     ];
-    // }
-    // fn test_memo_in_v_if() {
-    //     let cases = [
-    //         "<p v-if='a' v-memo='a'/>",
-    //     ];
-    // }
-    // fn test_memo_in_v_for() {
-    //     let cases = [
-    //         "<template v-for='a in b'><p v-memo='a'/></template>",
-    //         "<p v-for='a in b' v-memo='a'/>",
-    //     ];
-    // }
+    use super::super::test::base_convert;
+    use super::*;
+    use crate::cast;
+
+    #[test]
+    fn test_memo() {
+        let case = "<p v-memo='a'/>";
+        let mut body = base_convert(case).body;
+        assert_eq!(body.len(), 1);
+        let cn = cast!(body.remove(0), IRNode::CacheNode);
+        let n = cast!(cn.kind, CacheKind::Memo);
+        let expr = cast!(n, Js::Simple);
+        assert_eq!(expr.into_string(), "a");
+    }
+    #[test]
+    fn test_memo_in_v_if() {
+        let case = "<p v-if='a' v-memo='a'/>";
+        let mut body = base_convert(case).body;
+        assert_eq!(body.len(), 1);
+        let i = cast!(body.remove(0), IRNode::If);
+        let child = &*i.branches[0].child;
+        cast!(child, IRNode::CacheNode);
+    }
+    #[test]
+    fn test_memo_in_v_for() {
+        let case = "<p v-for='a in b' v-memo='a'/>";
+        let mut body = base_convert(case).body;
+        let f = cast!(body.remove(0), IRNode::For);
+        let cn = cast!(*f.child, IRNode::CacheNode);
+        assert!(matches!(cn.kind, CacheKind::MemoInVFor { .. }));
+    }
+    #[test]
+    fn test_memo_in_template_for() {
+        let case = "<template v-for='a in b'><p v-memo='a'/></template>";
+        let mut body = base_convert(case).body;
+        let f = cast!(body.remove(0), IRNode::For);
+        let mut vn = cast!(*f.child, IRNode::VNodeCall);
+        let cn = cast!(vn.children.remove(0), IRNode::CacheNode);
+        cast!(cn.kind, CacheKind::Memo);
+    }
     // fn test_once() {
     //     let cases = [
     //         "<template v-for='a in b'><p v-once/></template>",

@@ -192,7 +192,7 @@ fn convert_if_branch<'a>(
     report_duplicate_v_if(c, &mut e);
     let condition = convert_if_condition(c, dir);
     IfBranch {
-        child: Box::new(c.dispatch_element(e)),
+        child: Box::new(c.pre_convert_element(e)),
         condition,
         info: key,
     }

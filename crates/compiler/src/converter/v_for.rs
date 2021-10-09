@@ -181,8 +181,4 @@ mod test {
             assert!(parse_for_expr(VStr::raw(src)).is_none());
         }
     }
-
-    fn test_v_for_memo() {
-        // TODO
-    }
 }

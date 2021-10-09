@@ -1,0 +1,24 @@
+---
+source: crates/compiler/tests/parser_test/mod.rs
+expression: "<script><div/></script>"
+
+---
+children:
+  - Element:
+      tag_name: script
+      tag_type: Plain
+      namespace: Html
+      properties: []
+      children:
+        - Text:
+            text: "<div/>"
+            location:
+              start: "Pos: 8, Ln: 1, Col: 9"
+              end: "Pos: 14, Ln: 1, Col: 15"
+      location:
+        start: "Pos: 0, Ln: 1, Col: 1"
+        end: "Pos: 23, Ln: 1, Col: 24"
+location:
+  start: "Pos: 0, Ln: 1, Col: 1"
+  end: "Pos: 23, Ln: 1, Col: 24"
+

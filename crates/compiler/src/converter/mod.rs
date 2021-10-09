@@ -391,4 +391,20 @@ pub mod test {
         let ast = base_parse(s);
         bc.convert_ir(ast)
     }
+    pub fn handler_convert(s: &str) -> BaseRoot {
+        let convs = vec![v_bind::V_BIND, v_on::V_ON, v_model::V_MODEL]
+            .into_iter()
+            .collect();
+        let option = ConvertOption {
+            directive_converters: convs,
+            ..Default::default()
+        };
+        let bc = BC {
+            err_handle: Rc::new(TestErrorHandler),
+            sfc_info: Default::default(),
+            option,
+        };
+        let ast = base_parse(s);
+        bc.convert_ir(ast)
+    }
 }

@@ -361,10 +361,16 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
                 self.write_str(")")
             }
             Js::FuncSimple(v, ..) => {
-                todo!()
+                self.write_str("$event => (")?;
+                v.write_to(&mut self.writer)?;
+                self.write_str(")")
             }
             Js::FuncCompound(v) => {
-                todo!()
+                self.write_str("$event => (")?;
+                for e in v.to_vec() {
+                    self.generate_js_expr(e)?;
+                }
+                self.write_str(")")
             }
         }
     }
@@ -971,7 +977,7 @@ fn runtime_dirs_to_js_arr(dirs: Vec<RuntimeDir<BaseConvertInfo>>) -> Js {
 
 #[cfg(test)]
 mod test {
-    use super::super::converter::test::base_convert;
+    use super::super::converter::test::{base_convert, handler_convert};
     use super::*;
     use crate::cast;
     use crate::{BindingMetadata, BindingTypes};
@@ -1164,5 +1170,20 @@ mod test {
         assert!(s.contains("_item.memo = _memo"));
         assert!(s.contains("return _item"));
         assert!(!s.contains("_withMemo"), "{}", s);
+    }
+
+    fn gen_on(s: &str) -> String {
+        let ir = handler_convert(s);
+        let info = SFCInfo::default();
+        gen(ir, info)
+    }
+
+    #[test]
+    fn test_handler() {
+        let s = gen_on("<p @click='a()'/>");
+        assert!(s.contains("$event"), "{}", s);
+        //TODO: fix below
+        // let s = gen_on("<p @click='a'/>");
+        // assert!(s.contains("...args"), "{}", s);
     }
 }

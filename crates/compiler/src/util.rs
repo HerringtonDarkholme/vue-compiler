@@ -64,6 +64,9 @@ pub fn not_js_identifier(c: char) -> bool {
 }
 
 pub fn is_simple_identifier(s: VStr) -> bool {
+    if VStr::has_affix(&s) {
+        return false;
+    }
     let is_ident = |c| !not_js_identifier(c);
     let raw = s.raw;
     raw.chars().all(is_ident) && !raw.starts_with(|c: char| c.is_ascii_digit())

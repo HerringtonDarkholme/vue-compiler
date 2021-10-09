@@ -203,9 +203,9 @@ impl StrOps {
                 w.write_str("Modifiers")
             }
             StrOps::ASSIGN_EVT => {
-                w.write_str("((")?;
+                w.write_str("(")?;
                 w.write_str(s)?;
-                w.write_str(") = $event)")
+                w.write_str(") = $event")
             }
             _ => todo!("{:?} not implemented", op),
         }
@@ -273,6 +273,17 @@ impl<'a> VStr<'a> {
     }
     pub fn is_event_assign(s: &VStr) -> bool {
         s.ops.contains(StrOps::ASSIGN_EVT)
+    }
+    pub fn has_affix(s: &VStr) -> bool {
+        s.ops.intersects(
+            StrOps::MODEL_HANDLER
+                | StrOps::VALID_DIR
+                | StrOps::VALID_COMP
+                | StrOps::V_DIR_PREFIX
+                | StrOps::CTX_PREFIX
+                | StrOps::MOD_SUFFIX
+                | StrOps::ASSIGN_EVT,
+        )
     }
 }
 impl<'a> VStr<'a> {

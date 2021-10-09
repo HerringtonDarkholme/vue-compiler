@@ -1197,8 +1197,8 @@ mod test {
     fn test_v_model() {
         let s = gen_on("<input v-model='a'/>");
         assert!(s.contains("modelValue: a"), "{}", s);
-        // TODO: fix
-        // assert!(s.contains("'onUpdate:modelValue'"), "{}", s);
+        assert!(s.contains("\"onUpdate:modelValue\""), "{}", s);
+        assert!(s.contains("$event => ((a) = $event)"), "{}", s);
     }
 
     #[test]

@@ -111,6 +111,9 @@ pub fn cache_handlers() {
 }
 
 pub fn is_member_expression(expr: VStr) -> bool {
+    if VStr::has_affix(&expr) {
+        return false;
+    }
     if !expr.raw.starts_with(char::is_alphabetic) {
         return false;
     }

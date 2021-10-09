@@ -8,7 +8,6 @@ use code_writer::CodeWriter;
 use smallvec::{smallvec, SmallVec};
 use std::marker::PhantomData;
 use std::{
-    rc::Rc,
     borrow::Cow,
     io::{self, Write as ioWrite},
 };
@@ -112,7 +111,7 @@ pub struct CodeGen<T: ioWrite> {
 }
 pub struct CodeGenInfo<'a, T: ioWrite> {
     pub writer: T,
-    pub sfc_info: Rc<SFCInfo<'a>>,
+    pub sfc_info: &'a SFCInfo<'a>,
 }
 
 impl<T: ioWrite> CodeGen<T> {

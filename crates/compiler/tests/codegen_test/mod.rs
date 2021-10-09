@@ -2,7 +2,6 @@ use vue_compiler_core as compiler;
 use compiler::compiler::{BaseCompiler, TemplateCompiler, get_base_passes};
 use insta::assert_snapshot;
 use rslint_parser::parse_text;
-use std::rc::Rc;
 
 fn test_codegen(case: &str) {
     let name = insta::_macro_support::AutoName;
@@ -15,12 +14,12 @@ fn test_codegen(case: &str) {
 }
 
 pub fn base_compile(source: &str) -> String {
-    let sfc_info = Rc::new(Default::default());
+    let sfc_info = Default::default();
     let option = Default::default();
     let passes = get_base_passes(&sfc_info, &option);
     let mut ret = vec![];
     let mut compiler = BaseCompiler::new(&mut ret, passes, option);
-    compiler.compile(source, sfc_info.clone()).unwrap();
+    compiler.compile(source, &sfc_info).unwrap();
     String::from_utf8(ret).unwrap()
 }
 

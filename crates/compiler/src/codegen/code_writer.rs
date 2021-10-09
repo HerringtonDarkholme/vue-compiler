@@ -11,7 +11,6 @@ use crate::SFCInfo;
 
 use smallvec::SmallVec;
 use std::{
-    rc::Rc,
     fmt::{self, Write},
     io::{self, Write as ioWrite},
     iter,
@@ -53,7 +52,7 @@ impl<T: ioWrite> fmt::Write for WriteAdaptor<T> {
 pub struct CodeWriter<'a, T: ioWrite> {
     pub writer: WriteAdaptor<T>,
     option: CodeGenerateOption,
-    sfc_info: Rc<SFCInfo<'a>>,
+    sfc_info: &'a SFCInfo<'a>,
     indent_level: usize,
     closing_brackets: usize,
     cache_count: usize,
@@ -61,7 +60,7 @@ pub struct CodeWriter<'a, T: ioWrite> {
     helpers: HelperCollector,
 }
 impl<'a, T: ioWrite> CodeWriter<'a, T> {
-    pub fn new(writer: T, option: CodeGenerateOption, sfc_info: Rc<SFCInfo<'a>>) -> Self {
+    pub fn new(writer: T, option: CodeGenerateOption, sfc_info: &'a SFCInfo<'a>) -> Self {
         Self {
             writer: WriteAdaptor::new(writer),
             option,
@@ -880,16 +879,16 @@ mod test {
     use super::*;
     use crate::cast;
     use crate::{BindingMetadata, BindingTypes};
-    fn gen<'a>(mut ir: BaseRoot<'a>, info: SFCInfo<'a>) -> String {
+    fn gen<'a>(mut ir: BaseRoot<'a>, info: &'a SFCInfo<'a>) -> String {
         ir.top_scope.helpers.ignore_missing();
-        let mut writer = CodeWriter::new(vec![], Default::default(), Rc::new(info));
+        let mut writer = CodeWriter::new(vec![], Default::default(), info);
         writer.generate_root(ir).unwrap();
         String::from_utf8(writer.writer.inner).unwrap()
     }
     fn base_gen(s: &str) -> String {
         let ir = base_convert(s);
         let info = SFCInfo::default();
-        gen(ir, info)
+        gen(ir, &info)
     }
     #[test]
     fn test_text() {
@@ -901,12 +900,13 @@ mod test {
     }
     #[test]
     fn test_text_merge() {
+        let info = SFCInfo::default();
         let mut ir = base_convert("hello{{world}}");
         let world = ir.body.pop().unwrap();
         let world = cast!(world, IRNode::TextCall);
         let hello = cast!(&mut ir.body[0], IRNode::TextCall);
         hello.texts.extend(world.texts);
-        let s = gen(ir, SFCInfo::default());
+        let s = gen(ir, &info);
         assert!(s.contains("\"hello\" + _toDisplayString(world)"), "{}", s);
     }
     #[test]
@@ -914,7 +914,7 @@ mod test {
         let mut ir = base_convert("hello");
         let hello = cast!(&mut ir.body[0], IRNode::TextCall);
         hello.fast_path = true;
-        let s = gen(ir, SFCInfo::default());
+        let s = gen(ir, &SFCInfo::default());
         assert!(!s.contains("_createTextVNode"), "{}", s);
     }
     #[test]
@@ -931,7 +931,7 @@ mod test {
         let mut ir = base_convert("<p/>");
         let vn = cast!(&mut ir.body[0], IRNode::VNodeCall);
         vn.is_block = true;
-        let s = gen(ir, SFCInfo::default());
+        let s = gen(ir, &SFCInfo::default());
         assert!(s.contains("openBlock"), "{}", s);
     }
     #[test]
@@ -980,7 +980,7 @@ mod test {
         let i = cast!(&mut ir.body[0], IRNode::If);
         let vn = cast!(&mut *i.branches[0].child, IRNode::VNodeCall);
         vn.is_block = true;
-        let s = gen(ir, SFCInfo::default());
+        let s = gen(ir, &SFCInfo::default());
         assert!(s.contains("openBlock"), "{}", s);
     }
     #[test]
@@ -1042,7 +1042,7 @@ mod test {
             ..Default::default()
         };
         let ir = base_convert("hello world");
-        let s = gen(ir, option);
+        let s = gen(ir, &option);
         assert!(s.contains("$data"), "{}", s);
         let s = base_gen("hello world");
         assert!(!s.contains("$setup"), "{}", s);
@@ -1074,7 +1074,7 @@ mod test {
     fn gen_on(s: &str) -> String {
         let ir = handler_convert(s);
         let info = SFCInfo::default();
-        gen(ir, info)
+        gen(ir, &info)
     }
 
     #[test]

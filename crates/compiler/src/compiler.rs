@@ -281,7 +281,7 @@ where
     P: CorePass<BaseInfo<'a>>,
 {
     type IR = BaseRoot<'a>;
-    type Info = Rc<SFCInfo<'a>>;
+    type Info = &'a SFCInfo<'a>;
     type Output = io::Result<()>;
 
     fn scan(&self, source: &'a str) -> Tokens<'a> {

@@ -1,4 +1,4 @@
-use super::{BaseConverter as BC, CoreConverter, Element, VStr};
+use super::{BaseConversion as BC, CoreConversion, Element, VStr};
 use crate::{
     flags::{self, PatchFlag, RuntimeHelper},
     ir::{JsExpr as Js, Prop},

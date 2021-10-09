@@ -67,7 +67,7 @@ pub trait Converter<'a>: Sized {
 
 /// Default implementation  sketch can be used in DOM/SSR.
 /// Other platform might invent and use their own IR.
-pub trait CoreConverter<'a, T: ConvertInfo> {
+pub trait CoreConversion<'a, T: ConvertInfo> {
     fn convert_core_ir(&self, ast: AstRoot<'a>) -> IRRoot<T> {
         let body = self.convert_children(ast.children);
         IRRoot {
@@ -245,20 +245,20 @@ impl Default for ConvertOption {
     }
 }
 
-pub struct BaseConverter<'a> {
+pub struct BaseConversion<'a> {
     pub err_handle: RcErrHandle,
     pub sfc_info: SFCInfo<'a>,
     pub option: ConvertOption,
 }
 pub type BaseRoot<'a> = IRRoot<BaseConvertInfo<'a>>;
 pub type BaseIR<'a> = IRNode<BaseConvertInfo<'a>>;
-impl<'a> Converter<'a> for BaseConverter<'a> {
+impl<'a> Converter<'a> for BaseConversion<'a> {
     type IR = BaseRoot<'a>;
     fn convert_ir(&self, ast: AstRoot<'a>) -> Self::IR {
         self.convert_core_ir(ast)
     }
 }
-impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter<'a> {
+impl<'a> CoreConversion<'a, BaseConvertInfo<'a>> for BaseConversion<'a> {
     fn emit_error(&self, error: CompilationError) {
         self.err_handle.on_error(error)
     }
@@ -336,7 +336,7 @@ impl<'a> CoreConverter<'a, BaseConvertInfo<'a>> for BaseConverter<'a> {
     }
 }
 
-impl<'a> BaseConverter<'a> {
+impl<'a> BaseConversion<'a> {
     fn no_slotted(&self) -> bool {
         self.sfc_info.scope_id.is_some() && !self.sfc_info.slotted
     }
@@ -347,7 +347,7 @@ pub mod test {
     use super::*;
     use crate::{cast, error::test::TestErrorHandler, ir::VNodeIR, parser::test::base_parse};
     use std::rc::Rc;
-    use BaseConverter as BC;
+    use BaseConversion as BC;
     use JsExpr as Js;
 
     pub fn assert_str_lit(expr: &Js, s: &str) {

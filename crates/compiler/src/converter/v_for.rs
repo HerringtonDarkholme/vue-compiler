@@ -1,5 +1,5 @@
 use super::{
-    BaseConvertInfo, BaseConverter, BaseIR, CompilationError, ConvertInfo, CoreConverter,
+    BaseConvertInfo, BaseConversion, BaseIR, CompilationError, ConvertInfo, CoreConversion,
     Directive, Element,
 };
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
 use smallvec::SmallVec;
 
 /// Pre converts v-if or v-for like structural dir
-pub fn pre_convert_for<'a, T: ConvertInfo, C: CoreConverter<'a, T> + ?Sized>(
+pub fn pre_convert_for<'a, T: ConvertInfo, C: CoreConversion<'a, T> + ?Sized>(
     bc: &C,
     elem: &mut Element<'a>,
 ) -> Option<Directive<'a>> {
@@ -24,7 +24,7 @@ pub fn pre_convert_for<'a, T: ConvertInfo, C: CoreConverter<'a, T> + ?Sized>(
     Some(b)
 }
 
-pub fn convert_for<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+pub fn convert_for<'a>(bc: &BaseConversion, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
     // on empty v-for expr error
     if let Some(error) = d.check_empty_expr(ErrorKind::VForNoExpression) {
         bc.emit_error(error);
@@ -119,7 +119,7 @@ where
 }
 
 // check <template v-for> key placement
-fn check_template_v_for_key<'a, T: ConvertInfo, C: CoreConverter<'a, T> + ?Sized>(
+fn check_template_v_for_key<'a, T: ConvertInfo, C: CoreConversion<'a, T> + ?Sized>(
     bc: &C,
     elem: &Element,
 ) {

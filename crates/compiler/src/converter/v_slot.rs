@@ -3,7 +3,9 @@ use std::mem;
 
 use rustc_hash::FxHashSet;
 
-use super::{AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR, CoreConverter, Directive, Element};
+use super::{
+    AstNode, BaseConvertInfo, BaseConversion as BC, BaseIR, CoreConversion, Directive, Element,
+};
 use crate::{
     error::{CompilationError, CompilationErrorKind as ErrorKind},
     flags::{RuntimeHelper, SlotFlag},

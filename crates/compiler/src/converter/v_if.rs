@@ -1,9 +1,9 @@
 use super::{
-    super::parser::ElemProp, AstNode, BaseConvertInfo, BaseConverter as BC, BaseIR,
+    super::parser::ElemProp, AstNode, BaseConvertInfo, BaseConversion as BC, BaseIR,
     CompilationError, Directive, Element, IRNode,
 };
 use crate::{
-    converter::{CoreConverter, JsExpr as Js},
+    converter::{CoreConversion, JsExpr as Js},
     error::CompilationErrorKind as ErrorKind,
     ir::{IfBranch, IfNodeIR},
     scanner::Attribute,

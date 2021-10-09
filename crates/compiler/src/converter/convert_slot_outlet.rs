@@ -1,6 +1,6 @@
 use super::{
     build_props::{build_props, BuildProps},
-    BaseConverter as BC, BaseIR, CoreConverter, Directive, Element, IRNode, JsExpr as Js,
+    BaseConversion as BC, BaseIR, CoreConversion, Directive, Element, IRNode, JsExpr as Js,
 };
 use crate::{
     error::{CompilationError, CompilationErrorKind::VSlotUnexpectedDirectiveOnSlotOutlet},

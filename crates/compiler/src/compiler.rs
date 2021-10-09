@@ -5,7 +5,7 @@ use super::{
         CodeGenInfo,
     },
     converter::{
-        no_op_directive_convert, BaseConvertInfo as BaseInfo, BaseConverter, BaseRoot,
+        no_op_directive_convert, BaseConvertInfo as BaseInfo, BaseConversion, BaseRoot,
         ConvertOption, Converter, DirConvertFn, V_BIND, V_MODEL,
     },
     error::{NoopErrorHandler, RcErrHandle},
@@ -257,10 +257,10 @@ where
             pd: PhantomData,
         }
     }
-    fn get_converter(&self) -> BaseConverter<'a> {
+    fn get_converter(&self) -> BaseConversion<'a> {
         let eh = self.get_error_handler();
         let option = self.option.converting();
-        BaseConverter {
+        BaseConversion {
             err_handle: eh,
             sfc_info: Default::default(),
             option,

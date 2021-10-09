@@ -1,6 +1,6 @@
 use super::{
     build_props::{build_props, BuildProps},
-    v_slot, BaseConvertInfo, BaseConverter as BC, BaseIR, CoreConverter, Element, VStr,
+    v_slot, BaseConvertInfo, BaseConversion as BC, BaseIR, CoreConversion, Element, VStr,
 };
 use crate::{
     converter::v_slot::check_wrong_slot,

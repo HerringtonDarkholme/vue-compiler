@@ -1,5 +1,5 @@
 // v-once / v-memo
-use super::{BaseConverter, BaseIR, CoreConverter, Directive, Element};
+use super::{BaseConversion, BaseIR, CoreConversion, Directive, Element};
 use crate::ir::{IRNode, CacheIR, CacheKind, JsExpr as Js};
 use crate::error::CompilationErrorKind as ErrorKind;
 use crate::util::find_dir_empty;
@@ -21,7 +21,7 @@ pub fn pre_convert_once<'a>(elem: &mut Element<'a>) -> Option<Directive<'a>> {
     Some(b)
 }
 
-pub fn convert_memo<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+pub fn convert_memo<'a>(bc: &BaseConversion, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
     if let Some(error) = d.check_empty_expr(ErrorKind::VMemoNoExpression) {
         bc.emit_error(error);
         return n;
@@ -41,7 +41,7 @@ pub fn convert_memo<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> 
     })
 }
 
-pub fn convert_once<'a>(bc: &BaseConverter, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
+pub fn convert_once<'a>(bc: &BaseConversion, d: Directive<'a>, n: BaseIR<'a>) -> BaseIR<'a> {
     IRNode::CacheNode(CacheIR {
         kind: CacheKind::Once,
         child: Box::new(n),

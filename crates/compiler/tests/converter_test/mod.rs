@@ -1,7 +1,7 @@
 use super::common::serialize_yaml;
 use super::common::TestErrorHandler;
 use super::parser_test::base_parse;
-use compiler::converter::{self as C, BaseConverter, ConvertOption, Converter};
+use compiler::converter::{self as C, BaseConversion, ConvertOption, Converter};
 use insta::assert_snapshot;
 use vue_compiler_core as compiler;
 
@@ -22,7 +22,7 @@ fn test_text_call() {
 
 pub fn base_convert(s: &str) -> C::BaseRoot {
     let ast = base_parse(s);
-    let converter = BaseConverter {
+    let converter = BaseConversion {
         option: ConvertOption::default(),
         sfc_info: Default::default(),
         err_handle: std::rc::Rc::new(TestErrorHandler),

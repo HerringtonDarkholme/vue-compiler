@@ -17,7 +17,7 @@ fn base_compile(source: &str) {
     let pass = get_base_passes(&sfc_info, &option);
     let mut s = Vec::new();
     let mut compiler = BaseCompiler::new(&mut s, pass, option);
-    compiler.compile(source, sfc_info).unwrap();
+    compiler.compile(source, &sfc_info).unwrap();
 }
 
 fn test_enum_eq(c: &mut Criterion) {

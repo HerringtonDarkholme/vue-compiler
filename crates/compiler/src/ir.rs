@@ -189,7 +189,7 @@ pub enum JsExpr<'a> {
     /// event handler function
     // NB: inline the VStr here for smaller struct size
     FuncSimple(VStr<'a>, StaticLevel),
-    FuncCompound(Box<[JsExpr<'a>]>),
+    FuncCompound(Box<[JsExpr<'a>]>, HandlerType),
     /// alternative to join string as JsExpr
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),
@@ -228,7 +228,7 @@ impl<'a> JsExpr<'a> {
             Compound(v) | Array(v) | Call(_, v) => vec_static_level(v),
             Props(ps) => ps.iter().map(prop_level).min().unwrap_or(S::CanStringify),
             FuncSimple(_, level) => *level,
-            FuncCompound(v) => vec_static_level(v),
+            FuncCompound(v, _) => vec_static_level(v),
         }
     }
 }

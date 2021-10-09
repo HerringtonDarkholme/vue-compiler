@@ -1,7 +1,9 @@
+use crate::converter::v_on::get_handler_type;
 use crate::converter::{BaseConvertInfo, BaseIR, BaseRoot, TopScope};
 use crate::flags::{HelperCollector, PatchFlag, RuntimeHelper as RH, SlotFlag};
 use crate::ir::{
     self as C, ConvertInfo, IRNode, IRRoot, JsExpr as Js, RenderSlotIR, RuntimeDir, VNodeIR,
+    HandlerType,
 };
 use crate::transformer::{
     BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot, BaseCache,
@@ -361,17 +363,15 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
                 self.write_str(")")
             }
             Js::FuncSimple(v, ..) => {
-                self.write_str("$event => (")?;
-                v.write_to(&mut self.writer)?;
-                self.write_str(")")
+                let ty = get_handler_type(v);
+                gen_handler(self, ty, |gen| v.write_to(&mut gen.writer))
             }
-            Js::FuncCompound(v) => {
-                self.write_str("$event => (")?;
+            Js::FuncCompound(v, ty) => gen_handler(self, ty, |gen| {
                 for e in v.to_vec() {
-                    self.generate_js_expr(e)?;
+                    gen.generate_js_expr(e)?;
                 }
-                self.write_str(")")
-            }
+                Ok(())
+            }),
         }
     }
     fn generate_alterable_slot(&mut self, s: BaseSlotFn<'a>) -> Output {
@@ -758,6 +758,21 @@ impl<'a> From<&'a str> for DecodedStr<'a> {
 }
 
 pub type EntityDecoder = fn(&str, bool) -> DecodedStr<'_>;
+
+fn gen_handler<'a, T, F>(gen: &mut CodeWriter<'a, T>, ty: HandlerType, func: F) -> Output
+where
+    T: ioWrite,
+    F: FnOnce(&mut CodeWriter<'a, T>) -> Output,
+{
+    match ty {
+        HandlerType::FuncExpr | HandlerType::MemberExpr => func(gen),
+        HandlerType::InlineStmt => {
+            gen.write_str("$event => (")?;
+            func(gen)?;
+            gen.write_str(")")
+        }
+    }
+}
 
 fn gen_vnode_real<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, v: BaseVNode<'a>) -> Output {
     let call_helper = get_vnode_call_helper(&v);
@@ -1180,10 +1195,14 @@ mod test {
 
     #[test]
     fn test_handler() {
+        // inline statement
         let s = gen_on("<p @click='a()'/>");
-        assert!(s.contains("$event"), "{}", s);
-        //TODO: fix below
-        // let s = gen_on("<p @click='a'/>");
-        // assert!(s.contains("...args"), "{}", s);
+        assert!(s.contains("$event => (a())"), "{}", s);
+        // member expr
+        let s = gen_on("<p @click='a'/>");
+        assert!(s.contains("onClick: a"), "{}", s);
+        // func expr
+        let s = gen_on("<p @click='() => a()'/>");
+        assert!(s.contains("onClick: () => a()"), "{}", s);
     }
 }

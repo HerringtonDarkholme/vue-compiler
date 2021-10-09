@@ -99,7 +99,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         self.process_simple_expr(&mut mock_js, scope);
         *e = match mock_js {
             Js::Simple(s, l) => Js::FuncSimple(s, l),
-            Js::Compound(v) => Js::FuncCompound(v.into_boxed_slice()),
+            Js::Compound(v) => Js::FuncCompound(v.into_boxed_slice(), ty.clone()),
             _ => panic!("impossible"),
         };
         if matches!(ty, InlineStmt) {

@@ -377,7 +377,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     fn gen_helper_import(&mut self, helpers: HelperCollector, from: &str) -> Output {
         self.write_str("import {")?;
         self.indent()?;
-        self.gen_helper_import_list(helpers)?;
+        self.gen_helper_import_list(helpers, "as")?;
         self.deindent()?;
         self.write_str("} from \"")?;
         self.write_str(from)?;
@@ -387,16 +387,17 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     fn gen_helper_destruct(&mut self, helpers: HelperCollector, from: &str) -> Output {
         self.write_str("const {")?;
         self.indent()?;
-        self.gen_helper_import_list(helpers)?;
+        self.gen_helper_import_list(helpers, ":")?;
         self.deindent()?;
         self.write_str("} = ")?;
         self.write_str(from)?;
         self.newline()
     }
-    fn gen_helper_import_list(&mut self, helpers: HelperCollector) -> Output {
+    fn gen_helper_import_list(&mut self, helpers: HelperCollector, sep: &str) -> Output {
         for rh in helpers.into_iter() {
             self.write_str(rh.helper_str())?;
-            self.write_str(": _")?;
+            self.write_str(sep)?;
+            self.write_str(" _")?;
             self.write_str(rh.helper_str())?;
             self.write_str(", ")?;
         }

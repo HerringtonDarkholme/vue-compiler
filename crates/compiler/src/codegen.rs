@@ -9,6 +9,7 @@ use smallvec::{smallvec, SmallVec};
 use std::marker::PhantomData;
 use std::{
     borrow::Cow,
+    rc::Rc,
     io::{self, Write as ioWrite},
 };
 
@@ -106,7 +107,7 @@ pub trait CoreCodeGenerator<T: ConvertInfo> {
 }
 
 pub struct CodeGen<T: ioWrite> {
-    option: CodeGenerateOption,
+    option: Rc<CodeGenerateOption>,
     pd: PhantomData<T>,
 }
 pub struct CodeGenInfo<'a, T: ioWrite> {
@@ -117,7 +118,7 @@ pub struct CodeGenInfo<'a, T: ioWrite> {
 impl<T: ioWrite> CodeGen<T> {
     pub fn new(option: CodeGenerateOption) -> Self {
         Self {
-            option,
+            option: Rc::new(option),
             pd: PhantomData,
         }
     }

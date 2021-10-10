@@ -13,6 +13,7 @@ use smallvec::SmallVec;
 use std::{
     fmt::{self, Write},
     io::{self, Write as ioWrite},
+    rc::Rc,
     iter,
 };
 
@@ -51,7 +52,7 @@ impl<T: ioWrite> fmt::Write for WriteAdaptor<T> {
 
 pub struct CodeWriter<'a, T: ioWrite> {
     pub writer: WriteAdaptor<T>,
-    option: CodeGenerateOption,
+    option: Rc<CodeGenerateOption>,
     sfc_info: &'a SFCInfo<'a>,
     indent_level: usize,
     closing_brackets: usize,
@@ -60,7 +61,7 @@ pub struct CodeWriter<'a, T: ioWrite> {
     helpers: HelperCollector,
 }
 impl<'a, T: ioWrite> CodeWriter<'a, T> {
-    pub fn new(writer: T, option: CodeGenerateOption, sfc_info: &'a SFCInfo<'a>) -> Self {
+    pub fn new(writer: T, option: Rc<CodeGenerateOption>, sfc_info: &'a SFCInfo<'a>) -> Self {
         Self {
             writer: WriteAdaptor::new(writer),
             option,
@@ -294,7 +295,6 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
 }
 
 // TODO: put runtimeGlobalName in option
-const RUNTIME_GLOBAL_NAME: &str = "Vue";
 impl<'a, T: ioWrite> CodeWriter<'a, T> {
     pub fn generate_root(&mut self, mut root: BaseRoot<'a>) -> Output {
         // get top scope entities
@@ -318,27 +318,30 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     }
     /// for import helpers or hoist that not in function
     fn generate_preamble(&mut self, top: &TopScope<'a>) -> Output {
-        match self.option.mode {
+        match &self.option.clone().mode {
             ScriptMode::Module { .. } => self.gen_module_preamble(),
-            ScriptMode::Function { .. } => self.gen_function_preamble(top),
+            ScriptMode::Function {
+                runtime_global_name,
+                ..
+            } => self.gen_function_preamble(top, runtime_global_name),
         }
     }
-    fn gen_function_preamble(&mut self, top: &TopScope<'a>) -> Output {
+    fn gen_function_preamble(&mut self, top: &TopScope<'a>, global_name: &str) -> Output {
         debug_assert!(top.helpers == self.helpers);
         if !self.helpers.is_empty() {
             if self.option.use_with_scope() {
                 self.write_str("const _Vue = ")?;
-                self.write_str(RUNTIME_GLOBAL_NAME)?;
+                self.write_str(global_name)?;
                 self.newline()?;
                 // helpers are declared inside with block, but hoists
                 // are lifted out so we need extract hoist helper here.
                 if !top.hoists.is_empty() {
                     let hoist_helpers = self.helpers.hoist_helpers();
-                    self.gen_helper_destruct(hoist_helpers, RUNTIME_GLOBAL_NAME)?;
+                    self.gen_helper_destruct(hoist_helpers, global_name)?;
                 }
             } else {
                 let helper = self.helpers.clone();
-                self.gen_helper_destruct(helper, RUNTIME_GLOBAL_NAME)?;
+                self.gen_helper_destruct(helper, global_name)?;
             }
         }
         self.gen_hoist(top)?;

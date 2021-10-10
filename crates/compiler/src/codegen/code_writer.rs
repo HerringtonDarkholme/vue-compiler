@@ -77,8 +77,8 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
 
 impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T> {
     type Written = Output;
-    fn generate_prologue(&mut self, root: &BaseRoot<'a>) -> Output {
-        self.generate_preamble(&root.top_scope)?;
+    fn generate_prologue(&mut self, root: &mut BaseRoot<'a>) -> Output {
+        self.generate_preamble(&mut root.top_scope)?;
         self.generate_function_signature()?;
         self.generate_with_scope()?;
         self.generate_assets(&root.top_scope)?;
@@ -294,12 +294,12 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
     }
 }
 
-// TODO: put runtimeGlobalName in option
 impl<'a, T: ioWrite> CodeWriter<'a, T> {
     pub fn generate_root(&mut self, mut root: BaseRoot<'a>) -> Output {
         // get top scope entities
         self.helpers = root.top_scope.helpers.clone();
-        self.generate_prologue(&root)?;
+
+        self.generate_prologue(&mut root)?;
         if root.body.is_empty() {
             self.write_str("null")?;
         } else {
@@ -317,7 +317,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         self.generate_epilogue()
     }
     /// for import helpers or hoist that not in function
-    fn generate_preamble(&mut self, top: &TopScope<'a>) -> Output {
+    fn generate_preamble(&mut self, top: &mut TopScope<'a>) -> Output {
         match &self.option.clone().mode {
             ScriptMode::Module {
                 runtime_module_name,
@@ -328,7 +328,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
             } => self.gen_function_preamble(top, runtime_global_name),
         }
     }
-    fn gen_function_preamble(&mut self, top: &TopScope<'a>, global_name: &str) -> Output {
+    fn gen_function_preamble(&mut self, top: &mut TopScope<'a>, global_name: &str) -> Output {
         debug_assert!(top.helpers == self.helpers);
         if !self.helpers.is_empty() {
             if self.option.use_with_scope() {
@@ -353,7 +353,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     fn should_gen_scope_id(&self) -> bool {
         self.sfc_info.scope_id.is_some() && matches!(self.option.mode, ScriptMode::Module { .. })
     }
-    fn gen_module_preamble(&mut self, top: &TopScope<'a>, module_name: &str) -> Output {
+    fn gen_module_preamble(&mut self, top: &mut TopScope<'a>, module_name: &str) -> Output {
         if self.should_gen_scope_id() {
             self.helpers.collect(RH::PushScopeId);
             self.helpers.collect(RH::PopScopeId);
@@ -403,11 +403,39 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         }
         Ok(())
     }
-    fn gen_hoist(&mut self, top: &TopScope<'a>) -> Output {
+    fn gen_hoist(&mut self, top: &mut TopScope<'a>) -> Output {
         if top.hoists.is_empty() {
             return Ok(());
         }
-        todo!()
+        let gen_scope_id = self.should_gen_scope_id();
+        if gen_scope_id {
+            // generate inlined withScopeId helper
+            self.write_str("const _withScopeId = n => (")?;
+            self.write_helper(RH::PushScopeId)?;
+            let scope_id = self.sfc_info.scope_id.as_ref().unwrap();
+            write!(self.writer, "({}),n=n(),", scope_id)?;
+            self.write_helper(RH::PopScopeId)?;
+            self.write_str("(),n)")?;
+            self.newline()?;
+        }
+        // take hoists
+        let mut hoists = vec![];
+        std::mem::swap(&mut hoists, &mut top.hoists);
+        for (i, hoist) in hoists.into_iter().enumerate() {
+            let scope_id_wrapper = gen_scope_id && matches!(hoist, IRNode::VNodeCall { .. });
+            let wrapper = if scope_id_wrapper {
+                "_withScopeId(() => "
+            } else {
+                ""
+            };
+            write!(self.writer, "const _hoisted_{} = {}", i, wrapper)?;
+            self.generate_ir(hoist)?;
+            if scope_id_wrapper {
+                self.write_str(")")?;
+            }
+            self.newline()?;
+        }
+        Ok(())
     }
     /// render() or ssrRender() and their parameters
     fn generate_function_signature(&mut self) -> Output {

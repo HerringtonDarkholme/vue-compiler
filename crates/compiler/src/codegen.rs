@@ -92,7 +92,7 @@ pub trait CoreCodeGenerator<T: ConvertInfo> {
             IR::CommentCall(c) => self.generate_comment(c),
         }
     }
-    fn generate_prologue(&mut self, t: &IRRoot<T>) -> Self::Written;
+    fn generate_prologue(&mut self, t: &mut IRRoot<T>) -> Self::Written;
     fn generate_epilogue(&mut self) -> Self::Written;
     fn generate_text(&mut self, t: C::TextIR<T>) -> Self::Written;
     fn generate_if(&mut self, i: C::IfNodeIR<T>) -> Self::Written;

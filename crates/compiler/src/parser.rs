@@ -138,6 +138,12 @@ impl<'a> ElemProp<'a> {
             Self::Dir(d) => &d.location,
         }
     }
+    fn attr(mut a: Attribute<'a>) -> Self {
+        if let Some(val) = a.value.as_mut() {
+            val.content.decode(true);
+        }
+        Self::Attr(a)
+    }
 }
 
 #[derive(PartialEq, Eq)]
@@ -408,7 +414,7 @@ where
             }
             let dir = dir_parser.parse(attrs.remove(i));
             let mut ret = vec![ElemProp::Dir(dir)];
-            ret.extend(attrs.into_iter().map(ElemProp::Attr));
+            ret.extend(attrs.into_iter().map(ElemProp::attr));
             return ret;
         }
         attrs
@@ -418,7 +424,7 @@ where
                     // TODO: report duplicate prop by is_mergeable_prop
                     ElemProp::Dir(dir_parser.parse(attr))
                 } else {
-                    ElemProp::Attr(attr)
+                    ElemProp::attr(attr)
                 }
             })
             .collect()
@@ -934,6 +940,19 @@ pub mod test {
         assert_eq!(v.text[0].raw, "hello ");
         let v = cast!(world, AstNode::Interpolation);
         assert_eq!(v.source, "world");
+    }
+    #[test]
+    fn test_decode_attr() {
+        let case = "<p decode='&amp;' />";
+        let ast = base_parse(case);
+        let mut children = ast.children;
+        let child = children.remove(0);
+        let mut p = cast!(child, AstNode::Element);
+        let decode = p.properties.remove(0);
+        let decode = cast!(decode, ElemProp::Attr);
+        let val = decode.value.unwrap().content;
+        // TODO
+        // assert_eq!(val.into_string(), "&");
     }
 
     pub fn base_parse(s: &str) -> AstRoot {

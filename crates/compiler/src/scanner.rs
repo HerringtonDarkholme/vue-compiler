@@ -207,7 +207,7 @@ impl<'a> Tokens<'a> {
         debug_assert!(matches!(self.mode, TextMode::Data | TextMode::RcData));
         debug_assert_ne!(size, 0);
         let src = self.move_by(size);
-        Token::Text(self.decode_text(src, false))
+        Token::Text(self.decode_text(src))
     }
 
     fn scan_interpolation(&mut self) -> Token<'a> {
@@ -389,13 +389,13 @@ impl<'a> Tokens<'a> {
             self.scan_unquoted_attr_value()?
         };
         Some(AttributeValue {
-            content,
+            content: VStr::raw(content),
             location: self.get_location_from(start),
         })
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(double-quoted)-state
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(single-quoted)-state
-    fn scan_quoted_attr_value(&mut self, quote: char) -> Option<VStr<'a>> {
+    fn scan_quoted_attr_value(&mut self, quote: char) -> Option<&'a str> {
         debug_assert!(self.source.starts_with(quote));
         self.move_by(1);
         let src = if let Some(i) = self.source.find(quote) {
@@ -414,10 +414,10 @@ impl<'a> Tokens<'a> {
         {
             self.emit_error(ErrorKind::MissingWhitespaceBetweenAttributes);
         }
-        Some(self.decode_text(src, /*is_attr*/ true))
+        Some(src)
     }
     // https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(unquoted)-state
-    fn scan_unquoted_attr_value(&mut self) -> Option<VStr<'a>> {
+    fn scan_unquoted_attr_value(&mut self) -> Option<&'a str> {
         let val_len = self
             .source
             .bytes()
@@ -434,7 +434,7 @@ impl<'a> Tokens<'a> {
         if src.contains(&['"', '\'', '<', '=', '`'][..]) {
             self.emit_error(ErrorKind::UnexpectedCharacterInUnquotedAttributeValue);
         }
-        Some(self.decode_text(src, /* is_attr */ true))
+        Some(src)
     }
 
     fn scan_close_start_tag(&mut self) -> bool {
@@ -681,8 +681,8 @@ impl<'a> Tokens<'a> {
         self.err_handle.on_error(err);
     }
 
-    fn decode_text(&self, src: &'a str, is_attr: bool) -> VStr<'a> {
-        *VStr::raw(src).decode(is_attr)
+    fn decode_text(&self, src: &'a str) -> VStr<'a> {
+        *VStr::raw(src).decode(false)
     }
 
     /// move scanner's internal position forward and return &str
@@ -813,6 +813,7 @@ impl<'a> TokenSource<'a> for Tokens<'a> {}
 #[cfg(test)]
 pub mod test {
     use super::{super::error::test::TestErrorHandler, *};
+    use crate::cast;
     #[test]
     fn test_single_delimiter() {
         let a: Vec<_> = base_scan("{ test }").collect();
@@ -824,6 +825,14 @@ pub mod test {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn test_no_decode_attr() {
+        let mut a: Vec<_> = base_scan("<p v='&amp;'/>").collect();
+        let tag = cast!(a.remove(0), Token::StartTag);
+        let val = tag.attributes[0].value.as_ref().unwrap();
+        assert_eq!(val.content.into_string(), "&amp;");
     }
 
     fn scan_with_opt(s: &str, opt: ScanOption) -> impl TokenSource {

@@ -349,7 +349,7 @@ fn get_variety_from_binding<'a: 'b, 'b>(
 ) -> impl Fn(BindingTypes) -> Option<VStr<'a>> + 'b {
     use crate::util::Lazy;
     let camel_name = *VStr::raw(name).camelize();
-    let pascal_name = *VStr::raw(name).capitalize();
+    let pascal_name = *VStr::raw(name).pascalize();
     let name = VStr::raw(name);
     // TODO: remove the lazy using a better VStr instead
     let camel = Lazy::new(move || camel_name.into_string());

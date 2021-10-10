@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-#![feature(generic_associated_types)]
+#![feature(generic_associated_types, once_cell)]
 //! See README.md
 
 // TODO: reorg pub

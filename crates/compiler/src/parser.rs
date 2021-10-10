@@ -951,8 +951,7 @@ pub mod test {
         let decode = p.properties.remove(0);
         let decode = cast!(decode, ElemProp::Attr);
         let val = decode.value.unwrap().content;
-        // TODO
-        // assert_eq!(val.into_string(), "&");
+        assert_eq!(val.into_string(), "&");
     }
 
     pub fn base_parse(s: &str) -> AstRoot {

@@ -3,7 +3,10 @@
 //! * we can also cache camelize/capitalize result.
 //! * if VStr raw already satisfy StrOps, setting the ops flag is noop.
 //! * interning/cache can be optional, e.g. Text Token can skip it at all.
-use super::{is_event_prop, non_whitespace, not_js_identifier, write_json_string};
+use super::{
+    is_event_prop, non_whitespace, not_js_identifier, json::write_json_string,
+    decode_html::decode_entities,
+};
 use bitflags::bitflags;
 use std::{
     fmt::{self, Write},
@@ -32,11 +35,11 @@ bitflags! {
         const ASSIGN_EVT          = 1 << 13;
         // marker op is placed at the end
         const SELF_SUFFIX         = 1 << 14;
-        const IS_ATTR             = 1 << 15;
+        const DECODE_ATTR         = 1 << 15;
         /// Ops that can be safely carried out multiple times
         const IDEMPOTENT_OPS =
             Self::COMPRESS_WHITESPACE.bits | Self::DECODE_ENTITY.bits |
-            Self::CAMEL_CASE.bits | Self::CAPITALIZED.bits | Self::IS_ATTR.bits;
+            Self::CAMEL_CASE.bits | Self::CAPITALIZED.bits | Self::DECODE_ATTR.bits;
         /// Ops that can only be performed at most once. Name comes from
         /// https://en.wikipedia.org/wiki/Substructural_type_system
         const AFFINE_OPS =
@@ -120,7 +123,13 @@ fn write_decoded<W: Write>(s: &str, mut w: W) -> fmt::Result {
     if !s.contains('&') {
         return w.write_str(s);
     }
-    todo!()
+    decode_entities(s, w, false)
+}
+fn write_attr_decoded<W: Write>(s: &str, mut w: W) -> fmt::Result {
+    if !s.contains('&') {
+        return w.write_str(s);
+    }
+    decode_entities(s, w, true)
 }
 
 fn write_valid_asset<W: Write>(mut s: &str, mut w: W, asset: &str) -> fmt::Result {
@@ -170,12 +179,12 @@ impl StrOps {
         match op {
             StrOps::COMPRESS_WHITESPACE => write_compressed(s, w),
             StrOps::DECODE_ENTITY => write_decoded(s, w),
+            StrOps::DECODE_ATTR => write_attr_decoded(s, w),
             StrOps::JS_STRING => write_json_string(s, w),
             StrOps::CAMEL_CASE => write_camelized(s, w),
             StrOps::CAPITALIZED => write_capitalized(s, w),
             StrOps::VALID_DIR => write_valid_asset(s, w, "directive"),
             StrOps::VALID_COMP => write_valid_asset(s, w, "component"),
-            StrOps::IS_ATTR => w.write_str(s), // NOOP
             StrOps::SELF_SUFFIX => {
                 // noop, just a marker
                 w.write_str(s)
@@ -290,7 +299,7 @@ impl<'a> VStr<'a> {
     // verb is instance method
     pub fn decode(&mut self, is_attr: bool) -> &mut Self {
         let ops = if is_attr {
-            StrOps::DECODE_ENTITY | StrOps::IS_ATTR
+            StrOps::DECODE_ATTR
         } else {
             StrOps::DECODE_ENTITY
         };

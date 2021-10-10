@@ -23,11 +23,12 @@ macro_rules! cast {
     }};
 }
 
+mod decode_html;
 mod json;
+mod named_chars;
 pub mod rslint;
 mod v_str;
 pub use v_str::VStr;
-use json::write_json_string;
 
 pub fn non_whitespace(c: char) -> bool {
     !c.is_ascii_whitespace()

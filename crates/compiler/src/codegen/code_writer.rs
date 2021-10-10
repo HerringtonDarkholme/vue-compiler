@@ -319,7 +319,9 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     /// for import helpers or hoist that not in function
     fn generate_preamble(&mut self, top: &TopScope<'a>) -> Output {
         match &self.option.clone().mode {
-            ScriptMode::Module { .. } => self.gen_module_preamble(),
+            ScriptMode::Module {
+                runtime_module_name,
+            } => self.gen_module_preamble(top, runtime_module_name),
             ScriptMode::Function {
                 runtime_global_name,
                 ..
@@ -348,8 +350,39 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         self.newline()?;
         self.write_str("return ")
     }
-    fn gen_module_preamble(&mut self) -> Output {
-        todo!()
+    fn should_gen_scope_id(&self) -> bool {
+        self.sfc_info.scope_id.is_some() && matches!(self.option.mode, ScriptMode::Module { .. })
+    }
+    fn gen_module_preamble(&mut self, top: &TopScope<'a>, module_name: &str) -> Output {
+        if self.should_gen_scope_id() {
+            self.helpers.collect(RH::PushScopeId);
+            self.helpers.collect(RH::PopScopeId);
+        }
+        if !self.helpers.is_empty() {
+            let helpers = self.helpers.clone();
+            self.gen_helper_import(helpers, module_name)?;
+            self.newline()?;
+        }
+        if !top.imports.is_empty() {
+            todo!("import assets")
+        }
+        self.gen_hoist(top)?;
+        self.newline()?;
+        if self.sfc_info.inline {
+            self.write_str("export ")
+        } else {
+            Ok(())
+        }
+    }
+    fn gen_helper_import(&mut self, helpers: HelperCollector, from: &str) -> Output {
+        self.write_str("import {")?;
+        self.indent()?;
+        self.gen_helper_import_list(helpers)?;
+        self.deindent()?;
+        self.write_str("} from \"")?;
+        self.write_str(from)?;
+        self.write_str("\"")?;
+        self.newline()
     }
     fn gen_helper_destruct(&mut self, helpers: HelperCollector, from: &str) -> Output {
         self.write_str("const {")?;

@@ -202,8 +202,8 @@ pub struct TopScope<'a> {
     pub directives: FxHashSet<VStr<'a>>,
     /// hoisted vnode/text/js object
     pub hoists: Vec<BaseIR<'a>>,
-    /// counters for cached instance, increment per v-once/memo
-    pub cached: usize,
+    /// assets need to be imported for template, e.g. image
+    pub imports: Vec<&'a str>,
     /// counters for temporary variables created in template
     pub temps: usize,
 }

@@ -258,11 +258,13 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
                 self.gen_list(args)?;
                 self.write_str(")")
             }
-            Js::FuncSimple { src, .. } => {
+            Js::FuncSimple { src, cache, .. } => {
                 let ty = get_handler_type(src);
-                gen_handler(self, ty, |gen| src.write_to(&mut gen.writer))
+                gen_handler(self, ty, cache, |gen| src.write_to(&mut gen.writer))
             }
-            Js::FuncCompound { body, ty, .. } => gen_handler(self, ty, |gen| {
+            Js::FuncCompound {
+                body, ty, cache, ..
+            } => gen_handler(self, ty, cache, |gen| {
                 for e in body {
                     gen.generate_js_expr(e)?;
                 }
@@ -721,19 +723,41 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     }
 }
 
-fn gen_handler<'a, T, F>(gen: &mut CodeWriter<'a, T>, ty: HandlerType, func: F) -> Output
+fn gen_handler<'a, T, F>(
+    gen: &mut CodeWriter<'a, T>,
+    ty: HandlerType,
+    cache: bool,
+    func: F,
+) -> Output
 where
     T: ioWrite,
     F: FnOnce(&mut CodeWriter<'a, T>) -> Output,
 {
+    if cache {
+        write!(gen.writer, "_cache[{}] || (", gen.cache_count)?;
+    }
     match ty {
-        HandlerType::FuncExpr | HandlerType::MemberExpr => func(gen),
+        HandlerType::FuncExpr => func(gen)?,
+        HandlerType::MemberExpr => {
+            if cache {
+                gen.write_str("(...args) => ")?;
+            }
+            func(gen)?;
+            if cache {
+                gen.write_str("?.(...args)")?;
+            }
+        }
         HandlerType::InlineStmt => {
             gen.write_str("$event => (")?;
             func(gen)?;
-            gen.write_str(")")
+            gen.write_str(")")?;
         }
     }
+    if cache {
+        gen.write_str(")")?;
+        gen.cache_count += 1;
+    }
+    Ok(())
 }
 
 fn gen_vnode_real<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, v: BaseVNode<'a>) -> Output {

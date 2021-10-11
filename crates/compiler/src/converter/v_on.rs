@@ -103,13 +103,6 @@ fn is_fn_exp(raw: &str) -> bool {
     false
 }
 
-// cache handlers so that it's always the same handler being passed down.
-// this avoids unnecessary re-renders when users use inline handlers on
-// components. NB. requires prefix_identifiers
-pub fn cache_handlers() {
-    todo!()
-}
-
 pub fn is_member_expression(expr: VStr) -> bool {
     if VStr::has_affix(&expr) {
         return false;

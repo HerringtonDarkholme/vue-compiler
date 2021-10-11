@@ -1,3 +1,6 @@
+/// cache handlers so that it's always the same handler being passed down.
+/// this avoids unnecessary re-renders when users use inline handlers on
+/// components. NB. requires prefix_identifiers
 use super::{BaseInfo, BaseVNode, CorePassExt, BaseCache, Scope};
 use crate::{
     converter::v_on::get_handler_type,

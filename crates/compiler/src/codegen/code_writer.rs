@@ -363,9 +363,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
             self.gen_helper_import(helpers, module_name)?;
             self.newline()?;
         }
-        if !top.imports.is_empty() {
-            todo!("import assets")
-        }
+        self.gen_imports(top)?;
         self.gen_hoist(top)?;
         self.newline()?;
         if self.sfc_info.inline {
@@ -400,6 +398,22 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
             self.write_str(" _")?;
             self.write_str(rh.helper_str())?;
             self.write_str(", ")?;
+        }
+        Ok(())
+    }
+    fn gen_imports(&mut self, top: &mut TopScope<'a>) -> Output {
+        if top.imports.is_empty() {
+            return Ok(());
+        }
+        // take imports
+        let mut imports = vec![];
+        std::mem::swap(&mut imports, &mut top.imports);
+        for impt in imports {
+            self.write_str("import ")?;
+            self.generate_js_expr(impt.exp)?;
+            self.write_str(" from ")?;
+            self.write_str(impt.path)?;
+            self.newline()?;
         }
         Ok(())
     }

@@ -2,7 +2,6 @@
 resolver = "2"
 members = ["crates/*", "benches"]
 default-members = ["crates/*"]
-version = "2021"
 
 [profile.release]
 lto = true

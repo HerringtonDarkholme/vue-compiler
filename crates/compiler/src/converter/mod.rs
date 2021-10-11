@@ -191,6 +191,12 @@ pub fn no_op_directive_convert<'a>(
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct BaseConvertInfo<'a>(PhantomData<&'a ()>);
 
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct ImportItem<'a> {
+    pub exp: JsExpr<'a>,
+    pub path: &'a str,
+}
+
 #[derive(Default)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct TopScope<'a> {
@@ -203,7 +209,7 @@ pub struct TopScope<'a> {
     /// hoisted vnode/text/js object
     pub hoists: Vec<BaseIR<'a>>,
     /// assets need to be imported for template, e.g. image
-    pub imports: Vec<&'a str>,
+    pub imports: Vec<ImportItem<'a>>,
     /// counters for temporary variables created in template
     pub temps: usize,
 }

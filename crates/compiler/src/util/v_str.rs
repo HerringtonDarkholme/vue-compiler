@@ -216,7 +216,7 @@ impl StrOps {
                 w.write_str(s)?;
                 w.write_str(") = $event")
             }
-            _ => todo!("{:?} not implemented", op),
+            _ => panic!("strop {:?} is not expected", op),
         }
     }
     fn iter(&self) -> StrOpIter {

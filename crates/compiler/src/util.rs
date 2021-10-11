@@ -37,10 +37,10 @@ pub fn non_whitespace(c: char) -> bool {
 pub fn get_core_component(tag: &str) -> Option<RuntimeHelper> {
     use RuntimeHelper as RH;
     Some(match tag {
-        "Teleport" | "teleport" => RH::Teleport,
-        "Suspense" | "suspense" => RH::Suspense,
-        "KeepAlive" | "keep-alive" => RH::KeepAlive,
-        "BaseTransition" | "base-transition" => RH::BaseTransition,
+        "Teleport" | "teleport" => RH::TELEPORT,
+        "Suspense" | "suspense" => RH::SUSPENSE,
+        "KeepAlive" | "keep-alive" => RH::KEEP_ALIVE,
+        "BaseTransition" | "base-transition" => RH::BASE_TRANSITION,
         _ => return None,
     })
 }
@@ -146,15 +146,15 @@ pub fn get_vnode_call_helper(v: &VNodeIR<BaseConvertInfo>) -> RuntimeHelper {
     use RuntimeHelper as RH;
     if v.is_block {
         return if v.is_component {
-            RH::CreateBlock
+            RH::CREATE_BLOCK
         } else {
-            RH::CreateElementBlock
+            RH::CREATE_ELEMENT_BLOCK
         };
     }
     if v.is_component {
-        RH::CreateVNode
+        RH::CREATE_VNODE
     } else {
-        RH::CreateElementVNode
+        RH::CREATE_ELEMENT_VNODE
     }
 }
 

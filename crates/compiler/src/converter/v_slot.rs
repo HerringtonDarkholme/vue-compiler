@@ -29,8 +29,8 @@ pub fn check_build_as_slot(e: &Element, tag: &Js) -> bool {
     debug_assert!(e.tag_type != ElementType::Template);
     use RuntimeHelper as RH;
     match tag {
-        Js::Symbol(RH::KeepAlive) => true,
-        Js::Symbol(RH::Teleport) => true,
+        Js::Symbol(RH::KEEP_ALIVE) => true,
+        Js::Symbol(RH::TELEPORT) => true,
         _ => e.is_component(),
     }
 }

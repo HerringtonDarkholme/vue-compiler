@@ -48,7 +48,7 @@ pub fn convert_v_bind<'a>(
                     s.camelize();
                     arg
                 }
-                a => Js::Call(RuntimeHelper::Camelize, vec![a]),
+                a => Js::Call(RuntimeHelper::CAMELIZE, vec![a]),
             }
         }
         Js::Props(vec![(arg, expr)])

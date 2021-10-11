@@ -210,7 +210,7 @@ fn compute_prop_expr(mut prop_args: PropArgs) -> Option<Js> {
     if merge_args.len() <= 1 {
         merge_args.into_iter().next()
     } else {
-        Some(Js::Call(RuntimeHelper::MergeProps, merge_args))
+        Some(Js::Call(RuntimeHelper::MERGE_PROPS, merge_args))
     }
 }
 

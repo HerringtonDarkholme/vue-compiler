@@ -37,7 +37,7 @@ pub fn convert_v_on<'a>(
             DirectiveArg::Static(s) => Js::StrLit(*VStr::raw(s).be_handler()),
             DirectiveArg::Dynamic(s) => {
                 let e = Js::simple(*s);
-                Js::Call(RuntimeHelper::ToHandlerKey, vec![e])
+                Js::Call(RuntimeHelper::TO_HANDLER_KEY, vec![e])
             }
         };
         let exp = convert_v_on_expr(expression.as_ref());
@@ -48,7 +48,7 @@ pub fn convert_v_on<'a>(
             .as_ref()
             .expect("v-on with no expr nor arg should be dropped.");
         let exp = Js::simple(exp.content);
-        Js::Call(RuntimeHelper::ToHandlers, vec![exp])
+        Js::Call(RuntimeHelper::TO_HANDLERS, vec![exp])
     };
     DirectiveConvertResult::Converted {
         value,

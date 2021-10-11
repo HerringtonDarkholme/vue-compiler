@@ -129,102 +129,101 @@ pub enum SlotFlag {
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct RuntimeHelper(u8);
-
 use RuntimeHelper as RH;
+
 impl RuntimeHelper {
-    pub const Fragment: RH = RH(0);
-    pub const Teleport: RH = RH(1);
-    pub const Suspense: RH = RH(2);
-    pub const KeepAlive: RH = RH(3);
-    pub const BaseTransition: RH = RH(4);
-    pub const OpenBlock: RH = RH(5);
-    pub const CreateBlock: RH = RH(6);
-    pub const CreateElementBlock: RH = RH(7);
-    pub const CreateVNode: RH = RH(8);
-    pub const CreateElementVNode: RH = RH(9);
-    pub const CreateComment: RH = RH(10);
-    pub const CreateText: RH = RH(11);
-    pub const CreateStatic: RH = RH(12);
-    pub const ResolveComponent: RH = RH(13);
-    pub const ResolveDynamicComponent: RH = RH(14);
-    pub const ResolveDirective: RH = RH(15);
-    pub const ResolveFilter: RH = RH(16);
-    pub const WithDirectives: RH = RH(17);
-    pub const RenderList: RH = RH(18);
-    pub const RenderSlot: RH = RH(19);
-    pub const CreateSlots: RH = RH(20);
-    pub const ToDisplayString: RH = RH(21);
-    pub const MergeProps: RH = RH(22);
-    pub const NormalizeClass: RH = RH(23);
-    pub const NormalizeStyle: RH = RH(24);
-    pub const NormalizeProps: RH = RH(25);
-    pub const GuardReactiveProps: RH = RH(26);
-    pub const ToHandlers: RH = RH(27);
-    pub const Camelize: RH = RH(28);
-    pub const Capitalize: RH = RH(29);
-    pub const ToHandlerKey: RH = RH(30);
-    pub const SetBlockTracking: RH = RH(31);
-    pub const PushScopeId: RH = RH(32);
-    pub const PopScopeId: RH = RH(33);
-    pub const WithScopeId: RH = RH(34);
-    pub const WithCtx: RH = RH(35);
-    pub const Unref: RH = RH(36);
-    pub const IsRef: RH = RH(37);
-    pub const WithMemo: RH = RH(38);
-    pub const IsMemoSame: RH = RH(39);
+    pub const FRAGMENT: RH = RH(0);
+    pub const TELEPORT: RH = RH(1);
+    pub const SUSPENSE: RH = RH(2);
+    pub const KEEP_ALIVE: RH = RH(3);
+    pub const BASE_TRANSITION: RH = RH(4);
+    pub const OPEN_BLOCK: RH = RH(5);
+    pub const CREATE_BLOCK: RH = RH(6);
+    pub const CREATE_ELEMENT_BLOCK: RH = RH(7);
+    pub const CREATE_VNODE: RH = RH(8);
+    pub const CREATE_ELEMENT_VNODE: RH = RH(9);
+    pub const CREATE_COMMENT: RH = RH(11);
+    pub const CREATE_TEXT: RH = RH(12);
+    pub const CREATE_STATIC: RH = RH(13);
+    pub const RESOLVE_COMPONENT: RH = RH(14);
+    pub const RESOLVE_DYNAMIC_COMPONENT: RH = RH(15);
+    pub const RESOLVE_DIRECTIVE: RH = RH(16);
+    pub const RESOLVE_FILTER: RH = RH(17);
+    pub const WITH_DIRECTIVES: RH = RH(18);
+    pub const RENDER_LIST: RH = RH(19);
+    pub const RENDER_SLOT: RH = RH(20);
+    pub const CREATE_SLOTS: RH = RH(21);
+    pub const TO_DISPLAY_STRING: RH = RH(22);
+    pub const MERGE_PROPS: RH = RH(23);
+    pub const NORMALIZE_CLASS: RH = RH(24);
+    pub const NORMALIZE_STYLE: RH = RH(25);
+    pub const NORMALIZE_PROPS: RH = RH(26);
+    pub const GUARD_REACTIVE_PROPS: RH = RH(27);
+    pub const TO_HANDLERS: RH = RH(28);
+    pub const CAMELIZE: RH = RH(29);
+    pub const CAPITALIZE: RH = RH(30);
+    pub const TO_HANDLER_KEY: RH = RH(31);
+    pub const SET_BLOCK_TRACKING: RH = RH(32);
+    pub const PUSH_SCOPE_ID: RH = RH(33);
+    pub const POP_SCOPE_ID: RH = RH(34);
+    pub const WITH_CTX: RH = RH(35);
+    pub const UNREF: RH = RH(36);
+    pub const IS_REF: RH = RH(37);
+    pub const WITH_MEMO: RH = RH(38);
+    pub const IS_MEMO_SAME: RH = RH(39);
 
     pub fn helper_str(&self) -> &'static str {
         match *self {
-            Fragment => "Fragment",
-            Teleport => "Teleport",
-            Suspense => "Suspense",
-            KeepAlive => "KeepAlive",
-            BaseTransition => "BaseTransition",
-            OpenBlock => "openBlock",
-            CreateBlock => "createBlock",
-            CreateElementBlock => "createElementBlock",
-            CreateVNode => "createVNode",
-            CreateElementVNode => "createElementVNode",
-            CreateComment => "createCommentVNode",
-            CreateText => "createTextVNode",
-            CreateStatic => "createStaticVNode",
-            ResolveComponent => "resolveComponent",
-            ResolveDynamicComponent => "resolveDynamicComponent",
-            ResolveDirective => "resolveDirective",
-            ResolveFilter => "resolveFilter",
-            WithDirectives => "withDirectives",
-            RenderList => "renderList",
-            RenderSlot => "renderSlot",
-            CreateSlots => "createSlots",
-            ToDisplayString => "toDisplayString",
-            MergeProps => "mergeProps",
-            NormalizeClass => "normalizeClass",
-            NormalizeStyle => "normalizeStyle",
-            NormalizeProps => "normalizeProps",
-            GuardReactiveProps => "guardReactiveProps",
-            ToHandlers => "toHandlers",
-            Camelize => "camelize",
-            Capitalize => "capitalize",
-            ToHandlerKey => "toHandlerKey",
-            SetBlockTracking => "setBlockTracking",
-            PushScopeId => "pushScopeId",
-            PopScopeId => "popScopeId",
-            WithScopeId => "withScopeId",
-            WithCtx => "withCtx",
-            Unref => "unref",
-            IsRef => "isRef",
-            WithMemo => "withMemo",
-            IsMemoSame => "isMemoSame",
+            RH::FRAGMENT => "Fragment",
+            RH::TELEPORT => "Teleport",
+            RH::SUSPENSE => "Suspense",
+            RH::KEEP_ALIVE => "KeepAlive",
+            RH::BASE_TRANSITION => "BaseTransition",
+            RH::OPEN_BLOCK => "openBlock",
+            RH::CREATE_BLOCK => "createBlock",
+            RH::CREATE_ELEMENT_BLOCK => "createElementBlock",
+            RH::CREATE_VNODE => "createVNode",
+            RH::CREATE_ELEMENT_VNODE => "createElementVNode",
+            RH::CREATE_COMMENT => "createCommentVNode",
+            RH::CREATE_TEXT => "createTextVNode",
+            RH::CREATE_STATIC => "createStaticVNode",
+            RH::RESOLVE_COMPONENT => "resolveComponent",
+            RH::RESOLVE_DYNAMIC_COMPONENT => "resolveDynamicComponent",
+            RH::RESOLVE_DIRECTIVE => "resolveDirective",
+            RH::RESOLVE_FILTER => "resolveFilter",
+            RH::WITH_DIRECTIVES => "withDirectives",
+            RH::RENDER_LIST => "renderList",
+            RH::RENDER_SLOT => "renderSlot",
+            RH::CREATE_SLOTS => "createSlots",
+            RH::TO_DISPLAY_STRING => "toDisplayString",
+            RH::MERGE_PROPS => "mergeProps",
+            RH::NORMALIZE_CLASS => "normalizeClass",
+            RH::NORMALIZE_STYLE => "normalizeStyle",
+            RH::NORMALIZE_PROPS => "normalizeProps",
+            RH::GUARD_REACTIVE_PROPS => "guardReactiveProps",
+            RH::TO_HANDLERS => "toHandlers",
+            RH::CAMELIZE => "camelize",
+            RH::CAPITALIZE => "capitalize",
+            RH::TO_HANDLER_KEY => "toHandlerKey",
+            RH::SET_BLOCK_TRACKING => "setBlockTracking",
+            RH::PUSH_SCOPE_ID => "pushScopeId",
+            RH::POP_SCOPE_ID => "popScopeId",
+            RH::WITH_CTX => "withCtx",
+            RH::UNREF => "unref",
+            RH::IS_REF => "isRef",
+            RH::WITH_MEMO => "withMemo",
+            RH::IS_MEMO_SAME => "isMemoSame",
+            _ => todo!("handle"),
         }
     }
 }
 
 pub const HELPERS_IN_HOISTED: &[RH] = &[
-    RH::CreateComment,
-    RH::CreateElementVNode,
-    RH::CreateStatic,
-    RH::CreateText,
-    RH::CreateVNode,
+    RH::CREATE_COMMENT,
+    RH::CREATE_ELEMENT_VNODE,
+    RH::CREATE_STATIC,
+    RH::CREATE_TEXT,
+    RH::CREATE_VNODE,
 ];
 
 #[derive(Clone, Default, PartialEq, Eq)]

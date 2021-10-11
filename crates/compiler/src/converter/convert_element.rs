@@ -71,7 +71,7 @@ pub fn convert_template<'a>(bc: &BC<'a>, mut e: Element<'a>) -> BaseIR<'a> {
         patch_flag |= PatchFlag::DEV_ROOT_FRAGMENT;
     }
     IRNode::VNodeCall(VNodeIR {
-        tag: Js::Symbol(RuntimeHelper::Fragment),
+        tag: Js::Symbol(RuntimeHelper::FRAGMENT),
         children: bc.convert_children(e.children),
         patch_flag,
         props,
@@ -148,7 +148,10 @@ fn resolve_dynamic_component<'a>(
             }) => Js::simple(exp.content),
             _ => panic!("{}", MUST_NON_EMPTY),
         };
-        return Ok(Js::Call(RuntimeHelper::ResolveDynamicComponent, vec![exp]));
+        return Ok(Js::Call(
+            RuntimeHelper::RESOLVE_DYNAMIC_COMPONENT,
+            vec![exp],
+        ));
     }
     if let ElemProp::Attr(Attribute {
         value: Some(val), ..
@@ -176,7 +179,7 @@ fn resolve_v_is_component<'a>(e: &Element<'a>, is_explicit_dynamic: bool) -> Opt
         .expect(MUST_NON_EMPTY)
         .content;
     Some(Js::Call(
-        RuntimeHelper::ResolveDynamicComponent,
+        RuntimeHelper::RESOLVE_DYNAMIC_COMPONENT,
         vec![Js::simple(exp)],
     ))
 }
@@ -188,11 +191,11 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
     use RuntimeHelper as H;
     match tag {
         // dynamic component may resolve to plain element
-        Js::Call(H::ResolveDynamicComponent, _) => return true,
+        Js::Call(H::RESOLVE_DYNAMIC_COMPONENT, _) => return true,
         // Builtin Block 1. Force keep-alive/teleport into a block.
         // This avoids its children being collected by a parent block.
-        Js::Symbol(H::Teleport) | Js::Symbol(H::Suspense) => return true,
-        Js::Symbol(H::KeepAlive) => return !e.children.is_empty(),
+        Js::Symbol(H::TELEPORT) | Js::Symbol(H::SUSPENSE) => return true,
+        Js::Symbol(H::KEEP_ALIVE) => return !e.children.is_empty(),
         _ => {
             if e.is_component() {
                 return false;
@@ -270,7 +273,7 @@ fn build_children<'a>(
         return (vec![], more_flag);
     }
     let should_build_as_slot = v_slot::check_build_as_slot(e, tag);
-    if is_builtin_symbol(tag, RuntimeHelper::KeepAlive) {
+    if is_builtin_symbol(tag, RuntimeHelper::KEEP_ALIVE) {
         let children = &e.children;
         // Builtin Component: 2. Force keep-alive always be updated.
         more_flag |= PatchFlag::DYNAMIC_SLOTS;
@@ -330,7 +333,7 @@ fn resolve_setup_reference<'a>(bc: &BC<'a>, name: &'a str) -> Option<Js<'a>> {
         .or_else(|| variety_by_type(BindingTypes::SetupMaybeRef));
     if let Some(maybe_ref) = from_maybe_ref {
         return Some(if is_inline {
-            Js::Call(RuntimeHelper::Unref, vec![Js::simple(maybe_ref)])
+            Js::Call(RuntimeHelper::UNREF, vec![Js::simple(maybe_ref)])
         } else {
             Js::Compound(vec![
                 Js::Src("$setup["),

@@ -348,7 +348,7 @@ impl<'a> CoreConversion<'a, BaseConvertInfo<'a>> for BaseConversion<'a> {
     }
     fn convert_interpolation(&self, interp: SourceNode<'a>) -> BaseIR<'a> {
         let expr = JsExpr::simple(interp.source);
-        let call = JsExpr::Call(RuntimeHelper::ToDisplayString, vec![expr]);
+        let call = JsExpr::Call(RuntimeHelper::TO_DISPLAY_STRING, vec![expr]);
         IRNode::TextCall(TextIR {
             fast_path: false,
             need_patch: false,

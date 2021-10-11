@@ -13,7 +13,7 @@ impl<'a> CorePass<BaseInfo<'a>> for PatchFlagMarker {
         for branch in i.branches.iter_mut() {
             // TODO: handle v-memo/v-once
             if let IR::VNodeCall(vn) = &mut *branch.child {
-                if !matches!(vn.tag, Js::Symbol(RH::Fragment)) {
+                if !matches!(vn.tag, Js::Symbol(RH::FRAGMENT)) {
                     vn.is_block = true;
                 }
             }
@@ -40,7 +40,7 @@ impl<'a> CorePass<BaseInfo<'a>> for PatchFlagMarker {
         }
     }
     fn exit_vnode(&mut self, vn: &mut BaseVNode<'a>) {
-        if vn.children.len() != 1 || is_builtin_symbol(&vn.tag, RH::Teleport) {
+        if vn.children.len() != 1 || is_builtin_symbol(&vn.tag, RH::TELEPORT) {
             return;
         }
         // patch text flag on node for fast path text
@@ -105,7 +105,7 @@ fn find_key(t: &BaseIR) -> bool {
 
 fn find_key_on_js(e: &Js) -> bool {
     match e {
-        Js::Call(RH::MergeProps, args) => args.iter().any(find_key_on_js),
+        Js::Call(RH::MERGE_PROPS, args) => args.iter().any(find_key_on_js),
         Js::Props(ps) => ps.iter().any(|(k, _)| match k {
             Js::StrLit(s) => s.raw == "key",
             _ => false,
@@ -119,7 +119,7 @@ fn find_key_on_js(e: &Js) -> bool {
 fn inject_prop<'a>(props: &mut Js<'a>, key: Prop<'a>) {
     debug_assert!(!find_key_on_js(props));
     match props {
-        Js::Call(RH::MergeProps, args) => {
+        Js::Call(RH::MERGE_PROPS, args) => {
             for arg in args.iter_mut() {
                 if let Js::Props(ps) = arg {
                     ps.push(key);
@@ -135,7 +135,7 @@ fn inject_prop<'a>(props: &mut Js<'a>, key: Prop<'a>) {
                 let mut temp = Js::Src("");
                 std::mem::swap(obj, &mut temp);
                 let p = Js::Props(vec![key]);
-                *obj = Js::Call(RH::MergeProps, vec![temp, p]);
+                *obj = Js::Call(RH::MERGE_PROPS, vec![temp, p]);
             }
         }
     }

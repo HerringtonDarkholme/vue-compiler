@@ -21,7 +21,7 @@ pub struct EntityCollector<'a> {
 impl<'a> CorePass<BaseInfo<'a>> for EntityCollector<'a> {
     fn exit_root(&mut self, r: &mut BaseRoot<'a>) {
         if r.body.len() > 1 {
-            self.helpers.collect(RH::Fragment);
+            self.helpers.collect(RH::FRAGMENT);
         }
         let scope = &mut r.top_scope;
         swap(&mut scope.helpers, &mut self.helpers);
@@ -38,22 +38,22 @@ impl<'a> CorePass<BaseInfo<'a>> for EntityCollector<'a> {
     }
     fn exit_if(&mut self, i: &mut BaseIf) {
         if i.branches.iter().all(|b| b.condition.is_some()) {
-            self.helpers.collect(RH::CreateComment);
+            self.helpers.collect(RH::CREATE_COMMENT);
         }
     }
     fn exit_for(&mut self, f: &mut BaseFor<'a>) {
         if let IR::AlterableSlot(_) = &*f.child {
             // v-for in slot only need renderList
-            return self.helpers.collect(RH::RenderList);
+            return self.helpers.collect(RH::RENDER_LIST);
         }
-        self.helpers.collect(RH::OpenBlock);
-        self.helpers.collect(RH::CreateElementBlock);
-        self.helpers.collect(RH::RenderList);
-        self.helpers.collect(RH::Fragment);
+        self.helpers.collect(RH::OPEN_BLOCK);
+        self.helpers.collect(RH::CREATE_ELEMENT_BLOCK);
+        self.helpers.collect(RH::RENDER_LIST);
+        self.helpers.collect(RH::FRAGMENT);
     }
     fn exit_vnode(&mut self, v: &mut BaseVNode<'a>) {
         if !v.directives.is_empty() {
-            self.helpers.collect(RH::WithDirectives);
+            self.helpers.collect(RH::WITH_DIRECTIVES);
             // dir with Js::Symbol is collected in js_expr
             for dir in v.directives.iter() {
                 if let Js::StrLit(d) = dir.name {
@@ -62,7 +62,7 @@ impl<'a> CorePass<BaseInfo<'a>> for EntityCollector<'a> {
             }
         }
         if v.is_block {
-            self.helpers.collect(RH::OpenBlock);
+            self.helpers.collect(RH::OPEN_BLOCK);
         }
         let h = get_vnode_call_helper(v);
         self.helpers.collect(h);
@@ -72,7 +72,7 @@ impl<'a> CorePass<BaseInfo<'a>> for EntityCollector<'a> {
         // only hoisted asset needs handling, Js::Symbol is collected in js_expr
         // see [resolve_element_tag] in convert_element
         if let Some(tag) = is_hoisted_asset(&v.tag) {
-            self.helpers.collect(RH::ResolveComponent);
+            self.helpers.collect(RH::RESOLVE_COMPONENT);
             self.components.insert(*tag);
         }
         // only StrLit needs handling, see [build_directive_arg] in convert_element
@@ -83,37 +83,37 @@ impl<'a> CorePass<BaseInfo<'a>> for EntityCollector<'a> {
             .filter_map(is_hoisted_asset)
             .peekable();
         if hoisted_dir_names.peek().is_some() {
-            self.helpers.collect(RH::ResolveDirective);
+            self.helpers.collect(RH::RESOLVE_DIRECTIVE);
         }
         for dir_name in hoisted_dir_names {
             self.directives.insert(*dir_name);
         }
     }
     fn exit_slot_outlet(&mut self, _: &mut BaseRenderSlot<'a>) {
-        self.helpers.collect(RH::RenderSlot);
+        self.helpers.collect(RH::RENDER_SLOT);
     }
     fn exit_v_slot(&mut self, s: &mut BaseVSlot<'a>) {
         if !s.alterable_slots.is_empty() {
-            self.helpers.collect(RH::CreateSlots);
+            self.helpers.collect(RH::CREATE_SLOTS);
         }
-        self.helpers.collect(RH::WithCtx);
+        self.helpers.collect(RH::WITH_CTX);
     }
     fn exit_comment(&mut self, _: &mut &str) {
-        self.helpers.collect(RH::CreateComment);
+        self.helpers.collect(RH::CREATE_COMMENT);
     }
 
     fn exit_text(&mut self, t: &mut BaseText<'a>) {
         if !t.fast_path {
-            self.helpers.collect(RH::CreateText);
+            self.helpers.collect(RH::CREATE_TEXT);
         }
     }
     fn enter_cache(&mut self, r: &mut BaseCache<'a>) {
         use crate::ir::CacheKind::{Once, Memo, MemoInVFor};
         match r.kind {
-            Once => self.helpers.collect(RH::SetBlockTracking),
-            Memo(_) => self.helpers.collect(RH::WithMemo),
+            Once => self.helpers.collect(RH::SET_BLOCK_TRACKING),
+            Memo(_) => self.helpers.collect(RH::WITH_MEMO),
             MemoInVFor { .. } => {
-                self.helpers.collect(RH::IsMemoSame);
+                self.helpers.collect(RH::IS_MEMO_SAME);
             }
         }
     }
@@ -140,16 +140,16 @@ mod test {
     fn test_v_if_helper() {
         let ir = transform("<p v-if='a'/>");
         let helpers = ir.top_scope.helpers;
-        assert!(helpers.contains(RH::CreateComment));
+        assert!(helpers.contains(RH::CREATE_COMMENT));
     }
     #[test]
     fn test_v_for_helper() {
         let ir = transform("<p v-for='a in b'/>");
         let helpers = ir.top_scope.helpers;
-        assert!(helpers.contains(RH::Fragment));
-        assert!(helpers.contains(RH::OpenBlock));
-        assert!(helpers.contains(RH::RenderList));
-        assert!(!helpers.contains(RH::CreateComment));
+        assert!(helpers.contains(RH::FRAGMENT));
+        assert!(helpers.contains(RH::OPEN_BLOCK));
+        assert!(helpers.contains(RH::RENDER_LIST));
+        assert!(!helpers.contains(RH::CREATE_COMMENT));
     }
     #[test]
     fn test_v_for_alterable_helper() {
@@ -160,9 +160,9 @@ mod test {
         </comp>",
         );
         let helpers = ir.top_scope.helpers;
-        assert!(!helpers.contains(RH::Fragment));
-        assert!(!helpers.contains(RH::CreateElementBlock));
-        assert!(helpers.contains(RH::RenderList));
-        assert!(helpers.contains(RH::WithCtx));
+        assert!(!helpers.contains(RH::FRAGMENT));
+        assert!(!helpers.contains(RH::CREATE_ELEMENT_BLOCK));
+        assert!(helpers.contains(RH::RENDER_LIST));
+        assert!(helpers.contains(RH::WITH_CTX));
     }
 }

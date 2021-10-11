@@ -22,8 +22,8 @@ impl<'a> CorePass<BaseInfo<'a>> for NormalizeProp {
             e => {
                 let single_v_bind = mem::take(e);
                 *e = Js::Call(
-                    RH::NormalizeProps,
-                    vec![Js::Call(RH::GuardReactiveProps, vec![single_v_bind])],
+                    RH::NORMALIZE_PROPS,
+                    vec![Js::Call(RH::GUARD_REACTIVE_PROPS, vec![single_v_bind])],
                 );
             }
         }
@@ -50,19 +50,19 @@ fn pre_normalize_prop<'a>(mut props: Vec<(Js<'a>, Js<'a>)>) -> Js<'a> {
         }
     }
     if has_dynamic_key {
-        return Js::Call(RH::NormalizeProps, vec![Js::Props(props)]);
+        return Js::Call(RH::NORMALIZE_PROPS, vec![Js::Props(props)]);
     }
     if let Some(cls) = class_val {
         if !matches!(cls, Js::StrLit(..)) {
             let val = mem::take(cls);
-            *cls = Js::Call(RH::NormalizeClass, vec![val]);
+            *cls = Js::Call(RH::NORMALIZE_CLASS, vec![val]);
         }
     }
     if let Some(stl) = style_val {
         // Props is parsed from literal style string
         if !matches!(stl, Js::Props(..)) {
             let val = mem::take(stl);
-            *stl = Js::Call(RH::NormalizeStyle, vec![val]);
+            *stl = Js::Call(RH::NORMALIZE_STYLE, vec![val]);
         }
     }
     Js::Props(props)

@@ -96,7 +96,7 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
         if t.fast_path {
             return self.gen_concate_str(t.texts);
         }
-        self.write_helper(RH::CreateText)?;
+        self.write_helper(RH::CREATE_TEXT)?;
         self.write_str("(")?;
         self.gen_concate_str(t.texts)?;
         if t.need_patch {
@@ -127,7 +127,7 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
         if !self.in_alterable {
             // generate default v-else comment
             let s = if self.option.is_dev { "'v-if'" } else { "''" };
-            let comment = Js::Call(RH::CreateComment, vec![Js::Src(s), Js::Src("true")]);
+            let comment = Js::Call(RH::CREATE_COMMENT, vec![Js::Src(s), Js::Src("true")]);
             self.generate_js_expr(comment)?;
         } else {
             // generate undefined for alterable_slots
@@ -142,7 +142,7 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
         }
         // write open block
         self.gen_open_block(f.is_stable, move |gen| {
-            gen.write_helper(RH::CreateElementBlock)?;
+            gen.write_helper(RH::CREATE_ELEMENT_BLOCK)?;
             gen.write_str("(")?;
             gen_v_for_args(gen, f)?;
             gen.write_str(")")
@@ -152,7 +152,7 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
         self.gen_vnode_with_dir(v)
     }
     fn generate_slot_outlet(&mut self, r: BaseRenderSlot<'a>) -> Output {
-        self.write_helper(RH::RenderSlot)?;
+        self.write_helper(RH::RENDER_SLOT)?;
         self.write_str("(")?;
         gen_render_slot_args(self, r)?;
         self.write_str(")")
@@ -169,7 +169,7 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
         if s.alterable_slots.is_empty() {
             return self.gen_obj_props(stable_obj, gen_stable_slot_fn);
         }
-        self.write_helper(RH::CreateSlots)?;
+        self.write_helper(RH::CREATE_SLOTS)?;
         self.write_str("(")?;
         self.gen_obj_props(stable_obj, gen_stable_slot_fn)?;
         self.write_str(", ")?;
@@ -186,14 +186,14 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
             CK::Once => {
                 write!(self.writer, "_cache[{}] || (", self.cache_count)?;
                 self.indent()?;
-                self.write_helper(RH::SetBlockTracking)?;
+                self.write_helper(RH::SET_BLOCK_TRACKING)?;
                 self.write_str("(-1),")?;
                 self.newline()?;
                 write!(self.writer, "_cache[{}] = ", self.cache_count)?;
                 self.generate_ir(*c.child)?;
                 self.write_str(",")?;
                 self.newline()?;
-                self.write_helper(RH::SetBlockTracking)?;
+                self.write_helper(RH::SET_BLOCK_TRACKING)?;
                 self.write_str("(1),")?;
                 self.newline()?;
                 write!(self.writer, "_cache[{}]", self.cache_count)?;
@@ -201,7 +201,7 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
                 self.write_str(")")?;
             }
             CK::Memo(expr) => {
-                self.write_helper(RH::WithMemo)?;
+                self.write_helper(RH::WITH_MEMO)?;
                 self.write_str("(")?;
                 self.generate_js_expr(expr)?;
                 self.write_str(", () => ")?;
@@ -219,7 +219,7 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
                     self.generate_js_expr(key)?;
                 }
                 self.write_str(" && ")?;
-                self.write_helper(RH::IsMemoSame)?;
+                self.write_helper(RH::IS_MEMO_SAME)?;
                 self.write_str("(_cached, _memo)) return _cached")?;
                 self.newline()?;
                 self.write_str("const _item = ")?;
@@ -291,7 +291,7 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
     }
     fn generate_comment(&mut self, c: &'a str) -> Output {
         let comment = Js::str_lit(c);
-        let call = Js::Call(RH::CreateComment, vec![comment]);
+        let call = Js::Call(RH::CREATE_COMMENT, vec![comment]);
         self.generate_js_expr(call)
     }
 }
@@ -309,7 +309,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
                 root.body.pop().unwrap()
             } else {
                 IRNode::VNodeCall(VNodeIR {
-                    tag: Js::Symbol(RH::Fragment),
+                    tag: Js::Symbol(RH::FRAGMENT),
                     children: root.body,
                     ..VNodeIR::default()
                 })
@@ -357,8 +357,8 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     }
     fn gen_module_preamble(&mut self, top: &mut TopScope<'a>, module_name: &str) -> Output {
         if self.should_gen_scope_id() {
-            self.helpers.collect(RH::PushScopeId);
-            self.helpers.collect(RH::PopScopeId);
+            self.helpers.collect(RH::PUSH_SCOPE_ID);
+            self.helpers.collect(RH::POP_SCOPE_ID);
         }
         if !self.helpers.is_empty() {
             let helpers = self.helpers.clone();
@@ -427,10 +427,10 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         if gen_scope_id {
             // generate inlined withScopeId helper
             self.write_str("const _withScopeId = n => (")?;
-            self.write_helper(RH::PushScopeId)?;
+            self.write_helper(RH::PUSH_SCOPE_ID)?;
             let scope_id = self.sfc_info.scope_id.as_ref().unwrap();
             write!(self.writer, "({}),n=n(),", scope_id)?;
-            self.write_helper(RH::PopScopeId)?;
+            self.write_helper(RH::POP_SCOPE_ID)?;
             self.write_str("(),n)")?;
             self.newline()?;
         }
@@ -490,12 +490,12 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         if !top.components.is_empty() {
             self.newline()?;
             let components = top.components.iter().cloned();
-            gen_assets(self, components, RH::ResolveComponent)?;
+            gen_assets(self, components, RH::RESOLVE_COMPONENT)?;
         }
         if !top.directives.is_empty() {
             self.newline()?;
             let directives = top.directives.iter().cloned();
-            gen_assets(self, directives, RH::ResolveDirective)?;
+            gen_assets(self, directives, RH::RESOLVE_DIRECTIVE)?;
         }
         Ok(())
     }
@@ -541,7 +541,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         } else {
             false
         };
-        self.write_helper(RH::RenderList)?;
+        self.write_helper(RH::RENDER_LIST)?;
         self.write_str("(")?;
         self.generate_js_expr(f.source)?;
         self.write_str(", ")?;
@@ -647,7 +647,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
             return self.gen_vnode_with_block(v);
         }
         let dirs = std::mem::take(&mut v.directives);
-        self.write_helper(RH::WithDirectives)?;
+        self.write_helper(RH::WITH_DIRECTIVES)?;
         self.write_str("(")?;
         self.gen_vnode_with_block(v)?;
         self.write_str(", ")?;
@@ -666,7 +666,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         K: FnOnce(&mut Self) -> Output,
     {
         self.write_str("(")?;
-        self.write_helper(RH::OpenBlock)?;
+        self.write_helper(RH::OPEN_BLOCK)?;
         self.write_str("(")?;
         if no_track {
             self.write_str("true")?;
@@ -843,7 +843,7 @@ fn gen_v_for_args<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, f: BaseFor<'a>) -
     let flag = f.fragment_flag;
     gen_vnode_args!(
         gen,
-        true, { gen.write_helper(RH::Fragment)?; }
+        true, { gen.write_helper(RH::FRAGMENT)?; }
         false, {  }
         true, { gen.generate_render_list(f)?; }
         true, {
@@ -906,7 +906,7 @@ fn gen_slot_fn<'a, T: ioWrite>(
     gen: &mut CodeWriter<'a, T>,
     (param, body): (Option<Js<'a>>, Vec<BaseIR<'a>>),
 ) -> Output {
-    gen.write_helper(RH::WithCtx)?;
+    gen.write_helper(RH::WITH_CTX)?;
     gen.write_str("(")?;
     gen.write_str("(")?;
     if let Some(p) = param {
@@ -943,7 +943,7 @@ fn gen_assets<'a, T: ioWrite>(
         gen.write_str(" = ")?;
         gen.write_helper(resolver)?;
         gen.write_str("(")?;
-        let raw = if resolver == RH::ResolveComponent {
+        let raw = if resolver == RH::RESOLVE_COMPONENT {
             *asset.clone().unbe_component()
         } else {
             *asset.clone().unbe_directive()

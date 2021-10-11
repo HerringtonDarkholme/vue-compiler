@@ -347,7 +347,7 @@ fn rewrite_inline_identifier<'a>(
             if !matches!(ctx, CtxType::NoWrite) {
                 dot_value
             } else {
-                Js::Call(RH::Unref, vec![expr()])
+                Js::Call(RH::UNREF, vec![expr()])
             }
         }
         BT::SetupLet => rewrite_setup_let(ctx, expr, dot_value),
@@ -362,7 +362,7 @@ where
 {
     match ctx {
         CtxType::Assign(assign) => Js::Compound(vec![
-            Js::Call(RH::IsRef, vec![expr()]),
+            Js::Call(RH::IS_REF, vec![expr()]),
             Js::Src("? "),
             dot_value,
             assign.clone(),
@@ -371,7 +371,7 @@ where
             assign,
         ]),
         CtxType::Update(is_pre, op) => {
-            let mut v = vec![Js::Call(RH::IsRef, vec![expr()])];
+            let mut v = vec![Js::Call(RH::IS_REF, vec![expr()])];
             v.push(Js::Src("? "));
             let push = |v: &mut Vec<_>, val, op| {
                 if is_pre {
@@ -391,7 +391,7 @@ where
             // structure of the code, so we just assume it's not a ref here for now
             expr()
         }
-        CtxType::NoWrite => Js::Call(RH::Unref, vec![expr()]),
+        CtxType::NoWrite => Js::Call(RH::UNREF, vec![expr()]),
     }
 }
 

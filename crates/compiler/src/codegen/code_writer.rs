@@ -258,12 +258,12 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
                 self.gen_list(args)?;
                 self.write_str(")")
             }
-            Js::FuncSimple(v, ..) => {
-                let ty = get_handler_type(v);
-                gen_handler(self, ty, |gen| v.write_to(&mut gen.writer))
+            Js::FuncSimple { src, .. } => {
+                let ty = get_handler_type(src);
+                gen_handler(self, ty, |gen| src.write_to(&mut gen.writer))
             }
-            Js::FuncCompound(v, ty) => gen_handler(self, ty, |gen| {
-                for e in v.to_vec() {
+            Js::FuncCompound { body, ty, .. } => gen_handler(self, ty, |gen| {
+                for e in body {
                     gen.generate_js_expr(e)?;
                 }
                 Ok(())

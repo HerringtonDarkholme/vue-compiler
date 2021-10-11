@@ -188,8 +188,16 @@ pub enum JsExpr<'a> {
     Param(Name<'a>),
     /// event handler function
     // NB: inline the VStr here for smaller struct size
-    FuncSimple(VStr<'a>, StaticLevel),
-    FuncCompound(Box<[JsExpr<'a>]>, HandlerType),
+    FuncSimple {
+        src: VStr<'a>,
+        lvl: StaticLevel,
+        cache: bool,
+    },
+    FuncCompound {
+        body: Vec<JsExpr<'a>>,
+        ty: HandlerType,
+        cache: bool,
+    },
     /// alternative to join string as JsExpr
     Compound(Vec<JsExpr<'a>>),
     Props(Vec<Prop<'a>>),
@@ -216,7 +224,11 @@ impl<'a> JsExpr<'a> {
         JsExpr::StrLit(v.into())
     }
     pub fn func<V: Into<VStr<'a>>>(v: V) -> Self {
-        Self::FuncSimple(v.into(), StaticLevel::NotStatic)
+        Self::FuncSimple {
+            src: v.into(),
+            lvl: StaticLevel::NotStatic,
+            cache: false,
+        }
     }
     pub fn static_level(&self) -> StaticLevel {
         use JsExpr::*;
@@ -227,8 +239,8 @@ impl<'a> JsExpr<'a> {
             Symbol(_) | Src(_) | Param(_) => S::CanHoist,
             Compound(v) | Array(v) | Call(_, v) => vec_static_level(v),
             Props(ps) => ps.iter().map(prop_level).min().unwrap_or(S::CanStringify),
-            FuncSimple(_, level) => *level,
-            FuncCompound(v, _) => vec_static_level(v),
+            FuncSimple { lvl, .. } => *lvl,
+            FuncCompound { body, .. } => vec_static_level(body),
         }
     }
 }

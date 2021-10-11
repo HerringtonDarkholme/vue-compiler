@@ -33,8 +33,8 @@ impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for HoistStatic {
             return;
         }
         let ty = match exp {
-            Js::FuncSimple(src, _) => get_handler_type(*src),
-            Js::FuncCompound(_, ty) => ty.clone(),
+            Js::FuncSimple { src, .. } => get_handler_type(*src),
+            Js::FuncCompound { ty, .. } => ty.clone(),
             _ => return,
         };
         let is_member_exp = matches!(ty, HandlerType::MemberExpr);
@@ -51,10 +51,10 @@ impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for HoistStatic {
             // runtime constants don't need to be cached
             // (this is analyzed by compileScript in SFC <script setup>)
             exp.static_level() > StaticLevel::NotStatic;
-        mark_should_cache(exp, should_cache);
+        let cache = match exp {
+            Js::FuncSimple { cache, .. } | Js::FuncCompound { cache, .. } => cache,
+            _ => return,
+        };
+        *cache = should_cache;
     }
-}
-
-fn mark_should_cache(_js: &mut Js, _cache: bool) {
-    todo!()
 }

@@ -31,7 +31,7 @@ impl<'a> CorePass<BaseInfo<'a>> for NormalizeProp {
 }
 
 fn is_handler_expr(j: &Js) -> bool {
-    matches!(j, Js::FuncSimple(..)) || matches!(j, Js::FuncCompound(..))
+    matches!(j, Js::FuncSimple { .. }) || matches!(j, Js::FuncCompound { .. })
 }
 
 fn pre_normalize_prop<'a>(mut props: Vec<(Js<'a>, Js<'a>)>) -> Js<'a> {

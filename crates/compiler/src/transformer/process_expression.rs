@@ -88,7 +88,7 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         use crate::ir::HandlerType::InlineStmt;
         // complex expr will be handled recursively in transformer
         let (exp, mut mock_js) = match e {
-            Js::FuncSimple(v, l) => (*v, Js::Simple(*v, *l)),
+            Js::FuncSimple { src, lvl, .. } => (*src, Js::Simple(*src, *lvl)),
             Js::Simple(..) => return self.process_simple_expr(e, scope),
             _ => return,
         };
@@ -98,8 +98,16 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         }
         self.process_simple_expr(&mut mock_js, scope);
         *e = match mock_js {
-            Js::Simple(s, l) => Js::FuncSimple(s, l),
-            Js::Compound(v) => Js::FuncCompound(v.into_boxed_slice(), ty.clone()),
+            Js::Simple(src, lvl) => Js::FuncSimple {
+                src,
+                lvl,
+                cache: false,
+            },
+            Js::Compound(v) => Js::FuncCompound {
+                body: v,
+                ty: ty.clone(),
+                cache: false,
+            },
             _ => panic!("impossible"),
         };
         if matches!(ty, InlineStmt) {

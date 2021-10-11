@@ -50,7 +50,7 @@ pub struct CodeGenerateOption {
     pub is_dev: bool,
     pub mode: ScriptMode,
     pub source_map: bool,
-    pub decode_entities: EntityDecoder,
+    pub helper_strs: &'static [&'static str],
 }
 impl CodeGenerateOption {
     fn use_with_scope(&self) -> bool {
@@ -71,7 +71,7 @@ impl Default for CodeGenerateOption {
                 runtime_global_name: "Vue".into(),
             },
             source_map: false,
-            decode_entities: |s, _| DecodedStr::from(s),
+            helper_strs: &[],
         }
     }
 }

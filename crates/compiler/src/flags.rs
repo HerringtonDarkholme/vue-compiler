@@ -171,7 +171,9 @@ impl RuntimeHelper {
     pub const WITH_MEMO: RH = RH(38);
     pub const IS_MEMO_SAME: RH = RH(39);
 
-    pub fn helper_str(&self) -> &'static str {
+    pub const INTERNAL_MAX: u8 = 40;
+
+    pub fn helper_str(&self, map: &[&'static str]) -> &'static str {
         match *self {
             RH::FRAGMENT => "Fragment",
             RH::TELEPORT => "Teleport",
@@ -212,7 +214,7 @@ impl RuntimeHelper {
             RH::IS_REF => "isRef",
             RH::WITH_MEMO => "withMemo",
             RH::IS_MEMO_SAME => "isMemoSame",
-            _ => todo!("handle"),
+            RH(s) => map[(s - RH::INTERNAL_MAX) as usize],
         }
     }
 }
@@ -222,7 +224,7 @@ impl Serialize for RuntimeHelper {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(self.helper_str())
+        serializer.serialize_str(self.helper_str(&[]))
     }
 }
 

@@ -1,9 +1,6 @@
 use super::{
     SFCInfo,
-    codegen::{
-        CodeGenerateOption, CodeGenerator, CodeGen, DecodedStr, EntityDecoder, ScriptMode,
-        CodeGenInfo,
-    },
+    codegen::{CodeGenerateOption, CodeGenerator, CodeGen, ScriptMode, CodeGenInfo},
     converter::{
         no_op_directive_convert, BaseConvertInfo as BaseInfo, BaseConverter, BaseRoot,
         ConvertOption, Converter, DirConvertFn, V_BIND, V_MODEL,
@@ -59,8 +56,8 @@ pub struct CompileOption {
     /// Whitespace handling strategy
     pub whitespace: WhitespaceStrategy,
 
-    /// Only needed for DOM compilers
-    pub decode_entities: EntityDecoder,
+    /// platform speicific helper
+    pub helper_strs: &'static [&'static str],
 
     /// Whether to keep comments in the templates AST.
     /// This defaults to `true` in development and `false` in production builds.
@@ -140,7 +137,7 @@ impl Default for CompileOption {
             get_text_mode: |_| TextMode::Data,
             delimiters: ("{{".into(), "}}".into()),
             whitespace: WhitespaceStrategy::Preserve,
-            decode_entities: |s, _| DecodedStr::from(s),
+            helper_strs: &[],
             preserve_comments: None,
             is_dev: true,
             directive_converters,
@@ -202,7 +199,7 @@ impl CompileOption {
             is_dev: self.is_dev,
             mode: self.mode.clone(),
             source_map: self.source_map,
-            decode_entities: self.decode_entities,
+            helper_strs: self.helper_strs,
         }
     }
 }

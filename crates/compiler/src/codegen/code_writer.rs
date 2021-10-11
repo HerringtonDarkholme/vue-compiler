@@ -395,10 +395,10 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     }
     fn gen_helper_import_list(&mut self, helpers: HelperCollector, sep: &str) -> Output {
         for rh in helpers.into_iter() {
-            self.write_str(rh.helper_str())?;
+            self.write_str(rh.helper_str(self.option.helper_strs))?;
             self.write_str(sep)?;
             self.write_str(" _")?;
-            self.write_str(rh.helper_str())?;
+            self.write_str(rh.helper_str(self.option.helper_strs))?;
             self.write_str(", ")?;
         }
         Ok(())
@@ -711,7 +711,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     fn write_helper(&mut self, h: RH) -> Output {
         debug_assert!(self.helpers.contains(h));
         self.write_str("_")?;
-        self.write_str(h.helper_str())
+        self.write_str(h.helper_str(self.option.helper_strs))
     }
     #[inline(always)]
     fn write_patch(&mut self, flag: PatchFlag) -> Output {

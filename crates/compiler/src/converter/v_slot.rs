@@ -27,10 +27,10 @@ pub fn check_wrong_slot(bc: &BC, e: &Element, kind: ErrorKind) -> bool {
 
 pub fn check_build_as_slot(e: &Element, tag: &Js) -> bool {
     debug_assert!(e.tag_type != ElementType::Template);
-    use RuntimeHelper::{KeepAlive, Teleport};
+    use RuntimeHelper as RH;
     match tag {
-        Js::Symbol(KeepAlive) => true,
-        Js::Symbol(Teleport) => true,
+        Js::Symbol(RH::KeepAlive) => true,
+        Js::Symbol(RH::Teleport) => true,
         _ => e.is_component(),
     }
 }

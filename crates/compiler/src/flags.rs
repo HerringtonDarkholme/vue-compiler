@@ -103,127 +103,77 @@ pub enum StaticLevel {
     CanStringify,
 }
 
-#[repr(u32)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum RuntimeHelper {
-    Fragment,
-    Teleport,
-    Suspense,
-    KeepAlive,
-    BaseTransition,
-    OpenBlock,
-    CreateBlock,
-    CreateElementBlock,
-    CreateVNode,
-    CreateElementVNode,
-    CreateComment,
-    CreateText,
-    CreateStatic,
-    ResolveComponent,
-    ResolveDynamicComponent,
-    ResolveDirective,
-    ResolveFilter,
-    WithDirectives,
-    RenderList,
-    RenderSlot,
-    CreateSlots,
-    ToDisplayString,
-    MergeProps,
-    NormalizeClass,
-    NormalizeStyle,
-    NormalizeProps,
-    GuardReactiveProps,
-    ToHandlers,
-    Camelize,
-    Capitalize,
-    ToHandlerKey,
-    SetBlockTracking,
-    PushScopeId,
-    PopScopeId,
-    WithScopeId,
-    WithCtx,
-    Unref,
-    IsRef,
-    WithMemo,
-    IsMemoSame,
-}
-
-use RuntimeHelper as RH;
-const HELPERS_IN_HOISTED: &[RH] = &[
-    RH::CreateComment,
-    RH::CreateElementVNode,
-    RH::CreateStatic,
-    RH::CreateText,
-    RH::CreateVNode,
-];
-#[derive(Clone, Default, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub struct HelperCollector(u64);
-impl HelperCollector {
-    pub fn new() -> Self {
-        Self(0)
-    }
-    pub fn is_empty(&self) -> bool {
-        self.0 == 0 || (cfg!(test) && self.0 == !0)
-    }
-    pub fn collect(&mut self, helper: RuntimeHelper) {
-        self.0 |= 1 << (helper as u64);
-    }
-    pub fn contains(&self, helper: RuntimeHelper) -> bool {
-        (self.0 & (1 << helper as u64)) != 0
-    }
-    pub fn hoist_helpers(&self) -> Self {
-        let mut n = Self(0);
-        for &rh in HELPERS_IN_HOISTED {
-            if self.contains(rh) {
-                n.collect(rh);
-            }
-        }
-        n
-    }
-    // ignore missing helpers in unit testing
-    #[cfg(test)]
-    pub fn ignore_missing(&mut self) {
-        self.0 = !0;
-    }
-}
-pub struct HelperIter(u64);
-impl Iterator for HelperIter {
-    type Item = RuntimeHelper;
-    fn next(&mut self) -> Option<Self::Item> {
-        if cfg!(test) && self.0 == !0 {
-            return None;
-        }
-        if self.0 == 0 {
-            return None;
-        }
-        let r = self.0.trailing_zeros();
-        self.0 ^= 1 << r;
-        unsafe { std::mem::transmute(r) }
-    }
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let bits = self.0.count_ones() as usize;
-        (bits, Some(bits))
-    }
-}
-impl ExactSizeIterator for HelperIter {}
-
-impl IntoIterator for HelperCollector {
-    type Item = RuntimeHelper;
-    type IntoIter = HelperIter;
-    fn into_iter(self) -> Self::IntoIter {
-        HelperIter(self.0)
-    }
+pub enum SlotFlag {
+    /// Stable slots that only reference slot props or context state. The slot
+    /// can fully capture its own dependencies so when passed down the parent won't
+    /// need to force the child to update.
+    Stable = 1,
+    /// Slots that reference scope variables (v-for or an outer slot prop), or
+    /// has conditional structure (v-if, v-for). The parent will need to force
+    /// the child to update because the slot does not fully capture its dependencies.
+    Dynamic = 2,
+    /// `<slot/>` being forwarded into a child component. Whether the parent needs
+    /// to update the child is dependent on what kind of slots the parent itself
+    /// received. This has to be refined at runtime, when the child's vnode
+    /// is being created (in `normalizeChildren`)
+    Forwarded = 3,
 }
 
 /// PreambleHelper is a collection of JavaScript imports at the head of output
 /// e.g. v-for needs a list looping helper to make vdom
 /// preamble helper needs collect helper when traversing template ast
 /// and generates corresponding JavaScript imports in compilation output
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct RuntimeHelper(u8);
+
+use RuntimeHelper as RH;
 impl RuntimeHelper {
+    pub const Fragment: RH = RH(0);
+    pub const Teleport: RH = RH(1);
+    pub const Suspense: RH = RH(2);
+    pub const KeepAlive: RH = RH(3);
+    pub const BaseTransition: RH = RH(4);
+    pub const OpenBlock: RH = RH(5);
+    pub const CreateBlock: RH = RH(6);
+    pub const CreateElementBlock: RH = RH(7);
+    pub const CreateVNode: RH = RH(8);
+    pub const CreateElementVNode: RH = RH(9);
+    pub const CreateComment: RH = RH(10);
+    pub const CreateText: RH = RH(11);
+    pub const CreateStatic: RH = RH(12);
+    pub const ResolveComponent: RH = RH(13);
+    pub const ResolveDynamicComponent: RH = RH(14);
+    pub const ResolveDirective: RH = RH(15);
+    pub const ResolveFilter: RH = RH(16);
+    pub const WithDirectives: RH = RH(17);
+    pub const RenderList: RH = RH(18);
+    pub const RenderSlot: RH = RH(19);
+    pub const CreateSlots: RH = RH(20);
+    pub const ToDisplayString: RH = RH(21);
+    pub const MergeProps: RH = RH(22);
+    pub const NormalizeClass: RH = RH(23);
+    pub const NormalizeStyle: RH = RH(24);
+    pub const NormalizeProps: RH = RH(25);
+    pub const GuardReactiveProps: RH = RH(26);
+    pub const ToHandlers: RH = RH(27);
+    pub const Camelize: RH = RH(28);
+    pub const Capitalize: RH = RH(29);
+    pub const ToHandlerKey: RH = RH(30);
+    pub const SetBlockTracking: RH = RH(31);
+    pub const PushScopeId: RH = RH(32);
+    pub const PopScopeId: RH = RH(33);
+    pub const WithScopeId: RH = RH(34);
+    pub const WithCtx: RH = RH(35);
+    pub const Unref: RH = RH(36);
+    pub const IsRef: RH = RH(37);
+    pub const WithMemo: RH = RH(38);
+    pub const IsMemoSame: RH = RH(39);
+
     pub fn helper_str(&self) -> &'static str {
-        use RuntimeHelper::*;
         match *self {
             Fragment => "Fragment",
             Teleport => "Teleport",
@@ -269,30 +219,70 @@ impl RuntimeHelper {
     }
 }
 
-#[repr(u8)]
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum SlotFlag {
-    /// Stable slots that only reference slot props or context state. The slot
-    /// can fully capture its own dependencies so when passed down the parent won't
-    /// need to force the child to update.
-    Stable = 1,
-    /// Slots that reference scope variables (v-for or an outer slot prop), or
-    /// has conditional structure (v-if, v-for). The parent will need to force
-    /// the child to update because the slot does not fully capture its dependencies.
-    Dynamic = 2,
-    /// `<slot/>` being forwarded into a child component. Whether the parent needs
-    /// to update the child is dependent on what kind of slots the parent itself
-    /// received. This has to be refined at runtime, when the child's vnode
-    /// is being created (in `normalizeChildren`)
-    Forwarded = 3,
-}
+pub const HELPERS_IN_HOISTED: &[RH] = &[
+    RH::CreateComment,
+    RH::CreateElementVNode,
+    RH::CreateStatic,
+    RH::CreateText,
+    RH::CreateVNode,
+];
 
-/*
-// we can extend helper by extracting trait like below.
-// but it does not pay off now.
-pub trait PreambleHelper {
-    fn generate_imports(&self) -> String;
-    fn helper_str(&self) -> &'static str;
+#[derive(Clone, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct HelperCollector(u64);
+impl HelperCollector {
+    pub fn new() -> Self {
+        Self(0)
+    }
+    pub fn is_empty(&self) -> bool {
+        self.0 == 0 || (cfg!(test) && self.0 == !0)
+    }
+    pub fn collect(&mut self, helper: RuntimeHelper) {
+        self.0 |= 1 << helper.0;
+    }
+    pub fn contains(&self, helper: RuntimeHelper) -> bool {
+        (self.0 & (1 << helper.0)) != 0
+    }
+    pub fn hoist_helpers(&self) -> Self {
+        let mut n = Self(0);
+        for &rh in HELPERS_IN_HOISTED {
+            if self.contains(rh) {
+                n.collect(rh);
+            }
+        }
+        n
+    }
+    // ignore missing helpers in unit testing
+    #[cfg(test)]
+    pub fn ignore_missing(&mut self) {
+        self.0 = !0;
+    }
 }
-*/
+pub struct HelperIter(u64);
+impl Iterator for HelperIter {
+    type Item = RuntimeHelper;
+    fn next(&mut self) -> Option<Self::Item> {
+        if cfg!(test) && self.0 == !0 {
+            return None;
+        }
+        if self.0 == 0 {
+            return None;
+        }
+        let r = self.0.trailing_zeros();
+        self.0 ^= 1 << r;
+        Some(RuntimeHelper(r as u8))
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let bits = self.0.count_ones() as usize;
+        (bits, Some(bits))
+    }
+}
+impl ExactSizeIterator for HelperIter {}
+
+impl IntoIterator for HelperCollector {
+    type Item = RuntimeHelper;
+    type IntoIter = HelperIter;
+    fn into_iter(self) -> Self::IntoIter {
+        HelperIter(self.0)
+    }
+}

@@ -168,15 +168,42 @@ impl<'a, 'b> CorePass<BaseInfo<'a>> for RefFinder<'a, 'b> {
         }
     }
 }
+macro_rules! noop_pass_ext {
+    ($method: ident, $ty: ident) => {
+        #[inline]
+        fn $method(&mut self, _: &mut C::$ty<T>, _: &mut Shared) {}
+    };
+}
 
 pub trait CorePassExt<T: ConvertInfo, Shared> {
-    fn enter_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
-    fn exit_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
-    fn enter_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
-    fn exit_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
+    impl_enter!(noop_pass_ext);
+    impl_exit!(noop_pass_ext);
+    // fn enter_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
+    // fn exit_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
+    // fn enter_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
+    // fn exit_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
 
-    fn enter_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
-    fn exit_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
+    // fn enter_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
+    // fn exit_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
+}
+
+macro_rules! chain_enter_ext {
+    ($method: ident, $ty: ident) => {
+        #[inline]
+        fn $method(&mut self, r: &mut C::$ty<T>, s: &mut Shared) {
+            self.first.$method(r, s);
+            self.second.$method(r, s);
+        }
+    };
+}
+macro_rules! chain_exit_ext {
+    ($method: ident, $ty: ident) => {
+        #[inline]
+        fn $method(&mut self, r: &mut C::$ty<T>, s: &mut Shared) {
+            self.second.$method(r, s);
+            self.first.$method(r, s);
+        }
+    };
 }
 impl<'b, T, A, B, Shared> CorePassExt<T, Shared> for Chain<A, B>
 where
@@ -184,31 +211,8 @@ where
     A: CorePassExt<T, Shared>,
     B: CorePassExt<T, Shared>,
 {
-    fn enter_js_expr(&mut self, j: &mut T::JsExpression, s: &mut Shared) {
-        self.first.enter_js_expr(j, s);
-        self.second.enter_js_expr(j, s);
-    }
-    fn exit_js_expr(&mut self, j: &mut T::JsExpression, s: &mut Shared) {
-        self.second.exit_js_expr(j, s);
-        self.first.exit_js_expr(j, s);
-    }
-    fn enter_fn_param(&mut self, p: &mut T::JsExpression, s: &mut Shared) {
-        self.first.enter_fn_param(p, s);
-        self.second.enter_fn_param(p, s);
-    }
-    fn exit_fn_param(&mut self, p: &mut T::JsExpression, s: &mut Shared) {
-        self.second.exit_fn_param(p, s);
-        self.first.exit_fn_param(p, s);
-    }
-
-    fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>, s: &mut Shared) {
-        self.first.enter_vnode(v, s);
-        self.second.enter_vnode(v, s);
-    }
-    fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>, s: &mut Shared) {
-        self.second.exit_vnode(v, s);
-        self.first.exit_vnode(v, s);
-    }
+    impl_enter!(chain_enter_ext);
+    impl_exit!(chain_exit_ext);
 }
 
 pub struct SharedInfoPasses<T, Passes, Shared>
@@ -220,34 +224,23 @@ where
     pub shared_info: Shared,
     pub pd: PhantomData<T>,
 }
+
+macro_rules! shared_pass_impl {
+    ($method: ident, $ty: ident) => {
+        #[inline]
+        fn $method(&mut self, e: &mut C::$ty<T>) {
+            let shared = &mut self.shared_info;
+            self.passes.$method(e, shared);
+        }
+    };
+}
+
 // TODO: add transform used
 impl<T, P, Shared> CorePass<T> for SharedInfoPasses<T, P, Shared>
 where
     T: ConvertInfo,
     P: CorePassExt<T, Shared>,
 {
-    fn enter_js_expr(&mut self, e: &mut T::JsExpression) {
-        let shared = &mut self.shared_info;
-        self.passes.enter_js_expr(e, shared);
-    }
-    fn exit_js_expr(&mut self, e: &mut T::JsExpression) {
-        let shared = &mut self.shared_info;
-        self.passes.exit_js_expr(e, shared);
-    }
-    fn enter_fn_param(&mut self, prm: &mut T::JsExpression) {
-        let shared = &mut self.shared_info;
-        self.passes.enter_fn_param(prm, shared);
-    }
-    fn exit_fn_param(&mut self, prm: &mut T::JsExpression) {
-        let shared = &mut self.shared_info;
-        self.passes.exit_fn_param(prm, shared);
-    }
-    fn enter_vnode(&mut self, v: &mut C::VNodeIR<T>) {
-        let shared = &mut self.shared_info;
-        self.passes.enter_vnode(v, shared)
-    }
-    fn exit_vnode(&mut self, v: &mut C::VNodeIR<T>) {
-        let shared = &mut self.shared_info;
-        self.passes.exit_vnode(v, shared)
-    }
+    impl_enter!(shared_pass_impl);
+    impl_exit!(shared_pass_impl);
 }

@@ -13,7 +13,7 @@ expression: "hello {{world}}"
     need_patch: false
     texts:
       - Call:
-          - ToDisplayString
+          - toDisplayString
           - - Simple:
                 - world
                 - NotStatic

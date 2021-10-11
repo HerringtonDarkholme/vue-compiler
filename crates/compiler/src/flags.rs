@@ -127,7 +127,6 @@ pub enum SlotFlag {
 /// preamble helper needs collect helper when traversing template ast
 /// and generates corresponding JavaScript imports in compilation output
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct RuntimeHelper(u8);
 use RuntimeHelper as RH;
 
@@ -215,6 +214,15 @@ impl RuntimeHelper {
             RH::IS_MEMO_SAME => "isMemoSame",
             _ => todo!("handle"),
         }
+    }
+}
+#[cfg(feature = "serde")]
+impl Serialize for RuntimeHelper {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.helper_str())
     }
 }
 

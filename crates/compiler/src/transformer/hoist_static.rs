@@ -1,8 +1,7 @@
-use super::{
-    BaseInfo, BaseRenderSlot, BaseSlotFn, BaseVNode, CorePassExt, IRNode as IR, BaseCache, Scope,
-};
+use super::{BaseInfo, BaseVNode, CorePassExt, BaseCache, Scope};
 use crate::{
     converter::v_on::get_handler_type,
+    flags::StaticLevel,
     ir::{JsExpr as Js, CacheKind, HandlerType},
 };
 
@@ -29,26 +28,33 @@ impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for HoistStatic {
         self.is_component = vn.is_component;
     }
     fn enter_js_expr(&mut self, exp: &mut Js<'a>, scope: &mut Scope<'a>) {
-        let (src, lvl) = match exp {
-            Js::FuncSimple(src, lvl) => (src, lvl),
+        // unnecessary to cache inside v-once
+        if !self.cache_handlers || self.in_v_once {
+            return;
+        }
+        let ty = match exp {
+            Js::FuncSimple(src, _) => get_handler_type(*src),
+            Js::FuncCompound(_, ty) => ty.clone(),
             _ => return,
         };
-        let ty = get_handler_type(*src);
         let is_member_exp = matches!(ty, HandlerType::MemberExpr);
-        let should_cache = self.cache_handlers &&
-            // unnecessary to cache inside v-once
-            !self.in_v_once &&
+        let should_cache =
             // #1541 bail if this is a member exp handler passed to a component -
             // we need to use the original function to preserve arity,
             // e.g. <transition> relies on checking cb.length to determine
             // transition end handling. Inline function is ok since its arity
             // is preserved even when cached.
-            !(is_member_exp && self.is_component);
-        // bail if the function references closure variables (v-for, v-slot)
-        // it must be passed fresh to avoid stale values.
-        // && !hasScopeRef(exp, context.identifiers) &&
-        // runtime constants don't need to be cached
-        // (this is analyzed by compileScript in SFC <script setup>)
-        // !(exp.type === NodeTypes.SIMPLE_EXPRESSION && exp.constType > 0) &&
+            !(is_member_exp && self.is_component) &&
+            // bail if the function references closure variables (v-for, v-slot)
+            // it must be passed fresh to avoid stale values.
+            !scope.has_ref_in_expr(exp) &&
+            // runtime constants don't need to be cached
+            // (this is analyzed by compileScript in SFC <script setup>)
+            exp.static_level() > StaticLevel::NotStatic;
+        mark_should_cache(exp, should_cache);
     }
+}
+
+fn mark_should_cache(_js: &mut Js, _cache: bool) {
+    todo!()
 }

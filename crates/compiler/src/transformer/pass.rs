@@ -151,6 +151,14 @@ impl<'a> Scope<'a> {
         BaseTransformer::transform_vnode(node, &mut ref_finder);
         ref_finder.1
     }
+    pub fn has_ref_in_expr(&self, exp: &mut Js<'a>) -> bool {
+        if self.identifiers.is_empty() {
+            return false;
+        }
+        let mut ref_finder = RefFinder(&self.identifiers, false);
+        BaseTransformer::transform_js_expr(exp, &mut ref_finder);
+        ref_finder.1
+    }
 }
 struct RefFinder<'a, 'b>(&'b Identifiers<'a>, bool);
 // TODO: implement interruptible transformer for early return
@@ -178,13 +186,9 @@ macro_rules! noop_pass_ext {
 pub trait CorePassExt<T: ConvertInfo, Shared> {
     impl_enter!(noop_pass_ext);
     impl_exit!(noop_pass_ext);
+    // example expand
     // fn enter_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
     // fn exit_js_expr(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
-    // fn enter_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
-    // fn exit_fn_param(&mut self, _: &mut T::JsExpression, _: &mut Shared) {}
-
-    // fn enter_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
-    // fn exit_vnode(&mut self, _: &mut C::VNodeIR<T>, _: &mut Shared) {}
 }
 
 macro_rules! chain_enter_ext {
@@ -235,7 +239,6 @@ macro_rules! shared_pass_impl {
     };
 }
 
-// TODO: add transform used
 impl<T, P, Shared> CorePass<T> for SharedInfoPasses<T, P, Shared>
 where
     T: ConvertInfo,

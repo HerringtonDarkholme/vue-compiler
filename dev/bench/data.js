@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1633999876927,
+  "lastUpdate": 1633999915092,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -14220,6 +14220,96 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 4476,
             "range": "± 132",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bot@renovateapp.com",
+            "name": "Renovate Bot",
+            "username": "renovate-bot"
+          },
+          "committer": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "distinct": true,
+          "id": "0360abedb0c8382042457576cb8b48dc622939b3",
+          "message": "Update dependency vite to v2.6.7",
+          "timestamp": "2021-10-12T08:47:01+08:00",
+          "tree_id": "71850816893b55b34138107b055345e5b94d169b",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/0360abedb0c8382042457576cb8b48dc622939b3"
+        },
+        "date": 1633999913754,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 5347,
+            "range": "± 339",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 3759,
+            "range": "± 263",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 39276,
+            "range": "± 2487",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 34716,
+            "range": "± 2480",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 21778,
+            "range": "± 1460",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 110992,
+            "range": "± 8536",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 21663,
+            "range": "± 1378",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 6431,
+            "range": "± 398",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 7131,
+            "range": "± 478",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 6617,
+            "range": "± 547",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 5271,
+            "range": "± 319",
             "unit": "ns/iter"
           }
         ]

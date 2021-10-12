@@ -4,4 +4,4 @@ mod extension;
 mod options;
 mod transformer;
 
-pub use options::scan_option;
+pub use options::compile_option;

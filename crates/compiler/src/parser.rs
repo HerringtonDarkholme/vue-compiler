@@ -236,7 +236,7 @@ impl Default for WhitespaceStrategy {
 pub struct ParseOption {
     pub whitespace: WhitespaceStrategy,
     pub preserve_comment: bool,
-    pub get_namespace: fn(&str, &Vec<Element<'_>>) -> Namespace,
+    pub get_namespace: fn(&str, &[Element<'_>]) -> Namespace,
     pub get_text_mode: fn(&str) -> TextMode,
     /// Returns if a tag is self closing.
     pub is_void_tag: fn(&str) -> bool,

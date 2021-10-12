@@ -4,9 +4,9 @@ mod v_on;
 mod v_show;
 mod v_text;
 
-pub use compiler::converter::{
-    BaseConversion, BaseIR, CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter,
-    Element, ErrorHandler,
+use compiler::converter::{
+    CoreDirConvRet, Directive, DirectiveConvertResult, DirectiveConverter, Element, ErrorHandler,
 };
-pub use compiler::ir::JsExpr;
-pub use compiler::{error, parser, scanner, util};
+use compiler::ir::JsExpr;
+
+pub const DOM_DIR_CONVERTERS: &[DirectiveConverter] = &[v_on::V_ON, v_model::V_MODEL];

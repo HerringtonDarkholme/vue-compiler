@@ -1,8 +1,8 @@
 use compiler::flags::RuntimeHelper;
 use compiler::transformer::{CorePass, BaseVNode};
 use compiler::converter::{BaseConvertInfo as BaseInfo, BaseIR, RcErrHandle};
-use compiler::error::CompilationError;
-use crate::extension::{DomHelper, DomError};
+use compiler::error::CompilationError as CE;
+use crate::extension::{dom_helper, DomError};
 use compiler::ir::{JsExpr as Js, IRNode};
 
 struct UsageWarner(RcErrHandle);
@@ -10,15 +10,19 @@ struct UsageWarner(RcErrHandle);
 impl<'a> CorePass<BaseInfo<'a>> for UsageWarner {
     fn enter_vnode(&mut self, vn: &mut BaseVNode<'a>) {
         match vn.tag {
-            Js::Symbol(DomHelper::TRANSITION) => {
+            Js::Symbol(dom_helper::TRANSITION) => {
                 if has_multiple_children(&vn.children) != Multiplicity::Multi {
                     return;
                 }
+                let error = CE::extended(DomError::TransitionInvalidChildren);
+                self.0.on_error(error);
             }
-            _ => return,
+            Js::StrLit(s) if ["script", "style"].contains(&s.raw) => {
+                let error = CE::extended(DomError::IgnoredSideEffectTag);
+                self.0.on_error(error);
+            }
+            _ => {}
         }
-        let error = CompilationError::extended(DomError::TransitionInvalidChildren);
-        self.0.on_error(error);
     }
 }
 
@@ -57,9 +61,10 @@ fn ir_multilicity(ir: &BaseIR) -> Multiplicity {
             .stable_slots
             .iter()
             .find_map(|slot| match slot.name {
-                Js::StrLit(s) if s.raw == "default" => Some(has_multiple_children(&slot.body)),
+                Js::StrLit(s) if s.raw == "default" => Some(&slot.body),
                 _ => None,
             })
+            .map(|v| has_multiple_children(v))
             .unwrap_or(Zero),
         IRNode::For(..) => Multi,
         IRNode::CommentCall(..) => Zero,
@@ -81,7 +86,7 @@ fn ir_multilicity(ir: &BaseIR) -> Multiplicity {
                 One
             }
         }
-        IRNode::RenderSlotCall(..) => One,
+        IRNode::RenderSlotCall(..) => One, // be lenient
         IRNode::VNodeCall(vn) => {
             if let Js::Symbol(RuntimeHelper::FRAGMENT) = vn.tag {
                 has_multiple_children(&vn.children)

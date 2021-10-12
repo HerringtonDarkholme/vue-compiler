@@ -1,6 +1,6 @@
 use compiler::error::ErrorKind;
 
-pub mod DomHelper {
+pub mod dom_helper {
     use compiler::flags::RuntimeHelper as RH;
     pub const V_MODEL_RADIO: RH = RH(RH::INTERNAL_MAX);
     pub const V_MODEL_CHECKBOX: RH = RH(RH::INTERNAL_MAX + 1);

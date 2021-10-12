@@ -1115,6 +1115,7 @@ dependencies = [
 name = "vue-compiler-dom"
 version = "0.1.0"
 dependencies = [
+ "phf",
  "vue-compiler-core",
 ]
 

@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 compiler = { path = "../compiler", default-features = false, features = [], package = "vue-compiler-core" }
+phf = { version = "0.10", features = ["macros"] }

@@ -36,27 +36,31 @@ const NATIVE_TAGS: Set<&str> = phf_set! {
     "mtext", "mtr", "munder", "munderover", "none", "semantics",
 };
 
-fn is_native_tag(s: &str) -> bool {
-    NATIVE_TAGS.contains(s)
+fn is_native_tag(tag: &str) -> bool {
+    NATIVE_TAGS.contains(tag)
 }
-fn is_pre_tag(s: &str) -> bool {
-    s.eq_ignore_ascii_case("pre")
+fn is_pre_tag(tag: &str) -> bool {
+    tag.eq_ignore_ascii_case("pre")
 }
 
 const VOID_TAGS: &[&str] = &[
     "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source",
     "track", "wbr",
 ];
-fn is_void_tag(s: &str) -> bool {
-    VOID_TAGS.contains(&s)
+fn is_void_tag(tag: &str) -> bool {
+    VOID_TAGS.contains(&tag)
 }
 
-fn get_builtin_component(s: &str) -> Option<RuntimeHelper> {
-    todo!()
+fn get_builtin_component(tag: &str) -> Option<RuntimeHelper> {
+    match tag {
+        "transition" | "Transition" => Some(dom_helper::TRANSITION),
+        "TransitionGroup" | "transition-group" => Some(dom_helper::TRANSITION_GROUP),
+        _ => None,
+    }
 }
 
-fn get_text_mode(s: &str) -> TextMode {
-    match s {
+fn get_text_mode(tag: &str) -> TextMode {
+    match tag {
         "style" | "script" | "iframe" | "noscript" => TextMode::RawText,
         "textarea" | "title" => TextMode::RcData,
         _ => TextMode::Data,

@@ -15,6 +15,15 @@ pub struct HoistStatic {
     is_component: bool,
     cache_handlers: bool,
 }
+impl HoistStatic {
+    pub fn new(cache_handlers: bool) -> Self {
+        Self {
+            in_v_once: false,
+            is_component: false,
+            cache_handlers,
+        }
+    }
+}
 
 impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for HoistStatic {
     fn enter_cache(&mut self, cn: &mut BaseCache<'a>, _: &mut Scope<'a>) {

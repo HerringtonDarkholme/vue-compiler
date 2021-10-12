@@ -9,4 +9,10 @@ use compiler::converter::{
 };
 use compiler::ir::JsExpr;
 
-pub const DOM_DIR_CONVERTERS: &[DirectiveConverter] = &[v_on::V_ON, v_model::V_MODEL];
+pub const DOM_DIR_CONVERTERS: &[DirectiveConverter] = &[
+    v_html::V_HTML,
+    v_model::V_MODEL,
+    v_on::V_ON,
+    v_show::V_SHOW,
+    v_text::V_TEXT,
+];

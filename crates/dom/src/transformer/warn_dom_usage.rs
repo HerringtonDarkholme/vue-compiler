@@ -5,7 +5,7 @@ use compiler::error::CompilationError as CE;
 use crate::extension::{dom_helper, DomError};
 use compiler::ir::{JsExpr as Js, IRNode};
 
-struct UsageWarner(RcErrHandle);
+pub struct UsageWarner(pub RcErrHandle);
 
 impl<'a> CorePass<BaseInfo<'a>> for UsageWarner {
     fn enter_vnode(&mut self, vn: &mut BaseVNode<'a>) {

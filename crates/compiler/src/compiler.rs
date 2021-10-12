@@ -45,7 +45,7 @@ pub struct CompileOption {
     pub is_custom_element: fn(&str) -> bool,
 
     /// Get tag namespace
-    pub get_namespace: fn(&str, &[Element<'_>]) -> Namespace,
+    pub get_namespace: fn(&str, Option<&Element<'_>>) -> Namespace,
 
     /// Get text parsing mode for this element
     pub get_text_mode: fn(&str) -> TextMode,

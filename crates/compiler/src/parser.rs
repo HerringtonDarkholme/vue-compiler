@@ -236,7 +236,7 @@ impl Default for WhitespaceStrategy {
 pub struct ParseOption {
     pub whitespace: WhitespaceStrategy,
     pub preserve_comment: bool,
-    pub get_namespace: fn(&str, &[Element<'_>]) -> Namespace,
+    pub get_namespace: fn(&str, Option<&Element<'_>>) -> Namespace,
     pub get_text_mode: fn(&str) -> TextMode,
     /// Returns if a tag is self closing.
     pub is_void_tag: fn(&str) -> bool,
@@ -378,7 +378,7 @@ where
             attributes,
         } = tag;
         let props = self.parse_attributes(attributes);
-        let ns = (self.option.get_namespace)(name, &self.open_elems);
+        let ns = (self.option.get_namespace)(name, self.open_elems.last());
         let elem = Element {
             tag_name: name,
             tag_type: ElementType::Plain,

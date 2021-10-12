@@ -7,15 +7,16 @@ use phf::{phf_set, Set};
 
 const NATIVE_TAGS: Set<&str> = phf_set! {
     // HTML_TAGS
-    "html","body","base","head","link","meta","style","title","address","article","aside","footer",
-    "header","h1","h2","h3","h4","h5","h6","nav","section","div","dd","dl","dt","figcaption", "figure",
-    "picture","hr","img","li","main","ol","p","pre","ul","a","b","abbr","bdi","bdo","br","cite","code",
-    "data","dfn","em","i","kbd","mark","q","rp","rt","ruby","s","samp","small","span","strong","sub","sup",
-    "time","u","var","wbr","area","audio","map","track","video","embed","object","param","source",
-    "canvas","script","noscript","del","ins","caption","col","colgroup","table","thead","tbody","td",
-    "th","tr","button","datalist","fieldset","form","input","label","legend","meter","optgroup",
-    "option","output","progress","select","textarea","details","dialog","menu",
-    "summary","template","blockquote","iframe","tfoot",
+    "html","body","base","head","link","meta","style","title","address","article","aside",
+    "footer","header","h1","h2","h3","h4","h5","h6","nav","section","div","dd","dl","dt",
+    "figcaption", "figure","picture","hr","img","li","main","ol","p","pre","ul","a","b",
+    "abbr","bdi","bdo","br","cite","code","data","dfn","em","i","kbd","mark","q","rp","rt",
+    "ruby","s","samp","small","span","strong","sub","sup","time","u","var","wbr","area",
+    "audio","map","track","video","embed","object","param","source","canvas","script",
+    "noscript","del","ins","caption","col","colgroup","table","thead","tbody","td","th",
+    "tr","button","datalist","fieldset","form","input","label","legend","meter","optgroup",
+    "option","output","progress","select","textarea","details","dialog","menu","summary",
+    "template","blockquote","iframe","tfoot",
     // SVG_TAGS
     "svg","animate","animateMotion","animateTransform","circle","clipPath","color-profile",
     "defs","desc","discard","ellipse","feBlend","feColorMatrix","feComponentTransfer",
@@ -27,6 +28,12 @@ const NATIVE_TAGS: Set<&str> = phf_set! {
     "mesh","meshgradient","meshpatch","meshrow","metadata","mpath","path","pattern",
     "polygon","polyline","radialGradient","rect","set","solidcolor","stop","switch","symbol",
     "text","textPath","tspan","unknown","use","view", // "title"
+    // MATH ML
+    "annotation-xml", "annotation", "maction", "maligngroup", "malignmark", "math", "menclose",
+    "merror", "mfenced", "mfrac", "mi", "mlongdiv", "mmultiscripts", "mo", "mover", "mpadded",
+    "mphantom", "mprescripts", "mroot", "mrow", "ms", "mscarries", "mscarry", "msgroup", "msline",
+    "mspace", "msqrt", "msrow", "mstack", "mstyle", "msub", "msubsup", "msup", "mtable", "mtd",
+    "mtext", "mtr", "munder", "munderover", "none", "semantics",
 };
 
 fn is_native_tag(s: &str) -> bool {
@@ -56,8 +63,41 @@ fn get_text_mode(s: &str) -> TextMode {
     }
 }
 
-fn get_namespace(s: &str, ancestors: &[Element]) -> Namespace {
-    todo!()
+// https://html.spec.whatwg.org/multipage/parsing.html#tree-construction-dispatcher
+fn get_namespace(tag: &str, parent: Option<&Element>) -> Namespace {
+    if let Some(p) = parent {
+        if p.namespace == Namespace::MathMl {
+            if p.tag_name == "annotaion-xml" {
+                if tag == "svg" {
+                    return Namespace::Svg;
+                } else {
+                    return Namespace::Html;
+                }
+            } else if ["mi", "mo", "mn", "ms", "mtext"].contains(&p.tag_name) {
+                if tag == "mglyph" || tag == "malignmark" {
+                    return Namespace::MathMl;
+                } else {
+                    return Namespace::Html;
+                }
+            } else {
+                return Namespace::MathMl;
+            }
+        }
+        if p.namespace == Namespace::Svg {
+            if ["foreignObject", "desc", "title"].contains(&p.tag_name) {
+                return Namespace::Html;
+            } else {
+                return Namespace::Svg;
+            }
+        }
+    }
+    if tag == "svg" {
+        Namespace::Svg
+    } else if tag == "math" {
+        Namespace::MathMl
+    } else {
+        Namespace::Html
+    }
 }
 
 pub fn compile_option(error_handler: RcErrHandle) -> CompileOption {

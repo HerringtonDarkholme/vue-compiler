@@ -82,7 +82,7 @@ impl From<SourceLocation> for Range<usize> {
 
 /// namespace for HTML/SVG/MathML tag
 #[non_exhaustive]
-#[derive(Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Namespace {
     Html,

@@ -127,7 +127,7 @@ pub enum SlotFlag {
 /// preamble helper needs collect helper when traversing template ast
 /// and generates corresponding JavaScript imports in compilation output
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub struct RuntimeHelper(u8);
+pub struct RuntimeHelper(pub u8);
 use RuntimeHelper as RH;
 
 impl RuntimeHelper {

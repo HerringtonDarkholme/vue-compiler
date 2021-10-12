@@ -3,11 +3,10 @@ use std::cell::{Ref, RefCell};
 use std::fmt;
 use std::rc::Rc;
 
-pub trait ErrorKind: fmt::Debug {
+pub trait ErrorKind {
     fn msg(&self) -> &'static str;
 }
 
-#[derive(Debug)]
 pub enum CompilationErrorKind {
     AbruptClosingOfEmptyComment,
     CDataInHtmlContent,
@@ -101,6 +100,13 @@ impl CompilationError {
     pub fn with_additional_message(mut self, msg: String) -> Self {
         self.additional_message = Some(msg);
         self
+    }
+    pub fn extended<K: ErrorKind + 'static>(kind: K) -> Self {
+        Self {
+            kind: CompilationErrorKind::ExtendPoint(Box::new(kind)),
+            additional_message: None,
+            location: Default::default(),
+        }
     }
 
     fn msg(&self) -> &'static str {

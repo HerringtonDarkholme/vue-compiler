@@ -1,28 +1,31 @@
-use compiler::{error::ErrorKind, flags::RuntimeHelper as RH};
+use compiler::error::ErrorKind;
 
-pub const V_MODEL_RADIO: RH = RH(RH::INTERNAL_MAX);
-pub const V_MODEL_CHECKBOX: RH = RH(RH::INTERNAL_MAX + 1);
-pub const V_MODEL_TEXT: RH = RH(RH::INTERNAL_MAX + 2);
-pub const V_MODEL_SELECT: RH = RH(RH::INTERNAL_MAX + 3);
-pub const V_MODEL_DYNAMIC: RH = RH(RH::INTERNAL_MAX + 4);
-pub const V_ON_WITH_MODIFIERS: RH = RH(RH::INTERNAL_MAX + 5);
-pub const V_ON_WITH_KEYS: RH = RH(RH::INTERNAL_MAX + 6);
-pub const V_SHOW: RH = RH(RH::INTERNAL_MAX + 7);
-pub const TRANSITION: RH = RH(RH::INTERNAL_MAX + 8);
-pub const TRANSITION_GROUP: RH = RH(RH::INTERNAL_MAX + 9);
+pub mod DomHelper {
+    use compiler::flags::RuntimeHelper as RH;
+    pub const V_MODEL_RADIO: RH = RH(RH::INTERNAL_MAX);
+    pub const V_MODEL_CHECKBOX: RH = RH(RH::INTERNAL_MAX + 1);
+    pub const V_MODEL_TEXT: RH = RH(RH::INTERNAL_MAX + 2);
+    pub const V_MODEL_SELECT: RH = RH(RH::INTERNAL_MAX + 3);
+    pub const V_MODEL_DYNAMIC: RH = RH(RH::INTERNAL_MAX + 4);
+    pub const V_ON_WITH_MODIFIERS: RH = RH(RH::INTERNAL_MAX + 5);
+    pub const V_ON_WITH_KEYS: RH = RH(RH::INTERNAL_MAX + 6);
+    pub const V_SHOW: RH = RH(RH::INTERNAL_MAX + 7);
+    pub const TRANSITION: RH = RH(RH::INTERNAL_MAX + 8);
+    pub const TRANSITION_GROUP: RH = RH(RH::INTERNAL_MAX + 9);
 
-pub const DOM_HELPER_MAP: &[&str] = &[
-    "vModelRadio",
-    "vModelCheckbox",
-    "vModelText",
-    "vModelSelect",
-    "vModelDynamic",
-    "withModifiers",
-    "withKeys",
-    "vShow",
-    "Transition",
-    "TransitionGroup",
-];
+    pub const DOM_HELPER_MAP: &[&str] = &[
+        "vModelRadio",
+        "vModelCheckbox",
+        "vModelText",
+        "vModelSelect",
+        "vModelDynamic",
+        "withModifiers",
+        "withKeys",
+        "vShow",
+        "Transition",
+        "TransitionGroup",
+    ];
+}
 
 pub enum DomError {
     HtmlNoExpression,

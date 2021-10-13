@@ -310,7 +310,7 @@ impl<'a> VStr<'a> {
         self.ops |= StrOps::CAMEL_CASE;
         self
     }
-    fn capitalize(&mut self) -> &mut Self {
+    pub fn capitalize(&mut self) -> &mut Self {
         self.ops |= StrOps::CAPITALIZED;
         self
     }

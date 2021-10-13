@@ -36,7 +36,7 @@ const NATIVE_TAGS: Set<&str> = phf_set! {
     "mtext", "mtr", "munder", "munderover", "none", "semantics",
 };
 
-fn is_native_tag(tag: &str) -> bool {
+pub fn is_native_tag(tag: &str) -> bool {
     NATIVE_TAGS.contains(tag)
 }
 fn is_pre_tag(tag: &str) -> bool {

@@ -13,6 +13,7 @@ pub fn convert_v_html<'a>(
     let error_kind = CompilationErrorKind::ExtendPoint(Box::new(DomError::VHtmlNoExpression));
     if let Some(err) = dir.check_empty_expr(error_kind) {
         eh.on_error(err);
+        return DirectiveConvertResult::Dropped;
     }
     if !e.children.is_empty() {
         let error = CompilationError::extended(DomError::VHtmlWithChildren)

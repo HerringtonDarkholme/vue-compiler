@@ -28,15 +28,15 @@ pub mod dom_helper {
 }
 
 pub enum DomError {
-    HtmlNoExpression,
-    HtmlWithChildren,
-    TextNoExpression,
-    TextWithChildren,
-    ModelOnInvalidElement,
-    ModelArgOnElement,
-    ModelOnFileInputElement,
-    ModelUnnecessaryValue,
-    ShowNoExpression,
+    VHtmlNoExpression,
+    VHtmlWithChildren,
+    VTextNoExpression,
+    VTextWithChildren,
+    VModelOnInvalidElement,
+    VModelArgOnElement,
+    VModelOnFileInputElement,
+    VModelUnnecessaryValue,
+    VShowNoExpression,
     TransitionInvalidChildren,
     IgnoredSideEffectTag,
 }
@@ -45,15 +45,15 @@ impl ErrorKind for DomError {
     fn msg(&self) -> &'static str {
         use DomError::*;
         match self {
-          HtmlNoExpression => "v-html is missing expression.",
-          HtmlWithChildren => "v-html will override element children.",
-          TextNoExpression => "v-text is missing expression.",
-          TextWithChildren => "v-text will override element children.",
-          ModelOnInvalidElement => "v-model can only be used on <input>, <textarea> and <select> elements.",
-          ModelArgOnElement => "v-model argument is not supported on plain elements.",
-          ModelOnFileInputElement => "v-model cannot be used on file inputs since they are read-only. Use a v-on:change listener instead.",
-          ModelUnnecessaryValue => "Unnecessary value binding used alongside v-model. It will interfere with v-model's behavior.",
-          ShowNoExpression => "v-show is missing expression.",
+          VHtmlNoExpression => "v-html is missing expression.",
+          VHtmlWithChildren => "v-html will override element children.",
+          VTextNoExpression => "v-text is missing expression.",
+          VTextWithChildren => "v-text will override element children.",
+          VModelOnInvalidElement => "v-model can only be used on <input>, <textarea> and <select> elements.",
+          VModelArgOnElement => "v-model argument is not supported on plain elements.",
+          VModelOnFileInputElement => "v-model cannot be used on file inputs since they are read-only. Use a v-on:change listener instead.",
+          VModelUnnecessaryValue => "Unnecessary value binding used alongside v-model. It will interfere with v-model's behavior.",
+          VShowNoExpression => "v-show is missing expression.",
           TransitionInvalidChildren => "<Transition> expects exactly one child element or component.",
           IgnoredSideEffectTag => "Tags with side effect (<script> and <style>) are ignored in client component templates."
         }

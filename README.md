@@ -7,7 +7,8 @@
 
 <p align="center"><a href="https://herringtondarkholme.github.io/vue-compiler/">Try it out in the wasm playground!</a></p>
 
-![CI](https://github.com/HerringtonDarkholme/vue-compiler/actions/workflows/ci/badge.svg)
+![CI](https://github.com/HerringtonDarkholme/vue-compiler/actions/workflows/ci.yml/badge.svg)
+![Playground](https://github.com/HerringtonDarkholme/vue-compiler/actions/workflows/gh-pages.yml/badge.svg)
 [![codecov](https://codecov.io/gh/HerringtonDarkholme/vue-compiler/branch/main/graph/badge.svg?token=A37GRLYA5R)](https://codecov.io/gh/HerringtonDarkholme/vue-compiler)
 
 

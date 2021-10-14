@@ -1,32 +1,18 @@
-use std::path::PathBuf;
-
-// TODO: reorg pub
 pub mod descriptors;
 pub mod parse_sfc;
-pub use parse_sfc::{parse_sfc, SfcDescriptor};
+mod rewrite_default;
+mod script;
+mod style;
+mod template;
 
-pub enum PadOption {
-    Line,
-    Space,
-    NoPad,
-}
+// API
+pub use parse_sfc::parse_sfc;
+pub use script::compile_script;
+pub use template::compile_template;
+pub use style::compile_style;
+pub use rewrite_default::rewrite_default;
 
-pub struct SfcParseOptions {
-    pub filename: String,
-    pub source_map: bool,
-    pub source_root: PathBuf,
-    pub pad: PadOption,
-    pub ignore_empty: bool,
-}
-
-impl Default for SfcParseOptions {
-    fn default() -> Self {
-        Self {
-            filename: "anonymous.vue".into(),
-            source_map: true,
-            source_root: "".into(),
-            pad: PadOption::NoPad,
-            ignore_empty: true,
-        }
-    }
-}
+// Structs
+pub use parse_sfc::{
+    SfcParseOptions, SfcDescriptor, SfcBlock, SfcScriptBlock, SfcTemplateBlock, SfcStyleBlock,
+};

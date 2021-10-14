@@ -16,3 +16,6 @@ pub use rewrite_default::rewrite_default;
 pub use parse_sfc::{
     SfcParseOptions, SfcDescriptor, SfcBlock, SfcScriptBlock, SfcTemplateBlock, SfcStyleBlock,
 };
+pub use script::SfcScriptCompileOptions;
+pub use template::{SfcTemplateCompileOptions, SfcTemplateCompileResults};
+pub use style::{SfcStyleCompileOptions, SfcStyleCompileResults};

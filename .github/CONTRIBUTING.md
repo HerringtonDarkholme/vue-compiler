@@ -6,7 +6,8 @@ Thanks for contributing to Rusty Vue compiler!
 
 1. Install [rustup](https://rustup.rs/)
 2. clone the repo
-3.
+3. `cargo install`
+4. Setup [pre-commit](https://pre-commit.com/) for git hooks
 
 
 ## CLI test

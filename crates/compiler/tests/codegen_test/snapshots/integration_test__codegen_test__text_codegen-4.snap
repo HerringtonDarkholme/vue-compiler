@@ -1,0 +1,24 @@
+---
+source: crates/compiler/tests/codegen_test/mod.rs
+expression: "<comp>Hello {{world}}</comp>"
+
+---
+const _Vue = Vue
+
+return function render(_ctx, _cache) {
+  with (_ctx) {
+    const {
+      createVNode: _createVNode, createTextVNode: _createTextVNode, resolveComponent: _resolveComponent, toDisplayString: _toDisplayString, withCtx: _withCtx, 
+    } = _Vue
+    
+    const _component_comp = _resolveComponent(comp)
+    return _createVNode(_component_comp, null, [
+      {
+        default: _withCtx(() => [
+          _createTextVNode("Hello " + _toDisplayString(world), 1 /*TEXT*/)
+        ]),
+        _: 1 /*Stable*/,
+      }, 
+    ])
+  }
+}

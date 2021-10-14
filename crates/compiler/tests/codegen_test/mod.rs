@@ -22,8 +22,13 @@ pub fn base_compile(source: &str) -> String {
 }
 
 #[test]
-fn test_basic_cases() {
-    let cases = ["Hello world"];
+fn test_text_codegen() {
+    let cases = [
+        "Hello world",
+        "Hello {{world}}",
+        "<p>Hello {{world}}</p>",
+        "<comp>Hello {{world}}</comp>",
+    ];
     for case in cases {
         test_codegen(case);
     }

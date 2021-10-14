@@ -1,0 +1,15 @@
+---
+source: crates/compiler/tests/codegen_test/mod.rs
+expression: "<p>Hello {{world}}</p>"
+
+---
+const _Vue = Vue
+
+return function render(_ctx, _cache) {
+  with (_ctx) {
+    const {
+      createElementVNode: _createElementVNode, toDisplayString: _toDisplayString, 
+    } = _Vue
+    return _createElementVNode("p", null, "Hello " + _toDisplayString(world), 1 /*TEXT*/)
+  }
+}

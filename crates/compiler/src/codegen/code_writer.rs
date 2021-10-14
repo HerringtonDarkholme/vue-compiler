@@ -377,7 +377,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     fn gen_helper_import(&mut self, helpers: HelperCollector, from: &str) -> Output {
         self.write_str("import {")?;
         self.indent()?;
-        self.gen_helper_import_list(helpers, "as")?;
+        self.gen_helper_import_list(helpers, " as")?;
         self.deindent()?;
         self.write_str("} from \"")?;
         self.write_str(from)?;
@@ -1212,5 +1212,26 @@ mod test {
         writer.generate_root(ir).unwrap();
         let s = String::from_utf8(writer.writer.inner).unwrap();
         assert!(s.contains("withDirectives: _withDirectives"), "{}", s);
+    }
+
+    #[test]
+    fn test_module() {
+        let info = SFCInfo::default();
+        let mut ir = base_convert("test");
+        let mut helpers = HelperCollector::new();
+        helpers.collect(RH::CREATE_TEXT);
+        ir.top_scope.helpers = helpers;
+        let option = CodeGenerateOption {
+            mode: ScriptMode::Module {
+                runtime_module_name: "vue".into(),
+            },
+            ..Default::default()
+        };
+        let mut writer = CodeWriter::new(vec![], Rc::new(option), &info);
+        writer.generate_root(ir).unwrap();
+        let s = String::from_utf8(writer.writer.inner).unwrap();
+        assert!(s.contains("import"), "{}", s);
+        assert!(s.contains("createTextVNode as _createTextVNode"), "{}", s);
+        assert!(s.contains("from \"vue\""), "{}", s);
     }
 }

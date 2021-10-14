@@ -1200,4 +1200,17 @@ mod test {
         let s = gen_on("<p @click='() => a()'/>");
         assert!(s.contains("onClick: () => a()"), "{}", s);
     }
+
+    #[test]
+    fn test_helpers() {
+        let info = SFCInfo::default();
+        let mut ir = base_convert("");
+        let mut helpers = HelperCollector::new();
+        helpers.collect(RH::WITH_DIRECTIVES);
+        ir.top_scope.helpers = helpers;
+        let mut writer = CodeWriter::new(vec![], Default::default(), &info);
+        writer.generate_root(ir).unwrap();
+        let s = String::from_utf8(writer.writer.inner).unwrap();
+        assert!(s.contains("withDirectives: _withDirectives"), "{}", s);
+    }
 }

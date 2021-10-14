@@ -18,6 +18,11 @@ Evan [says](https://github.com/vuejs/rfcs/discussions/369#discussioncomment-1192
 
 Future is now!
 
+## Project Docs
+* [Architecture Design](https://github.com/HerringtonDarkholme/vue-compiler/blob/main/docs/design.md)
+* [Project Roadmap](https://github.com/HerringtonDarkholme/vue-compiler/blob/main/docs/roadmap.md)
+* [Contributing Guide](https://github.com/HerringtonDarkholme/vue-compiler/blob/main/.github/CONTRIBUTING.md)
+
 
 ## Intended Usage
 

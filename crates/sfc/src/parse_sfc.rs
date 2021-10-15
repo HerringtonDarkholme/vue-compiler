@@ -114,7 +114,7 @@ impl<'a> SfcScriptBlock<'a> {
 
 pub struct SfcStyleBlock<'a> {
     // pub scoped: bool,
-    pub module: Option<&'a str>,
+    // pub module: Option<&'a str>,
     pub block: SfcBlock<'a>,
 }
 pub struct SfcCustomBlock<'a> {
@@ -240,9 +240,23 @@ fn assemble_descriptor<'a>(
         descriptor.scripts.push(block);
         None
     } else if tag_name == "style" {
-        todo!("style");
+        let has_vars =
+            find_prop(&element, "vars").map(|vars| vars.get_ref().get_location().clone());
+        let block = SfcStyleBlock {
+            block: SfcBlock::new(element, src),
+        };
+        descriptor.styles.push(block);
+        has_vars
+            .map(|loc| CompilationError::extended(SfcError::DeprecatedStyleVars).with_location(loc))
     } else {
-        todo!("custom");
+        let ty = element.tag_name;
+        let block = SfcBlock::new(element, src);
+        let block = SfcCustomBlock {
+            custom_type: ty,
+            block,
+        };
+        descriptor.custom_blocks.push(block);
+        None
     }
 }
 

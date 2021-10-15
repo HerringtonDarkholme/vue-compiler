@@ -1123,6 +1123,7 @@ dependencies = [
 name = "vue-compiler-sfc"
 version = "0.1.0"
 dependencies = [
+ "rustc-hash",
  "smallvec",
  "vue-compiler-core",
 ]

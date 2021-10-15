@@ -8,4 +8,5 @@ edition = "2018"
 
 [dependencies]
 smallvec = "1.7.0"
+rustc-hash = "1.1.0"
 compiler = { path = "../compiler", default-features = false, features = [], package = "vue-compiler-core" }

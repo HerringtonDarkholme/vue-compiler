@@ -1,5 +1,5 @@
 use super::SourceLocation;
-use std::cell::{Ref, RefCell};
+use std::cell::{Ref, RefMut, RefCell};
 use std::fmt;
 use std::rc::Rc;
 
@@ -234,6 +234,9 @@ pub struct VecErrorHandler {
 impl VecErrorHandler {
     pub fn errors(&self) -> Ref<Vec<CompilationError>> {
         self.errors.borrow()
+    }
+    pub fn error_mut(&self) -> RefMut<Vec<CompilationError>> {
+        self.errors.borrow_mut()
     }
 }
 impl Default for VecErrorHandler {

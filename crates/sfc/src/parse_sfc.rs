@@ -41,30 +41,31 @@ pub struct SfcBlock<'a> {
     pub content: &'a str,
     pub attrs: FxHashMap<&'a str, Option<&'a str>>,
     pub loc: SourceLocation,
-    pub lang: Option<&'a str>,
-    pub src: Option<&'a str>,
     // pub map: Option<RawSourceMap>,
 }
-
-fn create_block<'a>(element: Element<'a>, src: &'a str) -> SfcBlock<'a> {
-    let loc = element.location;
-    let content = &src[loc.start.offset..loc.end.offset];
-    let attrs = element
-        .properties
-        .into_iter()
-        .filter_map(|p| match p {
-            ElemProp::Attr(attr) => Some((attr.name, attr.value.map(|v| v.content.raw))),
-            _ => None,
-        })
-        .collect::<FxHashMap<_, _>>();
-    let lang = attrs.get("lang").copied().flatten();
-    let src = attrs.get("src").copied().flatten();
-    SfcBlock {
-        content,
-        attrs,
-        loc,
-        lang,
-        src,
+impl<'a> SfcBlock<'a> {
+    fn new(element: Element<'a>, src: &'a str) -> Self {
+        let loc = element.location;
+        let content = &src[loc.start.offset..loc.end.offset];
+        let attrs = element
+            .properties
+            .into_iter()
+            .filter_map(|p| match p {
+                ElemProp::Attr(attr) => {
+                    let val = attr.value.map(|v| v.content.raw);
+                    Some((attr.name, val))
+                }
+                _ => None,
+            })
+            .collect::<FxHashMap<_, _>>();
+        Self {
+            content,
+            attrs,
+            loc,
+        }
+    }
+    pub fn get_attr(&self, name: &'a str) -> Option<&'a str> {
+        self.attrs.get(name).copied().flatten()
     }
 }
 
@@ -98,15 +99,21 @@ pub struct SfcTemplateBlock<'a> {
 }
 
 pub struct SfcScriptBlock<'a> {
-    pub ast: Option<Ast>,
-    pub setup_ast: Option<Ast>,
-    pub setup: Option<&'a str>,
+    // pub ast: Option<Ast>,
+    // pub setup_ast: Option<Ast>,
+    // pub setup: Option<&'a str>,
     pub bindings: Option<BindingMetadata<'a>>,
     pub block: SfcBlock<'a>,
 }
 
+impl<'a> SfcScriptBlock<'a> {
+    fn is_setup(&self) -> bool {
+        self.block.get_attr("setup").is_some()
+    }
+}
+
 pub struct SfcStyleBlock<'a> {
-    pub scoped: bool,
+    // pub scoped: bool,
     pub module: Option<&'a str>,
     pub block: SfcBlock<'a>,
 }
@@ -152,7 +159,15 @@ pub fn parse_sfc(source: &str, option: SfcParseOptions) -> SfcParseResult<'_> {
     let mut descriptor = SfcDescriptor::new(option.filename);
     let mut errors = get_errors(err_handle);
     for node in ast.children {
-        let maybe_errror = assemble_descriptor(node, source, &mut descriptor, option.ignore_empty);
+        let elem = match node {
+            AstNode::Element(elem) => elem,
+            _ => continue,
+        };
+        let ignore_empty = option.ignore_empty;
+        if ignore_empty && elem.tag_name != "template" && is_empty(&elem) && !has_src(&elem) {
+            continue;
+        }
+        let maybe_errror = assemble_descriptor(elem, source, &mut descriptor);
         if let Some(error) = maybe_errror {
             errors.push(error);
         }
@@ -185,18 +200,10 @@ fn get_errors(err_handle: Rc<VecErrorHandler>) -> Vec<CompilationError> {
 }
 
 fn assemble_descriptor<'a>(
-    node: AstNode<'a>,
+    element: Element<'a>,
     src: &'a str,
     descriptor: &mut SfcDescriptor<'a>,
-    ignore_empty: bool,
 ) -> Option<CompilationError> {
-    let element = match node {
-        AstNode::Element(elem) => elem,
-        _ => return None,
-    };
-    if ignore_empty && element.tag_name != "template" && is_empty(&element) && !has_src(&element) {
-        return None;
-    }
     let tag_name = element.tag_name;
     if tag_name == "template" {
         let has_functional =
@@ -208,14 +215,30 @@ fn assemble_descriptor<'a>(
             return Some(error);
         }
         let block = SfcTemplateBlock {
-            block: create_block(element, src),
+            block: SfcBlock::new(element, src),
         };
         descriptor.template = Some(block);
         has_functional.map(|loc| {
             CompilationError::extended(SfcError::DeprecatedFunctionalTemplate).with_location(loc)
         })
     } else if tag_name == "script" {
-        todo!("script");
+        let location = element.location.clone();
+        let block = SfcBlock::new(element, src);
+        let block = SfcScriptBlock {
+            bindings: None, // TODO
+            block,
+        };
+        let scripts = &descriptor.scripts;
+        let is_setup = block.is_setup();
+        if scripts.len() >= 2 || !scripts.is_empty() && scripts[0].is_setup() == is_setup {
+            let ty = if is_setup { "<script setup>" } else { "script" };
+            let error = CompilationError::extended(SfcError::DuplicateBlock)
+                .with_additional_message(ty)
+                .with_location(location);
+            return Some(error);
+        }
+        descriptor.scripts.push(block);
+        None
     } else if tag_name == "style" {
         todo!("style");
     } else {

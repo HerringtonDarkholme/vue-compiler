@@ -87,7 +87,7 @@ impl CompilationErrorKind {
 
 pub struct CompilationError {
     pub kind: CompilationErrorKind,
-    pub additional_message: Option<String>,
+    pub additional_message: Option<&'static str>,
     pub location: SourceLocation,
 }
 
@@ -103,7 +103,7 @@ impl CompilationError {
         self.location = loc;
         self
     }
-    pub fn with_additional_message(mut self, msg: String) -> Self {
+    pub fn with_additional_message(mut self, msg: &'static str) -> Self {
         self.additional_message = Some(msg);
         self
     }

@@ -2,8 +2,8 @@ use compiler::compiler::CompileOption;
 use compiler::{
     SourceLocation, BindingMetadata,
     scanner::{Scanner, TextMode},
-    parser::{Parser, AstNode},
-    error::{VecErrorHandler, CompilationError},
+    parser::{Parser, AstNode, AstRoot, Element},
+    error::{VecErrorHandler, CompilationError, RcErrHandle, ErrorKind, CompilationErrorKind},
 };
 use smallvec::{smallvec, SmallVec};
 use std::path::PathBuf;
@@ -45,6 +45,27 @@ pub struct SfcBlock<'a> {
     // pub map: Option<RawSourceMap>,
 }
 
+pub enum SfcError {
+    DeprecatedFunctionalTemplate,
+    DeprecatedStyleVars,
+    SrcOnScriptSetup,
+    ScrtipSrcWithScriptSetup,
+    DuplicateBlock,
+}
+
+impl ErrorKind for SfcError {
+    fn msg(&self) -> &'static str {
+        use SfcError::*;
+        match self {
+            DeprecatedFunctionalTemplate => "<template functional> is no longer supported.",
+            DeprecatedStyleVars => "<style vars> has been replaced by a new proposal.",
+            SrcOnScriptSetup => "<script setup> cannot use the 'src' attribute because its syntax will be ambiguous outside of the component.",
+            ScrtipSrcWithScriptSetup => "",
+            DuplicateBlock => "",
+        }
+    }
+}
+
 // TODO
 pub type Ast = String;
 
@@ -73,7 +94,6 @@ pub struct SfcCustomBlock<'a> {
 
 pub struct SfcDescriptor<'a> {
     pub filename: String,
-    pub source: &'a str,
     pub template: Option<SfcTemplateBlock<'a>>,
     pub scripts: SmallVec<[SfcScriptBlock<'a>; 1]>,
     pub styles: SmallVec<[SfcStyleBlock<'a>; 1]>,
@@ -84,18 +104,42 @@ pub struct SfcDescriptor<'a> {
     pub slotted: bool,
 }
 
-pub enum SfcError {
-    CompilerError(CompilationError),
-    SyntaxError(&'static str),
+impl<'a> SfcDescriptor<'a> {
+    fn new(filename: String) -> Self {
+        Self {
+            filename,
+            template: None,
+            scripts: smallvec![],
+            styles: smallvec![],
+            custom_blocks: vec![],
+            css_vars: vec![],
+            slotted: false,
+        }
+    }
 }
 
 pub struct SfcParseResult<'a> {
     pub descriptor: SfcDescriptor<'a>,
-    pub errors: Vec<SfcError>,
+    pub errors: Vec<CompilationError>,
 }
 
 pub fn parse_sfc(source: &str, option: SfcParseOptions) -> SfcParseResult<'_> {
     let err_handle = Rc::new(VecErrorHandler::default());
+    let ast = parse_ast(source, err_handle.clone());
+    let mut descriptor = SfcDescriptor::new(option.filename);
+    let mut errors = get_errors(err_handle);
+    for node in ast.children {
+        let location = node.get_location().clone();
+        let maybe_errror = assemble_descriptor(node, &mut descriptor, option.ignore_empty);
+        if let Some(kind) = maybe_errror {
+            let error = CompilationError::new(kind).with_location(location);
+            errors.push(error);
+        }
+    }
+    SfcParseResult { descriptor, errors }
+}
+
+fn parse_ast(source: &str, err_handle: RcErrHandle) -> AstRoot {
     let compile_opt = CompileOption {
         is_pre_tag: |_| true,
         is_native_tag: |_| true,
@@ -112,34 +156,45 @@ pub fn parse_sfc(source: &str, option: SfcParseOptions) -> SfcParseResult<'_> {
     let scanner = Scanner::new(compile_opt.scanning());
     let parser = Parser::new(compile_opt.parsing());
     let tokens = scanner.scan(source, err_handle.clone());
-    let ast = parser.parse(tokens, err_handle.clone());
-    let descriptor = SfcDescriptor {
-        filename: option.filename,
-        source,
-        template: None,
-        scripts: smallvec![],
-        styles: smallvec![],
-        custom_blocks: vec![],
-        css_vars: vec![],
-        slotted: false,
-    };
-    let errors = err_handle
-        .error_mut()
-        .drain(..)
-        .map(SfcError::CompilerError)
-        .collect::<Vec<_>>();
-    for node in ast.children {
-        let element = match node {
-            AstNode::Element(elem) => elem,
-            _ => continue,
-        };
-        match element.tag_name {
-            "template" => {}
-            "script" => {}
-            "style" => {}
-            _ => {}
-        }
-    }
+    parser.parse(tokens, err_handle.clone())
+}
 
-    SfcParseResult { descriptor, errors }
+fn get_errors(err_handle: Rc<VecErrorHandler>) -> Vec<CompilationError> {
+    err_handle.error_mut().drain(..).collect()
+}
+
+fn assemble_descriptor<'a>(
+    node: AstNode<'a>,
+    descriptor: &mut SfcDescriptor<'a>,
+    ignore_empty: bool,
+) -> Option<CompilationErrorKind> {
+    let element = match node {
+        AstNode::Element(elem) => elem,
+        _ => return None,
+    };
+    if ignore_empty && element.tag_name != "template" && is_empty(&element) && !has_src(&element) {
+        return None;
+    }
+    let tag_name = element.tag_name;
+    if tag_name == "template" {
+        if descriptor.template.is_some() {
+            let kind = CompilationErrorKind::extended(SfcError::DuplicateBlock);
+            return Some(kind);
+        }
+    } else if tag_name == "script" {
+        todo!("script");
+    } else if tag_name == "style" {
+        todo!("style");
+    } else {
+        todo!("custom");
+    }
+    None
+}
+
+fn is_empty(elem: &Element) -> bool {
+    todo!()
+}
+
+fn has_src(elem: &Element) -> bool {
+    todo!()
 }

@@ -11,7 +11,7 @@ pub fn convert_v_text<'a>(
     e: &Element<'a>,
     eh: &dyn ErrorHandler,
 ) -> CoreDirConvRet<'a> {
-    let error_kind = CompilationErrorKind::ExtendPoint(Box::new(DomError::VTextNoExpression));
+    let error_kind = CompilationErrorKind::extended(DomError::VTextNoExpression);
     if let Some(err) = dir.check_empty_expr(error_kind) {
         eh.on_error(err);
         return DirectiveConvertResult::Dropped;

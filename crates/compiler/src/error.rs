@@ -79,6 +79,12 @@ pub enum CompilationErrorKind {
     ExtendPoint(Box<dyn ErrorKind>),
 }
 
+impl CompilationErrorKind {
+    pub fn extended<K: ErrorKind + 'static>(kind: K) -> Self {
+        Self::ExtendPoint(Box::new(kind))
+    }
+}
+
 pub struct CompilationError {
     pub kind: CompilationErrorKind,
     pub additional_message: Option<String>,

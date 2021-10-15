@@ -369,6 +369,12 @@ where
             ..self
         }
     }
+    pub fn attr_only(self) -> Self {
+        Self {
+            filter: |p| matches!(p, ElemProp::Attr(..)),
+            ..self
+        }
+    }
     pub fn find(self) -> Option<PropFound<'a, E, M>> {
         let pos = self
             .elem

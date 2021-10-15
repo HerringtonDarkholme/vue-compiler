@@ -99,6 +99,7 @@ impl<'a> Deref for TextNode<'a> {
 }
 
 impl<'a> TextNode<'a> {
+    /// if TextNode contains only whitespaces. In HTML it means empty node.
     pub fn is_all_whitespace(&self) -> bool {
         self.text.iter().all(|s| !s.chars().any(non_whitespace))
     }

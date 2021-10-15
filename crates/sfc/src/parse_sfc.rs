@@ -1,5 +1,5 @@
 use compiler::compiler::CompileOption;
-use compiler::util::find_prop;
+use compiler::util::prop_finder;
 use compiler::{
     SourceLocation, BindingMetadata,
     scanner::{Scanner, TextMode},
@@ -206,8 +206,10 @@ fn assemble_descriptor<'a>(
 ) -> Option<CompilationError> {
     let tag_name = element.tag_name;
     if tag_name == "template" {
-        let has_functional =
-            find_prop(&element, "functional").map(|func| func.get_ref().get_location().clone());
+        let has_functional = prop_finder(&element, "functional")
+            .attr_only()
+            .find()
+            .map(|func| func.get_ref().get_location().clone());
         if descriptor.template.is_some() {
             let error = CompilationError::extended(SfcError::DuplicateBlock)
                 .with_additional_message("<template>")
@@ -240,8 +242,10 @@ fn assemble_descriptor<'a>(
         descriptor.scripts.push(block);
         None
     } else if tag_name == "style" {
-        let has_vars =
-            find_prop(&element, "vars").map(|vars| vars.get_ref().get_location().clone());
+        let has_vars = prop_finder(&element, "vars")
+            .attr_only()
+            .find()
+            .map(|vars| vars.get_ref().get_location().clone());
         let block = SfcStyleBlock {
             block: SfcBlock::new(element, src),
         };
@@ -260,10 +264,13 @@ fn assemble_descriptor<'a>(
     }
 }
 
-fn is_empty(_elem: &Element) -> bool {
-    todo!()
+fn is_empty(elem: &Element) -> bool {
+    elem.children.iter().any(|n| match n {
+        AstNode::Text(t) => !t.is_all_whitespace(),
+        _ => true,
+    })
 }
 
-fn has_src(_elem: &Element) -> bool {
-    todo!()
+fn has_src(elem: &Element) -> bool {
+    prop_finder(elem, "src").attr_only().find().is_some()
 }

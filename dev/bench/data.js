@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1634351799229,
+  "lastUpdate": 1634352008216,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -17870,6 +17870,102 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 6572,
             "range": "± 269",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "committer": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "distinct": true,
+          "id": "9e31a959bc6dfce714a55614f3fd0cfc99f1b234",
+          "message": "[feat] add util func impl",
+          "timestamp": "2021-10-16T10:31:15+08:00",
+          "tree_id": "5330e4a8413cd0a53a879df4e3ae28adf5a9e61f",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/9e31a959bc6dfce714a55614f3fd0cfc99f1b234"
+        },
+        "date": 1634352005267,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 6149,
+            "range": "± 425",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4572,
+            "range": "± 311",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElTable",
+            "value": 274908,
+            "range": "± 17620",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 48329,
+            "range": "± 3802",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 40642,
+            "range": "± 2931",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 25411,
+            "range": "± 1625",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 124855,
+            "range": "± 10051",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 23670,
+            "range": "± 2154",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 7222,
+            "range": "± 593",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 7236,
+            "range": "± 516",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 7384,
+            "range": "± 560",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 6120,
+            "range": "± 465",
             "unit": "ns/iter"
           }
         ]

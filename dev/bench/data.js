@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1634347915018,
+  "lastUpdate": 1634348113257,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -17673,6 +17673,102 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 6307,
             "range": "± 486",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bot@renovateapp.com",
+            "name": "Renovate Bot",
+            "username": "renovate-bot"
+          },
+          "committer": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "distinct": true,
+          "id": "550d31291b4e796f9959824985ab1e821881e785",
+          "message": "Update dependency vue-tsc to v0.28.6",
+          "timestamp": "2021-10-16T09:30:13+08:00",
+          "tree_id": "34cf4427cea35fec047e46448bbe4a426838b518",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/550d31291b4e796f9959824985ab1e821881e785"
+        },
+        "date": 1634348111524,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 6248,
+            "range": "± 252",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4493,
+            "range": "± 234",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElTable",
+            "value": 277967,
+            "range": "± 9862",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 48318,
+            "range": "± 4067",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 42709,
+            "range": "± 1424",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 26976,
+            "range": "± 1094",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 131688,
+            "range": "± 5676",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 26599,
+            "range": "± 1947",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 7728,
+            "range": "± 602",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 7930,
+            "range": "± 534",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 7944,
+            "range": "± 449",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 6572,
+            "range": "± 269",
             "unit": "ns/iter"
           }
         ]

@@ -1,4 +1,3 @@
-pub mod descriptors;
 pub mod parse_sfc;
 mod rewrite_default;
 mod script;

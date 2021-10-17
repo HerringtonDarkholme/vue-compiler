@@ -1,0 +1,23 @@
+[package]
+name = "rust-vue-compiler"
+version = "0.1.0"
+authors = ["Herrington Darkholme <2883231+HerringtonDarkholme@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = "2.0.0-alpha.0"
+napi-derive = {version = "2.0.0-alpha.0", features = ["type-def"]}
+
+[target.'cfg(all(any(windows, unix), target_arch = "x86_64", not(target_env = "musl")))'.dependencies]
+mimalloc = {version = "0.1"}
+
+[build-dependencies]
+napi-build = "1"
+
+[profile.release]
+lto = true

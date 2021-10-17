@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1634461365524,
+  "lastUpdate": 1634461448535,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -19319,6 +19319,98 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 5674,
             "range": "± 457",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "HerringtonDarkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "committer": {
+            "name": "HerringtonDarkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "id": "18484c1912305ca3b42d970b31a4d99df8aed8a2",
+          "message": "Update codecov/codecov-action action to v2",
+          "timestamp": "2021-10-17T08:58:00Z",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/pull/38/commits/18484c1912305ca3b42d970b31a4d99df8aed8a2"
+        },
+        "date": 1634461446263,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 6119,
+            "range": "± 32",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4374,
+            "range": "± 17",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElTable",
+            "value": 271630,
+            "range": "± 2244",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 44428,
+            "range": "± 153",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 39511,
+            "range": "± 89",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 25598,
+            "range": "± 28",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 115995,
+            "range": "± 597",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 23943,
+            "range": "± 66",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 7643,
+            "range": "± 62",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 7623,
+            "range": "± 36",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 7423,
+            "range": "± 32",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 6272,
+            "range": "± 43",
             "unit": "ns/iter"
           }
         ]

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/*", "benches"]
+members = ["crates/*", "benches", "napi"]
 default-members = ["crates/*"]
 
 [profile.release]

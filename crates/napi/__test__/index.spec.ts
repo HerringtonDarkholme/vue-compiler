@@ -1,10 +1,16 @@
 import test from 'ava'
 
-import { sync } from '../index'
+import { compileSync } from '../index'
 
 test('sync function from native code', (t) => {
-  const fixture = 42
-  t.is(sync(fixture), fixture + 100)
+  const fixture = "hello world"
+  const expected = `
+return function render(_ctx, _cache) {
+  with (_ctx) {
+    return "hello world"
+  }
+}`
+  t.is(compileSync(fixture), expected)
 })
 
 // test('sleep function from native code', async (t) => {

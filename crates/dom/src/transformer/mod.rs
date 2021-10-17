@@ -18,7 +18,7 @@ use compiler::{SFCInfo, chain};
 use compiler::compiler::CompileOption;
 use std::marker::PhantomData;
 
-fn get_dom_pass<'a>(
+pub fn get_dom_pass<'a>(
     sfc_info: &'a SFCInfo<'a>,
     opt: &CompileOption,
 ) -> impl CorePass<BaseConvertInfo<'a>> {

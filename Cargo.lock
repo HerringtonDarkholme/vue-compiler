@@ -938,6 +938,8 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "vue-compiler-core",
+ "vue-compiler-dom",
 ]
 
 [[package]]

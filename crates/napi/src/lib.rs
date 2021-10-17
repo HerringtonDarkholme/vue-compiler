@@ -2,7 +2,10 @@
 
 use napi_derive::napi;
 use napi::bindgen_prelude::*;
-// use std::convert::TryInto;
+use compiler::compiler::{BaseCompiler, TemplateCompiler};
+use compiler::error::VecErrorHandler;
+use dom::{get_dom_pass, compile_option};
+use std::rc::Rc;
 
 #[cfg(all(
     any(windows, unix),
@@ -38,8 +41,14 @@ static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 // }
 
 #[napi]
-fn sync(arg: u32) -> u32 {
-    arg + 100
+fn compile_sync(source: String) -> String {
+    let sfc_info = Default::default();
+    let err_handler = VecErrorHandler::default();
+    let option = compile_option(Rc::new(err_handler));
+    let dest = Vec::new;
+    let compiler = BaseCompiler::new(dest, get_dom_pass, option);
+    let ret = compiler.compile(&source, &sfc_info).unwrap();
+    String::from_utf8(ret).unwrap()
 }
 
 // #[js_function(1)]

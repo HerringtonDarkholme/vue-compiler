@@ -1,1 +1,1 @@
-export function sync(arg: number): number
+export function compileSync(source: string): string

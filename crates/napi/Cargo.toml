@@ -12,6 +12,8 @@ crate-type = ["cdylib"]
 [dependencies]
 napi = "2.0.0-alpha.0"
 napi-derive = {version = "2.0.0-alpha.0", features = ["type-def"]}
+compiler = { path = "../compiler", package = "vue-compiler-core", default-features = false, features = [] }
+dom = { path = "../dom", package = "vue-compiler-dom"}
 
 [target.'cfg(all(any(windows, unix), target_arch = "x86_64", not(target_env = "musl")))'.dependencies]
 mimalloc = {version = "0.1"}

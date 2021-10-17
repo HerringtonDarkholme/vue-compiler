@@ -12,6 +12,7 @@ use anyhow::{bail, Result};
 use clap::{AppSettings, Clap};
 
 use compiler::compiler::CompileOption;
+use dom::compile_option;
 
 use cli::compile_to_stdout;
 use path_clean::PathClean;
@@ -67,8 +68,7 @@ fn process(opts: Opts) -> Result<CliInput> {
     let delimiters = get_delimiters(opts.delimiters)?;
     let option = CompileOption {
         delimiters,
-        error_handler: Rc::new(err_handle),
-        ..Default::default()
+        ..compile_option(Rc::new(err_handle))
     };
     let show = ShowOption {
         dump_scan: opts.dump_scan,

@@ -37,8 +37,33 @@ pub struct SfcScriptCompileOptions<'a> {
 // }
 
 pub fn compile_script<'a>(
-    _sfc: SfcDescriptor<'a>,
+    sfc: SfcDescriptor<'a>,
     _options: SfcScriptCompileOptions<'a>,
 ) -> SfcDescriptor<'a> {
-    todo!()
+    process_normal_script();
+    parse_script_setup();
+    apply_ref_transform();
+    extract_runtime_code();
+    check_invalid_scope_refs();
+    remove_non_script_content();
+    analyze_binding_metadata();
+    inject_css_vars();
+    finalize_setup_arg();
+    generate_return_stmt();
+    finalize_default_export();
+    sfc
 }
+
+fn process_normal_script() {}
+fn parse_script_setup() {}
+fn apply_ref_transform() {}
+// props and emits
+fn extract_runtime_code() {}
+// check useOptions does not refer to setup scipe
+fn check_invalid_scope_refs() {}
+fn remove_non_script_content() {}
+fn analyze_binding_metadata() {}
+fn inject_css_vars() {}
+fn finalize_setup_arg() {}
+fn generate_return_stmt() {}
+fn finalize_default_export() {}

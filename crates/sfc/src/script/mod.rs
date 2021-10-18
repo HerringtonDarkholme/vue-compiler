@@ -40,10 +40,55 @@ pub struct SfcScriptCompileOptions<'a> {
 // }
 
 pub fn compile_script<'a>(
-    mut sfc: SfcDescriptor<'a>,
-    _options: SfcScriptCompileOptions<'a>,
-) -> SfcScriptBlock<'a> {
-    process_normal_script(&mut sfc.scripts);
+    sfc: SfcDescriptor<'a>,
+    options: SfcScriptCompileOptions<'a>,
+) -> Option<SfcScriptBlock<'a>> {
+    let mut scripts = sfc.scripts;
+    debug_assert!(scripts.len() <= 2);
+    if scripts.is_empty() {
+        return None;
+    }
+    debug_assert!(
+        !options.id.is_empty(),
+        "compileScript requires `id` option."
+    );
+    // let id = options.id;
+    // let scope_id = id.strip_prefix("data-v").unwrap_or(&id);
+    // let css_vars = &sfc.css_vars;
+    let has_uniform_lang = scripts.len() == 1 || scripts[0].get_lang() == scripts[1].get_lang();
+    if !has_uniform_lang {
+        // TODO: report error
+        return None;
+    }
+    if !scripts.iter().any(|s| s.is_setup()) {
+        process_single_script(&mut scripts)
+    } else {
+        process_setup_scripts(&mut scripts)
+    }
+}
+
+fn process_single_script<'a>(
+    scripts: &mut SmallVec<[SfcScriptBlock<'a>; 1]>,
+) -> Option<SfcScriptBlock<'a>> {
+    debug_assert!(scripts.len() == 1);
+    let is_ts = scripts
+        .iter()
+        .any(|s| s.get_lang() == "ts" || s.get_lang() == "tsx");
+    let script = scripts.pop().unwrap();
+    // do not process no-js script blocks
+    if script.get_lang() != "jsx" && !is_ts {
+        return Some(script);
+    }
+    // 1. parse ast
+    // 2. transformRef
+    // 3. inject css vars
+    Some(script)
+}
+
+fn process_setup_scripts<'a>(
+    scripts: &mut SmallVec<[SfcScriptBlock; 1]>,
+) -> Option<SfcScriptBlock<'a>> {
+    process_normal_script(scripts);
     parse_script_setup();
     apply_ref_transform();
     extract_runtime_code();
@@ -54,7 +99,7 @@ pub fn compile_script<'a>(
     finalize_setup_arg();
     generate_return_stmt();
     finalize_default_export();
-    sfc.scripts.pop().unwrap()
+    todo!()
 }
 
 fn process_normal_script(scripts: &mut SmallVec<[SfcScriptBlock; 1]>) {

@@ -110,6 +110,9 @@ impl<'a> SfcScriptBlock<'a> {
     pub fn is_setup(&self) -> bool {
         self.block.get_attr("setup").is_some()
     }
+    pub fn get_lang(&self) -> &str {
+        self.block.get_attr("lang").unwrap_or("jsx")
+    }
 }
 
 pub struct SfcStyleBlock<'a> {

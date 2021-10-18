@@ -107,7 +107,7 @@ pub struct SfcScriptBlock<'a> {
 }
 
 impl<'a> SfcScriptBlock<'a> {
-    fn is_setup(&self) -> bool {
+    pub fn is_setup(&self) -> bool {
         self.block.get_attr("setup").is_some()
     }
 }

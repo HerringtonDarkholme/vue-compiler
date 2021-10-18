@@ -5,6 +5,3 @@ default-members = ["crates/*"]
 
 [profile.release]
 lto = true
-
-# [patch.crates-io]
-# rslint_parser = { path = "../rslint/crates/rslint_parser" }

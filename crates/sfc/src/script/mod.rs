@@ -1,4 +1,7 @@
-use crate::{SfcDescriptor, SfcTemplateCompileOptions};
+use smallvec::SmallVec;
+use rslint_parser::{SyntaxNodeExt, parse_module};
+
+use crate::{SfcDescriptor, SfcScriptBlock, SfcTemplateCompileOptions};
 
 pub struct SfcScriptCompileOptions<'a> {
     /// Scope ID for prefixing injected CSS varialbes.
@@ -37,10 +40,10 @@ pub struct SfcScriptCompileOptions<'a> {
 // }
 
 pub fn compile_script<'a>(
-    sfc: SfcDescriptor<'a>,
+    mut sfc: SfcDescriptor<'a>,
     _options: SfcScriptCompileOptions<'a>,
-) -> SfcDescriptor<'a> {
-    process_normal_script();
+) -> SfcScriptBlock<'a> {
+    process_normal_script(&mut sfc.scripts);
     parse_script_setup();
     apply_ref_transform();
     extract_runtime_code();
@@ -51,10 +54,31 @@ pub fn compile_script<'a>(
     finalize_setup_arg();
     generate_return_stmt();
     finalize_default_export();
-    sfc
+    sfc.scripts.pop().unwrap()
 }
 
-fn process_normal_script() {}
+fn process_normal_script(scripts: &mut SmallVec<[SfcScriptBlock; 1]>) {
+    debug_assert!(scripts.len() <= 2);
+    let normal = match scripts.iter_mut().find(|s| !s.is_setup()) {
+        Some(script) => script,
+        None => return,
+    };
+    let content = parse_module(normal.block.content, 0);
+    if !content.errors().is_empty() {
+        todo!()
+    }
+    let module = content
+        .syntax()
+        .try_to::<rslint_parser::ast::Module>()
+        .unwrap();
+    for _item in module.items() {
+        // import declration
+        // export default
+        // export named
+        // declaration
+        todo!()
+    }
+}
 fn parse_script_setup() {}
 fn apply_ref_transform() {}
 // props and emits

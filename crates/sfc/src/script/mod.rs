@@ -1,5 +1,6 @@
 use smallvec::SmallVec;
 use rslint_parser::{SyntaxNodeExt, parse_module};
+use compiler::BindingMetadata;
 
 use crate::{SfcDescriptor, SfcScriptBlock, SfcTemplateCompileOptions};
 
@@ -74,15 +75,32 @@ fn process_single_script<'a>(
     let is_ts = scripts
         .iter()
         .any(|s| s.get_lang() == "ts" || s.get_lang() == "tsx");
-    let script = scripts.pop().unwrap();
+    let mut script = scripts.pop().unwrap();
     // do not process no-js script blocks
     if script.get_lang() != "jsx" && !is_ts {
         return Some(script);
     }
     // 1. parse ast
-    // 2. transformRef
-    // 3. inject css vars
+    let parse = parse_module(script.block.content, 0);
+    if !parse.errors().is_empty() {
+        todo!()
+    }
+    let module = parse
+        .syntax()
+        .try_to::<rslint_parser::ast::Module>()
+        .unwrap();
+    // 2. build bindingMetadata
+    let bindings = analyze_script_bindings(module);
+    script.bindings = Some(bindings);
+    // 3. transform ref
+    apply_ref_transform();
+    // 4. inject css vars
+    inject_css_vars();
     Some(script)
+}
+
+fn analyze_script_bindings(_module: rslint_parser::ast::Module) -> BindingMetadata<'static> {
+    todo!()
 }
 
 fn process_setup_scripts<'a>(

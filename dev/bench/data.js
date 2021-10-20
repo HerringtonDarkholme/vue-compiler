@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1634619855125,
+  "lastUpdate": 1634712695032,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -21631,6 +21631,98 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 6535,
             "range": "± 389",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "HerringtonDarkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "committer": {
+            "name": "HerringtonDarkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "id": "cdcd0d2a2f952ef798ad64146aaa740279dc9fef",
+          "message": "Update typescript-eslint monorepo to v5.1.0",
+          "timestamp": "2021-10-20T05:34:55Z",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/pull/42/commits/cdcd0d2a2f952ef798ad64146aaa740279dc9fef"
+        },
+        "date": 1634712693116,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 6164,
+            "range": "± 372",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4358,
+            "range": "± 237",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElTable",
+            "value": 281368,
+            "range": "± 18588",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 48351,
+            "range": "± 1920",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 44439,
+            "range": "± 2296",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 28123,
+            "range": "± 1694",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 135866,
+            "range": "± 6355",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 27636,
+            "range": "± 1947",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 8113,
+            "range": "± 594",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 7898,
+            "range": "± 465",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 7777,
+            "range": "± 358",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 6581,
+            "range": "± 825",
             "unit": "ns/iter"
           }
         ]

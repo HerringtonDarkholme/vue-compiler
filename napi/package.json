@@ -45,7 +45,8 @@
     "lint": "eslint . -c ./.eslintrc.yml './**/*.{ts,tsx,js}'",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
-    "version": "napi version"
+    "version": "napi version",
+    "benchmark": "node benchmark/index.js"
   },
   "devDependencies": {
     "@napi-rs/cli": "2.0.0-alpha.2",

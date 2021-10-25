@@ -1,6 +1,9 @@
 #![deny(clippy::all)]
 
-use napi_derive::napi;
+
+use napi::{CallContext,  JsBuffer, JsObject, JsString, Result};
+
+use napi_derive::{js_function, module_exports, napi};
 use napi::bindgen_prelude::*;
 use compiler::compiler::{BaseCompiler, TemplateCompiler};
 use compiler::error::VecErrorHandler;
@@ -34,11 +37,26 @@ static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 //   }
 // }
 
-// #[module_exports]
-// fn init(mut exports: JsObject) -> Result<()> {
-//   exports.create_named_method("sleep", sleep)?;
-//   Ok(())
-// }
+#[module_exports]
+fn init(mut exports: JsObject) -> Result<()> {
+    exports.create_named_method("compileSyncBuffer", compile_sync_buffer)?;
+    Ok(())
+}
+
+/// caller should guarantee buffer could convert to valid utf8 string
+#[js_function(1)]
+fn compile_sync_buffer(ctx: CallContext) -> Result<JsString> {
+    let input_data = ctx.get::<JsBuffer>(0)?.into_value()?;
+    let sfc_info = Default::default();
+    let err_handler = VecErrorHandler::default();
+    let option = compile_option(Rc::new(err_handler));
+    let dest = Vec::new;
+    let compiler = BaseCompiler::new(dest, get_dom_pass, option);
+
+    let source = unsafe { std::str::from_utf8_unchecked(&input_data) };
+    let ret = compiler.compile(source, &sfc_info).unwrap();
+    ctx.env.create_string_latin1(&ret)
+}
 
 #[napi]
 fn compile_sync(source: String) -> String {

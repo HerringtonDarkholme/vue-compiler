@@ -19,9 +19,6 @@ b.suite(
     b.add('sync string buffer', () => {
         compileSyncBuffer(SfcFileSmall)
     }),
-    //   b.add('Reduce five elements', () => {
-    //     ;[1, 2, 3, 4, 5].reduce((a, b) => a + b)
-    //   }),
 
     b.cycle(),
     b.complete(),
@@ -39,9 +36,6 @@ b.suite(
     b.add('sync string buffer', () => {
         compileSyncBuffer(SfcFileLarge)
     }),
-    //   b.add('Reduce five elements', () => {
-    //     ;[1, 2, 3, 4, 5].reduce((a, b) => a + b)
-    //   }),
 
     b.cycle(),
     b.complete(),

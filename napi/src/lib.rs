@@ -1,7 +1,6 @@
 #![deny(clippy::all)]
 
-
-use napi::{CallContext,  JsBuffer, JsObject, JsString, Result};
+use napi::{CallContext, JsBuffer, JsObject, JsString, Result};
 
 use napi_derive::{js_function, module_exports, napi};
 use napi::bindgen_prelude::*;

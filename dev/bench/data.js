@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1635339631697,
+  "lastUpdate": 1635339753601,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -25577,6 +25577,102 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 6630,
             "range": "± 372",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "iwanabethatguy@qq.com",
+            "name": "IWANABETHATGUY",
+            "username": "IWANABETHATGUY"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "00c829ec9a6a445d4f7f24e0dd0ff5670e5f5d1f",
+          "message": "Feat/napi bench (#50)\n\n* feat: 🎸 add napi benchmark and buffer api\r\n\r\n* feat: 🎸 update types\r\n\r\n* fix: 🐛 fix fmt\r\n\r\n* feat: 🎸 add baseline @vue/compiler-core",
+          "timestamp": "2021-10-27T08:57:51-04:00",
+          "tree_id": "6cd7614cefb0747d1e30b0e7e2949437640b2a96",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/00c829ec9a6a445d4f7f24e0dd0ff5670e5f5d1f"
+        },
+        "date": 1635339751178,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 5913,
+            "range": "± 124",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4211,
+            "range": "± 107",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElTable",
+            "value": 262171,
+            "range": "± 6201",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 43087,
+            "range": "± 1157",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 38152,
+            "range": "± 734",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 24694,
+            "range": "± 577",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 112783,
+            "range": "± 2446",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 22918,
+            "range": "± 489",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 7419,
+            "range": "± 170",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 7399,
+            "range": "± 135",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 7293,
+            "range": "± 145",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 5966,
+            "range": "± 130",
             "unit": "ns/iter"
           }
         ]

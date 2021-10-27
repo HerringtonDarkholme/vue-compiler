@@ -1,7 +1,7 @@
 lockfileVersion: 5.3
 
 specifiers:
-  '@vitejs/plugin-vue': 1.9.3
+  '@vitejs/plugin-vue': 1.9.4
   rusty-vue-compiler: file:../crates/wasm/pkg/
   typescript: 4.4.4
   vite: 2.6.12
@@ -15,7 +15,7 @@ optionalDependencies:
   rusty-vue-compiler: link:../crates/wasm/pkg
 
 devDependencies:
-  '@vitejs/plugin-vue': registry.npmmirror.com/@vitejs/plugin-vue/1.9.3_vite@2.6.12
+  '@vitejs/plugin-vue': 1.9.4_vite@2.6.12
   typescript: 4.4.4
   vite: 2.6.12
   vue-tsc: 0.28.9_typescript@4.4.4
@@ -54,6 +54,15 @@ packages:
 
   /@emmetio/scanner/1.0.0:
     resolution: {integrity: sha512-8HqW8EVqjnCmWXVpqAOZf+EGESdkR27odcMMMGefgKXtar00SoYNSryGv//TELI4T3QFsECo78p+0lmalk/CFA==}
+    dev: true
+
+  /@vitejs/plugin-vue/1.9.4_vite@2.6.12:
+    resolution: {integrity: sha512-0CZqaCoChriPTTtGkERy1LGPcYjGFpi2uYRhBPIkqJqUGV5JnJFhQAgh6oH9j5XZHfrRaisX8W0xSpO4T7S78A==}
+    engines: {node: '>=12.0.0'}
+    peerDependencies:
+      vite: ^2.5.10
+    dependencies:
+      vite: 2.6.12
     dev: true
 
   /@volar/code-gen/0.28.9:
@@ -894,16 +903,4 @@ packages:
 
   /yallist/4.0.0:
     resolution: {integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==}
-    dev: true
-
-  registry.npmmirror.com/@vitejs/plugin-vue/1.9.3_vite@2.6.12:
-    resolution: {integrity: sha1-k9YYk85scj0CCa8Eg+yLkaLNgR8=, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/@vitejs/plugin-vue/download/@vitejs/plugin-vue-1.9.3.tgz}
-    id: registry.npmmirror.com/@vitejs/plugin-vue/1.9.3
-    name: '@vitejs/plugin-vue'
-    version: 1.9.3
-    engines: {node: '>=12.0.0'}
-    peerDependencies:
-      vite: ^2.5.10
-    dependencies:
-      vite: 2.6.12
     dev: true

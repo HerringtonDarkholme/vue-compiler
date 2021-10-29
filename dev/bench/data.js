@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1635481973769,
+  "lastUpdate": 1635481988287,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -28642,6 +28642,102 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 5399,
             "range": "± 15",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c8009d06cae21f3eefe0a44cf97dae197684985e",
+          "message": "Merge pull request #59 from HerringtonDarkholme/renovate/swc-node-register-1.x\n\nUpdate dependency @swc-node/register to v1.3.7",
+          "timestamp": "2021-10-29T04:28:27Z",
+          "tree_id": "869e8373f1a8bbbc643afe2314cc71665bb723dc",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/c8009d06cae21f3eefe0a44cf97dae197684985e"
+        },
+        "date": 1635481985986,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 6269,
+            "range": "± 469",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4633,
+            "range": "± 162",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElTable",
+            "value": 250245,
+            "range": "± 6269",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 44693,
+            "range": "± 1682",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 40627,
+            "range": "± 1288",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 25433,
+            "range": "± 968",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 121316,
+            "range": "± 9717",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 25558,
+            "range": "± 1430",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 8416,
+            "range": "± 337",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 8430,
+            "range": "± 425",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 7807,
+            "range": "± 296",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 6547,
+            "range": "± 321",
             "unit": "ns/iter"
           }
         ]

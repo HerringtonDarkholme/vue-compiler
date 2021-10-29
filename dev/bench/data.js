@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1635391208892,
+  "lastUpdate": 1635481793777,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -11716,6 +11716,107 @@ window.BENCHMARK_DATA = {
             "range": "±1.04%",
             "unit": "ops/sec",
             "extra": "88 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c8009d06cae21f3eefe0a44cf97dae197684985e",
+          "message": "Merge pull request #59 from HerringtonDarkholme/renovate/swc-node-register-1.x\n\nUpdate dependency @swc-node/register to v1.3.7",
+          "timestamp": "2021-10-29T04:28:27Z",
+          "tree_id": "869e8373f1a8bbbc643afe2314cc71665bb723dc",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/c8009d06cae21f3eefe0a44cf97dae197684985e"
+        },
+        "date": 1635481791729,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "Attribute.vue",
+            "value": 33176,
+            "range": "±1.29%",
+            "unit": "ops/sec",
+            "extra": "85 samples"
+          },
+          {
+            "name": "Counter.vue",
+            "value": 47044,
+            "range": "±1.19%",
+            "unit": "ops/sec",
+            "extra": "85 samples"
+          },
+          {
+            "name": "ElasticHeader.vue",
+            "value": 3344,
+            "range": "±10.07%",
+            "unit": "ops/sec",
+            "extra": "87 samples"
+          },
+          {
+            "name": "GithubCommit.vue",
+            "value": 4695,
+            "range": "±5.76%",
+            "unit": "ops/sec",
+            "extra": "86 samples"
+          },
+          {
+            "name": "ModalComponent.vue",
+            "value": 8130,
+            "range": "±2.33%",
+            "unit": "ops/sec",
+            "extra": "86 samples"
+          },
+          {
+            "name": "TodoApp.vue",
+            "value": 1770,
+            "range": "±2.08%",
+            "unit": "ops/sec",
+            "extra": "84 samples"
+          },
+          {
+            "name": "TreeView.vue",
+            "value": 4189,
+            "range": "±1.80%",
+            "unit": "ops/sec",
+            "extra": "85 samples"
+          },
+          {
+            "name": "TwoWayBinding.vue",
+            "value": 22046,
+            "range": "±0.95%",
+            "unit": "ops/sec",
+            "extra": "84 samples"
+          },
+          {
+            "name": "UserInput.vue",
+            "value": 20557,
+            "range": "±1.01%",
+            "unit": "ops/sec",
+            "extra": "87 samples"
+          },
+          {
+            "name": "VFor.vue",
+            "value": 22802,
+            "range": "±1.03%",
+            "unit": "ops/sec",
+            "extra": "87 samples"
+          },
+          {
+            "name": "VIf.vue",
+            "value": 31833,
+            "range": "±0.93%",
+            "unit": "ops/sec",
+            "extra": "87 samples"
           }
         ]
       }

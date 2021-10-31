@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1635689733795,
+  "lastUpdate": 1635689938725,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -28839,6 +28839,102 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 6547,
             "range": "± 321",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d3b833d4f5233a6140e9420e709f092756bb1131",
+          "message": "[doc] update playground build instruction\n\nfix #60",
+          "timestamp": "2021-10-31T10:14:00-04:00",
+          "tree_id": "1e90386f3572d8eb50143c9210fbd0e3e8b4874a",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/d3b833d4f5233a6140e9420e709f092756bb1131"
+        },
+        "date": 1635689936146,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 6199,
+            "range": "± 311",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4589,
+            "range": "± 269",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElTable",
+            "value": 268764,
+            "range": "± 14613",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 46883,
+            "range": "± 2629",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 42814,
+            "range": "± 3405",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 26347,
+            "range": "± 1197",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 126475,
+            "range": "± 7494",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 25338,
+            "range": "± 1399",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 7779,
+            "range": "± 298",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 7954,
+            "range": "± 382",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 7637,
+            "range": "± 412",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 6401,
+            "range": "± 306",
             "unit": "ns/iter"
           }
         ]

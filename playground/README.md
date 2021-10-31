@@ -5,7 +5,7 @@ Depends on the output under `crates/wasm/pkg`.
 ## Build Instruction
 
 1. Install wasm-pack
-2. `cd ../crates/wasm && wasm-pack build`
+2. `cd ../crates/wasm && wasm-pack build --target web`
 3. `cd ../../wasm-demo && cp ../crates/wasm/pkg/vue_compiler_wasm_bg.wasm`
 4. `npm run build`
 

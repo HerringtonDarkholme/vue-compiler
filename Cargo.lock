@@ -524,9 +524,9 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98bec066ff20739eb69a6ccdc254a1fa5e07d822987b10707645961d79e4535d"
+checksum = "19affb9ddd04353e55763ab748a60f8891c79b3469d6e526548bb0e613db8cb6"
 dependencies = [
  "ctor",
  "napi-sys",
@@ -568,9 +568,9 @@ dependencies = [
 
 [[package]]
 name = "napi-sys"
-version = "1.1.1"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43563506c466587478849d80f46383d859b91bbec586580dadeb3639588f2f7e"
+checksum = "67cf20e0081fea04e044aa4adf74cfea8ddc0324eec2894b1c700f4cafc72a56"
 
 [[package]]
 name = "num-bigint"

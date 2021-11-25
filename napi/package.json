@@ -59,7 +59,7 @@
     "benchmark": "node benchmark/index.js"
   },
   "devDependencies": {
-    "@napi-rs/cli": "2.0.0-alpha.10",
+    "@napi-rs/cli": "2.0.0-alpha.11",
     "@swc-node/register": "1.4.0",
     "@types/node": "16.11.10",
     "@vue/compiler-core": "3.2.22",

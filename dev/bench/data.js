@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1638221708406,
+  "lastUpdate": 1638228915810,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -17372,6 +17372,107 @@ window.BENCHMARK_DATA = {
             "range": "±0.16%",
             "unit": "ops/sec",
             "extra": "95 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bot@renovateapp.com",
+            "name": "Renovate Bot",
+            "username": "renovate-bot"
+          },
+          "committer": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "distinct": true,
+          "id": "89df892ff018fed4cc8c447a6aacf156fa28c1a2",
+          "message": "Update Rust crate napi-derive to 2.0.0-alpha.10",
+          "timestamp": "2021-11-29T23:33:08Z",
+          "tree_id": "d8321ee2fed3eb928d36bac6b49b5be7e265d10a",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/89df892ff018fed4cc8c447a6aacf156fa28c1a2"
+        },
+        "date": 1638228912734,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "Attribute.vue",
+            "value": 43153,
+            "range": "±12.24%",
+            "unit": "ops/sec",
+            "extra": "93 samples"
+          },
+          {
+            "name": "Counter.vue",
+            "value": 75833,
+            "range": "±0.61%",
+            "unit": "ops/sec",
+            "extra": "90 samples"
+          },
+          {
+            "name": "ElasticHeader.vue",
+            "value": 4772,
+            "range": "±8.34%",
+            "unit": "ops/sec",
+            "extra": "88 samples"
+          },
+          {
+            "name": "GithubCommit.vue",
+            "value": 7138,
+            "range": "±4.57%",
+            "unit": "ops/sec",
+            "extra": "89 samples"
+          },
+          {
+            "name": "ModalComponent.vue",
+            "value": 12199,
+            "range": "±1.49%",
+            "unit": "ops/sec",
+            "extra": "92 samples"
+          },
+          {
+            "name": "TodoApp.vue",
+            "value": 2351,
+            "range": "±1.03%",
+            "unit": "ops/sec",
+            "extra": "88 samples"
+          },
+          {
+            "name": "TreeView.vue",
+            "value": 6397,
+            "range": "±4.01%",
+            "unit": "ops/sec",
+            "extra": "88 samples"
+          },
+          {
+            "name": "TwoWayBinding.vue",
+            "value": 36643,
+            "range": "±0.26%",
+            "unit": "ops/sec",
+            "extra": "94 samples"
+          },
+          {
+            "name": "UserInput.vue",
+            "value": 32763,
+            "range": "±0.27%",
+            "unit": "ops/sec",
+            "extra": "93 samples"
+          },
+          {
+            "name": "VFor.vue",
+            "value": 34090,
+            "range": "±0.58%",
+            "unit": "ops/sec",
+            "extra": "94 samples"
+          },
+          {
+            "name": "VIf.vue",
+            "value": 47989,
+            "range": "±0.26%",
+            "unit": "ops/sec",
+            "extra": "89 samples"
           }
         ]
       }

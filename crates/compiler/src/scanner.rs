@@ -835,6 +835,20 @@ pub mod test {
         assert_eq!(val.content.into_string(), "&amp;");
     }
 
+    #[test]
+    fn test_simple_text_with_invalid_end_tag() {
+        let a: Vec<_> = base_scan("some text</div>").collect();
+        assert_eq!(a.len(), 2);
+        assert!(matches!(
+            a[0],
+            Token::Text(_)
+        ));
+        assert!(matches!(
+            a[1],
+            Token::EndTag("div")
+        ));
+    }
+
     fn scan_with_opt(s: &str, opt: ScanOption) -> impl TokenSource {
         let scanner = Scanner::new(opt);
         let ctx = std::rc::Rc::new(TestErrorHandler);

@@ -40,3 +40,6 @@ No support since most features in full build are additional except for browser b
 * [Vue Template Explorer](https://vue-next-template-explorer.netlify.app/) gives instant results for  code generation and error reporting.
 * [Nu html checker](https://validator.w3.org/nu/#textarea) is the official html validator from W3C. This is the canonical error reporter for html parsing, when there is a discrepancy between the framework and the spec.
 * [AST explorer](https://astexplorer.net/) can inspect AST nodes interactively.
+
+## Benchmark
+[benchmark](https://herringtondarkholme.github.io/vue-compiler/dev/bench/) you could inspect the benchmark result here.

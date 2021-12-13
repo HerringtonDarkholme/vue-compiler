@@ -571,9 +571,9 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "2.0.0-beta.5"
+version = "2.0.0-beta.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cbd9f931690bedcce3d09bbf029b8c8632b6df6015bc6b3766e151340dbd074"
+checksum = "6eaf44a96ee500dfd10eea933f1bdf593c49370b8909a98e4290368303a98d0c"
 dependencies = [
  "ctor",
  "napi-sys",

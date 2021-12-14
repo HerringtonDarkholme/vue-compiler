@@ -21,10 +21,7 @@ use pretty_error::PrettyErrorHandler;
 
 /// A simple CLI app for quick debugging the compiler internal.
 #[derive(Parser)]
-#[clap(
-    version = "0.1.0",
-    author = "Herrington Darkholme <2883231+HerringtonDarkholme@users.noreply.github.com>"
-)]
+#[clap(about, version, author)]
 struct Opts {
     /// The file to parse. Stdin will be parsed as input if no file is provided.
     input_file_name: Option<String>,

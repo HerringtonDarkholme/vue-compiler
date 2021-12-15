@@ -3,7 +3,7 @@ lockfileVersion: 5.3
 specifiers:
   '@napi-rs/cli': 2.0.0-beta.5
   '@node-rs/helper': ^1.2.1
-  '@swc-node/register': 1.4.1
+  '@swc-node/register': 1.4.2
   '@types/node': 16.11.13
   '@typescript-eslint/eslint-plugin': 5.7.0
   '@typescript-eslint/parser': 5.7.0
@@ -26,7 +26,7 @@ dependencies:
 
 devDependencies:
   '@napi-rs/cli': 2.0.0-beta.5
-  '@swc-node/register': 1.4.1
+  '@swc-node/register': 1.4.2
   '@types/node': 16.11.13
   '@typescript-eslint/eslint-plugin': 5.7.0_915acdfead96f701b1277a1a723fc8d4
   '@typescript-eslint/parser': 5.7.0_eslint@8.4.1+typescript@4.5.4
@@ -183,17 +183,17 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /@swc-node/core/1.8.1:
-    resolution: {integrity: sha512-Uv0XF6BrDcjXCdq19bQC3/3uMuJEydFFyfXuTY7r7wHea5iq3cyY8uSBr4BcV9/2H/e8Y+Q6rdWr7OK4kGTOKQ==}
+  /@swc-node/core/1.8.2:
+    resolution: {integrity: sha512-IoJ7tGHQ6JOMSmFe4VhP64uLmFKMNasS0QEgUrLFQ0h/dTvpQMynnoGBEJoPL6LfsebZ/q4uKqbpWrth6/yrAA==}
     engines: {node: '>= 10'}
     dependencies:
       '@swc/core': 1.2.120
     dev: true
 
-  /@swc-node/register/1.4.1:
-    resolution: {integrity: sha512-/pFFERCCOyNRxWeDzMhDZNLpxuaqXDskeoVVKXpskmaHFE6OT4UsTvBEmiuVr94hYYx+6wa2fxdYvrlez+ugdA==}
+  /@swc-node/register/1.4.2:
+    resolution: {integrity: sha512-wLZz0J7BTO//1Eq7e4eBQjKF380Hr2eVemz849msQSKcVM1D7UJUt/dP2TinEVGx++/BXJ/0q37i6n9Iw0EM0w==}
     dependencies:
-      '@swc-node/core': 1.8.1
+      '@swc-node/core': 1.8.2
       '@swc-node/sourcemap-support': 0.1.11
       chalk: 4.1.2
       debug: 4.3.3

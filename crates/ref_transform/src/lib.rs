@@ -1,9 +1,13 @@
 use std::ops::{Deref, DerefMut};
+mod js_parser;
+
 pub struct Semgrep {
     root: Node,
 }
 
-pub struct Node {}
+pub struct Node {
+    _inner: js_parser::Tree,
+}
 
 // tree traversal API
 impl Node {
@@ -45,7 +49,7 @@ impl Node {
 // tree manipulation API
 impl Node {
     pub fn attr(&mut self) {}
-    pub fn replace(&mut self, pattern: &str, replacement: &str) -> &mut Self {
+    pub fn replace(&mut self, _pattern: &str, _replacement: &str) -> &mut Self {
         todo!()
     }
     pub fn replace_by(&mut self) {}
@@ -62,11 +66,10 @@ impl Node {
 impl Semgrep {
     pub fn new<S: AsRef<str>>(source: S) -> Self {
         Self {
-            root: Self::parse(source.as_ref()),
+            root: Node {
+                _inner: js_parser::parse(source.as_ref()),
+            },
         }
-    }
-    pub fn parse(_s: &str) -> Node {
-        todo!()
     }
     pub fn generate(_n: &Node) -> String {
         todo!()

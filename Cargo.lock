@@ -1212,6 +1212,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tree-sitter"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9394e9dbfe967b5f3d6ab79e302e78b5fb7b530c368d634ff3b8d67ede138bf1"
+dependencies = [
+ "cc",
+ "regex",
+]
+
+[[package]]
 name = "triomphe"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1316,6 +1326,10 @@ dependencies = [
 [[package]]
 name = "vue-ref-transform"
 version = "0.1.0"
+dependencies = [
+ "cc",
+ "tree-sitter",
+]
 
 [[package]]
 name = "walkdir"

@@ -9,7 +9,7 @@ pub fn parse(source_code: &str) -> Tree {
     let mut parser = Parser::new();
     let language = unsafe { tree_sitter_javascript() };
     parser.set_language(language).unwrap();
-    return parser.parse(source_code, None).unwrap();
+    parser.parse(source_code, None).unwrap()
 }
 
 #[cfg(test)]

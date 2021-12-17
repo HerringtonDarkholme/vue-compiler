@@ -1,7 +1,7 @@
 lockfileVersion: 5.3
 
 specifiers:
-  '@napi-rs/cli': 2.0.0-beta.5
+  '@napi-rs/cli': 2.0.0
   '@node-rs/helper': ^1.2.1
   '@swc-node/register': 1.4.2
   '@types/node': 16.11.14
@@ -25,7 +25,7 @@ dependencies:
   '@node-rs/helper': registry.nlark.com/@node-rs/helper/1.2.1
 
 devDependencies:
-  '@napi-rs/cli': 2.0.0-beta.5
+  '@napi-rs/cli': 2.0.0
   '@swc-node/register': 1.4.2
   '@types/node': 16.11.14
   '@typescript-eslint/eslint-plugin': 5.7.0_915acdfead96f701b1277a1a723fc8d4
@@ -141,8 +141,8 @@ packages:
     resolution: {integrity: sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==}
     dev: true
 
-  /@napi-rs/cli/2.0.0-beta.5:
-    resolution: {integrity: sha512-/t7T52f2PEOcQXXbnmUZKKwAGIIU8mj2a1gwWR6Vo8wJeAzKXFrfQ5wx1Y/56E1vYRcRrGyDatDTBEQc7omwdw==}
+  /@napi-rs/cli/2.0.0:
+    resolution: {integrity: sha512-2R24dtZoPYb9TxIQJbhUSloSVK4HGfa6CVn5JgUeO9WTvZecC5i8WaFm2CC7GWbYmDlPu2AnULwaSr+AP7r1RQ==}
     engines: {node: '>= 10'}
     hasBin: true
     dev: true

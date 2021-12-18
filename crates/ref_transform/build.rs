@@ -5,6 +5,9 @@ fn main() {
 
     cc::Build::new()
         .include(&dir)
+        .flag_if_supported("-Wno-unused-parameter")
+        .flag_if_supported("-Wno-unused-but-set-variable")
+        .flag_if_supported("-Wno-trigraphs")
         .file(dir.join("parser.c"))
         .file(dir.join("scanner.c"))
         .compile("tree-sitter-javascript");

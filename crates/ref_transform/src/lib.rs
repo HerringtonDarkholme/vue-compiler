@@ -1,5 +1,8 @@
 use std::ops::{Deref, DerefMut};
+
 mod js_parser;
+mod pattern;
+mod rule;
 
 pub struct Semgrep {
     root: Node,

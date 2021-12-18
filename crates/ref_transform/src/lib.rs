@@ -9,7 +9,15 @@ pub struct Semgrep {
 }
 
 pub struct Node {
-    _inner: js_parser::Tree,
+    inner: js_parser::Tree,
+}
+
+impl Node {
+    fn new(src: &str) -> Self {
+        Self {
+            inner: js_parser::parse(src),
+        }
+    }
 }
 
 // tree traversal API
@@ -24,16 +32,13 @@ impl Node {
     pub fn ancestors(&self) -> Vec<Node> {
         todo!()
     }
-    pub fn siblings(&self) -> Vec<Node> {
-        todo!()
-    }
-    pub fn next(&self) -> Node {
+    pub fn next(&self) -> Option<Node> {
         todo!()
     }
     pub fn next_all(&self) -> Vec<Node> {
         todo!()
     }
-    pub fn prev(&self) -> Node {
+    pub fn prev(&self) -> Option<Node> {
         todo!()
     }
     pub fn prev_all(&self) -> Vec<Node> {
@@ -42,18 +47,25 @@ impl Node {
     pub fn eq(&self, _i: usize) -> Node {
         todo!()
     }
-    pub fn each<F>(&self, f: F)
+    pub fn each<F>(&self, _f: F)
     where
         F: Fn(&Node),
     {
+        todo!()
     }
 }
 
 // tree manipulation API
 impl Node {
     pub fn attr(&mut self) {}
-    pub fn replace(&mut self, _pattern: &str, _replacement: &str) -> &mut Self {
-        todo!()
+    pub fn replace(&mut self, pattern_str: &str, replacement_str: &str) -> &mut Self {
+        let to_match = pattern::Pattern::new(pattern_str);
+        let _to_replace = pattern::Pattern::new(replacement_str);
+        if let Some(_node) = to_match.match_node(self) {
+            todo!("change node content with replaced")
+        } else {
+            todo!()
+        }
     }
     pub fn replace_by(&mut self) {}
     pub fn after(&mut self) {}
@@ -69,9 +81,7 @@ impl Node {
 impl Semgrep {
     pub fn new<S: AsRef<str>>(source: S) -> Self {
         Self {
-            root: Node {
-                _inner: js_parser::parse(source.as_ref()),
-            },
+            root: Node::new(source.as_ref()),
         }
     }
     pub fn generate(_n: &Node) -> String {

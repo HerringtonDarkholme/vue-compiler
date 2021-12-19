@@ -54,5 +54,32 @@ fn match_impl<'tree>(goal: &TNode<'tree>, candidate: TNode<'tree>) -> Option<TNo
 }
 
 fn extract_meta_vars(_src: &str) -> HashMap<String, MetaVariable> {
-    todo!()
+    HashMap::new()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn test_match(s1: &str, s2: &str) {
+        let goal = Pattern::new(s1);
+        let cand = Pattern::new(s2);
+        assert!(match_node(&goal.pattern_node, &cand.pattern_node).is_some());
+    }
+    fn test_non_match(s1: &str, s2: &str) {
+        let goal = Pattern::new(s1);
+        let cand = Pattern::new(s2);
+        assert!(match_node(&goal.pattern_node, &cand.pattern_node).is_none());
+    }
+
+    #[test]
+    fn test_simple_match() {
+        test_match("const a = 123", "const a=123");
+        test_non_match("const a = 123", "var a = 123");
+    }
+    // #[test]
+    // fn test_nested_match() {
+    //     test_match("const a = 123", "function() {const a= 123;}");
+    //     test_match("const a = 123", "class A { constructor() {const a= 123;}}");
+    // }
 }

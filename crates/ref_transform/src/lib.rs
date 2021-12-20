@@ -1,4 +1,5 @@
 use std::ops::{Deref, DerefMut};
+use std::rc::Rc;
 
 mod js_parser;
 mod pattern;
@@ -10,12 +11,14 @@ pub struct Semgrep {
 
 pub struct Node {
     inner: js_parser::Tree,
+    source: Rc<String>,
 }
 
 impl Node {
     fn new(src: &str) -> Self {
         Self {
             inner: js_parser::parse(src),
+            source: Rc::new(src.into()),
         }
     }
 }

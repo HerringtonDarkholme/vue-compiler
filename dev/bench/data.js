@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1640184512832,
+  "lastUpdate": 1640184719780,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -76061,6 +76061,102 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 6100,
             "range": "± 140",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bot@renovateapp.com",
+            "name": "Renovate Bot",
+            "username": "renovate-bot"
+          },
+          "committer": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "distinct": true,
+          "id": "9b6737fa9d8e4e4a8047a9598bc2986fabfbb1fb",
+          "message": "Update dependency @napi-rs/cli to v2.2.0",
+          "timestamp": "2021-12-22T09:47:02-05:00",
+          "tree_id": "92649e0e446b885f9bcbe0f1a47b5dd6d883e552",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/9b6737fa9d8e4e4a8047a9598bc2986fabfbb1fb"
+        },
+        "date": 1640184716254,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 5992,
+            "range": "± 293",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4249,
+            "range": "± 195",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElTable",
+            "value": 266849,
+            "range": "± 20120",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 45127,
+            "range": "± 5085",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 40037,
+            "range": "± 2319",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 25077,
+            "range": "± 1763",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 122527,
+            "range": "± 5217",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 24184,
+            "range": "± 1091",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 7413,
+            "range": "± 345",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 7715,
+            "range": "± 501",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 7672,
+            "range": "± 536",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 6236,
+            "range": "± 278",
             "unit": "ns/iter"
           }
         ]

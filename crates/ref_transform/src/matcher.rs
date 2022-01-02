@@ -1,4 +1,4 @@
-use crate::Env;
+use crate::meta_var::{Env, is_meta_var};
 use tree_sitter::Node as TNode;
 
 pub fn match_single_kind<'tree>(
@@ -27,7 +27,7 @@ pub fn match_node_impl<'tree>(
         let key = goal
             .utf8_text(source.as_bytes())
             .expect("invalid source pattern encoding");
-        if is_wildcard_pattern(key) {
+        if is_meta_var(key) {
             env.insert(key.to_owned(), candidate);
             return Some(candidate);
         }
@@ -60,6 +60,40 @@ pub fn match_node_impl<'tree>(
     }
 }
 
-fn is_wildcard_pattern(s: &str) -> bool {
-    s.starts_with('$') && s[1..].chars().all(|c| matches!(c, 'A'..='Z' | '_'))
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::js_parser::parse;
+    use std::collections::HashMap;
+
+    fn test_match(s1: &str, s2: &str) -> HashMap<String, String> {
+        let goal = parse(s1);
+        let cand = parse(s2);
+        let mut env = HashMap::new();
+        let ret = match_node_impl(&goal.root_node(), cand.root_node(), s1, &mut env);
+        assert!(ret.is_some());
+        env.into_iter()
+            .map(|(k, v)| (k, v.utf8_text(s2.as_bytes()).unwrap().into()))
+            .collect()
+    }
+
+    fn test_non_match(s1: &str, s2: &str) {
+        let goal = parse(s1);
+        let cand = parse(s2);
+        let mut env = HashMap::new();
+        let ret = match_node_impl(&goal.root_node(), cand.root_node(), s1, &mut env);
+        assert!(ret.is_none());
+    }
+
+    #[test]
+    fn test_should_exactly_match() {
+        test_match(
+            "function foo() { let a = 123; }",
+            "function foo() { let a = 123; }",
+        );
+    }
+    #[test]
+    fn test_extact_match_should_not_match_inner() {
+        // test_non_match("function foo() { let a = 123; }", "function foo() { function bar() {let a = 123; }}");
+    }
 }

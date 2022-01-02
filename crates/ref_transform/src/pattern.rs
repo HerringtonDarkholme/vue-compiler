@@ -1,18 +1,7 @@
 use std::collections::HashMap;
-use crate::{Node, Env, MetaVariableID};
+use crate::{Node, meta_var::Env};
 use crate::matcher::{match_node_impl, match_single_kind};
 use tree_sitter::Node as TNode;
-
-pub enum MetaVarMatcher {
-    Regex(&'static str),
-    Pattern(PatternKind),
-}
-impl MetaVarMatcher {
-    pub fn matches(&self, _candidate: &TNode) -> bool {
-        // todo
-        true
-    }
-}
 
 pub enum PatternKind {
     NodePattern(Node),
@@ -20,7 +9,6 @@ pub enum PatternKind {
 }
 
 pub struct Pattern {
-    meta_variables: HashMap<MetaVariableID, MetaVarMatcher>,
     pattern_kind: PatternKind,
 }
 
@@ -28,15 +16,11 @@ impl Pattern {
     pub fn new(src: &str) -> Self {
         let node = Node::new(src);
         let pattern_kind = PatternKind::NodePattern(node);
-        Self {
-            pattern_kind,
-            meta_variables: HashMap::new(),
-        }
+        Self { pattern_kind }
     }
     pub fn of_kind(kind: &'static str) -> Self {
         Self {
             pattern_kind: PatternKind::KindPattern(kind),
-            meta_variables: HashMap::new(),
         }
     }
     pub fn match_node<'tree>(&'tree self, node: &'tree Node) -> Option<(TNode<'tree>, Env<'tree>)> {
@@ -44,15 +28,6 @@ impl Pattern {
             PatternKind::NodePattern(ref n) => match_node(n, node),
             PatternKind::KindPattern(k) => match_kind(k, node),
         }
-    }
-
-    pub fn with_meta_var<Var: Into<String>>(
-        &mut self,
-        var_name: Var,
-        var_matcher: MetaVarMatcher,
-    ) -> &mut Self {
-        self.meta_variables.insert(var_name.into(), var_matcher);
-        self
     }
 
     pub fn gen_replaced(&self, _vars: Env) -> String {

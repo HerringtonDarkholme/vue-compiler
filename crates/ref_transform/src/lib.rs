@@ -1,9 +1,16 @@
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
+use tree_sitter::{Node as TNode};
+use std::collections::HashMap;
 
 mod js_parser;
+mod language;
+mod matcher;
 mod pattern;
 mod rule;
+
+pub type MetaVariableID = String;
+pub type Env<'tree> = HashMap<MetaVariableID, TNode<'tree>>;
 
 pub struct Semgrep {
     root: Node,

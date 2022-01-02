@@ -1,31 +1,64 @@
 use std::collections::HashMap;
-use crate::Node;
-use tree_sitter::{Node as TNode};
+use crate::{Node, Env, MetaVariableID};
+use crate::matcher::{match_node_impl, match_single_kind};
+use tree_sitter::Node as TNode;
 
-pub type Env<'tree> = HashMap<String, TNode<'tree>>;
+pub enum MetaVarMatcher {
+    Regex(&'static str),
+    Pattern(PatternKind),
+}
+impl MetaVarMatcher {
+    pub fn matches(&self, candidate: &TNode) -> bool {
+        // todo
+        true
+    }
+}
 
-pub struct MetaVariable {
-    meta_var_regex: Option<String>,
+pub enum PatternKind {
+    NodePattern(Node),
+    KindPattern(&'static str),
 }
 
 pub struct Pattern {
-    meta_variables: HashMap<String, MetaVariable>,
-    pattern_node: Node,
+    meta_variables: HashMap<MetaVariableID, MetaVarMatcher>,
+    pattern_kind: PatternKind,
 }
 
 impl Pattern {
     pub fn new(src: &str) -> Self {
+        let node = Node::new(src);
+        let pattern_kind = PatternKind::NodePattern(node);
         Self {
-            pattern_node: Node::new(src),
-            meta_variables: extract_meta_vars(src),
+            pattern_kind,
+            meta_variables: HashMap::new(),
+        }
+    }
+    pub fn of_kind(kind: &'static str) -> Self {
+        Self {
+            pattern_kind: PatternKind::KindPattern(kind),
+            meta_variables: HashMap::new(),
         }
     }
     pub fn match_node<'tree>(&'tree self, node: &'tree Node) -> Option<(TNode<'tree>, Env<'tree>)> {
-        match_node(&self.pattern_node, node)
+        match self.pattern_kind {
+            PatternKind::NodePattern(ref n) => match_node(n, node),
+            PatternKind::KindPattern(k) => match_kind(k, node),
+            _ => todo!(),
+        }
     }
     pub fn gen_replaced(&self, _vars: Env) -> String {
         todo!()
     }
+}
+
+fn match_kind<'tree>(
+    kind: &'static str,
+    candidate: &'tree Node,
+) -> Option<(TNode<'tree>, Env<'tree>)> {
+    let mut env = HashMap::new();
+    let candidate = candidate.inner.root_node();
+    let node = match_single_kind(kind, candidate, &mut env)?;
+    Some((node, env))
 }
 
 fn match_node<'tree>(
@@ -43,83 +76,40 @@ fn match_node<'tree>(
     if candidate.next_sibling().is_some() {
         todo!("multi candidate roots are not supported yet.")
     }
-    let node = match_impl(&goal, candidate, source, &mut env)?;
+    let node = match_node_impl(&goal, candidate, source, &mut env)?;
     Some((node, env))
-}
-fn match_impl<'tree>(
-    goal: &TNode<'tree>,
-    candidate: TNode<'tree>,
-    source: &str,
-    env: &mut Env<'tree>,
-) -> Option<TNode<'tree>> {
-    let is_leaf = goal.child_count() == 0;
-    if is_leaf {
-        let key = goal
-            .utf8_text(source.as_bytes())
-            .expect("invalid source pattern encoding");
-        if is_wildcard_pattern(key) {
-            env.insert(key.to_owned(), candidate);
-            return Some(candidate);
-        }
-    }
-    if goal.kind_id() == candidate.kind_id() {
-        if is_leaf {
-            return Some(candidate);
-        }
-        let mut goal_cursor = goal.walk();
-        let moved = goal_cursor.goto_first_child();
-        debug_assert!(moved);
-        let mut candidate_cursor = candidate.walk();
-        if !candidate_cursor.goto_first_child() {
-            return None;
-        }
-        while match_impl(&goal_cursor.node(), candidate_cursor.node(), source, env).is_some() {
-            if !goal_cursor.goto_next_sibling() {
-                // all goal found, return
-                return Some(candidate);
-            }
-            if !candidate_cursor.goto_next_sibling() {
-                return None;
-            }
-        }
-        None
-    } else {
-        let mut cursor = candidate.walk();
-        let mut children = candidate.children(&mut cursor);
-        children.find_map(|sub_cand| match_impl(goal, sub_cand, source, env))
-    }
-}
-
-fn is_wildcard_pattern(s: &str) -> bool {
-    s.starts_with('$') && s[1..].chars().all(|c| matches!(c, 'A'..='Z' | '_'))
-}
-
-fn extract_meta_vars(_src: &str) -> HashMap<String, MetaVariable> {
-    HashMap::new()
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
 
+    fn pattern_node(s: &str) -> Node {
+        let pattern = Pattern::new(s);
+        match pattern.pattern_kind {
+            PatternKind::NodePattern(n) => n,
+            _ => todo!(),
+        }
+    }
+
     fn test_match(s1: &str, s2: &str) {
-        let goal = Pattern::new(s1);
-        let cand = Pattern::new(s2);
+        let goal = pattern_node(s1);
+        let cand = pattern_node(s2);
         assert!(
-            match_node(&goal.pattern_node, &cand.pattern_node).is_some(),
+            match_node(&goal, &cand).is_some(),
             "goal: {}, candidate: {}",
-            goal.pattern_node.inner.root_node().to_sexp(),
-            cand.pattern_node.inner.root_node().to_sexp(),
+            goal.inner.root_node().to_sexp(),
+            cand.inner.root_node().to_sexp(),
         );
     }
     fn test_non_match(s1: &str, s2: &str) {
-        let goal = Pattern::new(s1);
-        let cand = Pattern::new(s2);
+        let goal = pattern_node(s1);
+        let cand = pattern_node(s2);
         assert!(
-            match_node(&goal.pattern_node, &cand.pattern_node).is_none(),
+            match_node(&goal, &cand).is_none(),
             "goal: {}, candidate: {}",
-            goal.pattern_node.inner.root_node().to_sexp(),
-            cand.pattern_node.inner.root_node().to_sexp(),
+            goal.inner.root_node().to_sexp(),
+            cand.inner.root_node().to_sexp(),
         );
     }
 
@@ -148,10 +138,22 @@ mod test {
     #[test]
     fn test_meta_variable_env() {
         let cand_str = "const a = 123";
-        let goal = Pattern::new("const a = $VALUE");
-        let cand = Pattern::new(cand_str);
-        let (_, env) = match_node(&goal.pattern_node, &cand.pattern_node).unwrap();
+        let goal = pattern_node("const a = $VALUE");
+        let cand = pattern_node(cand_str);
+        let (_, env) = match_node(&goal, &cand).unwrap();
         assert_eq!(env["$VALUE"].utf8_text(cand_str.as_bytes()).unwrap(), "123");
+    }
+
+    #[test]
+    fn test_match_non_atomic() {
+        let cand_str = "const a = 5 + 3";
+        let goal = pattern_node("const a = $VALUE");
+        let cand = pattern_node(cand_str);
+        let (_, env) = match_node(&goal, &cand).unwrap();
+        assert_eq!(
+            env["$VALUE"].utf8_text(cand_str.as_bytes()).unwrap(),
+            "5 + 3"
+        );
     }
 
     #[test]

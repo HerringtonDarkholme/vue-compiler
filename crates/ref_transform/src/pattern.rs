@@ -8,7 +8,7 @@ pub enum MetaVarMatcher {
     Pattern(PatternKind),
 }
 impl MetaVarMatcher {
-    pub fn matches(&self, candidate: &TNode) -> bool {
+    pub fn matches(&self, _candidate: &TNode) -> bool {
         // todo
         true
     }
@@ -43,9 +43,18 @@ impl Pattern {
         match self.pattern_kind {
             PatternKind::NodePattern(ref n) => match_node(n, node),
             PatternKind::KindPattern(k) => match_kind(k, node),
-            _ => todo!(),
         }
     }
+
+    pub fn with_meta_var<Var: Into<String>>(
+        &mut self,
+        var_name: Var,
+        var_matcher: MetaVarMatcher,
+    ) -> &mut Self {
+        self.meta_variables.insert(var_name.into(), var_matcher);
+        self
+    }
+
     pub fn gen_replaced(&self, _vars: Env) -> String {
         todo!()
     }

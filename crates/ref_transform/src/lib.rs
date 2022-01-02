@@ -9,6 +9,8 @@ mod matcher;
 mod pattern;
 mod rule;
 
+pub use pattern::Pattern;
+
 pub type MetaVariableID = String;
 pub type Env<'tree> = HashMap<MetaVariableID, TNode<'tree>>;
 

@@ -128,7 +128,12 @@ mod test {
         let cand = parse(s2);
         let mut env = HashMap::new();
         let ret = match_node_recursive(&goal.root_node(), cand.root_node(), s1, &mut env);
-        assert!(ret.is_some());
+        assert!(
+            ret.is_some(),
+            "goal: {}, candidate: {}",
+            goal.root_node().to_sexp(),
+            cand.root_node().to_sexp(),
+        );
         env.into_iter()
             .map(|(k, v)| (k, v.utf8_text(s2.as_bytes()).unwrap().into()))
             .collect()

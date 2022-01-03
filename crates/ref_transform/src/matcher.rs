@@ -125,13 +125,14 @@ mod test {
 
     fn test_match(s1: &str, s2: &str) -> HashMap<String, String> {
         let goal = parse(s1);
+        let goal = goal.root_node().child(0).unwrap();
         let cand = parse(s2);
         let mut env = HashMap::new();
-        let ret = match_node_recursive(&goal.root_node(), cand.root_node(), s1, &mut env);
+        let ret = match_node_recursive(&goal, cand.root_node(), s1, &mut env);
         assert!(
             ret.is_some(),
             "goal: {}, candidate: {}",
-            goal.root_node().to_sexp(),
+            goal.to_sexp(),
             cand.root_node().to_sexp(),
         );
         env.into_iter()
@@ -141,9 +142,10 @@ mod test {
 
     fn test_non_match(s1: &str, s2: &str) {
         let goal = parse(s1);
+        let goal = goal.root_node().child(0).unwrap();
         let cand = parse(s2);
         let mut env = HashMap::new();
-        let ret = match_node_recursive(&goal.root_node(), cand.root_node(), s1, &mut env);
+        let ret = match_node_recursive(&goal, cand.root_node(), s1, &mut env);
         assert!(ret.is_none());
     }
 

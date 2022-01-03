@@ -4,6 +4,20 @@ use std::collections::HashMap;
 
 pub type MetaVariableID = String;
 
+pub struct MetaVarEnv<'tree> {
+    var_matchers: HashMap<MetaVariableID, MetaVarMatcher>,
+    matched: HashMap<MetaVariableID, TNode<'tree>>,
+}
+
+impl<'tree> MetaVarEnv<'tree> {
+    pub fn match_variable(&self, candidate: TNode<'tree>) -> bool {
+        todo!()
+    }
+    pub fn update_variable(&mut self, candidate: TNode<'tree>) {
+        todo!()
+    }
+}
+
 pub enum MetaVariable {
     // $A for captured meta var
     Named(MetaVariableID),
@@ -26,8 +40,7 @@ pub type Env<'tree> = HashMap<MetaVariableID, TNode<'tree>>;
 
 impl MetaVarMatcher {
     pub fn matches(&self, _candidate: &TNode) -> bool {
-        // todo
-        true
+        todo!()
     }
 }
 

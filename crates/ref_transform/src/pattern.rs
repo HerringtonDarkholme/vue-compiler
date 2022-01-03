@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::{Node, meta_var::Env};
-use crate::matcher::{match_node_impl, match_single_kind};
+use crate::matcher::{match_node_recursive, match_single_kind};
 use tree_sitter::Node as TNode;
 
 pub enum PatternKind {
@@ -60,7 +60,7 @@ fn match_node<'tree>(
     if candidate.next_sibling().is_some() {
         todo!("multi candidate roots are not supported yet.")
     }
-    let node = match_node_impl(&goal, candidate, source, &mut env)?;
+    let node = match_node_recursive(&goal, candidate, source, &mut env)?;
     Some((node, env))
 }
 
@@ -95,21 +95,6 @@ mod test {
             goal.inner.root_node().to_sexp(),
             cand.inner.root_node().to_sexp(),
         );
-    }
-
-    #[test]
-    fn test_simple_match() {
-        test_match("const a = 123", "const a=123");
-        test_non_match("const a = 123", "var a = 123");
-    }
-    #[test]
-    fn test_nested_match() {
-        test_match("const a = 123", "function() {const a= 123;}");
-        test_match("const a = 123", "class A { constructor() {const a= 123;}}");
-        test_match(
-            "const a = 123",
-            "for (let a of []) while (true) { const a = 123;}",
-        )
     }
 
     #[test]

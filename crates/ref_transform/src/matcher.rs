@@ -1,4 +1,4 @@
-use crate::meta_var::{Env, is_meta_var};
+use crate::meta_var::{Env, is_meta_var, extract_meta_var, MetaVariable};
 use tree_sitter::Node as TNode;
 
 pub fn match_single_kind<'tree>(
@@ -57,7 +57,7 @@ pub fn match_node_exact<'tree>(
     None
 }
 
-pub fn match_node_impl<'tree>(
+pub fn match_node_recursive<'tree>(
     goal: &TNode<'tree>,
     candidate: TNode<'tree>,
     source: &str,
@@ -68,9 +68,24 @@ pub fn match_node_impl<'tree>(
         let key = goal
             .utf8_text(source.as_bytes())
             .expect("invalid source pattern encoding");
-        if is_meta_var(key) {
-            env.insert(key.to_owned(), candidate);
-            return Some(candidate);
+        if is_meta_var(key) {}
+        if let Some(extracted) = extract_meta_var(key) {
+            use MetaVariable as MV;
+            match extracted {
+                MV::Named(name) => {
+                    env.insert(name, candidate);
+                    return Some(candidate);
+                }
+                MV::Anonymous => {
+                    return Some(candidate);
+                }
+                MV::Ellipsis => {
+                    todo!("backtracking")
+                }
+                MV::NamedEllipsis(_name) => {
+                    todo!("backtracking")
+                }
+            }
         }
     }
     if goal.kind_id() == candidate.kind_id() {
@@ -98,7 +113,7 @@ pub fn match_node_impl<'tree>(
     } else {
         let mut cursor = candidate.walk();
         let mut children = candidate.children(&mut cursor);
-        children.find_map(|sub_cand| match_node_impl(goal, sub_cand, source, env))
+        children.find_map(|sub_cand| match_node_recursive(goal, sub_cand, source, env))
     }
 }
 
@@ -112,7 +127,7 @@ mod test {
         let goal = parse(s1);
         let cand = parse(s2);
         let mut env = HashMap::new();
-        let ret = match_node_impl(&goal.root_node(), cand.root_node(), s1, &mut env);
+        let ret = match_node_recursive(&goal.root_node(), cand.root_node(), s1, &mut env);
         assert!(ret.is_some());
         env.into_iter()
             .map(|(k, v)| (k, v.utf8_text(s2.as_bytes()).unwrap().into()))
@@ -123,8 +138,24 @@ mod test {
         let goal = parse(s1);
         let cand = parse(s2);
         let mut env = HashMap::new();
-        let ret = match_node_impl(&goal.root_node(), cand.root_node(), s1, &mut env);
+        let ret = match_node_recursive(&goal.root_node(), cand.root_node(), s1, &mut env);
         assert!(ret.is_none());
+    }
+
+    #[test]
+    fn test_simple_match() {
+        test_match("const a = 123", "const a=123");
+        test_non_match("const a = 123", "var a = 123");
+    }
+
+    #[test]
+    fn test_nested_match() {
+        test_match("const a = 123", "function() {const a= 123;}");
+        test_match("const a = 123", "class A { constructor() {const a= 123;}}");
+        test_match(
+            "const a = 123",
+            "for (let a of []) while (true) { const a = 123;}",
+        );
     }
 
     #[test]

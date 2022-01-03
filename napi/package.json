@@ -61,7 +61,7 @@
   "devDependencies": {
     "@napi-rs/cli": "2.2.0",
     "@swc-node/register": "1.4.2",
-    "@types/node": "16.11.17",
+    "@types/node": "16.11.18",
     "@vue/compiler-core": "3.2.26",
     "@vue/compiler-sfc": "3.2.26",
     "@typescript-eslint/eslint-plugin": "5.8.1",

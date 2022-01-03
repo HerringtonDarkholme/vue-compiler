@@ -5,10 +5,14 @@ use std::collections::HashMap;
 pub type MetaVariableID = String;
 
 pub enum MetaVariable {
-    // $...A;
-    Ellipsis(MetaVariableID),
-    // $A
-    Single(MetaVariableID),
+    // $A for captured meta var
+    Named(MetaVariableID),
+    // $_ for non-captured meta var
+    Anonymous,
+    // ... for non-captured ellipsis
+    Ellipsis,
+    // $...A for captured ellipsis
+    NamedEllipsis(MetaVariableID),
 }
 
 pub enum MetaVarMatcher {
@@ -28,5 +32,48 @@ impl MetaVarMatcher {
 }
 
 pub fn is_meta_var(s: &str) -> bool {
-    s.starts_with('$') && s[1..].chars().all(|c| matches!(c, 'A'..='Z' | '_'))
+    is_single_meta_var(s) || is_ellipsis_meta_var(s)
+}
+
+pub fn extract_meta_var(s: &str) -> Option<MetaVariable> {
+    use MetaVariable::*;
+    if s == "..." {
+        return Some(Ellipsis);
+    }
+    if let Some(trimmed) = s.strip_prefix("$...") {
+        if !trimmed.chars().all(is_valid_meta_var_char) {
+            return None;
+        }
+        if trimmed.starts_with('_') {
+            return Some(Ellipsis);
+        } else {
+            return Some(NamedEllipsis(trimmed.to_owned()));
+        }
+    }
+    if !s.starts_with('$') {
+        return None;
+    }
+    let trimmed = &s[1..];
+    // $A or $_
+    if !trimmed.chars().all(is_valid_meta_var_char) {
+        return None;
+    }
+    if trimmed.starts_with('_') {
+        Some(Anonymous)
+    } else {
+        Some(Named(trimmed.to_owned()))
+    }
+}
+
+fn is_valid_meta_var_char(c: char) -> bool {
+    matches!(c, 'A'..='Z' | '_')
+}
+
+fn is_single_meta_var(s: &str) -> bool {
+    s.starts_with('$') && s[1..].chars().all(is_valid_meta_var_char)
+}
+
+fn is_ellipsis_meta_var(s: &str) -> bool {
+    // non-captured
+    s == "..." || s.starts_with("$...") && s[4..].chars().all(is_valid_meta_var_char)
 }

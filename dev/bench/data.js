@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1641266384937,
+  "lastUpdate": 1641272734701,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -85734,6 +85734,98 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 5424,
             "range": "± 356",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "HerringtonDarkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "committer": {
+            "name": "HerringtonDarkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "id": "2164a381ff52727b1b5c8cd908708d69c53299b8",
+          "message": "Update Rust crate napi-derive to 2.0.5",
+          "timestamp": "2022-01-04T03:14:52Z",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/pull/202/commits/2164a381ff52727b1b5c8cd908708d69c53299b8"
+        },
+        "date": 1641272730878,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 5323,
+            "range": "± 268",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 4104,
+            "range": "± 240",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElTable",
+            "value": 268662,
+            "range": "± 12735",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 47510,
+            "range": "± 3661",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 41159,
+            "range": "± 1817",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 25309,
+            "range": "± 1321",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 121246,
+            "range": "± 5265",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 24646,
+            "range": "± 1112",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 7363,
+            "range": "± 282",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 7348,
+            "range": "± 376",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 6995,
+            "range": "± 643",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 5738,
+            "range": "± 253",
             "unit": "ns/iter"
           }
         ]

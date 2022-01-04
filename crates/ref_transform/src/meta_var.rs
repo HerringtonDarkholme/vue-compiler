@@ -23,9 +23,9 @@ pub enum MetaVariable {
     Named(MetaVariableID),
     // $_ for non-captured meta var
     Anonymous,
-    // ... for non-captured ellipsis
+    // $$$ for non-captured ellipsis
     Ellipsis,
-    // $...A for captured ellipsis
+    // $$$A for captured ellipsis
     NamedEllipsis(MetaVariableID),
 }
 
@@ -50,10 +50,11 @@ pub fn is_meta_var(s: &str) -> bool {
 
 pub fn extract_meta_var(s: &str) -> Option<MetaVariable> {
     use MetaVariable::*;
-    if s == "..." {
+    println!("{}", s);
+    if s == "$$$" {
         return Some(Ellipsis);
     }
-    if let Some(trimmed) = s.strip_prefix("$...") {
+    if let Some(trimmed) = s.strip_prefix("$$$") {
         if !trimmed.chars().all(is_valid_meta_var_char) {
             return None;
         }
@@ -88,5 +89,5 @@ fn is_single_meta_var(s: &str) -> bool {
 
 fn is_ellipsis_meta_var(s: &str) -> bool {
     // non-captured
-    s == "..." || s.starts_with("$...") && s[4..].chars().all(is_valid_meta_var_char)
+    s == "$$$" || s.starts_with("$$$") && s[4..].chars().all(is_valid_meta_var_char)
 }

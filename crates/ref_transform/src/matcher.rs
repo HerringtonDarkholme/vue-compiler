@@ -22,6 +22,11 @@ pub fn match_node_exact<'tree>(
     source: &str,
     env: &mut Env<'tree>,
 ) -> Option<TNode<'tree>> {
+    println!(
+        "goal {}",
+        goal.utf8_text(source.as_bytes())
+            .expect("invalid source pattern encoding")
+    );
     let is_leaf = goal.child_count() == 0;
     if is_leaf {
         let key = goal
@@ -45,7 +50,11 @@ pub fn match_node_exact<'tree>(
     if !candidate_cursor.goto_first_child() {
         return None;
     }
-    while match_node_exact(&goal_cursor.node(), candidate_cursor.node(), source, env).is_some() {
+    loop {
+        if let Some(MetaVariable::Ellipsis) = extract_var_from_node(&goal_cursor.node(), source) {
+            return Some(candidate);
+        }
+        match_node_exact(&goal_cursor.node(), candidate_cursor.node(), source, env)?;
         if !goal_cursor.goto_next_sibling() {
             // all goal found, return
             return Some(candidate);
@@ -54,7 +63,13 @@ pub fn match_node_exact<'tree>(
             return None;
         }
     }
-    None
+}
+
+fn extract_var_from_node<'tree>(goal: &TNode<'tree>, source: &str) -> Option<MetaVariable> {
+    let key = goal
+        .utf8_text(source.as_bytes())
+        .expect("invalid source pattern encoding");
+    extract_meta_var(key)
 }
 
 pub fn match_node_recursive<'tree>(
@@ -65,11 +80,7 @@ pub fn match_node_recursive<'tree>(
 ) -> Option<TNode<'tree>> {
     let is_leaf = goal.child_count() == 0;
     if is_leaf {
-        let key = goal
-            .utf8_text(source.as_bytes())
-            .expect("invalid source pattern encoding");
-        if is_meta_var(key) {}
-        if let Some(extracted) = extract_meta_var(key) {
+        if let Some(extracted) = extract_var_from_node(goal, source) {
             use MetaVariable as MV;
             match extracted {
                 MV::Named(name) => {
@@ -80,7 +91,7 @@ pub fn match_node_recursive<'tree>(
                     return Some(candidate);
                 }
                 MV::Ellipsis => {
-                    todo!("backtracking")
+                    return Some(candidate);
                 }
                 MV::NamedEllipsis(_name) => {
                     todo!("backtracking")
@@ -99,8 +110,12 @@ pub fn match_node_recursive<'tree>(
         if !candidate_cursor.goto_first_child() {
             return None;
         }
-        while match_node_exact(&goal_cursor.node(), candidate_cursor.node(), source, env).is_some()
-        {
+        loop {
+            if let Some(MetaVariable::Ellipsis) = extract_var_from_node(&goal_cursor.node(), source)
+            {
+                return Some(candidate);
+            }
+            match_node_exact(&goal_cursor.node(), candidate_cursor.node(), source, env)?;
             if !goal_cursor.goto_next_sibling() {
                 // all goal found, return
                 return Some(candidate);
@@ -109,7 +124,6 @@ pub fn match_node_recursive<'tree>(
                 return None;
             }
         }
-        None
     } else {
         let mut cursor = candidate.walk();
         let mut children = candidate.children(&mut cursor);
@@ -178,5 +192,11 @@ mod test {
             "function foo() { let a = 123; }",
             "function foo() { function bar() {let a = 123; }}",
         );
+    }
+
+    #[test]
+    fn test_ellipsis() {
+        test_match("foo($$$)", "foo(a, b, c)");
+        test_match("foo($$$)", "foo()");
     }
 }

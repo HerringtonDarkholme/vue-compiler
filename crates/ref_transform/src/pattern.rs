@@ -51,6 +51,7 @@ fn match_node<'tree>(
 ) -> Option<(TNode<'tree>, Env<'tree>)> {
     let mut env = HashMap::new();
     let source = &goal.source;
+    let cand = &candidate.source;
     let goal = goal.inner.root_node();
     if goal.child_count() != 1 {
         todo!("multi-children pattern is not supported yet.")
@@ -60,7 +61,7 @@ fn match_node<'tree>(
     if candidate.next_sibling().is_some() {
         todo!("multi candidate roots are not supported yet.")
     }
-    let node = match_node_recursive(&goal, candidate, source, &mut env)?;
+    let node = match_node_recursive(&goal, candidate, source, cand, &mut env)?;
     Some((node, env))
 }
 

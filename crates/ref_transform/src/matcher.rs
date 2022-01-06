@@ -16,7 +16,7 @@ pub fn match_single_kind<'tree>(
     children.find_map(|sub_cand| match_single_kind(goal_kind, sub_cand, env))
 }
 
-fn match_leaf_node<'tree>(
+fn match_leaf_meta_var<'tree>(
     goal: &TNode<'tree>,
     candidate: TNode<'tree>,
     source: &str,
@@ -40,12 +40,13 @@ fn match_leaf_node<'tree>(
 pub fn match_node_exact<'tree>(
     goal: &TNode<'tree>,
     candidate: TNode<'tree>,
-    source: &str,
+    goal_source: &str,
+    cand_source: &str,
     env: &mut Env<'tree>,
 ) -> Option<TNode<'tree>> {
     let is_leaf = goal.child_count() == 0;
     if is_leaf {
-        if let Some(matched) = match_leaf_node(goal, candidate, source, env) {
+        if let Some(matched) = match_leaf_meta_var(goal, candidate, goal_source, env) {
             return Some(matched);
         }
     }
@@ -53,7 +54,18 @@ pub fn match_node_exact<'tree>(
         return None;
     }
     if is_leaf {
-        return Some(candidate);
+        debug_assert!(extract_var_from_node(goal, goal_source).is_none());
+        let goal_src = goal
+            .utf8_text(goal_source.as_bytes())
+            .expect("invalid source pattern encoding");
+        let cand_src = candidate
+            .utf8_text(cand_source.as_bytes())
+            .expect("invalid source pattern encoding");
+        return if goal_src == cand_src {
+            Some(candidate)
+        } else {
+            None
+        };
     }
     let mut goal_cursor = goal.walk();
     let moved = goal_cursor.goto_first_child();
@@ -63,10 +75,18 @@ pub fn match_node_exact<'tree>(
         return None;
     }
     loop {
-        if let Some(MetaVariable::Ellipsis) = extract_var_from_node(&goal_cursor.node(), source) {
+        if let Some(MetaVariable::Ellipsis) =
+            extract_var_from_node(&goal_cursor.node(), goal_source)
+        {
             return Some(candidate);
         }
-        match_node_exact(&goal_cursor.node(), candidate_cursor.node(), source, env)?;
+        match_node_exact(
+            &goal_cursor.node(),
+            candidate_cursor.node(),
+            goal_source,
+            cand_source,
+            env,
+        )?;
         if !goal_cursor.goto_next_sibling() {
             // all goal found, return
             return Some(candidate);
@@ -87,45 +107,17 @@ fn extract_var_from_node<'tree>(goal: &TNode<'tree>, source: &str) -> Option<Met
 pub fn match_node_recursive<'tree>(
     goal: &TNode<'tree>,
     candidate: TNode<'tree>,
-    source: &str,
+    goal_source: &str,
+    cand_source: &str,
     env: &mut Env<'tree>,
 ) -> Option<TNode<'tree>> {
-    let is_leaf = goal.child_count() == 0;
-    if is_leaf {
-        if let Some(matched) = match_leaf_node(goal, candidate, source, env) {
-            return Some(matched);
-        }
-    }
-    if goal.kind_id() == candidate.kind_id() {
-        if is_leaf {
-            return Some(candidate);
-        }
-        let mut goal_cursor = goal.walk();
-        let moved = goal_cursor.goto_first_child();
-        debug_assert!(moved);
-        let mut candidate_cursor = candidate.walk();
-        if !candidate_cursor.goto_first_child() {
-            return None;
-        }
-        loop {
-            if let Some(MetaVariable::Ellipsis) = extract_var_from_node(&goal_cursor.node(), source)
-            {
-                return Some(candidate);
-            }
-            match_node_exact(&goal_cursor.node(), candidate_cursor.node(), source, env)?;
-            if !goal_cursor.goto_next_sibling() {
-                // all goal found, return
-                return Some(candidate);
-            }
-            if !candidate_cursor.goto_next_sibling() {
-                return None;
-            }
-        }
-    } else {
+    match_node_exact(goal, candidate, goal_source, cand_source, env).or_else(|| {
         let mut cursor = candidate.walk();
         let mut children = candidate.children(&mut cursor);
-        children.find_map(|sub_cand| match_node_recursive(goal, sub_cand, source, env))
-    }
+        children.find_map(|sub_cand| {
+            match_node_recursive(goal, sub_cand, goal_source, cand_source, env)
+        })
+    })
 }
 
 #[cfg(test)]
@@ -139,7 +131,7 @@ mod test {
         let goal = goal.root_node().child(0).unwrap();
         let cand = parse(s2);
         let mut env = HashMap::new();
-        let ret = match_node_recursive(&goal, cand.root_node(), s1, &mut env);
+        let ret = match_node_recursive(&goal, cand.root_node(), s1, s2, &mut env);
         assert!(
             ret.is_some(),
             "goal: {}, candidate: {}",
@@ -156,7 +148,7 @@ mod test {
         let goal = goal.root_node().child(0).unwrap();
         let cand = parse(s2);
         let mut env = HashMap::new();
-        let ret = match_node_recursive(&goal, cand.root_node(), s1, &mut env);
+        let ret = match_node_recursive(&goal, cand.root_node(), s1, s2, &mut env);
         assert!(ret.is_none());
     }
 
@@ -182,9 +174,17 @@ mod test {
             "function foo() { let a = 123; }",
             "function foo() { let a = 123; }",
         );
+        test_non_match(
+            "function foo() { let a = 123; }",
+            "function bar() { let a = 123; }",
+        );
     }
     #[test]
-    fn test_extact_match_should_not_match_inner() {
+    fn test_match_inner() {
+        test_match(
+            "function bar() { let a = 123; }",
+            "function foo() { function bar() {let a = 123; }}",
+        );
         test_non_match(
             "function foo() { let a = 123; }",
             "function foo() { function bar() {let a = 123; }}",

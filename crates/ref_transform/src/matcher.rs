@@ -1,4 +1,4 @@
-use crate::meta_var::{Env, is_meta_var, extract_meta_var, MetaVariable};
+use crate::meta_var::{Env, extract_meta_var, MetaVariable};
 use tree_sitter::Node as TNode;
 
 pub fn match_single_kind<'tree>(
@@ -16,25 +16,37 @@ pub fn match_single_kind<'tree>(
     children.find_map(|sub_cand| match_single_kind(goal_kind, sub_cand, env))
 }
 
+fn match_leaf_node<'tree>(
+    goal: &TNode<'tree>,
+    candidate: TNode<'tree>,
+    source: &str,
+    env: &mut Env<'tree>,
+) -> Option<TNode<'tree>> {
+    let extracted = extract_var_from_node(goal, source)?;
+    use MetaVariable as MV;
+    match extracted {
+        MV::Named(name) => {
+            env.insert(name, candidate);
+            Some(candidate)
+        }
+        MV::Anonymous => Some(candidate),
+        MV::Ellipsis => Some(candidate),
+        MV::NamedEllipsis(_name) => {
+            todo!("backtracking")
+        }
+    }
+}
+
 pub fn match_node_exact<'tree>(
     goal: &TNode<'tree>,
     candidate: TNode<'tree>,
     source: &str,
     env: &mut Env<'tree>,
 ) -> Option<TNode<'tree>> {
-    println!(
-        "goal {}",
-        goal.utf8_text(source.as_bytes())
-            .expect("invalid source pattern encoding")
-    );
     let is_leaf = goal.child_count() == 0;
     if is_leaf {
-        let key = goal
-            .utf8_text(source.as_bytes())
-            .expect("invalid source pattern encoding");
-        if is_meta_var(key) {
-            env.insert(key.to_owned(), candidate);
-            return Some(candidate);
+        if let Some(matched) = match_leaf_node(goal, candidate, source, env) {
+            return Some(matched);
         }
     }
     if goal.kind_id() != candidate.kind_id() {
@@ -80,23 +92,8 @@ pub fn match_node_recursive<'tree>(
 ) -> Option<TNode<'tree>> {
     let is_leaf = goal.child_count() == 0;
     if is_leaf {
-        if let Some(extracted) = extract_var_from_node(goal, source) {
-            use MetaVariable as MV;
-            match extracted {
-                MV::Named(name) => {
-                    env.insert(name, candidate);
-                    return Some(candidate);
-                }
-                MV::Anonymous => {
-                    return Some(candidate);
-                }
-                MV::Ellipsis => {
-                    return Some(candidate);
-                }
-                MV::NamedEllipsis(_name) => {
-                    todo!("backtracking")
-                }
-            }
+        if let Some(matched) = match_leaf_node(goal, candidate, source, env) {
+            return Some(matched);
         }
     }
     if goal.kind_id() == candidate.kind_id() {

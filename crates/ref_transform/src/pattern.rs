@@ -110,7 +110,7 @@ mod test {
         let goal = pattern_node("const a = $VALUE");
         let cand = pattern_node(cand_str);
         let (_, env) = match_node(&goal, &cand).unwrap();
-        assert_eq!(env["$VALUE"].utf8_text(cand_str.as_bytes()).unwrap(), "123");
+        assert_eq!(env["VALUE"].utf8_text(cand_str.as_bytes()).unwrap(), "123");
     }
 
     #[test]
@@ -120,7 +120,7 @@ mod test {
         let cand = pattern_node(cand_str);
         let (_, env) = match_node(&goal, &cand).unwrap();
         assert_eq!(
-            env["$VALUE"].utf8_text(cand_str.as_bytes()).unwrap(),
+            env["VALUE"].utf8_text(cand_str.as_bytes()).unwrap(),
             "5 + 3"
         );
     }

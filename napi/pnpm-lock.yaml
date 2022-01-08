@@ -9,7 +9,7 @@ specifiers:
   '@typescript-eslint/parser': 5.9.0
   '@vue/compiler-core': 3.2.26
   '@vue/compiler-sfc': 3.2.26
-  ava: 4.0.0
+  ava: 4.0.1
   benny: 3.7.1
   chalk: 5.0.0
   eslint: 8.6.0
@@ -32,7 +32,7 @@ devDependencies:
   '@typescript-eslint/parser': 5.9.0_eslint@8.6.0+typescript@4.5.4
   '@vue/compiler-core': 3.2.26
   '@vue/compiler-sfc': 3.2.26
-  ava: 4.0.0
+  ava: 4.0.1
   benny: 3.7.1
   chalk: 5.0.0
   eslint: 8.6.0
@@ -653,8 +653,8 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /ava/4.0.0:
-    resolution: {integrity: sha512-XEVx8EE/ZseJ3nz3nfVG+UoT4aGyUmD5s6SZFs5Aqi04Yr77DZAx7ItyW5hThtYywkOLdsM68as/u6P5fmb52Q==}
+  /ava/4.0.1:
+    resolution: {integrity: sha512-+12A/JDWyShBCZAKISEEPyM2dwkUrrAfPILqXi4LI4Aa58d92PzjY829hmuoSeACPNqrn2Wlbnja8c/n7bKV6Q==}
     engines: {node: '>=12.22 <13 || >=14.17 <15 || >=16.4 <17 || >=17'}
     hasBin: true
     peerDependencies:

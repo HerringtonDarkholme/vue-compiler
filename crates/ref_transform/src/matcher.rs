@@ -230,12 +230,23 @@ mod test {
     }
 
     #[test]
-    fn test_ellipsis() {
+    fn test_single_ellipsis() {
         test_match("foo($$$)", "foo(a, b, c)");
         test_match("foo($$$)", "foo()");
+    }
+
+    #[test]
+    fn test_leading_ellipsis() {
         test_match("foo($$$, c)", "foo(a, b, c)");
         test_match("foo($$$, b, c)", "foo(a, b, c)");
         test_match("foo($$$, a, b, c)", "foo(a, b, c)");
         test_non_match("foo($$$, a, b, c)", "foo(b, c)");
     }
+    // #[test]
+    // fn test_trailing_ellipsis() {
+    //     test_match("foo(a, $$$)", "foo(a, b, c)");
+    //     test_match("foo(a, b, $$$)", "foo(a, b, c)");
+    //     test_match("foo(a, b, c, $$$)", "foo(a, b, c)");
+    //     test_non_match("fooa, b, c, $$$)", "foo(b, c)");
+    // }
 }

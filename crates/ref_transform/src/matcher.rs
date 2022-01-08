@@ -1,5 +1,5 @@
 use crate::meta_var::{Env, extract_meta_var, MetaVariable};
-use tree_sitter::Node as TNode;
+use tree_sitter::{Node as TNode, TreeCursor};
 
 pub fn match_single_kind<'tree>(
     goal_kind: &str,
@@ -35,6 +35,13 @@ fn match_leaf_meta_var<'tree>(
             todo!("backtracking")
         }
     }
+}
+
+fn is_ellipsis<'tree>(node: &TNode<'tree>, source: &str) -> bool {
+    matches!(
+        extract_var_from_node(node, source),
+        Some(MetaVariable::Ellipsis)
+    )
 }
 
 pub fn match_node_exact<'tree>(
@@ -75,10 +82,41 @@ pub fn match_node_exact<'tree>(
         return None;
     }
     loop {
-        if let Some(MetaVariable::Ellipsis) =
-            extract_var_from_node(&goal_cursor.node(), goal_source)
-        {
-            return Some(candidate);
+        let curr_node = goal_cursor.node();
+        if is_ellipsis(&curr_node, goal_source) {
+            // goal has all matched
+            if !goal_cursor.goto_next_sibling() {
+                return Some(candidate);
+            }
+            while !goal_cursor.node().is_named() {
+                if !goal_cursor.goto_next_sibling() {
+                    return Some(candidate);
+                }
+            }
+            // if next node is a Ellipsis, consume one candidate node
+            if is_ellipsis(&goal_cursor.node(), goal_source) {
+                if !candidate_cursor.goto_next_sibling() {
+                    return None;
+                }
+                continue;
+            }
+            loop {
+                if match_node_exact(
+                    &goal_cursor.node(),
+                    candidate_cursor.node(),
+                    goal_source,
+                    cand_source,
+                    env,
+                )
+                .is_some()
+                {
+                    // found match non Ellipsis,
+                    break;
+                }
+                if !candidate_cursor.goto_next_sibling() {
+                    return None;
+                }
+            }
         }
         match_node_exact(
             &goal_cursor.node(),
@@ -195,5 +233,9 @@ mod test {
     fn test_ellipsis() {
         test_match("foo($$$)", "foo(a, b, c)");
         test_match("foo($$$)", "foo()");
+        test_match("foo($$$, c)", "foo(a, b, c)");
+        test_match("foo($$$, b, c)", "foo(a, b, c)");
+        test_match("foo($$$, a, b, c)", "foo(a, b, c)");
+        test_non_match("foo($$$, a, b, c)", "foo(b, c)");
     }
 }

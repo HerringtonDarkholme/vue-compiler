@@ -49,9 +49,7 @@ impl Serialize for Position {
         let s = format!(
             // Position, Line, Column
             "Pos: {}, Ln: {}, Col: {}",
-            self.offset,
-            self.line,
-            self.column,
+            self.offset, self.line, self.column,
         );
         serializer.serialize_str(&s)
     }

@@ -58,7 +58,13 @@ fn decode_numeric_ref<W: Write>(s: &str, mut w: W) -> DecodeResult {
         // hex
         let cnt = src.chars().take_while(|c| c.is_ascii_hexdigit()).count();
         match u32::from_str_radix(&src[..cnt], 16) {
-            Ok(n) => (n, &src[cnt..]),
+            Ok(n) => {
+                if src[cnt..].starts_with(';') {
+                    (n, &src[cnt + 1..])
+                } else {
+                    (n, &src[cnt..])
+                }
+            }
             Err(_) => return Ok(src),
         }
     } else {
@@ -66,7 +72,13 @@ fn decode_numeric_ref<W: Write>(s: &str, mut w: W) -> DecodeResult {
         let src = &s[2..];
         let cnt = src.chars().take_while(|c| c.is_numeric()).count();
         match src[..cnt].parse() {
-            Ok(n) => (n, &src[cnt..]),
+            Ok(n) => {
+                if src[cnt..].starts_with(';') {
+                    (n, &src[cnt + 1..])
+                } else {
+                    (n, &src[cnt..])
+                }
+            }
             Err(_) => return Ok(src),
         }
     };
@@ -122,3 +134,24 @@ const CCR_REPLACEMENTS: &[u32] = &[
     0x017e, // 0x9e
     0x0178, // 0x9f
 ];
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn test_html_decode() {
+        let data = [
+            ("", ""),
+            ("Håll älgen, Örjan!", "Håll älgen, Örjan!"),
+            ("&lt;p&gt;hej!&lt;/p&gt;", "<p>hej!</p>"),
+            ("hej&#x3B;&#x20;hå", "hej; hå"),
+            ("&quot;width&#x3A;&#32;3px&#59;&quot;", "\"width: 3px;\""),
+            ("&#x2b;", "+"),
+        ];
+        for &(input, expected) in data.iter() {
+            let mut actual = String::new();
+            decode_entities(input, &mut actual, false).unwrap();
+            assert_eq!(&actual, expected);
+        }
+    }
+}

@@ -39,6 +39,7 @@ impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for HoistStatic {
     fn enter_vnode(&mut self, vn: &mut BaseVNode<'a>, _: &mut Scope<'a>) {
         self.is_component = vn.is_component;
     }
+    #[allow(clippy::nonminimal_bool)]
     fn enter_js_expr(&mut self, exp: &mut Js<'a>, scope: &mut Scope<'a>) {
         // unnecessary to cache inside v-once
         if !self.cache_handlers || self.in_v_once {

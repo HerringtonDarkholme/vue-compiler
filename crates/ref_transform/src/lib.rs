@@ -30,28 +30,36 @@ impl Node {
 
 // tree traversal API
 impl Node {
+    #[must_use]
     pub fn find(&self) -> Node {
         todo!()
     }
     // should we provide parent?
+    #[must_use]
     pub fn parent(&self) -> Node {
         todo!()
     }
+    #[must_use]
     pub fn ancestors(&self) -> Vec<Node> {
         todo!()
     }
+    #[must_use]
     pub fn next(&self) -> Option<Node> {
         todo!()
     }
+    #[must_use]
     pub fn next_all(&self) -> Vec<Node> {
         todo!()
     }
+    #[must_use]
     pub fn prev(&self) -> Option<Node> {
         todo!()
     }
+    #[must_use]
     pub fn prev_all(&self) -> Vec<Node> {
         todo!()
     }
+    #[must_use]
     pub fn eq(&self, _i: usize) -> Node {
         todo!()
     }

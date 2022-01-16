@@ -252,6 +252,7 @@ impl HelperCollector {
     pub fn contains(&self, helper: RuntimeHelper) -> bool {
         (self.0 & (1 << helper.0)) != 0
     }
+    #[must_use]
     pub fn hoist_helpers(&self) -> Self {
         let mut n = Self(0);
         for &rh in HELPERS_IN_HOISTED {

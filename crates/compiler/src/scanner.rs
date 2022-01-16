@@ -595,7 +595,7 @@ impl<'a> Tokens<'a> {
     fn scan_cdata(&mut self) -> Token<'a> {
         debug_assert!(self.source.starts_with("<![CDATA["));
         self.move_by(9);
-        let i = self.source.find("]]>").unwrap_or_else(|| self.source.len());
+        let i = self.source.find("]]>").unwrap_or(self.source.len());
         let text = self.move_by(i); // can be zero
         if self.source.is_empty() {
             self.emit_error(ErrorKind::EofInCdata);
@@ -718,7 +718,7 @@ impl<'a> Tokens<'a> {
 
     fn skip_whitespace(&mut self) -> usize {
         let idx = self.source.find(non_whitespace);
-        let len = idx.unwrap_or_else(|| self.source.len());
+        let len = idx.unwrap_or(self.source.len());
         if len != 0 {
             self.move_by(len);
         }

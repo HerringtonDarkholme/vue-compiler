@@ -242,11 +242,11 @@ mod test {
         test_match("foo($$$, a, b, c)", "foo(a, b, c)");
         test_non_match("foo($$$, a, b, c)", "foo(b, c)");
     }
-    // #[test]
-    // fn test_trailing_ellipsis() {
-    //     test_match("foo(a, $$$)", "foo(a, b, c)");
-    //     test_match("foo(a, b, $$$)", "foo(a, b, c)");
-    //     test_match("foo(a, b, c, $$$)", "foo(a, b, c)");
-    //     test_non_match("fooa, b, c, $$$)", "foo(b, c)");
-    // }
+    #[test]
+    fn test_trailing_ellipsis() {
+        test_match("foo(a, $$$)", "foo(a, b, c)");
+        test_match("foo(a, b, $$$)", "foo(a, b, c)");
+        // test_match("foo(a, b, c, $$$)", "foo(a, b, c)");
+        test_non_match("foo(a, b, c, $$$)", "foo(b, c)");
+    }
 }

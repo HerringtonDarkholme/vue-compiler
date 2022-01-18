@@ -1,0 +1,11 @@
+---
+source: crates/compiler/tests/error_test/mod.rs
+assertion_line: 8
+expression: "<template><!--></template>"
+
+---
+- loc:
+    start: "Pos: 10, Ln: 1, Col: 11"
+    end: "Pos: 10, Ln: 1, Col: 11"
+  msg: Illegal comment.
+

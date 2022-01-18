@@ -1,6 +1,8 @@
 use compiler::converter::BaseConvertInfo;
 pub use compiler::error::NoopErrorHandler as TestErrorHandler;
+use compiler::error::VecErrorHandler;
 use compiler::transformer::CorePass;
+use compiler::compiler::TemplateCompiler;
 pub use compiler::{Position, SourceLocation};
 use compiler::compiler::{BaseCompiler, CompileOption, get_base_passes};
 use compiler::scanner::TextMode;
@@ -37,4 +39,32 @@ fn get_compile_option() -> CompileOption {
 pub fn get_compiler<'a>() -> BaseCompiler<'a, impl CorePass<BaseConvertInfo<'a>>, Vec<u8>> {
     let dest = Vec::new;
     BaseCompiler::new(dest, get_base_passes, get_compile_option())
+}
+
+#[derive(Serialize)]
+pub struct TestError {
+    pub loc: SourceLocation,
+    pub msg: String,
+}
+
+pub fn get_errors(source: &str) -> Vec<TestError> {
+    let error_handler = Rc::new(VecErrorHandler::new());
+    let option = CompileOption {
+        get_text_mode,
+        is_native_tag: |s| s != "comp",
+        error_handler: error_handler.clone(),
+        ..Default::default()
+    };
+    let dest = Vec::new;
+    let sfc_info = Default::default();
+    let compiler = BaseCompiler::new(dest, get_base_passes, option);
+    let ret = compiler.compile(source, &sfc_info).unwrap();
+    let errors = error_handler.errors();
+    errors
+        .iter()
+        .map(|e| TestError {
+            msg: e.msg().to_string(),
+            loc: e.location.clone(),
+        })
+        .collect()
 }

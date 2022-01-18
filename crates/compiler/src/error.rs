@@ -118,7 +118,7 @@ impl CompilationError {
         }
     }
 
-    fn msg(&self) -> &'static str {
+    pub fn msg(&self) -> &'static str {
         msg(&self.kind)
     }
 }
@@ -241,6 +241,11 @@ pub struct VecErrorHandler {
     errors: RefCell<Vec<CompilationError>>,
 }
 impl VecErrorHandler {
+    pub fn new() -> Self {
+        Self {
+            errors: RefCell::new(vec![]),
+        }
+    }
     pub fn errors(&self) -> Ref<Vec<CompilationError>> {
         self.errors.borrow()
     }

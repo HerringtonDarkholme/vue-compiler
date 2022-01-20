@@ -3,7 +3,7 @@ lockfileVersion: 5.3
 specifiers:
   '@vitejs/plugin-vue': 2.0.1
   rusty-vue-compiler: file:../crates/wasm/pkg/
-  typescript: 4.5.4
+  typescript: 4.5.5
   vite: 2.7.13
   vue: 3.2.27
   vue-tsc: 0.30.6
@@ -16,9 +16,9 @@ optionalDependencies:
 
 devDependencies:
   '@vitejs/plugin-vue': 2.0.1_vite@2.7.13+vue@3.2.27
-  typescript: 4.5.4
+  typescript: 4.5.5
   vite: 2.7.13
-  vue-tsc: 0.30.6_typescript@4.5.4
+  vue-tsc: 0.30.6_typescript@4.5.5
 
 packages:
 
@@ -734,8 +734,8 @@ packages:
     resolution: {integrity: sha1-zCAOqyYT9BZtJ/+a/HylbUnfbrQ=}
     dev: true
 
-  /typescript/4.5.4:
-    resolution: {integrity: sha512-VgYs2A2QIRuGphtzFV7aQJduJ2gyfTljngLzjpfW9FoYZF6xuw1W0vW9ghCKLfcWrCFxK81CSGRAvS1pn4fIUg==}
+  /typescript/4.5.5:
+    resolution: {integrity: sha512-TCTIul70LyWe6IJWT8QSYeA54WQe8EjQFU4wY52Fasj5UKx88LNYKCgBEHcOMOrFF1rKGbD8v/xcNWVUq9SymA==}
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true
@@ -884,14 +884,14 @@ packages:
       vscode-typescript-languageservice: 0.30.6
     dev: true
 
-  /vue-tsc/0.30.6_typescript@4.5.4:
+  /vue-tsc/0.30.6_typescript@4.5.5:
     resolution: {integrity: sha512-p+lemuubzFgwr1Az3pqQ70uvWraf36qTrKkC6C7anv5S1G3aPerc4eY5Rjz3eVDOkK94E+KeBHevvpZbmVwvHA==}
     hasBin: true
     peerDependencies:
       typescript: '*'
     dependencies:
       '@volar/shared': 0.30.6
-      typescript: 4.5.4
+      typescript: 4.5.5
       vscode-vue-languageservice: 0.30.6
     dev: true
 

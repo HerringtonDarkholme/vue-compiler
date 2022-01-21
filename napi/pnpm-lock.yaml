@@ -8,7 +8,7 @@ specifiers:
   '@typescript-eslint/eslint-plugin': 5.9.1
   '@typescript-eslint/parser': 5.9.1
   '@vue/compiler-core': 3.2.28
-  '@vue/compiler-sfc': 3.2.27
+  '@vue/compiler-sfc': 3.2.28
   ava: 4.0.1
   benny: 3.7.1
   chalk: 5.0.0
@@ -31,7 +31,7 @@ devDependencies:
   '@typescript-eslint/eslint-plugin': 5.9.1_9e75b891f2237a53e0ab5bcfb7bc1e83
   '@typescript-eslint/parser': 5.9.1_eslint@8.7.0+typescript@4.5.5
   '@vue/compiler-core': 3.2.28
-  '@vue/compiler-sfc': 3.2.27
+  '@vue/compiler-sfc': 3.2.28
   ava: 4.0.1
   benny: 3.7.1
   chalk: 5.0.0
@@ -443,15 +443,6 @@ packages:
       eslint-visitor-keys: 3.1.0
     dev: true
 
-  /@vue/compiler-core/3.2.27:
-    resolution: {integrity: sha512-JyxAglSM/pb9paG5ZNuKrf5IUpzLzQA3khjWGF9oESELCLQlt6O3YyPMR2A69wIpYWrf5mScZ8YY8TJKOI/1kQ==}
-    dependencies:
-      '@babel/parser': 7.16.4
-      '@vue/shared': 3.2.27
-      estree-walker: 2.0.2
-      source-map: 0.6.1
-    dev: true
-
   /@vue/compiler-core/3.2.28:
     resolution: {integrity: sha512-mQpfEjmHVxmWKaup0HL6tLMv2HqjjJu7XT4/q0IoUXYXC4xKG8lIVn5YChJqxBTLPuQjzas7u7i9L4PAWJZRtA==}
     dependencies:
@@ -461,47 +452,43 @@ packages:
       source-map: 0.6.1
     dev: true
 
-  /@vue/compiler-dom/3.2.27:
-    resolution: {integrity: sha512-NyQ7nEbopUBPUMHM4c3FPCbFbnQwptoPjW5Y5qfJ7hfiCNhOuhQsDNqi5JYKBxfpxiFNwjcN9F8t1AsnLrDloQ==}
+  /@vue/compiler-dom/3.2.28:
+    resolution: {integrity: sha512-KA4yXceLteKC7VykvPnViUixemQw3A+oii+deSbZJOQKQKVh1HLosI10qxa8ImPCyun41+wG3uGR+tW7eu1W6Q==}
     dependencies:
-      '@vue/compiler-core': 3.2.27
-      '@vue/shared': 3.2.27
+      '@vue/compiler-core': 3.2.28
+      '@vue/shared': 3.2.28
     dev: true
 
-  /@vue/compiler-sfc/3.2.27:
-    resolution: {integrity: sha512-WyecUhLN5UAQAr2QlmG2nA56OEnhZJaBnSw0G1tazb9rwDuK0V9tnbIXbQgmQlx+x4sJxgg61yWGcIXfilTl3A==}
+  /@vue/compiler-sfc/3.2.28:
+    resolution: {integrity: sha512-zB0WznfEBb4CbGBHzhboHDKVO5nxbkbxxFo9iVlxObP7a9/qvA5kkZEuT7nXP52f3b3qEfmVTjIT23Lo1ndZdQ==}
     dependencies:
       '@babel/parser': 7.16.4
-      '@vue/compiler-core': 3.2.27
-      '@vue/compiler-dom': 3.2.27
-      '@vue/compiler-ssr': 3.2.27
-      '@vue/reactivity-transform': 3.2.27
-      '@vue/shared': 3.2.27
+      '@vue/compiler-core': 3.2.28
+      '@vue/compiler-dom': 3.2.28
+      '@vue/compiler-ssr': 3.2.28
+      '@vue/reactivity-transform': 3.2.28
+      '@vue/shared': 3.2.28
       estree-walker: 2.0.2
       magic-string: 0.25.7
       postcss: 8.3.11
       source-map: 0.6.1
     dev: true
 
-  /@vue/compiler-ssr/3.2.27:
-    resolution: {integrity: sha512-+l09t319iV7HVSrXfBw9OLwMZIPOFTXmHjZ61Bc5ZcwKqOYAR4uTurKpoXAfcSc5qs/q6WdE9jY3nrP0LUEMQQ==}
+  /@vue/compiler-ssr/3.2.28:
+    resolution: {integrity: sha512-z8rck1PDTu20iLyip9lAvIhaO40DUJrw3Zv0mS4Apfh3PlfWpF5dhsO5g0dgt213wgYsQIYVIlU9cfrYapqRgg==}
     dependencies:
-      '@vue/compiler-dom': 3.2.27
-      '@vue/shared': 3.2.27
+      '@vue/compiler-dom': 3.2.28
+      '@vue/shared': 3.2.28
     dev: true
 
-  /@vue/reactivity-transform/3.2.27:
-    resolution: {integrity: sha512-67//61ObGxGnVrPhjygocb24eYUh+TFMhkm7szm8v5XdKXjkNl7qgIOflwGvUnwuIRJmr9nZ7+PvY0fL+H2upA==}
+  /@vue/reactivity-transform/3.2.28:
+    resolution: {integrity: sha512-zE8idNkOPnBDd2tKSIk84hOQZ+jXKvSy5FoIIVlcNEJHnCFnQ3maqeSJ9KoB2Rf6EXUhFTiTDNRlYlXmT2uHbQ==}
     dependencies:
       '@babel/parser': 7.16.4
-      '@vue/compiler-core': 3.2.27
-      '@vue/shared': 3.2.27
+      '@vue/compiler-core': 3.2.28
+      '@vue/shared': 3.2.28
       estree-walker: 2.0.2
       magic-string: 0.25.7
-    dev: true
-
-  /@vue/shared/3.2.27:
-    resolution: {integrity: sha512-rpAn9k6O08Lvo7ekBIAnkOukX/4EsEQLPrRJBKhIEasMsOI5eX0f6mq1sDUSY7cgAqWw2d7QtP74CWxdXoyKxA==}
     dev: true
 
   /@vue/shared/3.2.28:

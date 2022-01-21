@@ -30,9 +30,11 @@ fn match_leaf_meta_var<'tree>(
             Some(candidate)
         }
         MV::Anonymous => Some(candidate),
+        // Ellipsis will be matched in parent level
         MV::Ellipsis => Some(candidate),
-        MV::NamedEllipsis(_name) => {
-            todo!("backtracking")
+        MV::NamedEllipsis(name) => {
+            env.insert(name, candidate);
+            Some(candidate)
         }
     }
 }
@@ -40,7 +42,7 @@ fn match_leaf_meta_var<'tree>(
 fn is_ellipsis<'tree>(node: &TNode<'tree>, source: &str) -> bool {
     matches!(
         extract_var_from_node(node, source),
-        Some(MetaVariable::Ellipsis)
+        Some(MetaVariable::Ellipsis | MetaVariable::NamedEllipsis(_))
     )
 }
 
@@ -233,6 +235,13 @@ mod test {
     fn test_single_ellipsis() {
         test_match("foo($$$)", "foo(a, b, c)");
         test_match("foo($$$)", "foo()");
+    }
+    #[test]
+    fn test_named_ellipsis() {
+        test_match("foo($$$A, c)", "foo(a, b, c)");
+        test_match("foo($$$A, b, c)", "foo(a, b, c)");
+        test_match("foo($$$A, a, b, c)", "foo(a, b, c)");
+        test_non_match("foo($$$A, a, b, c)", "foo(b, c)");
     }
 
     #[test]

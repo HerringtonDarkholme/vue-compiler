@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1642961052008,
+  "lastUpdate": 1642961281329,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -104333,6 +104333,102 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 4597,
             "range": "± 13",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bot@renovateapp.com",
+            "name": "Renovate Bot",
+            "username": "renovate-bot"
+          },
+          "committer": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "distinct": true,
+          "id": "f1648cac097ac740bffd70fa78712a10c06b5512",
+          "message": "Update vue monorepo to v3.2.29",
+          "timestamp": "2022-01-23T18:02:41Z",
+          "tree_id": "28141270c64b75ec2ac05c22d3b57959504857ed",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/f1648cac097ac740bffd70fa78712a10c06b5512"
+        },
+        "date": 1642961276561,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 4716,
+            "range": "± 287",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 3146,
+            "range": "± 136",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElTable",
+            "value": 226580,
+            "range": "± 9619",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 38660,
+            "range": "± 1670",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 28828,
+            "range": "± 1786",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 18950,
+            "range": "± 956",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 88629,
+            "range": "± 8007",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 17258,
+            "range": "± 876",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 6123,
+            "range": "± 258",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 5816,
+            "range": "± 308",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 5467,
+            "range": "± 294",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 4758,
+            "range": "± 284",
             "unit": "ns/iter"
           }
         ]

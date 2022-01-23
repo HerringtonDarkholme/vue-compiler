@@ -7,7 +7,7 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "vue": "3.2.28"
+    "vue": "3.2.29"
   },
   "optionalDependencies": {
     "rusty-vue-compiler": "file:../crates/wasm/pkg/"

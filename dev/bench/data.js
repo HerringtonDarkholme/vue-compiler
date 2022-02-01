@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1643707055968,
+  "lastUpdate": 1643715296172,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -34138,6 +34138,107 @@ window.BENCHMARK_DATA = {
             "range": "±0.07%",
             "unit": "ops/sec",
             "extra": "96 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bot@renovateapp.com",
+            "name": "Renovate Bot",
+            "username": "renovate-bot"
+          },
+          "committer": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "distinct": true,
+          "id": "669a360431c6ab20f073520877c94382aa0d5357",
+          "message": "Update dependency @types/node to v16.11.22",
+          "timestamp": "2022-02-01T11:33:24Z",
+          "tree_id": "57df9e19aa67e1014df847714f4e2143adf985a4",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/669a360431c6ab20f073520877c94382aa0d5357"
+        },
+        "date": 1643715290591,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "Attribute.vue",
+            "value": 28102,
+            "range": "±10.33%",
+            "unit": "ops/sec",
+            "extra": "87 samples"
+          },
+          {
+            "name": "Counter.vue",
+            "value": 46658,
+            "range": "±1.02%",
+            "unit": "ops/sec",
+            "extra": "87 samples"
+          },
+          {
+            "name": "ElasticHeader.vue",
+            "value": 3474,
+            "range": "±6.87%",
+            "unit": "ops/sec",
+            "extra": "89 samples"
+          },
+          {
+            "name": "GithubCommit.vue",
+            "value": 4842,
+            "range": "±6.76%",
+            "unit": "ops/sec",
+            "extra": "82 samples"
+          },
+          {
+            "name": "ModalComponent.vue",
+            "value": 8958,
+            "range": "±0.85%",
+            "unit": "ops/sec",
+            "extra": "86 samples"
+          },
+          {
+            "name": "TodoApp.vue",
+            "value": 1764,
+            "range": "±3.86%",
+            "unit": "ops/sec",
+            "extra": "85 samples"
+          },
+          {
+            "name": "TreeView.vue",
+            "value": 4469,
+            "range": "±1.60%",
+            "unit": "ops/sec",
+            "extra": "89 samples"
+          },
+          {
+            "name": "TwoWayBinding.vue",
+            "value": 23095,
+            "range": "±1.38%",
+            "unit": "ops/sec",
+            "extra": "88 samples"
+          },
+          {
+            "name": "UserInput.vue",
+            "value": 21265,
+            "range": "±0.64%",
+            "unit": "ops/sec",
+            "extra": "92 samples"
+          },
+          {
+            "name": "VFor.vue",
+            "value": 24560,
+            "range": "±1.30%",
+            "unit": "ops/sec",
+            "extra": "92 samples"
+          },
+          {
+            "name": "VIf.vue",
+            "value": 33889,
+            "range": "±0.84%",
+            "unit": "ops/sec",
+            "extra": "88 samples"
           }
         ]
       }

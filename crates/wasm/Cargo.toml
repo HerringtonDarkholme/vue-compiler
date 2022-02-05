@@ -15,7 +15,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 compiler = { path = "../compiler", package = "vue-compiler-core", default-features = false, features = [] }
-wasm-bindgen = "0.2.78"
+wasm-bindgen = "0.2.79"
 wee_alloc = { version = "0.4.5" }
 
 [profile.release]

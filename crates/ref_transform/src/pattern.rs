@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use crate::{Root, Node, meta_var::Env};
 use crate::matcher::{match_node_recursive, match_single_kind};
-use tree_sitter::Node as TNode;
 
 pub enum PatternKind {
     NodePattern(Root),
@@ -43,10 +42,7 @@ fn match_kind<'tree>(
     candidate: Node<'tree>,
 ) -> Option<(Node<'tree>, Env<'tree>)> {
     let mut env = HashMap::new();
-    let source = candidate.source;
-    let candidate = candidate.inner;
-    let inner = match_single_kind(kind, candidate, &mut env)?;
-    let node = Node { inner, source };
+    let node = match_single_kind(kind, candidate, &mut env)?;
     Some((node, env))
 }
 
@@ -148,6 +144,6 @@ mod test {
         test_match("class $C { $MEMBER = $VAL}", "class A {a = 123}");
         test_non_match("class $C { $MEMBER = $VAL; b = 123; }", "class A {a = 123}");
         // test_match("a = 123", "class A {a = 123}");
-        // test_non_match("a = 123", "class B {b = 123}");
+        test_non_match("a = 123", "class B {b = 123}");
     }
 }

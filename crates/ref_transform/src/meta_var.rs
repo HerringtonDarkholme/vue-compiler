@@ -44,10 +44,6 @@ impl MetaVarMatcher {
     }
 }
 
-pub fn is_meta_var(s: &str) -> bool {
-    is_single_meta_var(s) || is_ellipsis_meta_var(s)
-}
-
 pub fn extract_meta_var(s: &str) -> Option<MetaVariable> {
     use MetaVariable::*;
     println!("{}", s);
@@ -81,13 +77,4 @@ pub fn extract_meta_var(s: &str) -> Option<MetaVariable> {
 
 fn is_valid_meta_var_char(c: char) -> bool {
     matches!(c, 'A'..='Z' | '_')
-}
-
-fn is_single_meta_var(s: &str) -> bool {
-    s.starts_with('$') && s[1..].chars().all(is_valid_meta_var_char)
-}
-
-fn is_ellipsis_meta_var(s: &str) -> bool {
-    // non-captured
-    s == "$$$" || s.starts_with("$$$") && s[4..].chars().all(is_valid_meta_var_char)
 }

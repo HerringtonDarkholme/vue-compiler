@@ -3,9 +3,9 @@ use std::collections::HashMap;
 // const a = 123 matched with const a = $A will produce env: $A => 123
 pub type Env = HashMap<String, String>;
 
-pub struct Rule<Metadata> {
+pub struct Rule<Matcher> {
     env: Env,
-    metadata: Metadata,
+    matcher: Matcher,
 }
 
 pub struct And<P1, P2> {

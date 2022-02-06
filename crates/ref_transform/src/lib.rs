@@ -77,6 +77,9 @@ impl<'r> Node<'r> {
     fn is_leaf(&self) -> bool {
         self.inner.child_count() == 0
     }
+    fn kind(&self) -> &str {
+        self.inner.kind()
+    }
     fn kind_id(&self) -> NodeKind {
         self.inner.kind_id()
     }

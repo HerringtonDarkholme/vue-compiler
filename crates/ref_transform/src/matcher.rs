@@ -1,19 +1,20 @@
 use crate::meta_var::{Env, extract_meta_var, MetaVariable};
 use tree_sitter::{Node as TNode};
+use crate::Node;
 
 pub fn match_single_kind<'tree>(
     goal_kind: &str,
-    candidate: TNode<'tree>,
+    candidate: Node<'tree>,
     env: &mut Env<'tree>,
-) -> Option<TNode<'tree>> {
+) -> Option<Node<'tree>> {
     if candidate.kind() == goal_kind {
         // TODO: update env
         // env.insert(meta_var.0.to_owned(), candidate);
         return Some(candidate);
     }
-    let mut cursor = candidate.walk();
-    let mut children = candidate.children(&mut cursor);
-    children.find_map(|sub_cand| match_single_kind(goal_kind, sub_cand, env))
+    candidate
+        .children()
+        .find_map(|sub| match_single_kind(goal_kind, sub, env))
 }
 
 fn match_leaf_meta_var<'tree>(

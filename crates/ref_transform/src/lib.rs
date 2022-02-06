@@ -5,10 +5,12 @@ mod js_parser;
 mod language;
 mod matcher;
 mod meta_var;
+mod node;
 mod pattern;
 mod rule;
 
 pub use pattern::Pattern;
+pub use node::Node;
 
 pub struct Semgrep {
     root: Root,
@@ -32,136 +34,6 @@ impl Root {
             source: &self.source,
         }
     }
-}
-
-// the lifetime r represents root
-#[derive(Clone, Copy)]
-pub struct Node<'r> {
-    inner: tree_sitter::Node<'r>,
-    source: &'r str,
-}
-type NodeKind = u16;
-
-struct NodeWalker<'tree> {
-    cursor: tree_sitter::TreeCursor<'tree>,
-    source: &'tree str,
-    initiated: bool,
-}
-
-impl<'tree> Iterator for NodeWalker<'tree> {
-    type Item = Node<'tree>;
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.initiated {
-            if self.cursor.goto_first_child() {
-                self.initiated = true;
-                Some(Node {
-                    inner: self.cursor.node(),
-                    source: self.source,
-                })
-            } else {
-                None
-            }
-        } else if self.cursor.goto_next_sibling() {
-            Some(Node {
-                inner: self.cursor.node(),
-                source: self.source,
-            })
-        } else {
-            None
-        }
-    }
-}
-
-// internal API
-impl<'r> Node<'r> {
-    fn is_leaf(&self) -> bool {
-        self.inner.child_count() == 0
-    }
-    fn kind(&self) -> &str {
-        self.inner.kind()
-    }
-    fn kind_id(&self) -> NodeKind {
-        self.inner.kind_id()
-    }
-    pub fn text(&self) -> &str {
-        self.inner
-            .utf8_text(self.source.as_bytes())
-            .expect("invalid source text encoding")
-    }
-
-    pub fn children(&self) -> impl Iterator<Item = Node<'r>> {
-        NodeWalker {
-            cursor: self.inner.walk(),
-            source: self.source,
-            initiated: false,
-        }
-    }
-}
-
-// tree traversal API
-impl<'r> Node<'r> {
-    #[must_use]
-    pub fn find(&self) -> Node<'r> {
-        todo!()
-    }
-    // should we provide parent?
-    #[must_use]
-    pub fn parent(&self) -> Node<'r> {
-        todo!()
-    }
-    #[must_use]
-    pub fn ancestors(&self) -> Vec<Node<'r>> {
-        todo!()
-    }
-    #[must_use]
-    pub fn next(&self) -> Option<Node<'r>> {
-        todo!()
-    }
-    #[must_use]
-    pub fn next_all(&self) -> Vec<Node<'r>> {
-        todo!()
-    }
-    #[must_use]
-    pub fn prev(&self) -> Option<Node<'r>> {
-        todo!()
-    }
-    #[must_use]
-    pub fn prev_all(&self) -> Vec<Node<'r>> {
-        todo!()
-    }
-    #[must_use]
-    pub fn eq(&self, _i: usize) -> Node<'r> {
-        todo!()
-    }
-    pub fn each<F>(&self, _f: F)
-    where
-        F: Fn(&Node<'r>),
-    {
-        todo!()
-    }
-}
-
-// r manipulation API
-impl<'r> Node<'r> {
-    pub fn attr(&mut self) {}
-    pub fn replace(&mut self, pattern_str: &str, replacement_str: &str) -> &mut Self {
-        let to_match = pattern::Pattern::new(pattern_str);
-        let _to_replace = pattern::Pattern::new(replacement_str);
-        todo!()
-        // if let Some(_node) = to_match.match_node(self) {
-        //     todo!("change node content with replaced")
-        // } else {
-        //     todo!()
-        // }
-    }
-    pub fn replace_by(&mut self) {}
-    pub fn after(&mut self) {}
-    pub fn before(&mut self) {}
-    pub fn append(&mut self) {}
-    pub fn prepend(&mut self) {}
-    pub fn empty(&mut self) {}
-    pub fn remove(&mut self) {}
-    pub fn clone(&mut self) {}
 }
 
 // creational API

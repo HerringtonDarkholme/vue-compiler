@@ -46,7 +46,7 @@ fn is_ellipsis<'tree>(node: &TNode<'tree>, source: &str) -> bool {
     )
 }
 
-pub fn match_node_exact<'tree>(
+fn match_node_exact<'tree>(
     goal: &TNode<'tree>,
     candidate: TNode<'tree>,
     goal_source: &str,

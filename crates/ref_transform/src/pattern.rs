@@ -23,7 +23,7 @@ impl Pattern {
             pattern_kind: PatternKind::KindPattern(kind),
         }
     }
-    pub fn match_node<'tree>(&'tree self, node: Node<'tree>) -> Option<(TNode<'tree>, Env<'tree>)> {
+    pub fn match_node<'tree>(&'tree self, node: Node<'tree>) -> Option<(Node<'tree>, Env<'tree>)> {
         match &self.pattern_kind {
             PatternKind::NodePattern(ref n) => {
                 let root = n.root();
@@ -41,17 +41,19 @@ impl Pattern {
 fn match_kind<'tree>(
     kind: &'static str,
     candidate: Node<'tree>,
-) -> Option<(TNode<'tree>, Env<'tree>)> {
+) -> Option<(Node<'tree>, Env<'tree>)> {
     let mut env = HashMap::new();
+    let source = candidate.source;
     let candidate = candidate.inner;
-    let node = match_single_kind(kind, candidate, &mut env)?;
+    let inner = match_single_kind(kind, candidate, &mut env)?;
+    let node = Node { inner, source };
     Some((node, env))
 }
 
 fn match_node<'tree>(
     goal: Node<'tree>,
     candidate: Node<'tree>,
-) -> Option<(TNode<'tree>, Env<'tree>)> {
+) -> Option<(Node<'tree>, Env<'tree>)> {
     let mut env = HashMap::new();
     let source = &goal.source;
     let cand = &candidate.source;
@@ -65,6 +67,10 @@ fn match_node<'tree>(
         todo!("multi candidate roots are not supported yet.")
     }
     let node = match_node_recursive(&goal, candidate, source, cand, &mut env)?;
+    let node = Node {
+        inner: node,
+        source: cand,
+    };
     Some((node, env))
 }
 

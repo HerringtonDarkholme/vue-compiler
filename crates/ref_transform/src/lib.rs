@@ -35,6 +35,7 @@ impl Root {
 }
 
 // the lifetime r represents root
+#[derive(Clone, Copy)]
 pub struct Node<'r> {
     inner: tree_sitter::Node<'r>,
     source: &'r str,

@@ -23,15 +23,15 @@ impl Pattern {
             pattern_kind: PatternKind::KindPattern(kind),
         }
     }
-    // pub fn match_node<'tree>(&'tree self, node: &'tree Node) -> Option<(TNode<'tree>, Env<'tree>)> {
-    //     match self.pattern_kind {
-    //         PatternKind::NodePattern(ref n) => {
-    //             let root = n.root();
-    //             match_node(&root, node)
-    //         },
-    //         PatternKind::KindPattern(k) => match_kind(k, node),
-    //     }
-    // }
+    pub fn match_node<'tree>(&'tree self, node: Node<'tree>) -> Option<(TNode<'tree>, Env<'tree>)> {
+        match &self.pattern_kind {
+            PatternKind::NodePattern(ref n) => {
+                let root = n.root();
+                match_node(root, node)
+            }
+            PatternKind::KindPattern(k) => match_kind(k, node),
+        }
+    }
 
     pub fn gen_replaced(&self, _vars: Env) -> String {
         todo!()
@@ -40,7 +40,7 @@ impl Pattern {
 
 fn match_kind<'tree>(
     kind: &'static str,
-    candidate: &'tree Node,
+    candidate: Node<'tree>,
 ) -> Option<(TNode<'tree>, Env<'tree>)> {
     let mut env = HashMap::new();
     let candidate = candidate.inner;
@@ -49,8 +49,8 @@ fn match_kind<'tree>(
 }
 
 fn match_node<'tree>(
-    goal: &'tree Node,
-    candidate: &'tree Node,
+    goal: Node<'tree>,
+    candidate: Node<'tree>,
 ) -> Option<(TNode<'tree>, Env<'tree>)> {
     let mut env = HashMap::new();
     let source = &goal.source;
@@ -86,7 +86,7 @@ mod test {
         let cand = pattern_node(s2);
         let cand = cand.root();
         assert!(
-            match_node(&goal, &cand).is_some(),
+            match_node(goal, cand).is_some(),
             "goal: {}, candidate: {}",
             goal.inner.to_sexp(),
             cand.inner.to_sexp(),
@@ -98,7 +98,7 @@ mod test {
         let cand = pattern_node(s2);
         let cand = cand.root();
         assert!(
-            match_node(&goal, &cand).is_none(),
+            match_node(goal, cand).is_none(),
             "goal: {}, candidate: {}",
             goal.inner.to_sexp(),
             cand.inner.to_sexp(),
@@ -119,7 +119,7 @@ mod test {
         let goal = goal.root();
         let cand = pattern_node(cand_str);
         let cand = cand.root();
-        let (_, env) = match_node(&goal, &cand).unwrap();
+        let (_, env) = match_node(goal, cand).unwrap();
         assert_eq!(env["VALUE"].utf8_text(cand_str.as_bytes()).unwrap(), "123");
     }
 
@@ -130,7 +130,7 @@ mod test {
         let goal = goal.root();
         let cand = pattern_node(cand_str);
         let cand = cand.root();
-        let (_, env) = match_node(&goal, &cand).unwrap();
+        let (_, env) = match_node(goal, cand).unwrap();
         assert_eq!(
             env["VALUE"].utf8_text(cand_str.as_bytes()).unwrap(),
             "5 + 3"

@@ -1,5 +1,5 @@
 use crate::meta_var::{Env, extract_meta_var, MetaVariable};
-use tree_sitter::{Node as TNode, TreeCursor};
+use tree_sitter::{Node as TNode};
 
 pub fn match_single_kind<'tree>(
     goal_kind: &str,
@@ -88,10 +88,12 @@ pub fn match_node_exact<'tree>(
         if is_ellipsis(&curr_node, goal_source) {
             // goal has all matched
             if !goal_cursor.goto_next_sibling() {
+                // TODO: update env
                 return Some(candidate);
             }
             while !goal_cursor.node().is_named() {
                 if !goal_cursor.goto_next_sibling() {
+                    // TODO: update env
                     return Some(candidate);
                 }
             }
@@ -100,6 +102,7 @@ pub fn match_node_exact<'tree>(
                 if !candidate_cursor.goto_next_sibling() {
                     return None;
                 }
+                // TODO: update env
                 continue;
             }
             loop {

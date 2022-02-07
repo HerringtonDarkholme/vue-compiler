@@ -57,16 +57,19 @@ fn match_node<'tree>(
     if goal.child_count() != 1 {
         todo!("multi-children pattern is not supported yet.")
     }
-    let goal = goal.child(0).unwrap();
+    let goal = Node {
+        inner: goal.child(0).unwrap(),
+        source,
+    };
     let candidate = candidate.inner;
     if candidate.next_sibling().is_some() {
         todo!("multi candidate roots are not supported yet.")
     }
-    let node = match_node_recursive(&goal, candidate, source, cand, &mut env)?;
-    let node = Node {
-        inner: node,
+    let candidate = Node {
+        inner: candidate,
         source: cand,
     };
+    let node = match_node_recursive(&goal, candidate, &mut env)?;
     Some((node, env))
 }
 
@@ -122,7 +125,7 @@ mod test {
         let cand = pattern_node(cand_str);
         let cand = cand.root();
         let (_, env) = match_node(goal, cand).unwrap();
-        assert_eq!(env["VALUE"].utf8_text(cand_str.as_bytes()).unwrap(), "123");
+        assert_eq!(env["VALUE"].text(), "123");
     }
 
     #[test]
@@ -133,10 +136,7 @@ mod test {
         let cand = pattern_node(cand_str);
         let cand = cand.root();
         let (_, env) = match_node(goal, cand).unwrap();
-        assert_eq!(
-            env["VALUE"].utf8_text(cand_str.as_bytes()).unwrap(),
-            "5 + 3"
-        );
+        assert_eq!(env["VALUE"].text(), "5 + 3");
     }
 
     #[test]

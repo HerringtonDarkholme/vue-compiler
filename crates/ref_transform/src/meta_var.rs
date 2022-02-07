@@ -1,5 +1,6 @@
 use crate::pattern::PatternKind;
 use tree_sitter::Node as TNode;
+use crate::Node;
 use std::collections::HashMap;
 
 pub type MetaVariableID = String;
@@ -36,7 +37,7 @@ pub enum MetaVarMatcher {
     Pattern(PatternKind),
 }
 
-pub type Env<'tree> = HashMap<MetaVariableID, TNode<'tree>>;
+pub type Env<'tree> = HashMap<MetaVariableID, Node<'tree>>;
 
 impl MetaVarMatcher {
     pub fn matches(&self, _candidate: &TNode) -> bool {
@@ -46,7 +47,6 @@ impl MetaVarMatcher {
 
 pub fn extract_meta_var(s: &str) -> Option<MetaVariable> {
     use MetaVariable::*;
-    println!("{}", s);
     if s == "$$$" {
         return Some(Ellipsis);
     }

@@ -16,7 +16,7 @@ struct NodeWalker<'tree> {
 impl<'tree> Iterator for NodeWalker<'tree> {
     type Item = Node<'tree>;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.initiated {
+        if !self.initiated {
             if self.cursor.goto_first_child() {
                 self.initiated = true;
                 Some(Node {
@@ -39,7 +39,7 @@ impl<'tree> Iterator for NodeWalker<'tree> {
 
 // internal API
 impl<'r> Node<'r> {
-    fn is_leaf(&self) -> bool {
+    pub fn is_leaf(&self) -> bool {
         self.inner.child_count() == 0
     }
     pub fn kind(&self) -> &str {
@@ -156,5 +156,18 @@ mod test {
         let root = Root::new("let a = 123");
         let node = root.root();
         assert!(!node.is_leaf());
+    }
+
+    #[test]
+    fn test_children() {
+        let root = Root::new("let a = 123");
+        let node = root.root();
+        let children: Vec<_> = node.children().collect();
+        assert_eq!(children.len(), 1);
+        let texts: Vec<_> = children[0]
+            .children()
+            .map(|c| c.text().to_string())
+            .collect();
+        assert_eq!(texts, vec!["let", "a = 123"]);
     }
 }

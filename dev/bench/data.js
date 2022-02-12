@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1644632711836,
+  "lastUpdate": 1644633961872,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -36259,6 +36259,107 @@ window.BENCHMARK_DATA = {
             "range": "±0.22%",
             "unit": "ops/sec",
             "extra": "93 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bot@renovateapp.com",
+            "name": "Renovate Bot",
+            "username": "renovate-bot"
+          },
+          "committer": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "Herrington Darkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "distinct": true,
+          "id": "fbf3cdab4836f76b6ff97c5cc950337213ad3c53",
+          "message": "Update dependency eslint to v8.9.0",
+          "timestamp": "2022-02-11T21:44:30-05:00",
+          "tree_id": "4d5e71b854ce089cda06e775d294539c6f242032",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/fbf3cdab4836f76b6ff97c5cc950337213ad3c53"
+        },
+        "date": 1644633956267,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "Attribute.vue",
+            "value": 53704,
+            "range": "±0.17%",
+            "unit": "ops/sec",
+            "extra": "98 samples"
+          },
+          {
+            "name": "Counter.vue",
+            "value": 88368,
+            "range": "±0.15%",
+            "unit": "ops/sec",
+            "extra": "94 samples"
+          },
+          {
+            "name": "ElasticHeader.vue",
+            "value": 5965,
+            "range": "±0.20%",
+            "unit": "ops/sec",
+            "extra": "97 samples"
+          },
+          {
+            "name": "GithubCommit.vue",
+            "value": 8205,
+            "range": "±0.08%",
+            "unit": "ops/sec",
+            "extra": "96 samples"
+          },
+          {
+            "name": "ModalComponent.vue",
+            "value": 14263,
+            "range": "±0.19%",
+            "unit": "ops/sec",
+            "extra": "96 samples"
+          },
+          {
+            "name": "TodoApp.vue",
+            "value": 3047,
+            "range": "±0.62%",
+            "unit": "ops/sec",
+            "extra": "94 samples"
+          },
+          {
+            "name": "TreeView.vue",
+            "value": 7949,
+            "range": "±0.78%",
+            "unit": "ops/sec",
+            "extra": "98 samples"
+          },
+          {
+            "name": "TwoWayBinding.vue",
+            "value": 45487,
+            "range": "±0.09%",
+            "unit": "ops/sec",
+            "extra": "96 samples"
+          },
+          {
+            "name": "UserInput.vue",
+            "value": 40163,
+            "range": "±0.09%",
+            "unit": "ops/sec",
+            "extra": "97 samples"
+          },
+          {
+            "name": "VFor.vue",
+            "value": 42316,
+            "range": "±0.09%",
+            "unit": "ops/sec",
+            "extra": "98 samples"
+          },
+          {
+            "name": "VIf.vue",
+            "value": 57828,
+            "range": "±0.08%",
+            "unit": "ops/sec",
+            "extra": "98 samples"
           }
         ]
       }

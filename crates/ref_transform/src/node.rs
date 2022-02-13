@@ -149,8 +149,7 @@ impl<'r> Node<'r> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::{js_parser, Root};
+    use crate::Root;
     #[test]
     fn test_is_leaf() {
         let root = Root::new("let a = 123");

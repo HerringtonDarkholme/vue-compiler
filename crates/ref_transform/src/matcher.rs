@@ -1,5 +1,4 @@
 use crate::meta_var::{Env, extract_meta_var, MetaVariable};
-use tree_sitter::{Node as TNode};
 use crate::Node;
 
 pub fn match_single_kind<'tree>(

@@ -146,4 +146,30 @@ mod test {
         // test_match("a = 123", "class A {a = 123}");
         test_non_match("a = 123", "class B {b = 123}");
     }
+
+    #[test]
+    fn test_kind_match() {
+        let kind = "field_definition";
+        let cand = pattern_node("class A { a = 123 }");
+        let cand = cand.root();
+        assert!(
+            match_kind(kind, cand).is_some(),
+            "goal: {}, candidate: {}",
+            kind,
+            cand.inner.to_sexp(),
+        );
+    }
+
+    #[test]
+    fn test_kind_non_match() {
+        let kind = "field_definition";
+        let cand = pattern_node("const a = 123");
+        let cand = cand.root();
+        assert!(
+            match_kind(kind, cand).is_none(),
+            "goal: {}, candidate: {}",
+            kind,
+            cand.inner.to_sexp(),
+        );
+    }
 }

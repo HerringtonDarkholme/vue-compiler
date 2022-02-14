@@ -22,7 +22,7 @@ impl Pattern {
             pattern_kind: PatternKind::KindPattern(kind),
         }
     }
-    pub fn match_node<'tree>(&'tree self, node: Node<'tree>) -> Option<(Node<'tree>, Env<'tree>)> {
+    pub fn match_node<'tree>(&self, node: Node<'tree>) -> Option<(Node<'tree>, Env<'tree>)> {
         match &self.pattern_kind {
             PatternKind::NodePattern(ref n) => {
                 let root = n.root();
@@ -37,6 +37,12 @@ impl Pattern {
     }
 }
 
+impl<'a> From<&'a str> for Pattern {
+    fn from(src: &'a str) -> Self {
+        Self::new(src)
+    }
+}
+
 fn match_kind<'tree>(
     kind: &'static str,
     candidate: Node<'tree>,
@@ -46,8 +52,8 @@ fn match_kind<'tree>(
     Some((node, env))
 }
 
-fn match_node<'tree>(
-    goal: Node<'tree>,
+fn match_node<'goal, 'tree>(
+    goal: Node<'goal>,
     candidate: Node<'tree>,
 ) -> Option<(Node<'tree>, Env<'tree>)> {
     let mut env = HashMap::new();

@@ -16,8 +16,8 @@ pub fn match_single_kind<'tree>(
         .find_map(|sub| match_single_kind(goal_kind, sub, env))
 }
 
-fn match_leaf_meta_var<'tree>(
-    goal: &Node<'tree>,
+fn match_leaf_meta_var<'goal, 'tree>(
+    goal: &Node<'goal>,
     candidate: Node<'tree>,
     env: &mut Env<'tree>,
 ) -> Option<Node<'tree>> {
@@ -45,8 +45,8 @@ fn is_ellipsis(node: &Node) -> bool {
     )
 }
 
-fn match_node_exact<'tree>(
-    goal: &Node<'tree>,
+fn match_node_exact<'goal, 'tree>(
+    goal: &Node<'goal>,
     candidate: Node<'tree>,
     env: &mut Env<'tree>,
 ) -> Option<Node<'tree>> {
@@ -128,8 +128,8 @@ fn extract_var_from_node(goal: &Node) -> Option<MetaVariable> {
     extract_meta_var(key)
 }
 
-pub fn match_node_recursive<'tree>(
-    goal: &Node<'tree>,
+pub fn match_node_recursive<'goal, 'tree>(
+    goal: &Node<'goal>,
     candidate: Node<'tree>,
     env: &mut Env<'tree>,
 ) -> Option<Node<'tree>> {

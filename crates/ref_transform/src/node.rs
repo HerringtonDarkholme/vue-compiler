@@ -66,8 +66,9 @@ impl<'r> Node<'r> {
 // tree traversal API
 impl<'r> Node<'r> {
     #[must_use]
-    pub fn find(&self) -> Node<'r> {
-        todo!()
+    pub fn find<P: Into<Pattern>>(&self, pat: P) -> Option<Node<'r>> {
+        let goal: Pattern = pat.into();
+        goal.match_node(*self).map(|f| f.0)
     }
     // should we provide parent?
     #[must_use]

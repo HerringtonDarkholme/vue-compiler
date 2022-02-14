@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use crate::{Root, Node, meta_var::Env};
+use crate::{Root, Node, meta_var::MetaVarEnv};
 use crate::matcher::{match_node_recursive, match_single_kind};
 
 pub enum PatternKind {
@@ -22,7 +21,7 @@ impl Pattern {
             pattern_kind: PatternKind::KindPattern(kind),
         }
     }
-    pub fn match_node<'tree>(&self, node: Node<'tree>) -> Option<(Node<'tree>, Env<'tree>)> {
+    pub fn match_node<'tree>(&self, node: Node<'tree>) -> Option<(Node<'tree>, MetaVarEnv<'tree>)> {
         match &self.pattern_kind {
             PatternKind::NodePattern(ref n) => {
                 let root = n.root();
@@ -32,7 +31,7 @@ impl Pattern {
         }
     }
 
-    pub fn gen_replaced(&self, _vars: Env) -> String {
+    pub fn gen_replaced(&self, _vars: MetaVarEnv) -> String {
         todo!()
     }
 }
@@ -46,8 +45,8 @@ impl<'a> From<&'a str> for Pattern {
 fn match_kind<'tree>(
     kind: &'static str,
     candidate: Node<'tree>,
-) -> Option<(Node<'tree>, Env<'tree>)> {
-    let mut env = HashMap::new();
+) -> Option<(Node<'tree>, MetaVarEnv<'tree>)> {
+    let mut env = MetaVarEnv::new();
     let node = match_single_kind(kind, candidate, &mut env)?;
     Some((node, env))
 }
@@ -55,8 +54,8 @@ fn match_kind<'tree>(
 fn match_node<'goal, 'tree>(
     goal: Node<'goal>,
     candidate: Node<'tree>,
-) -> Option<(Node<'tree>, Env<'tree>)> {
-    let mut env = HashMap::new();
+) -> Option<(Node<'tree>, MetaVarEnv<'tree>)> {
+    let mut env = MetaVarEnv::new();
     let source = &goal.source;
     let cand = &candidate.source;
     let goal = goal.inner;
@@ -82,6 +81,7 @@ fn match_node<'goal, 'tree>(
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::collections::HashMap;
 
     fn pattern_node(s: &str) -> Root {
         let pattern = Pattern::new(s);
@@ -123,26 +123,25 @@ mod test {
         test_match("const $VARIABLE = $VALUE", "const a = 123");
     }
 
-    #[test]
-    fn test_meta_variable_env() {
-        let cand_str = "const a = 123";
-        let goal = pattern_node("const a = $VALUE");
+    fn match_env(goal: &str, cand: &str) -> HashMap<String, String> {
+        let goal = pattern_node(goal);
         let goal = goal.root();
-        let cand = pattern_node(cand_str);
+        let cand = pattern_node(cand);
         let cand = cand.root();
         let (_, env) = match_node(goal, cand).unwrap();
-        assert_eq!(env["VALUE"].text(), "123");
+        HashMap::from(env)
+    }
+
+    #[test]
+    fn test_meta_variable_env() {
+        let env = match_env("const a = $VALUE", "const a = 123");
+        assert_eq!(env["VALUE"], "123");
     }
 
     #[test]
     fn test_match_non_atomic() {
-        let cand_str = "const a = 5 + 3";
-        let goal = pattern_node("const a = $VALUE");
-        let goal = goal.root();
-        let cand = pattern_node(cand_str);
-        let cand = cand.root();
-        let (_, env) = match_node(goal, cand).unwrap();
-        assert_eq!(env["VALUE"].text(), "5 + 3");
+        let env = match_env("const a = $VALUE", "const a = 5 + 3");
+        assert_eq!(env["VALUE"], "5 + 3");
     }
 
     #[test]

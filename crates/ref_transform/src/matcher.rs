@@ -1,10 +1,10 @@
-use crate::meta_var::{Env, extract_meta_var, MetaVariable};
+use crate::meta_var::{MetaVarEnv, extract_meta_var, MetaVariable};
 use crate::Node;
 
 pub fn match_single_kind<'tree>(
     goal_kind: &str,
     candidate: Node<'tree>,
-    env: &mut Env<'tree>,
+    env: &mut MetaVarEnv<'tree>,
 ) -> Option<Node<'tree>> {
     if candidate.kind() == goal_kind {
         // TODO: update env
@@ -19,7 +19,7 @@ pub fn match_single_kind<'tree>(
 fn match_leaf_meta_var<'goal, 'tree>(
     goal: &Node<'goal>,
     candidate: Node<'tree>,
-    env: &mut Env<'tree>,
+    env: &mut MetaVarEnv<'tree>,
 ) -> Option<Node<'tree>> {
     let extracted = extract_var_from_node(goal)?;
     use MetaVariable as MV;
@@ -48,7 +48,7 @@ fn is_ellipsis(node: &Node) -> bool {
 fn match_node_exact<'goal, 'tree>(
     goal: &Node<'goal>,
     candidate: Node<'tree>,
-    env: &mut Env<'tree>,
+    env: &mut MetaVarEnv<'tree>,
 ) -> Option<Node<'tree>> {
     let is_leaf = goal.is_leaf();
     if is_leaf {
@@ -131,7 +131,7 @@ fn extract_var_from_node(goal: &Node) -> Option<MetaVariable> {
 pub fn match_node_recursive<'goal, 'tree>(
     goal: &Node<'goal>,
     candidate: Node<'tree>,
-    env: &mut Env<'tree>,
+    env: &mut MetaVarEnv<'tree>,
 ) -> Option<Node<'tree>> {
     match_node_exact(goal, candidate, env).or_else(|| {
         candidate
@@ -157,7 +157,7 @@ mod test {
             inner: cand.root_node(),
             source: s2,
         };
-        let mut env = HashMap::new();
+        let mut env = MetaVarEnv::new();
         let ret = match_node_recursive(&goal, cand, &mut env);
         assert!(
             ret.is_some(),
@@ -165,7 +165,7 @@ mod test {
             goal.inner.to_sexp(),
             cand.inner.to_sexp(),
         );
-        env.into_iter().map(|(k, v)| (k, v.text().into())).collect()
+        HashMap::from(env)
     }
 
     fn test_non_match(s1: &str, s2: &str) {
@@ -179,7 +179,7 @@ mod test {
             inner: cand.root_node(),
             source: s2,
         };
-        let mut env = HashMap::new();
+        let mut env = MetaVarEnv::new();
         let ret = match_node_recursive(&goal, cand, &mut env);
         assert!(ret.is_none());
     }

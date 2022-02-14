@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 pub type MetaVariableID = String;
 
+#[derive(Default)]
 pub struct MetaVarEnv<'tree> {
     var_matchers: HashMap<MetaVariableID, MetaVarMatcher>,
     single_matched: HashMap<MetaVariableID, Node<'tree>>,
@@ -12,6 +13,9 @@ pub struct MetaVarEnv<'tree> {
 }
 
 impl<'tree> MetaVarEnv<'tree> {
+    pub fn new() -> Self {
+        Default::default()
+    }
     pub fn insert(&mut self, id: MetaVariableID, ret: Node<'tree>) -> &mut Self {
         self.single_matched.insert(id, ret);
         self
@@ -31,6 +35,21 @@ impl<'tree> MetaVarEnv<'tree> {
             }
             _ => None,
         }
+    }
+}
+
+impl<'tree> From<MetaVarEnv<'tree>> for HashMap<String, String> {
+    fn from(env: MetaVarEnv<'tree>) -> Self {
+        let mut ret = HashMap::new();
+        for (id, node) in env.single_matched {
+            ret.insert(id, node.text().into());
+        }
+        for (id, nodes) in env.multi_matched {
+            let s: Vec<_> = nodes.iter().map(|n| n.text()).collect();
+            let s = s.join(", ");
+            ret.insert(id, format!("[{s}]"));
+        }
+        ret
     }
 }
 
@@ -67,8 +86,6 @@ pub enum MetaVarMatcher {
     // A pattern to filter matched metavar based on its AST tree shape.
     Pattern(PatternKind),
 }
-
-pub type Env<'tree> = HashMap<MetaVariableID, Node<'tree>>;
 
 impl MetaVarMatcher {
     pub fn matches(&self, _candidate: &TNode) -> bool {

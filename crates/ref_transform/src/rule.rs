@@ -1,10 +1,9 @@
-use std::collections::HashMap;
+use crate::meta_var::MetaVarEnv;
 // a dictionary for metavariable instantiation
 // const a = 123 matched with const a = $A will produce env: $A => 123
-pub type Env = HashMap<String, String>;
 
-pub struct Rule<Matcher> {
-    env: Env,
+pub struct Rule<'tree, Matcher> {
+    env: MetaVarEnv<'tree>,
     matcher: Matcher,
 }
 

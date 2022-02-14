@@ -54,10 +54,10 @@ impl<'tree> From<MetaVarEnv<'tree>> for HashMap<String, String> {
 }
 
 impl<'tree> MetaVarEnv<'tree> {
-    pub fn match_variable(&self, candidate: TNode<'tree>) -> bool {
+    pub fn match_variable(&self, _candidate: TNode<'tree>) -> bool {
         todo!()
     }
-    pub fn update_variable(&mut self, candidate: TNode<'tree>) {
+    pub fn update_variable(&mut self, _candidate: TNode<'tree>) {
         todo!()
     }
 }

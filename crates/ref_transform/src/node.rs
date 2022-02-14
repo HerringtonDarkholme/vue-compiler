@@ -129,7 +129,7 @@ impl<'r> Node<'r> {
 impl<'r> Node<'r> {
     pub fn attr(&mut self) {}
     pub fn replace(&mut self, pattern_str: &str, replacement_str: &str) -> &mut Self {
-        let to_match = Pattern::new(pattern_str);
+        let _to_match = Pattern::new(pattern_str);
         let _to_replace = Pattern::new(replacement_str);
         todo!()
         // if let Some(_node) = to_match.match_node(self) {

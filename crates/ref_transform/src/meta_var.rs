@@ -7,7 +7,31 @@ pub type MetaVariableID = String;
 
 pub struct MetaVarEnv<'tree> {
     var_matchers: HashMap<MetaVariableID, MetaVarMatcher>,
-    matched: HashMap<MetaVariableID, TNode<'tree>>,
+    single_matched: HashMap<MetaVariableID, Node<'tree>>,
+    multi_matched: HashMap<MetaVariableID, Vec<Node<'tree>>>,
+}
+
+impl<'tree> MetaVarEnv<'tree> {
+    pub fn insert(&mut self, id: MetaVariableID, ret: Node<'tree>) -> &mut Self {
+        self.single_matched.insert(id, ret);
+        self
+    }
+
+    pub fn insert_multi(&mut self, id: MetaVariableID, ret: Vec<Node<'tree>>) -> &mut Self {
+        self.multi_matched.insert(id, ret);
+        self
+    }
+
+    pub fn get(&self, var: &MetaVariable) -> Option<MatchResult<'tree>> {
+        // TODO: optimize this copied/cloned behavior
+        match var {
+            MetaVariable::Named(n) => self.single_matched.get(n).copied().map(MatchResult::Single),
+            MetaVariable::NamedEllipsis(n) => {
+                self.multi_matched.get(n).cloned().map(MatchResult::Multi)
+            }
+            _ => None,
+        }
+    }
 }
 
 impl<'tree> MetaVarEnv<'tree> {
@@ -17,6 +41,13 @@ impl<'tree> MetaVarEnv<'tree> {
     pub fn update_variable(&mut self, candidate: TNode<'tree>) {
         todo!()
     }
+}
+
+pub enum MatchResult<'tree> {
+    // $A for captured meta var
+    Single(Node<'tree>),
+    // $$$A for captured ellipsis
+    Multi(Vec<Node<'tree>>),
 }
 
 pub enum MetaVariable {

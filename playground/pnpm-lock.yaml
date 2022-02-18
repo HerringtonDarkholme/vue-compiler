@@ -1,7 +1,7 @@
 lockfileVersion: 5.3
 
 specifiers:
-  '@vitejs/plugin-vue': 2.2.0
+  '@vitejs/plugin-vue': 2.2.2
   rusty-vue-compiler: file:../crates/wasm/pkg/
   typescript: 4.5.5
   vite: 2.8.4
@@ -15,7 +15,7 @@ optionalDependencies:
   rusty-vue-compiler: link:../crates/wasm/pkg
 
 devDependencies:
-  '@vitejs/plugin-vue': 2.2.0_vite@2.8.4+vue@3.2.31
+  '@vitejs/plugin-vue': 2.2.2_vite@2.8.4+vue@3.2.31
   typescript: 4.5.5
   vite: 2.8.4
   vue-tsc: 0.31.4_typescript@4.5.5
@@ -56,8 +56,8 @@ packages:
     resolution: {integrity: sha512-8HqW8EVqjnCmWXVpqAOZf+EGESdkR27odcMMMGefgKXtar00SoYNSryGv//TELI4T3QFsECo78p+0lmalk/CFA==}
     dev: true
 
-  /@vitejs/plugin-vue/2.2.0_vite@2.8.4+vue@3.2.31:
-    resolution: {integrity: sha512-wXigM1EwN2G7rZcwG6kLk9ivvIMhx2363tCEvMBiXcTu5nePM/12hUPVzPb83Uugt6U+zom1gTpJopi/Ow/jwg==}
+  /@vitejs/plugin-vue/2.2.2_vite@2.8.4+vue@3.2.31:
+    resolution: {integrity: sha512-3C0s45VOwIFEDU+2ownJOpb0zD5fnjXWaHVOLID2R1mYOlAx3doNBFnNbVjaZvpke/L7IdPJXjpyYpXZToDKig==}
     engines: {node: '>=12.0.0'}
     peerDependencies:
       vite: ^2.5.10

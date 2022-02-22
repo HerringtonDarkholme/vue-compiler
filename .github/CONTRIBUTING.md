@@ -6,7 +6,7 @@ Thanks for contributing to Rusty Vue compiler!
 
 1. Install [rustup](https://rustup.rs/)
 2. clone the repo
-3. `git submodule update --recursive`
+3. `git submodule init && git submodule update --recursive`
 4. `cargo build`
 5. Setup [pre-commit](https://pre-commit.com/) for git hooks
 

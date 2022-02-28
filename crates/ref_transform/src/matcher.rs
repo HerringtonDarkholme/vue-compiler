@@ -25,14 +25,14 @@ fn match_leaf_meta_var<'goal, 'tree>(
     use MetaVariable as MV;
     match extracted {
         MV::Named(name) => {
-            env.insert(name, candidate);
+            env.insert(name, candidate)?;
             Some(candidate)
         }
         MV::Anonymous => Some(candidate),
         // Ellipsis will be matched in parent level
         MV::Ellipsis => Some(candidate),
         MV::NamedEllipsis(name) => {
-            env.insert(name, candidate);
+            env.insert(name, candidate)?;
             Some(candidate)
         }
     }

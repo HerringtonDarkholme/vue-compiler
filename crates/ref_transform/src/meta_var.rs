@@ -1,4 +1,4 @@
-use crate::pattern::PatternKind;
+use crate::pattern::Pattern;
 use tree_sitter::Node as TNode;
 use crate::Node;
 use std::collections::HashMap;
@@ -16,14 +16,19 @@ impl<'tree> MetaVarEnv<'tree> {
     pub fn new() -> Self {
         Default::default()
     }
-    pub fn insert(&mut self, id: MetaVariableID, ret: Node<'tree>) -> &mut Self {
+    pub fn insert(&mut self, id: MetaVariableID, ret: Node<'tree>) -> Option<&mut Self> {
+        if let Some(m) = self.var_matchers.get(&id) {
+            if !m.matches(ret) {
+                return None;
+            }
+        }
         self.single_matched.insert(id, ret);
-        self
+        Some(self)
     }
 
-    pub fn insert_multi(&mut self, id: MetaVariableID, ret: Vec<Node<'tree>>) -> &mut Self {
+    pub fn insert_multi(&mut self, id: MetaVariableID, ret: Vec<Node<'tree>>) -> Option<&mut Self> {
         self.multi_matched.insert(id, ret);
-        self
+        Some(self)
     }
 
     pub fn get(&self, var: &MetaVariable) -> Option<MatchResult<'tree>> {
@@ -84,12 +89,16 @@ pub enum MetaVarMatcher {
     // A regex to filter matched metavar based on its textual content.
     Regex(&'static str),
     // A pattern to filter matched metavar based on its AST tree shape.
-    Pattern(PatternKind),
+    Pattern(Pattern),
 }
 
 impl MetaVarMatcher {
-    pub fn matches(&self, _candidate: &TNode) -> bool {
-        todo!()
+    pub fn matches(&self, candidate: Node) -> bool {
+        use MetaVarMatcher::*;
+        match self {
+            Regex(s) => todo!(),
+            Pattern(p) => p.match_node(candidate).is_some(),
+        }
     }
 }
 

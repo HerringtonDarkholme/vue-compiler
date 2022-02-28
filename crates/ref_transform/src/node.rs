@@ -10,30 +10,28 @@ type NodeKind = u16;
 struct NodeWalker<'tree> {
     cursor: tree_sitter::TreeCursor<'tree>,
     source: &'tree str,
-    initiated: bool,
+    count: usize,
 }
 
 impl<'tree> Iterator for NodeWalker<'tree> {
     type Item = Node<'tree>;
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.initiated {
-            if self.cursor.goto_first_child() {
-                self.initiated = true;
-                Some(Node {
-                    inner: self.cursor.node(),
-                    source: self.source,
-                })
-            } else {
-                None
-            }
-        } else if self.cursor.goto_next_sibling() {
-            Some(Node {
-                inner: self.cursor.node(),
-                source: self.source,
-            })
-        } else {
-            None
+        if self.count == 0 {
+            return None;
         }
+        let ret = Some(Node {
+            inner: self.cursor.node(),
+            source: self.source,
+        });
+        self.cursor.goto_next_sibling();
+        self.count -= 1;
+        ret
+    }
+}
+
+impl<'tree> ExactSizeIterator for NodeWalker<'tree> {
+    fn len(&self) -> usize {
+        self.count
     }
 }
 
@@ -54,11 +52,13 @@ impl<'r> Node<'r> {
             .expect("invalid source text encoding")
     }
 
-    pub fn children(&self) -> impl Iterator<Item = Node<'r>> {
+    pub fn children(&self) -> impl ExactSizeIterator<Item = Node<'r>> + '_ {
+        let mut cursor = self.inner.walk();
+        cursor.goto_first_child();
         NodeWalker {
-            cursor: self.inner.walk(),
+            cursor,
             source: self.source,
-            initiated: false,
+            count: self.inner.child_count(),
         }
     }
 }

@@ -2,6 +2,7 @@ use crate::pattern::Pattern;
 use tree_sitter::Node as TNode;
 use crate::Node;
 use std::collections::HashMap;
+use crate::matcher::does_node_match_exactly;
 
 pub type MetaVariableID = String;
 
@@ -17,10 +18,8 @@ impl<'tree> MetaVarEnv<'tree> {
         Default::default()
     }
     pub fn insert(&mut self, id: MetaVariableID, ret: Node<'tree>) -> Option<&mut Self> {
-        if let Some(m) = self.var_matchers.get(&id) {
-            if !m.matches(ret) {
-                return None;
-            }
+        if !self.match_variable(&id, ret) {
+            return None;
         }
         self.single_matched.insert(id, ret);
         Some(self)
@@ -59,11 +58,16 @@ impl<'tree> From<MetaVarEnv<'tree>> for HashMap<String, String> {
 }
 
 impl<'tree> MetaVarEnv<'tree> {
-    pub fn match_variable(&self, _candidate: TNode<'tree>) -> bool {
-        todo!()
-    }
-    pub fn update_variable(&mut self, _candidate: TNode<'tree>) {
-        todo!()
+    fn match_variable(&self, id: &MetaVariableID, candidate: Node) -> bool {
+        if let Some(m) = self.var_matchers.get(id) {
+            if !m.matches(candidate) {
+                return false;
+            }
+        }
+        if let Some(m) = self.single_matched.get(id) {
+            return does_node_match_exactly(m, candidate);
+        }
+        true
     }
 }
 

@@ -45,7 +45,7 @@ fn is_ellipsis(node: &Node) -> bool {
     )
 }
 
-fn match_node_exact<'goal, 'tree>(
+fn match_node_non_recursive<'goal, 'tree>(
     goal: &Node<'goal>,
     candidate: Node<'tree>,
     env: &mut MetaVarEnv<'tree>,
@@ -94,7 +94,7 @@ fn match_node_exact<'goal, 'tree>(
                 continue;
             }
             loop {
-                if match_node_exact(
+                if match_node_non_recursive(
                     goal_children.peek().unwrap(),
                     *cand_children.peek().unwrap(),
                     env,
@@ -108,7 +108,7 @@ fn match_node_exact<'goal, 'tree>(
                 cand_children.peek()?;
             }
         }
-        match_node_exact(
+        match_node_non_recursive(
             goal_children.peek().unwrap(),
             *cand_children.peek().unwrap(),
             env,
@@ -123,6 +123,23 @@ fn match_node_exact<'goal, 'tree>(
     }
 }
 
+pub fn does_node_match_exactly(goal: &Node, candidate: Node) -> bool {
+    if goal.kind_id() != candidate.kind_id() {
+        return false;
+    }
+    if goal.is_leaf() {
+        return goal.text() == candidate.text();
+    }
+    let goal_children = goal.children();
+    let cand_children = candidate.children();
+    if goal_children.len() != cand_children.len() {
+        return false;
+    }
+    goal_children
+        .zip(cand_children)
+        .all(|(g, c)| does_node_match_exactly(&g, c))
+}
+
 fn extract_var_from_node(goal: &Node) -> Option<MetaVariable> {
     let key = goal.text();
     extract_meta_var(key)
@@ -133,7 +150,7 @@ pub fn match_node_recursive<'goal, 'tree>(
     candidate: Node<'tree>,
     env: &mut MetaVarEnv<'tree>,
 ) -> Option<Node<'tree>> {
-    match_node_exact(goal, candidate, env).or_else(|| {
+    match_node_non_recursive(goal, candidate, env).or_else(|| {
         candidate
             .children()
             .find_map(|sub_cand| match_node_recursive(goal, sub_cand, env))

@@ -11,6 +11,7 @@ mod rule;
 
 pub use pattern::Pattern;
 pub use node::Node;
+pub use meta_var::MetaVarMatcher;
 
 pub struct Semgrep {
     root: Root,

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1646179901070,
+  "lastUpdate": 1646186553226,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -40198,6 +40198,107 @@ window.BENCHMARK_DATA = {
             "range": "±1.02%",
             "unit": "ops/sec",
             "extra": "96 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bot@renovateapp.com",
+            "name": "Renovate Bot",
+            "username": "renovate-bot"
+          },
+          "committer": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "distinct": true,
+          "id": "8146f92c4e7d1ec33b61c643d673db50deaefc93",
+          "message": "Update dependency vue-tsc to v0.32.1",
+          "timestamp": "2022-03-02T02:00:54Z",
+          "tree_id": "3a8265c5108d219a73b1606216577054c9590347",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/8146f92c4e7d1ec33b61c643d673db50deaefc93"
+        },
+        "date": 1646186546095,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "Attribute.vue",
+            "value": 27288,
+            "range": "±22.80%",
+            "unit": "ops/sec",
+            "extra": "86 samples"
+          },
+          {
+            "name": "Counter.vue",
+            "value": 51921,
+            "range": "±1.26%",
+            "unit": "ops/sec",
+            "extra": "89 samples"
+          },
+          {
+            "name": "ElasticHeader.vue",
+            "value": 3385,
+            "range": "±7.92%",
+            "unit": "ops/sec",
+            "extra": "86 samples"
+          },
+          {
+            "name": "GithubCommit.vue",
+            "value": 4792,
+            "range": "±6.55%",
+            "unit": "ops/sec",
+            "extra": "84 samples"
+          },
+          {
+            "name": "ModalComponent.vue",
+            "value": 8642,
+            "range": "±2.60%",
+            "unit": "ops/sec",
+            "extra": "84 samples"
+          },
+          {
+            "name": "TodoApp.vue",
+            "value": 1765,
+            "range": "±1.56%",
+            "unit": "ops/sec",
+            "extra": "87 samples"
+          },
+          {
+            "name": "TreeView.vue",
+            "value": 4255,
+            "range": "±2.36%",
+            "unit": "ops/sec",
+            "extra": "81 samples"
+          },
+          {
+            "name": "TwoWayBinding.vue",
+            "value": 23499,
+            "range": "±1.07%",
+            "unit": "ops/sec",
+            "extra": "87 samples"
+          },
+          {
+            "name": "UserInput.vue",
+            "value": 21369,
+            "range": "±1.17%",
+            "unit": "ops/sec",
+            "extra": "88 samples"
+          },
+          {
+            "name": "VFor.vue",
+            "value": 23618,
+            "range": "±1.06%",
+            "unit": "ops/sec",
+            "extra": "90 samples"
+          },
+          {
+            "name": "VIf.vue",
+            "value": 33152,
+            "range": "±1.43%",
+            "unit": "ops/sec",
+            "extra": "90 samples"
           }
         ]
       }

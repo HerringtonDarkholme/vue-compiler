@@ -13,7 +13,7 @@ specifiers:
   benny: 3.7.1
   chalk: 5.0.0
   eslint: 8.10.0
-  eslint-config-prettier: 8.4.0
+  eslint-config-prettier: 8.5.0
   eslint-plugin-import: 2.25.4
   eslint-plugin-prettier: 4.0.0
   eslint-plugin-sonarjs: 0.12.0
@@ -36,9 +36,9 @@ devDependencies:
   benny: 3.7.1
   chalk: 5.0.0
   eslint: 8.10.0
-  eslint-config-prettier: 8.4.0_eslint@8.10.0
+  eslint-config-prettier: 8.5.0_eslint@8.10.0
   eslint-plugin-import: 2.25.4_eslint@8.10.0
-  eslint-plugin-prettier: 4.0.0_1669956a82292b1f29101a00a555e5bf
+  eslint-plugin-prettier: 4.0.0_f3d13a703a9c1079e3d1af6044603beb
   eslint-plugin-sonarjs: 0.12.0_eslint@8.10.0
   npm-run-all: 4.1.5
   prettier: 2.5.1
@@ -1121,8 +1121,8 @@ packages:
     engines: {node: '>=12'}
     dev: true
 
-  /eslint-config-prettier/8.4.0_eslint@8.10.0:
-    resolution: {integrity: sha512-CFotdUcMY18nGRo5KGsnNxpznzhkopOcOo0InID+sgQssPrzjvsyKZPvOgymTFeHrFuC3Tzdf2YndhXtULK9Iw==}
+  /eslint-config-prettier/8.5.0_eslint@8.10.0:
+    resolution: {integrity: sha512-obmWKLUNCnhtQRKc+tmnYuQl0pFU1ibYJQ5BGhTVB08bHe9wC8qUeG7c08dj9XX+AuPj1YSGSQIHl1pnDHZR0Q==}
     hasBin: true
     peerDependencies:
       eslint: '>=7.0.0'
@@ -1167,7 +1167,7 @@ packages:
       tsconfig-paths: 3.12.0
     dev: true
 
-  /eslint-plugin-prettier/4.0.0_1669956a82292b1f29101a00a555e5bf:
+  /eslint-plugin-prettier/4.0.0_f3d13a703a9c1079e3d1af6044603beb:
     resolution: {integrity: sha512-98MqmCJ7vJodoQK359bqQWaxOE0CS8paAz/GgjaZLyex4TTk3g9HugoO89EqWCrFiOqn9EVvcoo7gZzONCWVwQ==}
     engines: {node: '>=6.0.0'}
     peerDependencies:
@@ -1179,7 +1179,7 @@ packages:
         optional: true
     dependencies:
       eslint: 8.10.0
-      eslint-config-prettier: 8.4.0_eslint@8.10.0
+      eslint-config-prettier: 8.5.0_eslint@8.10.0
       prettier: 2.5.1
       prettier-linter-helpers: 1.0.0
     dev: true

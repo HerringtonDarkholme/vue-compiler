@@ -7,7 +7,7 @@ authors = ["Herrington Darkholme <2883231+HerringtonDarkholme@users.noreply.gith
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.55"
+anyhow = "1.0.56"
 clap = {version = "3.1.6", features = ["derive"]}
 compiler = { path = "../compiler", package = "vue-compiler-core" }
 dom = { path = "../dom", package = "vue-compiler-dom" }

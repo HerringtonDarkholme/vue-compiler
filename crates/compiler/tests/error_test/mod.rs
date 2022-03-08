@@ -1,18 +1,15 @@
 use super::common::{serialize_yaml, get_errors};
-use insta::assert_snapshot;
+use crate::meta_macro;
 
-macro_rules! assert_yaml {
-    ($case: expr) => {
-        let name = insta::_macro_support::AutoName;
-        let val: Vec<_> = get_errors($case);
-        let val = serialize_yaml(val);
-        assert_snapshot!(name, val, $case);
-    };
+fn assert_error(case: &str) -> String {
+    let val: Vec<_> = get_errors(case);
+    serialize_yaml(val)
 }
+meta_macro!(assert_error);
 
 #[test]
 fn test_scan() {
-    let cases = [
+    assert_error![[
         // r#"a {{ b "#,
         // r#"<![CDATA["#,
         // r#"{{}}"#,
@@ -33,20 +30,14 @@ fn test_scan() {
         // r#"<!---->"#,                    // ok
         // r#"<!-- nested <!--> text -->"#, // ok
         // r#"<p v-err=232/>"#,
-    ];
-    for case in cases {
-        assert_yaml!(case);
-    }
+    ]];
 }
 
 #[test]
 fn test_abrupt_closing_of_comment() {
-    let cases = [
+    assert_error![[
         r#"<template><!--></template>"#,
         r#"<template><!---></template>"#,
         r#"<template><!----></template>"#,
-    ];
-    for case in cases {
-        assert_yaml!(case);
-    }
+    ]];
 }

@@ -3,25 +3,20 @@ use super::common::TestErrorHandler;
 use super::parser_test::base_parse;
 use compiler::SFCInfo;
 use compiler::converter::{self as C, BaseConverter, ConvertOption, Converter};
-use insta::assert_snapshot;
+use crate::meta_macro;
 use vue_compiler_core as compiler;
 
-macro_rules! test_ir {
-    ($case: expr) => {
-        let name = insta::_macro_support::AutoName;
-        let opt = SFCInfo::default();
-        let ir = base_convert($case, &opt);
-        let val = serialize_yaml(ir.body);
-        assert_snapshot!(name, val, $case);
-    };
+fn assert_ir(case: &str) -> String {
+    let opt = SFCInfo::default();
+    let ir = base_convert(case, &opt);
+    serialize_yaml(ir.body)
 }
+
+meta_macro!(assert_ir);
 
 #[test]
 fn test_text_call() {
-    let cases = ["hello world", "hello {{world}}", "hello < world"];
-    for case in cases {
-        test_ir!(case);
-    }
+    assert_ir![["hello world", "hello {{world}}", "hello < world"]];
 }
 
 pub fn base_convert<'a>(s: &'a str, opt: &'a SFCInfo<'a>) -> C::BaseRoot<'a> {

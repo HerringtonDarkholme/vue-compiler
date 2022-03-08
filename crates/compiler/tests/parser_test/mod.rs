@@ -3,35 +3,26 @@ mod dir;
 use super::common::{serialize_yaml, get_compiler};
 use compiler::compiler::TemplateCompiler;
 use compiler::parser::AstRoot;
-use insta::assert_snapshot;
+use crate::meta_macro;
 
-macro_rules! test_ast {
-    ($case: expr) => {
-        let name = insta::_macro_support::AutoName;
-        let root = base_parse($case);
-        let val = serialize_yaml(root);
-        assert_snapshot!(name, val, $case);
-    };
+fn assert_parse(case: &str) -> String {
+    let root = base_parse(case);
+    serialize_yaml(root)
 }
+meta_macro!(assert_parse);
 
 #[test]
 fn test_base_parse() {
-    let cases = ["<p/>", "<p></p>", "<p>123</p>"];
-    for case in cases {
-        test_ast!(case);
-    }
+    assert_parse![["<p/>", "<p></p>", "<p>123</p>"]];
 }
 
 #[test]
 fn test_script() {
-    let cases = [
+    assert_parse![[
         // "<script>abc", position is not correct
         "<script><div/></script>",
         "<script>let a = 123</scrip></script>",
-    ];
-    for case in cases {
-        test_ast!(case);
-    }
+    ]];
 }
 
 pub fn base_parse(s: &str) -> AstRoot {

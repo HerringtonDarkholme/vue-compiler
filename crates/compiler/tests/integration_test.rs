@@ -15,10 +15,12 @@ macro_rules! assert_yaml {
     };
 }
 
+// https://github.com/rust-lang/rust/issues/35853#issuecomment-816020221
 #[macro_export]
 macro_rules! meta_macro {
     ($func: ident) => {
         macro_rules! $func {
+            // cannot use repetition in nested macro
             ($cases: expr) => {
                 for case in $cases {
                     $crate::assert_yaml!(case, $func);

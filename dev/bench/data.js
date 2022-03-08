@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1646711145943,
+  "lastUpdate": 1646711360080,
   "repoUrl": "https://github.com/HerringtonDarkholme/vue-compiler",
   "entries": {
     "Benchmark @vue canonical compiler": [
@@ -133945,6 +133945,102 @@ window.BENCHMARK_DATA = {
             "name": "compile/VIf",
             "value": 5073,
             "range": "± 24",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "HerringtonDarkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "committer": {
+            "email": "2883231+HerringtonDarkholme@users.noreply.github.com",
+            "name": "HerringtonDarkholme",
+            "username": "HerringtonDarkholme"
+          },
+          "distinct": true,
+          "id": "07e3b79e2148c0539f5de549e6828a9e68a31647",
+          "message": "[test] update cargo insta library",
+          "timestamp": "2022-03-07T22:43:48-05:00",
+          "tree_id": "6054aa0a68b229198d8bcbd791caa09ab107c3b6",
+          "url": "https://github.com/HerringtonDarkholme/vue-compiler/commit/07e3b79e2148c0539f5de549e6828a9e68a31647"
+        },
+        "date": 1646711352436,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "compile/Attribute",
+            "value": 5573,
+            "range": "± 295",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/Counter",
+            "value": 3901,
+            "range": "± 180",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElTable",
+            "value": 254410,
+            "range": "± 9496",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ElasticHeader",
+            "value": 42172,
+            "range": "± 979",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/GithubCommit",
+            "value": 37324,
+            "range": "± 898",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/ModalComponent",
+            "value": 23780,
+            "range": "± 1021",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TodoApp",
+            "value": 113923,
+            "range": "± 4220",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TreeView",
+            "value": 22697,
+            "range": "± 809",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/TwoWayBinding",
+            "value": 6821,
+            "range": "± 190",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/UserInput",
+            "value": 6949,
+            "range": "± 131",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VFor",
+            "value": 6746,
+            "range": "± 130",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile/VIf",
+            "value": 5527,
+            "range": "± 120",
             "unit": "ns/iter"
           }
         ]

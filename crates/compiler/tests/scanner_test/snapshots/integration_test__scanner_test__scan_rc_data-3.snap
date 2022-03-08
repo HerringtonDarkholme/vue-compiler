@@ -1,7 +1,7 @@
 ---
 source: crates/compiler/tests/scanner_test/mod.rs
+assertion_line: 81
 expression: "<textarea></textarea"
-
 ---
 - StartTag:
     name: textarea

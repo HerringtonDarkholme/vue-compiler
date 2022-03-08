@@ -6,19 +6,21 @@ use compiler::converter::{self as C, BaseConverter, ConvertOption, Converter};
 use insta::assert_snapshot;
 use vue_compiler_core as compiler;
 
-fn test_ir(case: &str) {
-    let name = insta::_macro_support::AutoName;
-    let opt = SFCInfo::default();
-    let ir = base_convert(case, &opt);
-    let val = serialize_yaml(ir.body);
-    assert_snapshot!(name, val, case);
+macro_rules! test_ir {
+    ($case: expr) => {
+        let name = insta::_macro_support::AutoName;
+        let opt = SFCInfo::default();
+        let ir = base_convert($case, &opt);
+        let val = serialize_yaml(ir.body);
+        assert_snapshot!(name, val, $case);
+    };
 }
 
 #[test]
 fn test_text_call() {
     let cases = ["hello world", "hello {{world}}", "hello < world"];
     for case in cases {
-        test_ir(case);
+        test_ir!(case);
     }
 }
 

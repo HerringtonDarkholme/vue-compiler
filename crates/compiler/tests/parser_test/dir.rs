@@ -4,12 +4,14 @@ use compiler::parser;
 use insta::assert_snapshot;
 use vue_compiler_core as compiler;
 
-fn test_dir(case: &str) {
-    let mut elem = mock_element(case);
-    let name = insta::_macro_support::AutoName;
-    let dir = elem.properties.pop().unwrap();
-    let val = serialize_yaml(dir);
-    assert_snapshot!(name, val, case);
+macro_rules! test_dir {
+    ($case: expr) => {
+        let mut elem = mock_element($case);
+        let name = insta::_macro_support::AutoName;
+        let dir = elem.properties.pop().unwrap();
+        let val = serialize_yaml(dir);
+        assert_snapshot!(name, val, $case);
+    };
 }
 
 #[test]
@@ -19,7 +21,7 @@ fn test_custom_dir() {
         r#"<p v-test.add="tt"/>"#, // test, N/A, add
     ];
     for case in cases {
-        test_dir(case);
+        test_dir!(case);
     }
 }
 
@@ -36,7 +38,7 @@ fn test_bind_dir() {
         r#"<p v-🖖:🤘.🤙/>"#, // unicode, VUE in hand sign
     ];
     for case in cases {
-        test_dir(case);
+        test_dir!(case);
     }
 }
 #[test]
@@ -48,7 +50,7 @@ fn test_prop_dir() {
         r#"<p v-t.[dynamic]="tt" />"#, // t, N/A, [dynamic]
     ];
     for case in cases {
-        test_dir(case);
+        test_dir!(case);
     }
 }
 
@@ -62,7 +64,7 @@ fn test_on_dir() {
         r#"<p @.stop="tt"/>"#,   // on, N/A, stop
     ];
     for case in cases {
-        test_dir(case);
+        test_dir!(case);
     }
 }
 
@@ -76,7 +78,7 @@ fn test_slot_dir() {
         r#"<p v-slot@.@="tt"/>"#, // slot@, N/A, @
     ];
     for case in cases {
-        test_dir(case);
+        test_dir!(case);
     }
 }
 #[test]
@@ -90,7 +92,7 @@ fn test_dir_parse_error() {
         r#"<p v-slot.-="tt"/>"#, // ERROR: slot, N/A, -
     ];
     for case in cases {
-        test_dir(case);
+        test_dir!(case);
     }
 }
 

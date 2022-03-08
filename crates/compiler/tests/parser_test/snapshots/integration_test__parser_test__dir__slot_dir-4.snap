@@ -1,7 +1,7 @@
 ---
 source: crates/compiler/tests/parser_test/dir.rs
+assertion_line: 81
 expression: "<p #.-.=\"tt\"/>"
-
 ---
 Dir:
   name: slot

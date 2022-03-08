@@ -1,7 +1,7 @@
 ---
 source: crates/compiler/tests/parser_test/mod.rs
+assertion_line: 33
 expression: "<script><div/></script>"
-
 ---
 children:
   - Element:

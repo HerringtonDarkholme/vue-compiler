@@ -2,17 +2,18 @@ use super::common::{serialize_yaml, get_compiler};
 use compiler::scanner::TokenSource;
 use compiler::compiler::TemplateCompiler;
 use insta::assert_snapshot;
-use serde::Serialize;
 use vue_compiler_core as compiler;
 
 pub fn base_scan(s: &str) -> impl TokenSource {
     get_compiler().scan(s)
 }
 
-fn assert_yaml<S: Serialize>(val: S, expr: &str) {
-    let name = insta::_macro_support::AutoName;
-    let val = serialize_yaml(val);
-    assert_snapshot!(name, val, expr);
+macro_rules! assert_yaml {
+    ($val: expr, $expr: expr) => {
+        let name = insta::_macro_support::AutoName;
+        let val = serialize_yaml($val);
+        assert_snapshot!(name, val, $expr);
+    };
 }
 
 #[test]
@@ -40,7 +41,7 @@ fn test_scan() {
     ];
     for case in cases {
         let val: Vec<_> = base_scan(case).collect();
-        assert_yaml(val, case);
+        assert_yaml!(val, case);
     }
 }
 
@@ -56,7 +57,7 @@ fn test_scan_raw_text() {
     ];
     for &case in cases.iter() {
         let t: Vec<_> = base_scan(case).collect();
-        assert_yaml(t, case);
+        assert_yaml!(t, case);
     }
 }
 #[test]
@@ -77,6 +78,6 @@ fn test_scan_rc_data() {
     ];
     for &case in cases.iter() {
         let a: Vec<_> = base_scan(case).collect();
-        assert_yaml(a, case);
+        assert_yaml!(a, case);
     }
 }

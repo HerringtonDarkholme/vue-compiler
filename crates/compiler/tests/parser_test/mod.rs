@@ -5,18 +5,20 @@ use compiler::compiler::TemplateCompiler;
 use compiler::parser::AstRoot;
 use insta::assert_snapshot;
 
-fn test_ast(case: &str) {
-    let name = insta::_macro_support::AutoName;
-    let root = base_parse(case);
-    let val = serialize_yaml(root);
-    assert_snapshot!(name, val, case);
+macro_rules! test_ast {
+    ($case: expr) => {
+        let name = insta::_macro_support::AutoName;
+        let root = base_parse($case);
+        let val = serialize_yaml(root);
+        assert_snapshot!(name, val, $case);
+    };
 }
 
 #[test]
 fn test_base_parse() {
     let cases = ["<p/>", "<p></p>", "<p>123</p>"];
     for case in cases {
-        test_ast(case);
+        test_ast!(case);
     }
 }
 
@@ -28,7 +30,7 @@ fn test_script() {
         "<script>let a = 123</scrip></script>",
     ];
     for case in cases {
-        test_ast(case);
+        test_ast!(case);
     }
 }
 

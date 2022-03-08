@@ -1,11 +1,12 @@
 use super::common::{serialize_yaml, get_errors};
 use insta::assert_snapshot;
-use serde::Serialize;
 
-fn assert_yaml<S: Serialize>(val: S, expr: &str) {
-    let name = insta::_macro_support::AutoName;
-    let val = serialize_yaml(val);
-    assert_snapshot!(name, val, expr);
+macro_rules! assert_yaml {
+    ($val: expr, $expr: expr) => {
+        let name = insta::_macro_support::AutoName;
+        let val = serialize_yaml($val);
+        assert_snapshot!(name, val, $expr);
+    };
 }
 
 #[test]
@@ -34,7 +35,7 @@ fn test_scan() {
     ];
     for case in cases {
         let val: Vec<_> = get_errors(case);
-        assert_yaml(val, case);
+        assert_yaml!(val, case);
     }
 }
 
@@ -47,6 +48,6 @@ fn test_abrupt_closing_of_comment() {
     ];
     for case in cases {
         let val: Vec<_> = get_errors(case);
-        assert_yaml(val, case);
+        assert_yaml!(val, case);
     }
 }

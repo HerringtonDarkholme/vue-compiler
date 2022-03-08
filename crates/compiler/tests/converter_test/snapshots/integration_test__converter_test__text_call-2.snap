@@ -1,7 +1,7 @@
 ---
 source: crates/compiler/tests/converter_test/mod.rs
+assertion_line: 23
 expression: "hello {{world}}"
-
 ---
 - TextCall:
     fast_path: false

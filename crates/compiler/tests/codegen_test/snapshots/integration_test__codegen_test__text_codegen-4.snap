@@ -1,6 +1,6 @@
 ---
 source: crates/compiler/tests/codegen_test/mod.rs
-assertion_line: 14
+assertion_line: 35
 expression: "<comp>Hello {{world}}</comp>"
 ---
 const _Vue = Vue

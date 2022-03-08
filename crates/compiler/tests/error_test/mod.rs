@@ -2,10 +2,11 @@ use super::common::{serialize_yaml, get_errors};
 use insta::assert_snapshot;
 
 macro_rules! assert_yaml {
-    ($val: expr, $expr: expr) => {
+    ($case: expr) => {
         let name = insta::_macro_support::AutoName;
-        let val = serialize_yaml($val);
-        assert_snapshot!(name, val, $expr);
+        let val: Vec<_> = get_errors($case);
+        let val = serialize_yaml(val);
+        assert_snapshot!(name, val, $case);
     };
 }
 
@@ -34,8 +35,7 @@ fn test_scan() {
         // r#"<p v-err=232/>"#,
     ];
     for case in cases {
-        let val: Vec<_> = get_errors(case);
-        assert_yaml!(val, case);
+        assert_yaml!(case);
     }
 }
 
@@ -47,7 +47,6 @@ fn test_abrupt_closing_of_comment() {
         r#"<template><!----></template>"#,
     ];
     for case in cases {
-        let val: Vec<_> = get_errors(case);
-        assert_yaml!(val, case);
+        assert_yaml!(case);
     }
 }

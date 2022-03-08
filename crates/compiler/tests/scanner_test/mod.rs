@@ -9,10 +9,11 @@ pub fn base_scan(s: &str) -> impl TokenSource {
 }
 
 macro_rules! assert_yaml {
-    ($val: expr, $expr: expr) => {
+    ($case: expr) => {
         let name = insta::_macro_support::AutoName;
-        let val = serialize_yaml($val);
-        assert_snapshot!(name, val, $expr);
+        let val: Vec<_> = base_scan($case).collect();
+        let val = serialize_yaml(val);
+        assert_snapshot!(name, val, $case);
     };
 }
 
@@ -40,8 +41,7 @@ fn test_scan() {
         r#"<p v-err=232/>"#,
     ];
     for case in cases {
-        let val: Vec<_> = base_scan(case).collect();
-        assert_yaml!(val, case);
+        assert_yaml!(case);
     }
 }
 
@@ -56,8 +56,7 @@ fn test_scan_raw_text() {
         r#"<style>abc</style>"#,
     ];
     for &case in cases.iter() {
-        let t: Vec<_> = base_scan(case).collect();
-        assert_yaml!(t, case);
+        assert_yaml!(case);
     }
 }
 #[test]
@@ -77,7 +76,6 @@ fn test_scan_rc_data() {
         r#"<textarea>{{ garbage  {{ }}</textarea>"#,
     ];
     for &case in cases.iter() {
-        let a: Vec<_> = base_scan(case).collect();
-        assert_yaml!(a, case);
+        assert_yaml!(case);
     }
 }

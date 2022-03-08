@@ -4,14 +4,16 @@ use compiler::compiler::TemplateCompiler;
 use insta::assert_snapshot;
 use rslint_parser::parse_text;
 
-fn test_codegen(case: &str) {
-    let name = insta::_macro_support::AutoName;
-    let val = base_compile(case);
-    // `function target have return outside function
-    let wrap_in_func = format!("function () {{ {} }}", val);
-    let parsed = parse_text(&wrap_in_func, 0);
-    assert!(parsed.errors().is_empty());
-    assert_snapshot!(name, val, case);
+macro_rules! test_codegen {
+    ($case: expr) => {
+        let name = insta::_macro_support::AutoName;
+        let val = base_compile($case);
+        // `function target have return outside function
+        let wrap_in_func = format!("function () {{ {} }}", val);
+        let parsed = parse_text(&wrap_in_func, 0);
+        assert!(parsed.errors().is_empty());
+        assert_snapshot!(name, val, $case);
+    };
 }
 
 pub fn base_compile(source: &str) -> String {
@@ -30,6 +32,6 @@ fn test_text_codegen() {
         "<comp>Hello {{world}}</comp>",
     ];
     for case in cases {
-        test_codegen(case);
+        test_codegen!(case);
     }
 }

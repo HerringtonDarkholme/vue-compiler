@@ -18,7 +18,7 @@ rslint_parser = "0.3.1"
 phf = { version = "0.10", features = ["macros"] }
 
 [dev-dependencies]
-insta = { version="1.11.0", features = ["backtrace"] }
+insta = { version="1.13.0", features = ["backtrace"] }
 lazy_static = "1.4.0"
 
 [features]

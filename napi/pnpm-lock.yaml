@@ -11,7 +11,7 @@ specifiers:
   '@vue/compiler-sfc': 3.2.31
   ava: 4.1.0
   benny: 3.7.1
-  chalk: 5.0.0
+  chalk: 5.0.1
   eslint: 8.10.0
   eslint-config-prettier: 8.5.0
   eslint-plugin-import: 2.25.4
@@ -34,7 +34,7 @@ devDependencies:
   '@vue/compiler-sfc': 3.2.31
   ava: 4.1.0
   benny: 3.7.1
-  chalk: 5.0.0
+  chalk: 5.0.1
   eslint: 8.10.0
   eslint-config-prettier: 8.5.0_eslint@8.10.0
   eslint-plugin-import: 2.25.4_eslint@8.10.0
@@ -655,7 +655,7 @@ packages:
       arrify: 3.0.0
       callsites: 4.0.0
       cbor: 8.1.0
-      chalk: 5.0.0
+      chalk: 5.0.1
       chokidar: 3.5.3
       chunkd: 2.0.1
       ci-info: 3.3.0
@@ -791,8 +791,8 @@ packages:
       supports-color: 7.2.0
     dev: true
 
-  /chalk/5.0.0:
-    resolution: {integrity: sha512-/duVOqst+luxCQRKEo4bNxinsOQtMP80ZYm7mMqzuh5PociNL0PvmHFvREJ9ueYL2TxlHjBcmLCdmocx9Vg+IQ==}
+  /chalk/5.0.1:
+    resolution: {integrity: sha512-Fo07WOYGqMfCWHOzSXOt2CxDbC6skS/jO9ynEcmpANMoPrD+W1r1K6Vx7iNm+AQmETU1Xr2t+n8nzkV9t6xh3w==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
     dev: true
 

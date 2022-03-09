@@ -30,7 +30,7 @@ use serde::Serialize;
 // may change to tendril
 pub type Name<'a> = &'a str;
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Position {
     /// the 0-indexed offset in the source str modulo newline
     pub offset: usize,

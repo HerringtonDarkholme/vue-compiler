@@ -865,14 +865,19 @@ pub mod test {
                 line: 1,
             }
         );
-        let mut test_white_space = return_base_tokens("
-        hello");
+        let mut test_white_space = return_base_tokens(
+            "
+        hello",
+        );
         test_white_space.move_by(1);
-        assert_eq!(test_white_space.position, Position {
-            column: 1,
-            offset: 1,
-            line: 2,
-        })
+        assert_eq!(
+            test_white_space.position,
+            Position {
+                column: 1,
+                offset: 1,
+                line: 2,
+            }
+        )
     }
     fn return_base_tokens(s: &str) -> Tokens {
         let scanner = Scanner::new(ScanOption::default());

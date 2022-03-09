@@ -852,4 +852,31 @@ pub mod test {
     pub fn base_scan(s: &str) -> impl TokenSource {
         scan_with_opt(s, ScanOption::default())
     }
+    #[test]
+    fn test_tokens_moveby_fun() {
+        let mut test_moved_str = return_base_tokens("hello");
+        let first = test_moved_str.move_by(2);
+        assert_eq!(first, "he");
+        assert_eq!(
+            test_moved_str.position,
+            Position {
+                column: 3,
+                offset: 2,
+                line: 1,
+            }
+        );
+        let mut test_white_space = return_base_tokens("
+        hello");
+        test_white_space.move_by(1);
+        assert_eq!(test_white_space.position, Position {
+            column: 1,
+            offset: 1,
+            line: 2,
+        })
+    }
+    fn return_base_tokens(s: &str) -> Tokens {
+        let scanner = Scanner::new(ScanOption::default());
+        let ctx = std::rc::Rc::new(TestErrorHandler);
+        scanner.scan(s, ctx)
+    }
 }

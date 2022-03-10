@@ -879,14 +879,6 @@ pub mod test {
             }
         )
     }
-
-    #[test]
-    fn test_white_space() {
-        let mut white = return_base_tokens("  hello");
-        let len = white.skip_whitespace();
-        assert_eq!(len, 2);
-    }
-
     fn return_base_tokens(s: &str) -> Tokens {
         let scanner = Scanner::new(ScanOption::default());
         let ctx = std::rc::Rc::new(TestErrorHandler);

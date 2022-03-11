@@ -11,7 +11,7 @@ use rustc_hash::FxHashSet;
 use std::{iter::FusedIterator, str::Bytes};
 
 #[cfg(feature = "serde")]
-use serde::Serialize;
+use serde::{Serialize};
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Attribute<'a> {
@@ -883,5 +883,20 @@ pub mod test {
         let scanner = Scanner::new(ScanOption::default());
         let ctx = std::rc::Rc::new(TestErrorHandler);
         scanner.scan(s, ctx)
+    }
+
+    #[test]
+    fn test_white_space() {
+        let mut white = return_base_tokens("  hello");
+        let len = white.skip_whitespace();
+        assert_eq!(len, 2);
+    }
+
+    #[test]
+    fn test_tag_open_name() {
+        let mut m = return_base_tokens("<div>hello</div>");
+        let open_tag = m.scan_tag_open();
+        let value = serde_json::json!(open_tag);
+        assert_eq!("div", value["StartTag"]["name"])
     }
 }

@@ -20,6 +20,7 @@ phf = { version = "0.10", features = ["macros"] }
 [dev-dependencies]
 insta = "1.13.0"
 lazy_static = "1.4.0"
+serde_json = "1.0.79"
 
 [features]
 default = ["serde", "smallvec/serde"]

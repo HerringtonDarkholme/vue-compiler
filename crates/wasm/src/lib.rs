@@ -1,3 +1,6 @@
+#![allow(clippy::unused_unit)]
+// https://github.com/rustwasm/wasm-bindgen/issues/2774
+
 use wasm_bindgen::prelude::*;
 use compiler::compiler::{BaseCompiler, TemplateCompiler, get_base_passes};
 

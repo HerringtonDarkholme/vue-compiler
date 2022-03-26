@@ -1,7 +1,7 @@
 ---
 source: crates/compiler/tests/parser_test/dir.rs
+assertion_line: 95
 expression: "<p v-a:b.=\"tt\"/>"
-
 ---
 Dir:
   name: a

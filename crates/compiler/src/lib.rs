@@ -30,7 +30,7 @@ use serde::Serialize;
 // may change to tendril
 pub type Name<'a> = &'a str;
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Position {
     /// the 0-indexed offset in the source str modulo newline
     pub offset: usize,
@@ -49,9 +49,7 @@ impl Serialize for Position {
         let s = format!(
             // Position, Line, Column
             "Pos: {}, Ln: {}, Col: {}",
-            self.offset,
-            self.line,
-            self.column,
+            self.offset, self.line, self.column,
         );
         serializer.serialize_str(&s)
     }

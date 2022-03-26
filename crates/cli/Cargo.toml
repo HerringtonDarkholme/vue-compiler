@@ -2,14 +2,15 @@
 name = "vue-compiler-cli"
 version = "0.1.0"
 edition = "2018"
+authors = ["Herrington Darkholme <2883231+HerringtonDarkholme@users.noreply.github.com>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.45"
-clap = "3.0.0-beta.5"
+anyhow = "1.0.56"
+clap = {version = "3.1.6", features = ["derive"]}
 compiler = { path = "../compiler", package = "vue-compiler-core" }
 dom = { path = "../dom", package = "vue-compiler-dom" }
 path-clean = "0.1.0"
 codespan-reporting = "0.11.1"
-serde_yaml = "0.8.21"
+serde_yaml = "0.8.23"

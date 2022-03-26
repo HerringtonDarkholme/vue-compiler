@@ -595,7 +595,7 @@ impl<'a> Tokens<'a> {
     fn scan_cdata(&mut self) -> Token<'a> {
         debug_assert!(self.source.starts_with("<![CDATA["));
         self.move_by(9);
-        let i = self.source.find("]]>").unwrap_or_else(|| self.source.len());
+        let i = self.source.find("]]>").unwrap_or(self.source.len());
         let text = self.move_by(i); // can be zero
         if self.source.is_empty() {
             self.emit_error(ErrorKind::EofInCdata);
@@ -718,7 +718,7 @@ impl<'a> Tokens<'a> {
 
     fn skip_whitespace(&mut self) -> usize {
         let idx = self.source.find(non_whitespace);
-        let len = idx.unwrap_or_else(|| self.source.len());
+        let len = idx.unwrap_or(self.source.len());
         if len != 0 {
             self.move_by(len);
         }
@@ -835,6 +835,14 @@ pub mod test {
         assert_eq!(val.content.into_string(), "&amp;");
     }
 
+    #[test]
+    fn test_simple_text_with_invalid_end_tag() {
+        let a: Vec<_> = base_scan("some text</div>").collect();
+        assert_eq!(a.len(), 2);
+        assert!(matches!(a[0], Token::Text(_)));
+        assert!(matches!(a[1], Token::EndTag("div")));
+    }
+
     fn scan_with_opt(s: &str, opt: ScanOption) -> impl TokenSource {
         let scanner = Scanner::new(opt);
         let ctx = std::rc::Rc::new(TestErrorHandler);
@@ -843,5 +851,37 @@ pub mod test {
 
     pub fn base_scan(s: &str) -> impl TokenSource {
         scan_with_opt(s, ScanOption::default())
+    }
+    #[test]
+    fn test_tokens_moveby_fun() {
+        let mut test_moved_str = return_base_tokens("hello");
+        let first = test_moved_str.move_by(2);
+        assert_eq!(first, "he");
+        assert_eq!(
+            test_moved_str.position,
+            Position {
+                column: 3,
+                offset: 2,
+                line: 1,
+            }
+        );
+        let mut test_white_space = return_base_tokens(
+            "
+        hello",
+        );
+        test_white_space.move_by(1);
+        assert_eq!(
+            test_white_space.position,
+            Position {
+                column: 1,
+                offset: 1,
+                line: 2,
+            }
+        )
+    }
+    fn return_base_tokens(s: &str) -> Tokens {
+        let scanner = Scanner::new(ScanOption::default());
+        let ctx = std::rc::Rc::new(TestErrorHandler);
+        scanner.scan(s, ctx)
     }
 }

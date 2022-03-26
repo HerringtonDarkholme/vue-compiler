@@ -1,18 +1,18 @@
 use vue_compiler_core as compiler;
 use super::common::get_compiler;
 use compiler::compiler::TemplateCompiler;
-use insta::assert_snapshot;
+use crate::meta_macro;
 use rslint_parser::parse_text;
 
-fn test_codegen(case: &str) {
-    let name = insta::_macro_support::AutoName;
+fn assert_codegen(case: &str) -> String {
     let val = base_compile(case);
     // `function target have return outside function
     let wrap_in_func = format!("function () {{ {} }}", val);
     let parsed = parse_text(&wrap_in_func, 0);
     assert!(parsed.errors().is_empty());
-    assert_snapshot!(name, val, case);
+    val
 }
+meta_macro!(assert_codegen);
 
 pub fn base_compile(source: &str) -> String {
     let sfc_info = Default::default();
@@ -23,13 +23,10 @@ pub fn base_compile(source: &str) -> String {
 
 #[test]
 fn test_text_codegen() {
-    let cases = [
+    assert_codegen![[
         "Hello world",
         "Hello {{world}}",
         "<p>Hello {{world}}</p>",
         "<comp>Hello {{world}}</comp>",
-    ];
-    for case in cases {
-        test_codegen(case);
-    }
+    ]];
 }

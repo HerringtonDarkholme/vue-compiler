@@ -363,12 +363,14 @@ where
     fn is_match(&self, p: &ElemProp<'a>) -> bool {
         M::is_match(p, &self.pat, self.allow_empty)
     }
+    #[must_use]
     pub fn dynamic_only(self) -> Self {
         Self {
             filter: |p| matches!(p, ElemProp::Dir(..)),
             ..self
         }
     }
+    #[must_use]
     pub fn attr_only(self) -> Self {
         Self {
             filter: |p| matches!(p, ElemProp::Attr(..)),
@@ -384,6 +386,7 @@ where
             .position(|p| self.is_match(p) && (self.filter)(p))?;
         PropFound::new(self.elem, pos)
     }
+    #[must_use]
     pub fn allow_empty(self) -> Self {
         Self {
             allow_empty: true,

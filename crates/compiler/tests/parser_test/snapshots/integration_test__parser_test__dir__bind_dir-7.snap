@@ -1,7 +1,7 @@
 ---
 source: crates/compiler/tests/parser_test/dir.rs
+assertion_line: 41
 expression: "<p :[t]err=\"tt\"/>"
-
 ---
 Dir:
   name: bind

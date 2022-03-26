@@ -99,14 +99,17 @@ impl CompilationError {
             location: Default::default(),
         }
     }
+    #[must_use]
     pub fn with_location(mut self, loc: SourceLocation) -> Self {
         self.location = loc;
         self
     }
+    #[must_use]
     pub fn with_additional_message(mut self, msg: &'static str) -> Self {
         self.additional_message = Some(msg);
         self
     }
+    #[must_use]
     pub fn extended<K: ErrorKind + 'static>(kind: K) -> Self {
         Self {
             kind: CompilationErrorKind::ExtendPoint(Box::new(kind)),
@@ -115,7 +118,7 @@ impl CompilationError {
         }
     }
 
-    fn msg(&self) -> &'static str {
+    pub fn msg(&self) -> &'static str {
         msg(&self.kind)
     }
 }
@@ -238,6 +241,11 @@ pub struct VecErrorHandler {
     errors: RefCell<Vec<CompilationError>>,
 }
 impl VecErrorHandler {
+    pub fn new() -> Self {
+        Self {
+            errors: RefCell::new(vec![]),
+        }
+    }
     pub fn errors(&self) -> Ref<Vec<CompilationError>> {
         self.errors.borrow()
     }

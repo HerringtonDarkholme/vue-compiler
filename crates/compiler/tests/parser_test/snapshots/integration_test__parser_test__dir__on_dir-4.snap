@@ -1,7 +1,7 @@
 ---
 source: crates/compiler/tests/parser_test/dir.rs
+assertion_line: 67
 expression: "<p @_@.stop=\"tt\"/>"
-
 ---
 Dir:
   name: "on"

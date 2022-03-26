@@ -1,7 +1,7 @@
 ---
 source: crates/compiler/tests/scanner_test/mod.rs
+assertion_line: 44
 expression: "<a v-bind:['foo' + bar]=\"value\">...</a>"
-
 ---
 - StartTag:
     name: a

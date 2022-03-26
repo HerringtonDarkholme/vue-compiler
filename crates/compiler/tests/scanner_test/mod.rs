@@ -1,23 +1,23 @@
 use super::common::{serialize_yaml, get_compiler};
 use compiler::scanner::TokenSource;
 use compiler::compiler::TemplateCompiler;
-use insta::assert_snapshot;
-use serde::Serialize;
+use crate::meta_macro;
 use vue_compiler_core as compiler;
 
 pub fn base_scan(s: &str) -> impl TokenSource {
     get_compiler().scan(s)
 }
 
-fn assert_yaml<S: Serialize>(val: S, expr: &str) {
-    let name = insta::_macro_support::AutoName;
-    let val = serialize_yaml(val);
-    assert_snapshot!(name, val, expr);
+fn assert_scan(case: &str) -> String {
+    let val: Vec<_> = base_scan(case).collect();
+    serialize_yaml(val)
 }
+
+meta_macro!(assert_scan);
 
 #[test]
 fn test_scan() {
-    let cases = [
+    assert_scan![[
         r#"<![CDATA["#,
         r#"{{}}"#,
         r#"{{test}}"#,
@@ -37,31 +37,23 @@ fn test_scan() {
         r#"<!---->"#,                    // ok
         r#"<!-- nested <!--> text -->"#, // ok
         r#"<p v-err=232/>"#,
-    ];
-    for case in cases {
-        let val: Vec<_> = base_scan(case).collect();
-        assert_yaml(val, case);
-    }
+    ]];
 }
 
 #[test]
 fn test_scan_raw_text() {
-    let cases = [
+    assert_scan![[
         r#"<style></style"#,
         r#"<style></styl"#,
         r#"<style></styles"#,
         r#"<style></style "#,
         r#"<style></style>"#,
         r#"<style>abc</style>"#,
-    ];
-    for &case in cases.iter() {
-        let t: Vec<_> = base_scan(case).collect();
-        assert_yaml(t, case);
-    }
+    ]];
 }
 #[test]
 fn test_scan_rc_data() {
-    let cases = [
+    assert_scan![[
         r#"<textarea>   "#,
         r#"<textarea></textarea "#,
         r#"<textarea></textarea"#,
@@ -74,9 +66,5 @@ fn test_scan_rc_data() {
         r#"<textarea>{{</textarea>"#,
         r#"<textarea>{{"#,
         r#"<textarea>{{ garbage  {{ }}</textarea>"#,
-    ];
-    for &case in cases.iter() {
-        let a: Vec<_> = base_scan(case).collect();
-        assert_yaml(a, case);
-    }
+    ]];
 }

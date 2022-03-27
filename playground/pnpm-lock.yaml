@@ -1,7 +1,7 @@
 lockfileVersion: 5.3
 
 specifiers:
-  '@babel/types': ^7.16.0
+  '@babel/types': 7.17.0
   '@vitejs/plugin-vue': 2.2.4
   rusty-vue-compiler: file:../crates/wasm/pkg/
   typescript: 4.6.3

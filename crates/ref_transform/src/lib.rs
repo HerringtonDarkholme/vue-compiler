@@ -7,7 +7,7 @@ mod matcher;
 mod meta_var;
 mod node;
 mod pattern;
-mod rule;
+pub mod rule;
 
 pub use pattern::Pattern;
 pub use node::Node;

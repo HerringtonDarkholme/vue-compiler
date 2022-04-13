@@ -14,7 +14,7 @@
     "@types/glob": "^7.1.4",
     "@vue/compiler-core": "^3.2.19",
     "benchmark": "^2.1.4",
-    "glob": "^7.2.0",
+    "glob": "^8.0.0",
     "microtime": "^3.0.0"
   },
   "devDependencies": {

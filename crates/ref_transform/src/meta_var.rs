@@ -1,11 +1,12 @@
 use crate::pattern::Pattern;
-use tree_sitter::Node as TNode;
 use crate::Node;
 use std::collections::HashMap;
 use crate::matcher::does_node_match_exactly;
 
 pub type MetaVariableID = String;
 
+// a dictionary for metavariable instantiation
+// const a = 123 matched with const a = $A will produce env: $A => 123
 #[derive(Default)]
 pub struct MetaVarEnv<'tree> {
     var_matchers: HashMap<MetaVariableID, MetaVarMatcher>,

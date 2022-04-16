@@ -79,9 +79,17 @@ impl<'r> Node<'r> {
             source: self.source,
         })
     }
-    #[must_use]
-    pub fn ancestors(&self) -> Vec<Node<'r>> {
-        todo!()
+    pub fn ancestors(&self) -> impl Iterator<Item = Node<'r>> + '_ {
+        let mut parent = self.inner.parent();
+        std::iter::from_fn(move || {
+            let inner = parent?;
+            let ret = Some(Node {
+                inner,
+                source: self.source,
+            });
+            parent = inner.parent();
+            ret
+        })
     }
     #[must_use]
     pub fn next(&self) -> Option<Node<'r>> {

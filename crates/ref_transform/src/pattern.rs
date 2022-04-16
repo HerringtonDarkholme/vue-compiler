@@ -87,7 +87,7 @@ mod test {
         let pattern = Pattern::new(s);
         match pattern.pattern_kind {
             PatternKind::NodePattern(n) => n,
-            _ => todo!(),
+            _ => panic!("kind pattern is not supported"),
         }
     }
 

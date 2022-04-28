@@ -3,7 +3,7 @@ lockfileVersion: 5.3
 specifiers:
   '@napi-rs/cli': 2.7.0
   '@node-rs/helper': ^1.2.1
-  '@swc-node/register': 1.5.0
+  '@swc-node/register': 1.5.1
   '@types/node': 16.11.31
   '@typescript-eslint/eslint-plugin': 5.21.0
   '@typescript-eslint/parser': 5.21.0
@@ -26,7 +26,7 @@ dependencies:
 
 devDependencies:
   '@napi-rs/cli': 2.7.0
-  '@swc-node/register': 1.5.0
+  '@swc-node/register': 1.5.1_typescript@4.6.3
   '@types/node': 16.11.31
   '@typescript-eslint/eslint-plugin': 5.21.0_829e74f28e9c9eb05edda582d47d45b8
   '@typescript-eslint/parser': 5.21.0_eslint@8.14.0+typescript@4.6.3
@@ -147,8 +147,10 @@ packages:
       '@swc/core': 1.2.172
     dev: true
 
-  /@swc-node/register/1.5.0:
-    resolution: {integrity: sha512-XGA1Va3trgXNEGXX8wWcfEMMn0oJe06v+DLbBCvMvf7UC1aouQcfE+hqoNWw4nmDj7f0svLzZe931ryiZ1W4aA==}
+  /@swc-node/register/1.5.1_typescript@4.6.3:
+    resolution: {integrity: sha512-6IL5s4QShKGs08qAeNou3rDA3gbp2WHk6fo0XnJXQn/aC9k6FnVBbj/thGOIEDtgNhC/DKpZT8tCY1LpQnOZFg==}
+    peerDependencies:
+      typescript: '>= 4.3'
     dependencies:
       '@swc-node/core': 1.9.0
       '@swc-node/sourcemap-support': 0.2.0

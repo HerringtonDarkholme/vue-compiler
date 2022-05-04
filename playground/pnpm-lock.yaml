@@ -5,7 +5,7 @@ specifiers:
   '@vitejs/plugin-vue': 2.3.1
   rusty-vue-compiler: file:../crates/wasm/pkg/
   typescript: 4.6.4
-  vite: 2.9.7
+  vite: 2.9.8
   vue: 3.2.33
   vue-tsc: 0.34.11
 
@@ -17,9 +17,9 @@ optionalDependencies:
 
 devDependencies:
   '@babel/types': 7.17.10
-  '@vitejs/plugin-vue': 2.3.1_vite@2.9.7+vue@3.2.33
+  '@vitejs/plugin-vue': 2.3.1_vite@2.9.8+vue@3.2.33
   typescript: 4.6.4
-  vite: 2.9.7
+  vite: 2.9.8
   vue-tsc: 0.34.11_typescript@4.6.4
 
 packages:
@@ -42,14 +42,14 @@ packages:
       to-fast-properties: 2.0.0
     dev: true
 
-  /@vitejs/plugin-vue/2.3.1_vite@2.9.7+vue@3.2.33:
+  /@vitejs/plugin-vue/2.3.1_vite@2.9.8+vue@3.2.33:
     resolution: {integrity: sha512-YNzBt8+jt6bSwpt7LP890U1UcTOIZZxfpE5WOJ638PNxSEKOqAi0+FSKS0nVeukfdZ0Ai/H7AFd6k3hayfGZqQ==}
     engines: {node: '>=12.0.0'}
     peerDependencies:
       vite: ^2.5.10
       vue: ^3.2.25
     dependencies:
-      vite: 2.9.7
+      vite: 2.9.8
       vue: 3.2.33
     dev: true
 
@@ -108,7 +108,7 @@ packages:
       '@vue/shared': 3.2.33
       estree-walker: 2.0.2
       magic-string: 0.25.7
-      postcss: 8.4.12
+      postcss: 8.4.13
       source-map: 0.6.1
 
   /@vue/compiler-ssr/3.2.33:
@@ -416,14 +416,6 @@ packages:
   /picocolors/1.0.0:
     resolution: {integrity: sha512-1fygroTLlHu66zi26VoTDv8yRgm0Fccecssto+MhsZ0D/DGW2sm8E8AjW7NU5VVTRt5GxbeZ5qBuJr+HyLYkjQ==}
 
-  /postcss/8.4.12:
-    resolution: {integrity: sha512-lg6eITwYe9v6Hr5CncVbK70SoioNQIq81nsaG86ev5hAidQvmOeETBqs7jm43K2F5/Ley3ytDtriImV6TpNiSg==}
-    engines: {node: ^10 || ^12 || >=14}
-    dependencies:
-      nanoid: 3.3.3
-      picocolors: 1.0.0
-      source-map-js: 1.0.2
-
   /postcss/8.4.13:
     resolution: {integrity: sha512-jtL6eTBrza5MPzy8oJLFuUscHDXTV5KcLlqAWHl5q5WYRfnNRGSmOZmOZ1T6Gy7A99mOZfqungmZMpMmCVJ8ZA==}
     engines: {node: ^10 || ^12 || >=14}
@@ -431,7 +423,6 @@ packages:
       nanoid: 3.3.3
       picocolors: 1.0.0
       source-map-js: 1.0.2
-    dev: true
 
   /resolve/1.22.0:
     resolution: {integrity: sha512-Hhtrw0nLeSrFQ7phPp4OOcVjLPIeMnRlr5mcnVuMe7M/7eBn98A3hmFRLoFo3DLZkivSYwhRUJTyPyWAk56WLw==}
@@ -477,8 +468,8 @@ packages:
     hasBin: true
     dev: true
 
-  /vite/2.9.7:
-    resolution: {integrity: sha512-5hH7aNQe8rJiTTqCtPNX/6mIKlGw+1wg8UXwAxDIIN8XaSR+Zx3GT2zSu7QKa1vIaBqfUODGh3vpwY8r0AW/jw==}
+  /vite/2.9.8:
+    resolution: {integrity: sha512-zsBGwn5UT3YS0NLSJ7hnR54+vUKfgzMUh/Z9CxF1YKEBVIe213+63jrFLmZphgGI5zXwQCSmqIdbPuE8NJywPw==}
     engines: {node: '>=12.2.0'}
     hasBin: true
     peerDependencies:

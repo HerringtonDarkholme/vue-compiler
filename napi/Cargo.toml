@@ -10,7 +10,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = "2.4.2"
+napi = "2.4.3"
 napi-derive = {version = "2.4.1", features = ["type-def"]}
 compiler = { path = "../crates/compiler", package = "vue-compiler-core", default-features = false, features = [] }
 dom = { path = "../crates/dom", package = "vue-compiler-dom"}

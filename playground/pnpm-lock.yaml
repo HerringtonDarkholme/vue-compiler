@@ -1,7 +1,7 @@
 lockfileVersion: 5.4
 
 specifiers:
-  '@babel/types': 7.17.12
+  '@babel/types': 7.18.0
   '@vitejs/plugin-vue': 2.3.3
   rusty-vue-compiler: file:../crates/wasm/pkg/
   typescript: 4.6.4
@@ -16,7 +16,7 @@ optionalDependencies:
   rusty-vue-compiler: link:../crates/wasm/pkg
 
 devDependencies:
-  '@babel/types': 7.17.12
+  '@babel/types': 7.18.0
   '@vitejs/plugin-vue': 2.3.3_vite@2.9.9+vue@3.2.35
   typescript: 4.6.4
   vite: 2.9.9
@@ -33,10 +33,10 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
     dependencies:
-      '@babel/types': 7.17.12
+      '@babel/types': 7.18.0
 
-  /@babel/types/7.17.12:
-    resolution: {integrity: sha512-rH8i29wcZ6x9xjzI5ILHL/yZkbQnCERdHlogKuIb4PUr7do4iT8DPekrTbBLWTnRQm6U0GYABbTMSzijmEqlAg==}
+  /@babel/types/7.18.0:
+    resolution: {integrity: sha512-vhAmLPAiC8j9K2GnsnLPCIH5wCrPpYIVBCWRBFDCB7Y/BXLqi/O+1RSTTM2bsmg6U/551+FCf9PNPxjABmxHTw==}
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/helper-validator-identifier': 7.16.7

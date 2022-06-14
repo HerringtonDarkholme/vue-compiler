@@ -122,16 +122,16 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.2.1"
+version = "3.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a836566fa5f52f7ddf909a8a2f9029b9f78ca584cd95cf7e87f8073110f4c5c9"
+checksum = "1df386a2d0f35bdefc0642fd8bcb2cd28243959f028abfd22fbade6f7d30980e"
 dependencies = [
  "atty",
  "bitflags",
  "clap_derive",
  "clap_lex",
  "indexmap",
- "lazy_static",
+ "once_cell",
  "strsim",
  "termcolor",
  "textwrap 0.15.0",
@@ -139,9 +139,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "3.2.1"
+version = "3.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "986fd75d1dfd2c34eb8c9275ae38ad87ea9478c9b79e87f1801f7d866dfb1e37"
+checksum = "7b740354ad9fcf20e27b46d921be4bb3712f5b3c2c7a89ba68a72a8e51d3a47f"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -626,9 +626,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.9.0"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da32515d9f6e6e489d7bc9d84c71b060db7247dc035bbe44eac88cf87486d8d5"
+checksum = "7709cef83f0c1f58f666e746a08b21e0085f7440fa6a29cc194d68aac97a4225"
 
 [[package]]
 name = "oorandom"
@@ -1218,7 +1218,7 @@ name = "vue-compiler-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "clap 3.2.1",
+ "clap 3.2.3",
  "codespan-reporting",
  "path-clean",
  "serde_yaml",

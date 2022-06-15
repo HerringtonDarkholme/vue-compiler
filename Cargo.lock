@@ -122,9 +122,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.2.3"
+version = "3.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1df386a2d0f35bdefc0642fd8bcb2cd28243959f028abfd22fbade6f7d30980e"
+checksum = "6d20de3739b4fb45a17837824f40aa1769cc7655d7a83e68739a77fe7b30c87a"
 dependencies = [
  "atty",
  "bitflags",
@@ -139,9 +139,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "3.2.3"
+version = "3.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b740354ad9fcf20e27b46d921be4bb3712f5b3c2c7a89ba68a72a8e51d3a47f"
+checksum = "026baf08b89ffbd332836002ec9378ef0e69648cbfadd68af7cd398ca5bf98f7"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -1218,7 +1218,7 @@ name = "vue-compiler-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "clap 3.2.3",
+ "clap 3.2.4",
  "codespan-reporting",
  "path-clean",
  "serde_yaml",

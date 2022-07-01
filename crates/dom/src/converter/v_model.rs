@@ -27,7 +27,7 @@ pub fn convert_v_model<'a>(
         DirectiveConvertResult::Dropped | DirectiveConvertResult::Preserve => return base,
         DirectiveConvertResult::Converted { value, runtime } => (value, runtime),
     };
-    let runtime_to_use = match compute_v_model_runtime(e, dir) {
+    match compute_v_model_runtime(e, dir) {
         Ok(rt) => {
             if matches!(rt, dh::V_MODEL_TEXT | dh::V_MODEL_SELECT) {
                 check_redundant_value_prop(e, eh);
@@ -35,7 +35,7 @@ pub fn convert_v_model<'a>(
             *runtime = Ok(rt);
         }
         Err(error) => eh.on_error(error),
-    };
+    }
     // native vmodel doesn't need the `modelValue` props since they are also
     // passed to the runtime as `binding.value`. removing it reduces code size.
     let props = cast!(value, Js::Props);

@@ -209,7 +209,7 @@ macro_rules! chain_exit_ext {
         }
     };
 }
-impl<'b, T, A, B, Shared> CorePassExt<T, Shared> for Chain<A, B>
+impl<T, A, B, Shared> CorePassExt<T, Shared> for Chain<A, B>
 where
     T: ConvertInfo,
     A: CorePassExt<T, Shared>,

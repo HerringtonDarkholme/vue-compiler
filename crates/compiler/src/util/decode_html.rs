@@ -1,10 +1,10 @@
 // sadly current html decode crate requires std::io::Write not fmt
 use std::fmt::{self, Write};
 use super::named_chars::NAMED_CHAR_REF;
-use std::lazy::SyncLazy;
+use std::sync::LazyLock;
 
-static MAX_CR_NAME_LEN: SyncLazy<usize> =
-    SyncLazy::new(|| NAMED_CHAR_REF.keys().copied().map(str::len).max().unwrap());
+static MAX_CR_NAME_LEN: LazyLock<usize> =
+    LazyLock::new(|| NAMED_CHAR_REF.keys().copied().map(str::len).max().unwrap());
 
 type DecodeResult<'a> = Result<&'a str, fmt::Error>;
 pub fn decode_entities<W: Write>(s: &str, mut w: W, as_attr: bool) -> fmt::Result {

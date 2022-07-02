@@ -7,7 +7,7 @@ specifiers:
   benchmark: ^2.1.4
   glob: ^8.0.0
   microtime: ^3.0.0
-  ts-node: 10.8.1
+  ts-node: 10.8.2
   typescript: 4.7.4
 
 dependencies:
@@ -19,7 +19,7 @@ dependencies:
   microtime: registry.npmmirror.com/microtime/3.0.0
 
 devDependencies:
-  ts-node: 10.8.1_typescript@4.7.4
+  ts-node: 10.8.2_typescript@4.7.4
   typescript: 4.7.4
 
 packages:
@@ -164,8 +164,8 @@ packages:
     engines: {node: '>=4'}
     dev: false
 
-  /ts-node/10.8.1_typescript@4.7.4:
-    resolution: {integrity: sha512-Wwsnao4DQoJsN034wePSg5nZiw4YKXf56mPIAeD6wVmiv+RytNSWqc2f3fKvcUoV+Yn2+yocD71VOfQHbmVX4g==}
+  /ts-node/10.8.2_typescript@4.7.4:
+    resolution: {integrity: sha512-LYdGnoGddf1D6v8REPtIH+5iq/gTDuZqv2/UJUU7tKjuEU8xVZorBM+buCGNjj+pGEud+sOoM4CX3/YzINpENA==}
     hasBin: true
     peerDependencies:
       '@swc/core': '>=1.2.50'

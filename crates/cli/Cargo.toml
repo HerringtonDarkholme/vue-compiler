@@ -8,7 +8,7 @@ authors = ["Herrington Darkholme <2883231+HerringtonDarkholme@users.noreply.gith
 
 [dependencies]
 anyhow = "1.0.58"
-clap = {version = "3.2.11", features = ["derive"]}
+clap = {version = "3.2.12", features = ["derive"]}
 compiler = { path = "../compiler", package = "vue-compiler-core" }
 dom = { path = "../dom", package = "vue-compiler-dom" }
 path-clean = "0.1.0"

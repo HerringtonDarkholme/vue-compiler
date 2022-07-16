@@ -13,4 +13,4 @@ compiler = { path = "../compiler", package = "vue-compiler-core" }
 dom = { path = "../dom", package = "vue-compiler-dom" }
 path-clean = "0.1.0"
 codespan-reporting = "0.11.1"
-serde_yaml = "0.8.25"
+serde_yaml = "0.8.26"

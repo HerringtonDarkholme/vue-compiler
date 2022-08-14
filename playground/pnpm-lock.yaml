@@ -5,7 +5,7 @@ specifiers:
   '@vitejs/plugin-vue': 2.3.4
   rusty-vue-compiler: file:../crates/wasm/pkg/
   typescript: 4.7.4
-  vite: 2.9.14
+  vite: 2.9.15
   vue: 3.2.37
   vue-tsc: 0.39.5
 
@@ -17,9 +17,9 @@ optionalDependencies:
 
 devDependencies:
   '@babel/types': 7.18.10
-  '@vitejs/plugin-vue': 2.3.4_vite@2.9.14+vue@3.2.37
+  '@vitejs/plugin-vue': 2.3.4_vite@2.9.15+vue@3.2.37
   typescript: 4.7.4
-  vite: 2.9.14
+  vite: 2.9.15
   vue-tsc: 0.39.5_typescript@4.7.4
 
 packages:
@@ -47,14 +47,14 @@ packages:
       '@babel/helper-validator-identifier': 7.18.6
       to-fast-properties: 2.0.0
 
-  /@vitejs/plugin-vue/2.3.4_vite@2.9.14+vue@3.2.37:
+  /@vitejs/plugin-vue/2.3.4_vite@2.9.15+vue@3.2.37:
     resolution: {integrity: sha512-IfFNbtkbIm36O9KB8QodlwwYvTEsJb4Lll4c2IwB3VHc2gie2mSPtSzL0eYay7X2jd/2WX02FjSGTWR6OPr/zg==}
     engines: {node: '>=12.0.0'}
     peerDependencies:
       vite: ^2.5.10
       vue: ^3.2.25
     dependencies:
-      vite: 2.9.14
+      vite: 2.9.15
       vue: 3.2.37
     dev: true
 
@@ -497,8 +497,8 @@ packages:
     hasBin: true
     dev: true
 
-  /vite/2.9.14:
-    resolution: {integrity: sha512-P/UCjSpSMcE54r4mPak55hWAZPlyfS369svib/gpmz8/01L822lMPOJ/RYW6tLCe1RPvMvOsJ17erf55bKp4Hw==}
+  /vite/2.9.15:
+    resolution: {integrity: sha512-fzMt2jK4vQ3yK56te3Kqpkaeq9DkcZfBbzHwYpobasvgYmP2SoAr6Aic05CsB4CzCZbsDv4sujX3pkEGhLabVQ==}
     engines: {node: '>=12.2.0'}
     hasBin: true
     peerDependencies:

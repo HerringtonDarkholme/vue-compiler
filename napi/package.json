@@ -66,7 +66,7 @@
     "@vue/compiler-sfc": "3.2.37",
     "@typescript-eslint/eslint-plugin": "5.33.1",
     "@typescript-eslint/parser": "5.33.1",
-    "ava": "4.3.1",
+    "ava": "4.3.3",
     "benny": "3.7.1",
     "chalk": "5.0.1",
     "eslint": "8.22.0",

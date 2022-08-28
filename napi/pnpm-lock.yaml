@@ -9,7 +9,7 @@ specifiers:
   '@typescript-eslint/parser': 5.33.1
   '@vue/compiler-core': 3.2.37
   '@vue/compiler-sfc': 3.2.37
-  ava: 4.3.1
+  ava: 4.3.3
   benny: 3.7.1
   chalk: 5.0.1
   eslint: 8.22.0
@@ -32,7 +32,7 @@ devDependencies:
   '@typescript-eslint/parser': 5.33.1_4rv7y5c6xz3vfxwhbrcxxi73bq
   '@vue/compiler-core': 3.2.37
   '@vue/compiler-sfc': 3.2.37
-  ava: 4.3.1
+  ava: 4.3.3
   benny: 3.7.1
   chalk: 5.0.1
   eslint: 8.22.0
@@ -528,12 +528,6 @@ packages:
     engines: {node: '>=0.4.0'}
     dev: true
 
-  /acorn/8.7.1:
-    resolution: {integrity: sha512-Xx54uLJQZ19lKygFXOWsscKUbsBZW0CPykPhVQdhIeIwrbPmJzqeASDInc8nKBnp/JT6igTs82qPXz069H8I/A==}
-    engines: {node: '>=0.4.0'}
-    hasBin: true
-    dev: true
-
   /acorn/8.8.0:
     resolution: {integrity: sha512-QOxyigPVrpZ2GXT+PFyZTl6TtOFc5egxHIP9IlQ+RbupQuX4RkT/Bee4/kQuC02Xkzg84JcT7oLYtDIQxp+v7w==}
     engines: {node: '>=0.4.0'}
@@ -664,8 +658,8 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /ava/4.3.1:
-    resolution: {integrity: sha512-zdSp9QxRTmN5hJeGmg+ZjUKL5yHFLMcP/0KBla8GH25XD8Xm7Uc34CDFlwqGL6JXtjNbVkJ0Zw+DqcTf4ggCCA==}
+  /ava/4.3.3:
+    resolution: {integrity: sha512-9Egq/d9R74ExrWohHeqUlexjDbgZJX5jA1Wq4KCTqc3wIfpGEK79zVy4rBtofJ9YKIxs4PzhJ8BgbW5PlAYe6w==}
     engines: {node: '>=12.22 <13 || >=14.17 <15 || >=16.4 <17 || >=18'}
     hasBin: true
     peerDependencies:
@@ -674,7 +668,7 @@ packages:
       '@ava/typescript':
         optional: true
     dependencies:
-      acorn: 8.7.1
+      acorn: 8.8.0
       acorn-walk: 8.2.0
       ansi-styles: 6.1.0
       arrgv: 1.0.2

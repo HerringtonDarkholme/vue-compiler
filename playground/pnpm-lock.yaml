@@ -4,7 +4,7 @@ specifiers:
   '@babel/types': 7.18.13
   '@vitejs/plugin-vue': 3.0.3
   rusty-vue-compiler: file:../crates/wasm/pkg/
-  typescript: 4.7.4
+  typescript: 4.8.2
   vite: 3.0.9
   vue: 3.2.37
   vue-tsc: 0.40.4
@@ -18,9 +18,9 @@ optionalDependencies:
 devDependencies:
   '@babel/types': 7.18.13
   '@vitejs/plugin-vue': 3.0.3_vite@3.0.9+vue@3.2.37
-  typescript: 4.7.4
+  typescript: 4.8.2
   vite: 3.0.9
-  vue-tsc: 0.40.4_typescript@4.7.4
+  vue-tsc: 0.40.4_typescript@4.8.2
 
 packages:
 
@@ -495,8 +495,8 @@ packages:
     resolution: {integrity: sha512-/OaKK0xYrs3DmxRYqL/yDc+FxFUVYhDlXMhRmv3z915w2HF1tnN1omB354j8VUGO/hbRzyD6Y3sA7v7GS/ceog==}
     engines: {node: '>=4'}
 
-  /typescript/4.7.4:
-    resolution: {integrity: sha512-C0WQT0gezHuw6AdY1M2jxUO83Rjf0HP7Sk1DtXj6j1EwkQNZrHAg2XPWlq62oqEhYvONq5pkC2Y9oPljWToLmQ==}
+  /typescript/4.8.2:
+    resolution: {integrity: sha512-C0I1UsrrDHo2fYI5oaCGbSejwX4ch+9Y5jTQELvovfmFkK3HHSZJB8MSJcWLmCUBzQBchCrZ9rMRV6GuNrvGtw==}
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true
@@ -528,7 +528,7 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /vue-tsc/0.40.4_typescript@4.7.4:
+  /vue-tsc/0.40.4_typescript@4.8.2:
     resolution: {integrity: sha512-UpK0GlGZHlS+G+LKl6+/f+78GY9MA38vHKBLh/6L/Cfa8NQEH4D5H/EpqcSHXZ7wRRFjzp9LWgj5vc5q1iEClA==}
     hasBin: true
     peerDependencies:
@@ -536,7 +536,7 @@ packages:
     dependencies:
       '@volar/vue-language-core': 0.40.4
       '@volar/vue-typescript': 0.40.4
-      typescript: 4.7.4
+      typescript: 4.8.2
     dev: true
 
   /vue/3.2.37:

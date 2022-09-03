@@ -2,7 +2,7 @@ lockfileVersion: 5.3
 
 specifiers:
   '@types/benchmark': ^2.1.1
-  '@types/glob': ^7.1.4
+  '@types/glob': ^8.0.0
   '@vue/compiler-core': ^3.2.19
   benchmark: ^2.1.4
   glob: ^8.0.0
@@ -12,7 +12,7 @@ specifiers:
 
 dependencies:
   '@types/benchmark': registry.npmmirror.com/@types/benchmark/2.1.1
-  '@types/glob': registry.nlark.com/@types/glob/7.1.4
+  '@types/glob': 8.0.0
   '@vue/compiler-core': registry.npmmirror.com/@vue/compiler-core/3.2.19
   benchmark: registry.npmmirror.com/benchmark/2.1.4
   glob: 8.0.1
@@ -75,6 +75,21 @@ packages:
   /@tsconfig/node16/1.0.2:
     resolution: {integrity: sha512-eZxlbI8GZscaGS7kkc/trHTT5xgrjH3/1n2JDwusC9iahPKWMRvRjJSAN5mCXviuTGQ/lHnhvv8Q1YTpnfz9gA==}
     dev: true
+
+  /@types/glob/8.0.0:
+    resolution: {integrity: sha512-l6NQsDDyQUVeoTynNpC9uRvCUint/gSUXQA2euwmTuWGvPY5LSDUu6tkCtJB2SvGQlJQzLaKqcGZP4//7EDveA==}
+    dependencies:
+      '@types/minimatch': 3.0.5
+      '@types/node': 16.10.2
+    dev: false
+
+  /@types/minimatch/3.0.5:
+    resolution: {integrity: sha512-Klz949h02Gz2uZCMGwDUSDS1YBlTdDDgbWHi+81l29tQALUtvz4rAYi5uoVhE5Lagoq6DeqAUlbrHvW/mXDgdQ==}
+    dev: false
+
+  /@types/node/16.10.2:
+    resolution: {integrity: sha512-zCclL4/rx+W5SQTzFs9wyvvyCwoK9QtBpratqz2IYJ3O8Umrn0m3nsTv0wQBk9sRGpvUe9CwPDrQFB10f1FIjQ==}
+    dev: false
 
   /acorn-walk/8.2.0:
     resolution: {integrity: sha512-k+iyHEuPgSw6SbuDpGQM+06HQUa04DZ3o+F6CSzXMvvI5KMvnaEqXe+YVe555R9nn6GPt404fos4wcgpw12SDA==}
@@ -223,21 +238,6 @@ packages:
       '@babel/types': 7.18.2
     dev: false
 
-  registry.nlark.com/@types/glob/7.1.4:
-    resolution: {integrity: sha1-6lniHS7lxReRTLS8jkFTuZ5WZnI=, registry: https://registry.npm.taobao.org/, tarball: https://registry.nlark.com/@types/glob/download/@types/glob-7.1.4.tgz}
-    name: '@types/glob'
-    version: 7.1.4
-    dependencies:
-      '@types/minimatch': registry.nlark.com/@types/minimatch/3.0.5
-      '@types/node': registry.npmmirror.com/@types/node/16.10.2
-    dev: false
-
-  registry.nlark.com/@types/minimatch/3.0.5:
-    resolution: {integrity: sha1-EAHMXmo3BLg8I2An538vWOoBD0A=, registry: https://registry.npm.taobao.org/, tarball: https://registry.nlark.com/@types/minimatch/download/@types/minimatch-3.0.5.tgz}
-    name: '@types/minimatch'
-    version: 3.0.5
-    dev: false
-
   registry.nlark.com/estree-walker/2.0.2:
     resolution: {integrity: sha1-UvAQF4wqTBF6d1fP6UKtt9LaTKw=, registry: https://registry.npm.taobao.org/, tarball: https://registry.nlark.com/estree-walker/download/estree-walker-2.0.2.tgz}
     name: estree-walker
@@ -267,12 +267,6 @@ packages:
     resolution: {integrity: sha1-12PfKXF9k6ozPrEfQh7zg6XfVnM=, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/@types/benchmark/download/@types/benchmark-2.1.1.tgz}
     name: '@types/benchmark'
     version: 2.1.1
-    dev: false
-
-  registry.npmmirror.com/@types/node/16.10.2:
-    resolution: {integrity: sha1-V2TKmqlEcK204Rhf4unxlFiZKy4=, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/@types/node/download/@types/node-16.10.2.tgz}
-    name: '@types/node'
-    version: 16.10.2
     dev: false
 
   registry.npmmirror.com/@vue/compiler-core/3.2.19:

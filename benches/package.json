@@ -11,7 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@types/benchmark": "^2.1.1",
-    "@types/glob": "^7.1.4",
+    "@types/glob": "^8.0.0",
     "@vue/compiler-core": "^3.2.19",
     "benchmark": "^2.1.4",
     "glob": "^8.0.0",

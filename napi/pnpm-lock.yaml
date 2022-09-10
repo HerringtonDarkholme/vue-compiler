@@ -4,7 +4,7 @@ specifiers:
   '@napi-rs/cli': 2.11.4
   '@node-rs/helper': ^1.2.1
   '@swc-node/register': 1.5.1
-  '@types/node': 16.11.56
+  '@types/node': 16.11.58
   '@typescript-eslint/eslint-plugin': 5.36.1
   '@typescript-eslint/parser': 5.36.1
   '@vue/compiler-core': 3.2.38
@@ -27,7 +27,7 @@ dependencies:
 devDependencies:
   '@napi-rs/cli': 2.11.4
   '@swc-node/register': 1.5.1_typescript@4.8.2
-  '@types/node': 16.11.56
+  '@types/node': 16.11.58
   '@typescript-eslint/eslint-plugin': 5.36.1_lbwfnm54o3pmr3ypeqp3btnera
   '@typescript-eslint/parser': 5.36.1_yqf6kl63nyoq5megxukfnom5rm
   '@vue/compiler-core': 3.2.38
@@ -338,8 +338,8 @@ packages:
     resolution: {integrity: sha1-7ihweulOEdK4J7y+UnC86n8+ce4=}
     dev: true
 
-  /@types/node/16.11.56:
-    resolution: {integrity: sha512-aFcUkv7EddxxOa/9f74DINReQ/celqH8DiB3fRYgVDM2Xm5QJL8sl80QKuAnGvwAsMn+H3IFA6WCrQh1CY7m1A==}
+  /@types/node/16.11.58:
+    resolution: {integrity: sha512-uMVxJ111wpHzkx/vshZFb6Qni3BOMnlWLq7q9jrwej7Yw/KvjsEbpxCCxw+hLKxexFMc8YmpG8J9tnEe/rKsIg==}
     dev: true
 
   /@typescript-eslint/eslint-plugin/5.36.1_lbwfnm54o3pmr3ypeqp3btnera:

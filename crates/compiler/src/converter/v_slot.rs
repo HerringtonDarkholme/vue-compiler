@@ -190,7 +190,7 @@ fn build_alterable_slots<'a>(bc: &BC<'a>, mut templates: Vec<Element<'a>>) -> Ve
 // NB: get_child must be elevated to a fn pointer instead of closure
 // to avoid recursion limit of rustc's polymorphic code instantiation
 fn get_child<'a, 'b>(b: &'b mut IfBranch<BaseConvertInfo<'a>>) -> &'b mut BaseIR<'a> {
-    &mut *b.child
+    &mut b.child
 }
 
 fn assign_slot_names<'a, 'b, I>(ir_nodes: I, dirs: &'b mut VecDeque<Directive<'a>>)

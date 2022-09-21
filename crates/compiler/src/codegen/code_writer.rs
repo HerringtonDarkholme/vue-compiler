@@ -1123,7 +1123,7 @@ mod test {
         let js_size = std::mem::size_of::<Js<'_>>();
         let set_size = std::mem::size_of::<std::collections::HashSet<&str>>();
         // TODO: too large
-        assert_eq!(ir_size, 184);
+        assert_eq!(ir_size, 176);
         assert_eq!(vnode_size, 152);
         assert_eq!(for_size, 176);
         assert_eq!(js_size, 32);

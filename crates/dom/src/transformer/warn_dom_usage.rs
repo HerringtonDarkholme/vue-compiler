@@ -68,11 +68,11 @@ fn ir_multilicity(ir: &BaseIR) -> Multiplicity {
             .unwrap_or(Zero),
         IRNode::For(..) => Multi,
         IRNode::CommentCall(..) => Zero,
-        IRNode::CacheNode(cn) => ir_multilicity(&*cn.child),
+        IRNode::CacheNode(cn) => ir_multilicity(&cn.child),
         IRNode::If(i) => i
             .branches
             .iter()
-            .map(|b| ir_multilicity(&*b.child))
+            .map(|b| ir_multilicity(&b.child))
             .max()
             .unwrap_or(Zero),
         IRNode::TextCall(text) => {

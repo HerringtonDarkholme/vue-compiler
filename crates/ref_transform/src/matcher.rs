@@ -4,7 +4,7 @@ use crate::Node;
 pub fn match_single_kind<'tree>(
     goal_kind: &str,
     candidate: Node<'tree>,
-    env: &mut MetaVarEnv<'tree>,
+    _env: &mut MetaVarEnv<'tree>,
 ) -> Option<Node<'tree>> {
     if candidate.kind() == goal_kind {
         // TODO: update env
@@ -13,7 +13,7 @@ pub fn match_single_kind<'tree>(
     }
     candidate
         .children()
-        .find_map(|sub| match_single_kind(goal_kind, sub, env))
+        .find_map(|sub| match_single_kind(goal_kind, sub, _env))
 }
 
 fn match_leaf_meta_var<'goal, 'tree>(

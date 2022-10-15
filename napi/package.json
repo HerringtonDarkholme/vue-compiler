@@ -43,7 +43,7 @@
   },
   "scripts": {
     "artifacts": "napi artifacts",
-    "bench": "node -r @swc-node/register benchmark/bench.ts",
+    "bench": "node -r ts-node/register benchmark/index.js",
     "build": "napi build --platform --release",
     "build:debug": "napi build --platform",
     "format": "run-p format:md format:json format:yaml format:source format:rs",
@@ -60,8 +60,8 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "2.11.4",
-    "@swc-node/register": "1.5.2",
     "@types/node": "16.11.65",
+    "ts-node": "10.9.1",
     "@vue/compiler-core": "3.2.40",
     "@vue/compiler-sfc": "3.2.40",
     "@typescript-eslint/eslint-plugin": "5.40.0",
@@ -83,7 +83,7 @@
   },
   "ava": {
     "require": [
-      "@swc-node/register"
+      "ts-node/register"
     ],
     "extensions": [
       "ts"

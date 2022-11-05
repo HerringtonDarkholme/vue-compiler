@@ -11,6 +11,6 @@ repository = "https://github.com/HerringtonDarkholme/vue-compiler"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ast-grep-core = "0.1.8"
+ast-grep-core = "0.1.9"
 ast-grep-config = "0.1.9"
 tree-sitter-typescript="0.20.1"

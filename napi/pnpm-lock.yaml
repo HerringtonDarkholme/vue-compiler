@@ -1,7 +1,7 @@
 lockfileVersion: 5.4
 
 specifiers:
-  '@napi-rs/cli': 2.12.1
+  '@napi-rs/cli': 2.13.2
   '@node-rs/helper': ^1.2.1
   '@types/node': 18.11.13
   '@typescript-eslint/eslint-plugin': 5.46.0
@@ -25,7 +25,7 @@ dependencies:
   '@node-rs/helper': registry.nlark.com/@node-rs/helper/1.2.1
 
 devDependencies:
-  '@napi-rs/cli': 2.12.1
+  '@napi-rs/cli': 2.13.2
   '@types/node': 18.11.13
   '@typescript-eslint/eslint-plugin': 5.46.0_ek47cz6guwtjtwj3eiv3oc6jua
   '@typescript-eslint/parser': 5.46.0_wy4udjehnvkneqnogzx5kughki
@@ -156,8 +156,8 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.14
     dev: true
 
-  /@napi-rs/cli/2.12.1:
-    resolution: {integrity: sha512-tbOWIWeLcxb6Ih8oJNwnjXE1sT5LBLSniE6SA6qZa/4Wk6iVMvz3RAAQOzPGwpgWmE2gO0rwjYVmfvmcf+22rw==}
+  /@napi-rs/cli/2.13.2:
+    resolution: {integrity: sha512-j6/VRNT89gb/48hFDzBm9Jbp8t33ZzL5w46avugro8t1tWhR5zcLOBu8CInTqnFXfsz/UN6nJS1fcW9mLKJPJA==}
     engines: {node: '>= 10'}
     hasBin: true
     dev: true

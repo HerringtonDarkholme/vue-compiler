@@ -68,7 +68,7 @@
     "@typescript-eslint/parser": "5.42.1",
     "ava": "5.1.0",
     "benny": "3.7.1",
-    "chalk": "5.1.2",
+    "chalk": "5.2.0",
     "eslint": "8.28.0",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-import": "2.26.0",

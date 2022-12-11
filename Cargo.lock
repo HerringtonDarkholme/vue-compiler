@@ -40,9 +40,9 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
 name = "ast-grep-config"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01aaa02c492ff3c0a4f1c31219618101f892ccd62f7a27870a32e977955c79ec"
+checksum = "3facbbf1a67fb1ec6c9555f3a36511493817bab8aa17be38474ae4de4c1067f3"
 dependencies = [
  "ast-grep-core",
  "bit-set",

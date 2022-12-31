@@ -3,7 +3,7 @@ lockfileVersion: 5.4
 specifiers:
   '@napi-rs/cli': 2.13.3
   '@node-rs/helper': ^1.2.1
-  '@types/node': 18.11.17
+  '@types/node': 18.11.18
   '@typescript-eslint/eslint-plugin': 5.46.1
   '@typescript-eslint/parser': 5.46.1
   '@vue/compiler-core': 3.2.45
@@ -26,7 +26,7 @@ dependencies:
 
 devDependencies:
   '@napi-rs/cli': 2.13.3
-  '@types/node': 18.11.17
+  '@types/node': 18.11.18
   '@typescript-eslint/eslint-plugin': 5.46.1_mqzxmroayievgzgel6yrqgih5i
   '@typescript-eslint/parser': 5.46.1_lzzuuodtsqwxnvqeq4g4likcqa
   '@vue/compiler-core': 3.2.45
@@ -41,7 +41,7 @@ devDependencies:
   eslint-plugin-sonarjs: 0.17.0_eslint@8.30.0
   npm-run-all: 4.1.5
   prettier: 2.8.1
-  ts-node: 10.9.1_moeqx3xmzxqxagf2sz6mqkbb7m
+  ts-node: 10.9.1_awa2wsr5thmg3i7jqycphctjfq
   typescript: 4.9.4
 
 packages:
@@ -207,8 +207,8 @@ packages:
     resolution: {integrity: sha1-7ihweulOEdK4J7y+UnC86n8+ce4=}
     dev: true
 
-  /@types/node/18.11.17:
-    resolution: {integrity: sha512-HJSUJmni4BeDHhfzn6nF0sVmd1SMezP7/4F0Lq+aXzmp2xm9O7WXrUtHW/CHlYVtZUbByEvWidHqRtcJXGF2Ng==}
+  /@types/node/18.11.18:
+    resolution: {integrity: sha512-DHQpWGjyQKSHj3ebjFI/wRKcqQcdR+MoFBygntYOZytCqNfkd2ZC4ARDJ2DQqhjH5p85Nnd3jhUJIXrszFX/JA==}
     dev: true
 
   /@types/semver/7.3.12:
@@ -2600,7 +2600,7 @@ packages:
       is-number: 7.0.0
     dev: true
 
-  /ts-node/10.9.1_moeqx3xmzxqxagf2sz6mqkbb7m:
+  /ts-node/10.9.1_awa2wsr5thmg3i7jqycphctjfq:
     resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
     hasBin: true
     peerDependencies:
@@ -2619,7 +2619,7 @@ packages:
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.3
-      '@types/node': 18.11.17
+      '@types/node': 18.11.18
       acorn: 8.8.0
       acorn-walk: 8.2.0
       arg: 4.1.3

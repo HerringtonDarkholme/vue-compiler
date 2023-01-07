@@ -59,7 +59,7 @@
     "benchmark": "node benchmark/index.js"
   },
   "devDependencies": {
-    "@napi-rs/cli": "2.14.0",
+    "@napi-rs/cli": "2.14.1",
     "@types/node": "18.11.18",
     "ts-node": "10.9.1",
     "@vue/compiler-core": "3.2.45",

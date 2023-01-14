@@ -15,7 +15,7 @@ specifiers:
   eslint-config-prettier: 8.6.0
   eslint-plugin-import: 2.27.5
   eslint-plugin-prettier: 4.2.1
-  eslint-plugin-sonarjs: 0.17.0
+  eslint-plugin-sonarjs: 0.18.0
   npm-run-all: 4.1.5
   prettier: 2.8.3
   ts-node: 10.9.1
@@ -38,7 +38,7 @@ devDependencies:
   eslint-config-prettier: 8.6.0_eslint@8.31.0
   eslint-plugin-import: 2.27.5_oa6nn542mmm7vqt7omjryoishq
   eslint-plugin-prettier: 4.2.1_do5yx3dogbskqc4h5x5ilvlwyy
-  eslint-plugin-sonarjs: 0.17.0_eslint@8.31.0
+  eslint-plugin-sonarjs: 0.18.0_eslint@8.31.0
   npm-run-all: 4.1.5
   prettier: 2.8.3
   ts-node: 10.9.1_bdgp3l2zgaopogaavxusmetvge
@@ -1158,8 +1158,8 @@ packages:
       prettier-linter-helpers: 1.0.0
     dev: true
 
-  /eslint-plugin-sonarjs/0.17.0_eslint@8.31.0:
-    resolution: {integrity: sha512-jtGtxI49UbJJeJj7CVRLI3+LLH+y+hkR3GOOwM7vBbci9DEFIRGCWvEd2BJScrzltZ6D6iubukTAfc9cyG7sdw==}
+  /eslint-plugin-sonarjs/0.18.0_eslint@8.31.0:
+    resolution: {integrity: sha512-DJ3osLnt6KFdT5e9ZuIDOjT5A6wUGSLeiJJT03lPgpdD+7CVWlYAw9Goe3bt7SmbFO3Xh89NOCZAuB9XA7bAUQ==}
     engines: {node: '>=14'}
     peerDependencies:
       eslint: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0

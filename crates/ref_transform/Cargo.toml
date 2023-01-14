@@ -12,5 +12,5 @@ repository = "https://github.com/HerringtonDarkholme/vue-compiler"
 
 [dependencies]
 ast-grep-core = "0.1.16"
-ast-grep-config = "0.1.16"
+ast-grep-config = "0.1.17"
 tree-sitter-typescript="0.20.1"

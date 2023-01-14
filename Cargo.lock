@@ -40,9 +40,9 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
 name = "ast-grep-config"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbd5d1c84a0fb0a2623577bd76babf280f5dbd5f26654473face779c2753d4de"
+checksum = "18e581a5948bca32e0efc6a5583e0eae23a01009e3cef2066dce235c96da3ed2"
 dependencies = [
  "ast-grep-core",
  "bit-set",
@@ -50,16 +50,18 @@ dependencies = [
  "regex",
  "serde",
  "serde_yaml 0.9.16",
+ "thiserror",
 ]
 
 [[package]]
 name = "ast-grep-core"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a48cc91bf61c02dfdfeb99c1af7e24a588366d83fd724eb688cc36b32dc0b45"
+checksum = "fd49cefed48042ab6967072663c7cc86d5bc62f40e13c277a9bd0920153b62a6"
 dependencies = [
  "bit-set",
  "regex",
+ "thiserror",
  "tree-sitter-facade-sg",
 ]
 
@@ -1232,6 +1234,26 @@ name = "textwrap"
 version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "949517c0cf1bf4ee812e2e07e08ab448e3ae0d23472aee8a06c985f0c8815b16"
+
+[[package]]
+name = "thiserror"
+version = "1.0.38"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a9cd18aa97d5c45c6603caea1da6628790b37f7a34b6ca89522331c5180fed0"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.38"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fb327af4685e4d03fa8cbcf1716380da910eeb2bb8be417e7f9fd3fb164f36f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "thread_local"

@@ -40,29 +40,17 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
 name = "ast-grep-config"
-version = "0.1.18"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc1c7eea19cca5706a5b4ba63a9f705ba30c37b9339c62d1ebaa52c6b03b07ea"
+checksum = "d329e7f27fa0beb6b5fac722f17bd255a86bc3bcc690e4f29cae728553761059"
 dependencies = [
- "ast-grep-core 0.1.18",
+ "ast-grep-core",
  "bit-set",
  "globset",
  "regex",
  "serde",
  "serde_yaml 0.9.17",
  "thiserror",
-]
-
-[[package]]
-name = "ast-grep-core"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5f52514605fb0089058996731db81d3000d8e78863505a1a31922549eeb68ad"
-dependencies = [
- "bit-set",
- "regex",
- "thiserror",
- "tree-sitter-facade-sg",
 ]
 
 [[package]]
@@ -1426,7 +1414,7 @@ name = "vue-ref-transform"
 version = "0.1.0"
 dependencies = [
  "ast-grep-config",
- "ast-grep-core 0.2.3",
+ "ast-grep-core",
  "tree-sitter-typescript",
 ]
 

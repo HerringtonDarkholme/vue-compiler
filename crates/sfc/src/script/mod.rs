@@ -3,6 +3,8 @@ use rslint_parser::{SyntaxNodeExt, parse_module};
 use compiler::BindingMetadata;
 
 use crate::{SfcDescriptor, SfcScriptBlock, SfcTemplateCompileOptions};
+use crate::rewrite_default;
+use crate::style::css_vars::gen_normal_script_css_vars_code;
 
 pub struct SfcScriptCompileOptions<'a> {
     /// Scope ID for prefixing injected CSS varialbes.
@@ -15,7 +17,7 @@ pub struct SfcScriptCompileOptions<'a> {
     /// (Experimental) Enable syntax transform for using refs without `.value`
     /// https://github.com/vuejs/rfcs/discussions/369
     /// @default false
-    pub ref_transform: bool,
+    pub reactivity_transform: bool,
     /// (Experimental) Enable syntax transform for destructuring from defineProps()
     /// https://github.com/vuejs/rfcs/discussions/394
     /// @default false
@@ -44,7 +46,7 @@ pub fn compile_script<'a>(
     sfc: SfcDescriptor<'a>,
     options: SfcScriptCompileOptions<'a>,
 ) -> Option<SfcScriptBlock<'a>> {
-    let mut scripts = sfc.scripts;
+    let mut scripts = sfc.scripts.clone();
     debug_assert!(scripts.len() <= 2);
     if scripts.is_empty() {
         return None;
@@ -62,14 +64,16 @@ pub fn compile_script<'a>(
         return None;
     }
     if !scripts.iter().any(|s| s.is_setup()) {
-        process_single_script(&mut scripts)
+        process_single_script(&mut scripts, sfc, options)
     } else {
-        process_setup_scripts(&mut scripts)
+        process_setup_scripts(&mut scripts, sfc, options)
     }
 }
 
 fn process_single_script<'a>(
     scripts: &mut SmallVec<[SfcScriptBlock<'a>; 1]>,
+    sfc: SfcDescriptor<'a>,
+    options: SfcScriptCompileOptions<'a>,
 ) -> Option<SfcScriptBlock<'a>> {
     debug_assert!(scripts.len() == 1);
     let is_ts = scripts
@@ -81,7 +85,7 @@ fn process_single_script<'a>(
         return Some(script);
     }
     // 1. parse ast
-    let parse = parse_module(script.block.content, 0);
+    let parse = parse_module(&script.block.content, 0);
     if !parse.errors().is_empty() {
         todo!()
     }
@@ -95,7 +99,7 @@ fn process_single_script<'a>(
     // 3. transform ref
     apply_ref_transform();
     // 4. inject css vars
-    inject_css_vars();
+    inject_css_vars(&mut script, &sfc.css_vars, &options);
     Some(script)
 }
 
@@ -104,7 +108,9 @@ fn analyze_script_bindings(_module: rslint_parser::ast::Module) -> BindingMetada
 }
 
 fn process_setup_scripts<'a>(
-    scripts: &mut SmallVec<[SfcScriptBlock; 1]>,
+    scripts: &mut SmallVec<[SfcScriptBlock<'a>; 1]>,
+    sfc: SfcDescriptor<'a>,
+    options: SfcScriptCompileOptions<'a>,
 ) -> Option<SfcScriptBlock<'a>> {
     process_normal_script(scripts);
     parse_script_setup();
@@ -113,7 +119,7 @@ fn process_setup_scripts<'a>(
     check_invalid_scope_refs();
     remove_non_script_content();
     analyze_binding_metadata();
-    inject_css_vars();
+    inject_css_vars(&mut scripts[0], &sfc.css_vars, &options);
     finalize_setup_arg();
     generate_return_stmt();
     finalize_default_export();
@@ -126,7 +132,7 @@ fn process_normal_script(scripts: &mut SmallVec<[SfcScriptBlock; 1]>) {
         Some(script) => script,
         None => return,
     };
-    let content = parse_module(normal.block.content, 0);
+    let content = parse_module(&normal.block.content, 0);
     if !content.errors().is_empty() {
         todo!()
     }
@@ -142,6 +148,9 @@ fn process_normal_script(scripts: &mut SmallVec<[SfcScriptBlock; 1]>) {
         todo!()
     }
 }
+
+const DEFAULT_VAR: &str = "__default__";
+
 fn parse_script_setup() {}
 fn apply_ref_transform() {}
 // props and emits
@@ -150,7 +159,21 @@ fn extract_runtime_code() {}
 fn check_invalid_scope_refs() {}
 fn remove_non_script_content() {}
 fn analyze_binding_metadata() {}
-fn inject_css_vars() {}
+fn inject_css_vars<'a>(
+    script: &mut SfcScriptBlock<'a>,
+    css_vars: &[&'a str],
+    options: &SfcScriptCompileOptions<'a>,
+) {
+    let content = &script.block.content;
+    let content = rewrite_default(content.to_string(), DEFAULT_VAR);
+    let css_vars_code = gen_normal_script_css_vars_code(
+        css_vars,
+        script.bindings.clone().unwrap(),
+        &options.id,
+        options.is_prod,
+    );
+    script.block.content = format!("{content}{css_vars_code}\nexport default {DEFAULT_VAR}");
+}
 fn finalize_setup_arg() {}
 fn generate_return_stmt() {}
 fn finalize_default_export() {}

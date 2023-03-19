@@ -37,8 +37,9 @@ impl Default for SfcParseOptions {
     }
 }
 
+#[derive(Clone)]
 pub struct SfcBlock<'a> {
-    pub content: &'a str,
+    pub content: String,
     pub attrs: FxHashMap<&'a str, Option<&'a str>>,
     pub loc: SourceLocation,
     // pub map: Option<RawSourceMap>,
@@ -59,7 +60,7 @@ impl<'a> SfcBlock<'a> {
             })
             .collect::<FxHashMap<_, _>>();
         Self {
-            content,
+            content: content.into(),
             attrs,
             loc,
         }
@@ -98,10 +99,11 @@ pub struct SfcTemplateBlock<'a> {
     pub block: SfcBlock<'a>,
 }
 
+#[derive(Clone)]
 pub struct SfcScriptBlock<'a> {
     // pub ast: Option<Ast>,
     // pub setup_ast: Option<Ast>,
-    // pub setup: Option<&'a str>,
+    pub setup: Option<&'a str>,
     pub bindings: Option<BindingMetadata<'a>>,
     pub block: SfcBlock<'a>,
 }
@@ -231,6 +233,7 @@ fn assemble_descriptor<'a>(
         let block = SfcBlock::new(element, src);
         let block = SfcScriptBlock {
             bindings: None, // TODO
+            setup: block.get_attr("setup"),
             block,
         };
         let scripts = &descriptor.scripts;

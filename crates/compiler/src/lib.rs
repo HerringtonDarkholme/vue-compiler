@@ -88,7 +88,7 @@ pub enum Namespace {
     UserDefined(&'static str),
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum BindingTypes {
     /// returned from data()
     Data,
@@ -124,7 +124,7 @@ impl BindingTypes {
 
 /// stores binding variables exposed by data/prop/setup script.
 /// also stores if the binding is from setup script.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct BindingMetadata<'a>(FxHashMap<&'a str, BindingTypes>, bool);
 impl<'a> BindingMetadata<'a> {
     pub fn new(map: FxHashMap<&'a str, BindingTypes>, from_setup: bool) -> Self {

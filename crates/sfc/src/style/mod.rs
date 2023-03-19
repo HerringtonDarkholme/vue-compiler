@@ -1,5 +1,5 @@
 mod css_module;
-mod css_vars;
+pub mod css_vars;
 mod scoped;
 use compiler::error::CompilationError;
 

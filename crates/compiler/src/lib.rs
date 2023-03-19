@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![feature(once_cell)]
 //! See README.md
 
 // TODO: reorg pub

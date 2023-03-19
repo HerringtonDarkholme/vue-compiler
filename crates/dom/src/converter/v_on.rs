@@ -104,12 +104,17 @@ fn apply_modifiers<'a>(event: &mut (Js<'a>, Js<'a>), resolved: ResolvedMods<'a>)
         );
     }
     if !event_option.is_empty() {
-        let postfix = event_option
+        let mut postfix = event_option
             .into_iter()
-            .map(|s| Js::str_lit(*VStr::raw(s).capitalize()))
-            .intersperse(Js::Src(" + "));
+            .map(|s| Js::str_lit(*VStr::raw(s).capitalize()));
         let mut new_key_vec = vec![Js::Src("("), std::mem::take(key), Js::Src(")")];
-        new_key_vec.extend(postfix);
+        if let Some(n) = postfix.next() {
+            new_key_vec.push(n);
+            for n in postfix {
+                new_key_vec.push(Js::Src(" + "));
+                new_key_vec.push(n);
+            }
+        }
         *key = Js::Compound(new_key_vec);
     }
 }

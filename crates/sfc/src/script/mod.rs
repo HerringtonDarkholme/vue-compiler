@@ -1,6 +1,10 @@
+mod parse_script;
+
 use smallvec::SmallVec;
-use rslint_parser::{SyntaxNodeExt, parse_module};
-use compiler::BindingMetadata;
+use compiler::{BindingMetadata, BindingTypes};
+use parse_script::{parse_ts, TsAst, TsNode, TypeScript};
+use ast_grep_core::{Pattern, Matcher};
+use rustc_hash::FxHashMap;
 
 use crate::{SfcDescriptor, SfcScriptBlock, SfcTemplateCompileOptions};
 use crate::rewrite_default;
@@ -85,14 +89,7 @@ fn process_single_script<'a>(
         return Some(script);
     }
     // 1. parse ast
-    let parse = parse_module(&script.block.content, 0);
-    if !parse.errors().is_empty() {
-        todo!()
-    }
-    let module = parse
-        .syntax()
-        .try_to::<rslint_parser::ast::Module>()
-        .unwrap();
+    let module = parse_ts(&script.block.content);
     // 2. build bindingMetadata
     let bindings = analyze_script_bindings(module);
     script.bindings = Some(bindings);
@@ -103,7 +100,48 @@ fn process_single_script<'a>(
     Some(script)
 }
 
-fn analyze_script_bindings(_module: rslint_parser::ast::Module) -> BindingMetadata<'static> {
+fn analyze_script_bindings(ast: TsAst) -> BindingMetadata<'static> {
+    let pattern = Pattern::new("export default { $$$ }", TypeScript);
+    let root = ast.root();
+    let mut children = root.children();
+    if let Some(node_match) = children.find_map(|n| pattern.match_node(n)) {
+        let object = node_match
+            .get_node()
+            .field("value")
+            .expect("should have value");
+        analyze_bindings_from_options(object)
+    } else {
+        BindingMetadata::default()
+    }
+}
+
+fn analyze_bindings_from_options(node: TsNode) -> BindingMetadata<'static> {
+    let mut map = FxHashMap::default();
+    let props_pattern = Pattern::contextual("{props: $P}", "pair", TypeScript).unwrap();
+    let inject_pattern = Pattern::contextual("{inject: $I}", "pair", TypeScript).unwrap();
+    let method_pattern = Pattern::contextual("{methods: $M}", "pair", TypeScript).unwrap();
+    let computed_pattern = Pattern::contextual("{computed: $C}", "pair", TypeScript).unwrap();
+    for child in node.children() {
+        if let Some(n) = props_pattern.match_node(child.clone()) {
+            let key = get_keys(&n);
+            map.insert(key, BindingTypes::Props);
+        } else if let Some(n) = inject_pattern.match_node(child.clone()) {
+            let key = get_keys(&n);
+            map.insert(key, BindingTypes::Options);
+        } else if let Some(n) = method_pattern.match_node(child.clone()) {
+            let key = get_keys(&n);
+            map.insert(key, BindingTypes::Options);
+        } else if let Some(n) = computed_pattern.match_node(child.clone()) {
+            let key = get_keys(&n);
+            map.insert(key, BindingTypes::Options);
+        }
+    }
+    // #3270, #3275
+    // mark non-script-setup so we don't resolve components/directives from these
+    BindingMetadata::new_option(map)
+}
+
+fn get_keys(_n: &TsNode) -> &'static str {
     todo!()
 }
 
@@ -132,21 +170,13 @@ fn process_normal_script(scripts: &mut SmallVec<[SfcScriptBlock; 1]>) {
         Some(script) => script,
         None => return,
     };
-    let content = parse_module(&normal.block.content, 0);
-    if !content.errors().is_empty() {
-        todo!()
-    }
-    let module = content
-        .syntax()
-        .try_to::<rslint_parser::ast::Module>()
-        .unwrap();
-    for _item in module.items() {
-        // import declration
-        // export default
-        // export named
-        // declaration
-        todo!()
-    }
+    let _content = parse_ts(&normal.block.content);
+    // for _item in module.items() {
+    //     // import declration
+    //     // export default
+    //     // export named
+    //     // declaration
+    // }
 }
 
 const DEFAULT_VAR: &str = "__default__";

@@ -127,8 +127,14 @@ impl BindingTypes {
 #[derive(Default, Clone)]
 pub struct BindingMetadata<'a>(FxHashMap<&'a str, BindingTypes>, bool);
 impl<'a> BindingMetadata<'a> {
-    pub fn new(map: FxHashMap<&'a str, BindingTypes>, from_setup: bool) -> Self {
+    fn new(map: FxHashMap<&'a str, BindingTypes>, from_setup: bool) -> Self {
         Self(map, from_setup)
+    }
+    pub fn new_option(map: FxHashMap<&'a str, BindingTypes>) -> Self {
+        Self::new(map, false)
+    }
+    pub fn new_setup(map: FxHashMap<&'a str, BindingTypes>) -> Self {
+        Self::new(map, true)
     }
     pub fn is_setup(&self) -> bool {
         self.1

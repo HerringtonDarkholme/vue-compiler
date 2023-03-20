@@ -1141,7 +1141,7 @@ mod test {
         let mut map = FxHashMap::default();
         map.insert("test", BindingTypes::Props);
         let option = SFCInfo {
-            binding_metadata: BindingMetadata::new(map, false),
+            binding_metadata: BindingMetadata::new_option(map),
             ..Default::default()
         };
         let ir = base_convert("hello world");

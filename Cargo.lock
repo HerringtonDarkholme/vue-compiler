@@ -98,6 +98,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
+name = "bitflags"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "487f1e0fcbe47deb8b0574e646def1c903389d95241dd1bbcc6ce4a715dfc0c1"
+
+[[package]]
 name = "bumpalo"
 version = "3.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -160,7 +166,7 @@ version = "3.2.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86447ad904c7fb335a790c9d7fe3d0d971dc523b8ccd1561a520de9a85302750"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "clap_lex 0.2.2",
  "indexmap",
  "textwrap",
@@ -172,7 +178,7 @@ version = "4.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c911b090850d79fc64fe9ea01e28e465f65e821e08813ced95bced72f7a8a9b"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "clap_derive",
  "clap_lex 0.3.0",
  "is-terminal",
@@ -533,7 +539,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6607c62aa161d23d17a9072cc5da0be67cdfc89d3afb1e8d9c842bebc2525ffe"
 dependencies = [
  "arrayvec",
- "bitflags",
+ "bitflags 1.3.2",
  "cfg-if 1.0.0",
  "ryu",
  "static_assertions",
@@ -617,12 +623,13 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "2.11.4"
+version = "2.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e46a2274a0b01c5d80576b193ae573ddd1c10bf9739c80cf50029d69438eed8"
+checksum = "8de689526aff547ad70ad7feef42f1a5ccaa6f768910fd93984dae25a3fc9699"
 dependencies = [
- "bitflags",
+ "bitflags 2.0.2",
  "ctor",
+ "napi-derive",
  "napi-sys",
  "once_cell",
 ]
@@ -983,7 +990,7 @@ version = "0.36.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb93e85278e08bb5788653183213d3a60fc242b10cb9be96586f5a73dcb67c23"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "errno",
  "io-lifetimes",
  "libc",
@@ -1275,7 +1282,7 @@ dependencies = [
 name = "vue-compiler-core"
 version = "0.1.0"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "insta",
  "lazy_static",
  "phf",

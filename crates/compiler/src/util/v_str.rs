@@ -18,7 +18,7 @@ bitflags! {
     /// 1. IDEMPOTENT_OPS and 2. AFFINE_OPS,
     /// depending on whether the manipulation is idempotent or not
     /// NB strops is order sensitive when it is cast to string.
-    #[derive(Default)]
+    #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct StrOps: u16 {
         const HANDLER_KEY         = 1 << 0;
         const MODEL_HANDLER       = 1 << 1;
@@ -38,17 +38,17 @@ bitflags! {
         const DECODE_ATTR         = 1 << 15;
         /// Ops that can be safely carried out multiple times
         const IDEMPOTENT_OPS =
-            Self::COMPRESS_WHITESPACE.bits | Self::DECODE_ENTITY.bits |
-            Self::CAMEL_CASE.bits | Self::CAPITALIZED.bits | Self::DECODE_ATTR.bits;
+            Self::COMPRESS_WHITESPACE.bits() | Self::DECODE_ENTITY.bits() |
+            Self::CAMEL_CASE.bits() | Self::CAPITALIZED.bits() | Self::DECODE_ATTR.bits();
         /// Ops that can only be performed at most once. Name comes from
         /// https://en.wikipedia.org/wiki/Substructural_type_system
         const AFFINE_OPS =
-            Self::HANDLER_KEY.bits | Self::MODEL_HANDLER.bits | Self::VALID_DIR.bits |
-            Self::VALID_COMP.bits | Self::SELF_SUFFIX.bits | Self::V_DIR_PREFIX.bits |
-            Self::JS_STRING.bits | Self::CTX_PREFIX.bits;
+            Self::HANDLER_KEY.bits() | Self::MODEL_HANDLER.bits() | Self::VALID_DIR.bits() |
+            Self::VALID_COMP.bits() | Self::SELF_SUFFIX.bits() | Self::V_DIR_PREFIX.bits() |
+            Self::JS_STRING.bits() | Self::CTX_PREFIX.bits();
         /// Ops that mark the string is an hoisted asset
-        const ASSET_OPS = Self::VALID_DIR.bits | Self::VALID_COMP.bits |
-            Self::SELF_SUFFIX.bits;
+        const ASSET_OPS = Self::VALID_DIR.bits() | Self::VALID_COMP.bits() |
+            Self::SELF_SUFFIX.bits();
     }
 }
 
@@ -219,32 +219,7 @@ impl StrOps {
             _ => panic!("strop {:?} is not expected", op),
         }
     }
-    fn iter(&self) -> StrOpIter {
-        StrOpIter(*self)
-    }
 }
-
-struct StrOpIter(StrOps);
-impl Iterator for StrOpIter {
-    type Item = StrOps;
-    fn next(&mut self) -> Option<Self::Item> {
-        let ops = &mut self.0;
-        if ops.is_empty() {
-            None
-        } else {
-            let bits = 1 << ops.bits().trailing_zeros();
-            let r = StrOps { bits };
-            ops.remove(r);
-            Some(r)
-        }
-    }
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let bits = self.0.bits().count_ones() as usize;
-        (bits, Some(bits))
-    }
-}
-
-impl ExactSizeIterator for StrOpIter {}
 
 /// A str for Vue compiler's internal modification.
 /// Instead of returning a Cow<str>, StrOp is recorded in the VStr

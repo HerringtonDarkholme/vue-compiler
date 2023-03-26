@@ -716,7 +716,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     #[inline(always)]
     fn write_patch(&mut self, flag: PatchFlag) -> Output {
         if self.option.is_dev {
-            write!(self.writer, "{} /*{:?}*/", flag.bits(), flag)
+            write!(self.writer, "{} /*{flag}*/", flag.bits())
         } else {
             write!(self.writer, "{}", flag.bits())
         }
@@ -847,7 +847,7 @@ fn gen_v_for_args<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, f: BaseFor<'a>) -
         false, {  }
         true, { gen.generate_render_list(f)?; }
         true, {
-            write!(gen.writer, "{} /*{:?}*/", flag.bits(), flag)?;
+            write!(gen.writer, "{} /*{flag}*/", flag.bits())?;
         }
     );
     Ok(())

@@ -1308,6 +1308,7 @@ name = "vue-compiler-sfc"
 version = "0.1.0"
 dependencies = [
  "ast-grep-core",
+ "lazy_static",
  "rustc-hash",
  "smallvec",
  "tree-sitter-typescript",

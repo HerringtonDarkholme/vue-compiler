@@ -5,6 +5,7 @@ use compiler::{BindingMetadata, BindingTypes};
 use parse_script::{parse_ts, TsAst, TsNode, TypeScript};
 use ast_grep_core::{Pattern, Matcher};
 use rustc_hash::FxHashMap;
+use lazy_static::lazy_static;
 
 use crate::{SfcDescriptor, SfcScriptBlock, SfcTemplateCompileOptions};
 use crate::rewrite_default;
@@ -68,7 +69,7 @@ pub fn compile_script<'a>(
         return None;
     }
     if !scripts.iter().any(|s| s.is_setup()) {
-        process_single_script(&mut scripts, sfc, options)
+        Some(process_single_script(&mut scripts, sfc, options))
     } else {
         process_setup_scripts(&mut scripts, sfc, options)
     }
@@ -78,7 +79,7 @@ fn process_single_script<'a>(
     scripts: &mut SmallVec<[SfcScriptBlock<'a>; 1]>,
     sfc: SfcDescriptor<'a>,
     options: SfcScriptCompileOptions<'a>,
-) -> Option<SfcScriptBlock<'a>> {
+) -> SfcScriptBlock<'a> {
     debug_assert!(scripts.len() == 1);
     let is_ts = scripts
         .iter()
@@ -86,23 +87,24 @@ fn process_single_script<'a>(
     let mut script = scripts.pop().unwrap();
     // do not process no-js script blocks
     if script.get_lang() != "jsx" && !is_ts {
-        return Some(script);
+        return script;
     }
     // 1. parse ast
     let module = parse_ts(&script.block.content);
     // 2. build bindingMetadata
-    let bindings = analyze_script_bindings(module);
+    let bindings = analyze_script_bindings(module.root());
+    // TODO: change this
+    let bindings = unsafe { std::mem::transmute(bindings) };
     script.bindings = Some(bindings);
     // 3. transform ref
     apply_ref_transform();
     // 4. inject css vars
     inject_css_vars(&mut script, &sfc.css_vars, &options);
-    Some(script)
+    script
 }
 
-fn analyze_script_bindings(ast: TsAst) -> BindingMetadata<'static> {
+fn analyze_script_bindings(root: TsNode) -> BindingMetadata {
     let pattern = Pattern::new("export default { $$$ }", TypeScript);
-    let root = ast.root();
     let mut children = root.children();
     if let Some(node_match) = children.find_map(|n| pattern.match_node(n)) {
         let object = node_match
@@ -115,25 +117,59 @@ fn analyze_script_bindings(ast: TsAst) -> BindingMetadata<'static> {
     }
 }
 
-fn analyze_bindings_from_options(node: TsNode) -> BindingMetadata<'static> {
+type TsPattern = Pattern<TypeScript>;
+
+lazy_static! {
+    static ref props_pattern: TsPattern =
+        Pattern::contextual("{props: $P}", "pair", TypeScript).unwrap();
+    static ref inject_pattern: TsPattern =
+        Pattern::contextual("{inject: $I}", "pair", TypeScript).unwrap();
+    static ref method_pattern: TsPattern =
+        Pattern::contextual("{methods: $M}", "pair", TypeScript).unwrap();
+    static ref computed_pattern: TsPattern =
+        Pattern::contextual("{computed: $C}", "pair", TypeScript).unwrap();
+}
+
+fn collect_keys_from_option_property(node: TsNode) -> Option<(Vec<&str>, BindingTypes)> {
+    let (keys, tpe) = if let Some(n) = props_pattern.match_node(node.clone()) {
+        let keys = get_object_or_array_keys(n.into());
+        (keys, BindingTypes::Props)
+    } else if let Some(n) = inject_pattern.match_node(node.clone()) {
+        let keys = get_object_or_array_keys(n.into());
+        (keys, BindingTypes::Options)
+    } else if let Some(n) = method_pattern.match_node(node.clone()) {
+        let keys = get_object_keys(n.into());
+        (keys, BindingTypes::Options)
+    } else if let Some(n) = computed_pattern.match_node(node.clone()) {
+        let keys = get_object_keys(n.into());
+        (keys, BindingTypes::Options)
+    } else if node.kind() == "method_definition" {
+        let name = node.field("name")?;
+        let tpe = if name.text() == "setup" {
+            BindingTypes::SetupMaybeRef
+        } else if name.text() == "data" {
+            BindingTypes::Data
+        } else {
+            return None;
+        };
+        let body = node.field("body")?;
+        let return_statement = body.children().find(|s| s.kind() == "return_statement")?;
+        let keys = get_object_keys(return_statement.child(0)?);
+        (keys, tpe)
+    } else {
+        return None;
+    };
+    Some((keys, tpe))
+}
+
+fn analyze_bindings_from_options(node: TsNode) -> BindingMetadata<'_> {
     let mut map = FxHashMap::default();
-    let props_pattern = Pattern::contextual("{props: $P}", "pair", TypeScript).unwrap();
-    let inject_pattern = Pattern::contextual("{inject: $I}", "pair", TypeScript).unwrap();
-    let method_pattern = Pattern::contextual("{methods: $M}", "pair", TypeScript).unwrap();
-    let computed_pattern = Pattern::contextual("{computed: $C}", "pair", TypeScript).unwrap();
     for child in node.children() {
-        if let Some(n) = props_pattern.match_node(child.clone()) {
-            let key = get_keys(&n);
-            map.insert(key, BindingTypes::Props);
-        } else if let Some(n) = inject_pattern.match_node(child.clone()) {
-            let key = get_keys(&n);
-            map.insert(key, BindingTypes::Options);
-        } else if let Some(n) = method_pattern.match_node(child.clone()) {
-            let key = get_keys(&n);
-            map.insert(key, BindingTypes::Options);
-        } else if let Some(n) = computed_pattern.match_node(child.clone()) {
-            let key = get_keys(&n);
-            map.insert(key, BindingTypes::Options);
+        let Some((keys, tpe)) = collect_keys_from_option_property(child) else {
+            continue;
+        };
+        for key in keys {
+            map.insert(key, tpe.clone());
         }
     }
     // #3270, #3275
@@ -141,7 +177,58 @@ fn analyze_bindings_from_options(node: TsNode) -> BindingMetadata<'static> {
     BindingMetadata::new_option(map)
 }
 
-fn get_keys(_n: &TsNode) -> &'static str {
+fn get_object_or_array_keys(n: TsNode) -> Vec<&str> {
+    match &*n.kind() {
+        "object" => get_object_keys(n),
+        "array" => get_array_keys(n),
+        _ => Vec::new(),
+    }
+}
+
+fn get_object_keys(n: TsNode) -> Vec<&str> {
+    debug_assert!(n.kind() == "object");
+    let mut result = vec![];
+    for child in n.children() {
+        let kind = child.kind();
+        let node = if kind == "pair" {
+            child.field("key")
+        } else if kind == "method_definition" {
+            child.field("name")
+        } else {
+            None
+        };
+        let Some(n) = node else {
+            continue;
+        };
+        if let Some(key) = resolve_key(n) {
+            result.push(key);
+        }
+    }
+    result
+}
+
+fn resolve_key(n: TsNode) -> Option<&str> {
+    let kind = n.kind();
+    if kind == "property_identifier" || kind == "number" {
+        into_str(n.text())
+    } else if kind == "string" {
+        into_str(n.child(0)?.text())
+    } else if kind == "computed_property_name" {
+        resolve_key(n.child(0)?)
+    } else {
+        None
+    }
+}
+
+use std::borrow::Cow;
+fn into_str(c: Cow<str>) -> Option<&str> {
+    match c {
+        Cow::Borrowed(a) => Some(a),
+        _ => None,
+    }
+}
+
+fn get_array_keys(n: TsNode) -> Vec<&str> {
     todo!()
 }
 

@@ -39,15 +39,16 @@ impl Default for SfcParseOptions {
 
 #[derive(Clone)]
 pub struct SfcBlock<'a> {
-    pub content: String,
+    pub source: &'a str,
     pub attrs: FxHashMap<&'a str, Option<&'a str>>,
     pub loc: SourceLocation,
+    pub compiled_content: String,
     // pub map: Option<RawSourceMap>,
 }
 impl<'a> SfcBlock<'a> {
     fn new(element: Element<'a>, src: &'a str) -> Self {
         let loc = element.location;
-        let content = &src[loc.start.offset..loc.end.offset];
+        let source = &src[loc.start.offset..loc.end.offset];
         let attrs = element
             .properties
             .into_iter()
@@ -60,8 +61,9 @@ impl<'a> SfcBlock<'a> {
             })
             .collect::<FxHashMap<_, _>>();
         Self {
-            content: content.into(),
+            source,
             attrs,
+            compiled_content: source.into(),
             loc,
         }
     }

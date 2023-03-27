@@ -90,7 +90,7 @@ fn process_single_script<'a>(
         return script;
     }
     // 1. parse ast
-    let module = parse_ts(&script.block.content);
+    let module = parse_ts(script.block.source);
     // 2. build bindingMetadata
     let bindings = analyze_script_bindings(module.root());
     // TODO: change this
@@ -257,7 +257,7 @@ fn process_normal_script(scripts: &mut SmallVec<[SfcScriptBlock; 1]>) {
         Some(script) => script,
         None => return,
     };
-    let _content = parse_ts(&normal.block.content);
+    let _content = parse_ts(normal.block.source);
     // for _item in module.items() {
     //     // import declration
     //     // export default
@@ -281,7 +281,7 @@ fn inject_css_vars<'a>(
     css_vars: &[&'a str],
     options: &SfcScriptCompileOptions<'a>,
 ) {
-    let content = &script.block.content;
+    let content = &script.block.compiled_content;
     let content = rewrite_default(content.to_string(), DEFAULT_VAR);
     let css_vars_code = gen_normal_script_css_vars_code(
         css_vars,
@@ -289,7 +289,8 @@ fn inject_css_vars<'a>(
         &options.id,
         options.is_prod,
     );
-    script.block.content = format!("{content}{css_vars_code}\nexport default {DEFAULT_VAR}");
+    script.block.compiled_content =
+        format!("{content}{css_vars_code}\nexport default {DEFAULT_VAR}");
 }
 fn finalize_setup_arg() {}
 fn generate_return_stmt() {}

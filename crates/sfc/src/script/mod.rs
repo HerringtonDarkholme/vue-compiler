@@ -269,7 +269,9 @@ fn process_normal_script(scripts: &mut SmallVec<[SfcScriptBlock; 1]>) {
 const DEFAULT_VAR: &str = "__default__";
 
 fn parse_script_setup() {}
-fn apply_ref_transform() {}
+fn apply_ref_transform() {
+    // nothing! ref transform is deprecated!
+}
 // props and emits
 fn extract_runtime_code() {}
 // check useOptions does not refer to setup scipe
@@ -285,7 +287,7 @@ fn inject_css_vars<'a>(
     let content = rewrite_default(content.to_string(), DEFAULT_VAR);
     let css_vars_code = gen_normal_script_css_vars_code(
         css_vars,
-        script.bindings.clone().unwrap(),
+        script.bindings.as_ref().unwrap(),
         &options.id,
         options.is_prod,
     );

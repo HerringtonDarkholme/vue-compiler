@@ -15,7 +15,7 @@ pub mod scanner;
 pub mod transformer;
 
 use flags::StaticLevel;
-use ir::JsExpr as Js;
+pub use ir::JsExpr as Js;
 use rustc_hash::FxHashMap;
 use std::ops::Deref;
 use std::ops::Range;

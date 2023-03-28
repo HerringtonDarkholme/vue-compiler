@@ -115,6 +115,12 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         }
     }
 
+    pub fn process_expression_pub(&self, mut e: Js<'a>) -> Js<'a> {
+        let mut scope = Scope::default();
+        self.process_expression(&mut e, &mut scope);
+        e
+    }
+
     fn process_simple_expr(&self, e: &mut Js<'a>, scope: &Scope) {
         if self.process_expr_fast(e, scope) {
             return;

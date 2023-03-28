@@ -2,7 +2,7 @@ mod parse_script;
 
 use smallvec::SmallVec;
 use compiler::{BindingMetadata, BindingTypes};
-use parse_script::{parse_ts, TsAst, TsNode, TypeScript};
+use parse_script::{parse_ts, TsNode, TypeScript};
 use ast_grep_core::{Pattern, Matcher};
 use rustc_hash::FxHashMap;
 use lazy_static::lazy_static;
@@ -10,6 +10,8 @@ use lazy_static::lazy_static;
 use crate::{SfcDescriptor, SfcScriptBlock, SfcTemplateCompileOptions};
 use crate::rewrite_default;
 use crate::style::css_vars::gen_normal_script_css_vars_code;
+
+use std::ops::Range;
 
 pub struct SfcScriptCompileOptions<'a> {
     /// Scope ID for prefixing injected CSS varialbes.
@@ -89,58 +91,56 @@ fn process_single_script<'a>(
     if script.get_lang() != "jsx" && !is_ts {
         return script;
     }
-    // 1. parse ast
-    let module = parse_ts(script.block.source);
-    // 2. build bindingMetadata
-    let bindings = analyze_script_bindings(module.root());
-    // TODO: change this
-    let bindings = unsafe { std::mem::transmute(bindings) };
+    // 1. build bindingMetadata
+    let bindings = analyze_script_bindings(script.block.source);
     script.bindings = Some(bindings);
-    // 3. transform ref
+    // 2. transform ref
     apply_ref_transform();
-    // 4. inject css vars
+    // 3. inject css vars
     inject_css_vars(&mut script, &sfc.css_vars, &options);
     script
 }
 
-fn analyze_script_bindings(root: TsNode) -> BindingMetadata {
+fn analyze_script_bindings(src: &str) -> BindingMetadata {
+    // 1. parse ast
+    let module = parse_ts(src);
+    let root = module.root();
     let pattern = Pattern::new("export default { $$$ }", TypeScript);
     let mut children = root.children();
-    if let Some(node_match) = children.find_map(|n| pattern.match_node(n)) {
-        let object = node_match
-            .get_node()
-            .field("value")
-            .expect("should have value");
-        analyze_bindings_from_options(object)
-    } else {
-        BindingMetadata::default()
-    }
+    let Some(node_match) = children.find_map(|n| pattern.match_node(n)) else {
+        return BindingMetadata::default()
+    };
+    let object = node_match
+        .get_node()
+        .field("value")
+        .expect("should have value");
+    analyze_bindings_from_options(object, src)
 }
 
 type TsPattern = Pattern<TypeScript>;
 
 lazy_static! {
-    static ref props_pattern: TsPattern =
+    static ref PROPS_PATTERN: TsPattern =
         Pattern::contextual("{props: $P}", "pair", TypeScript).unwrap();
-    static ref inject_pattern: TsPattern =
+    static ref INJECT_PATTERN: TsPattern =
         Pattern::contextual("{inject: $I}", "pair", TypeScript).unwrap();
-    static ref method_pattern: TsPattern =
+    static ref METHOD_PATTERN: TsPattern =
         Pattern::contextual("{methods: $M}", "pair", TypeScript).unwrap();
-    static ref computed_pattern: TsPattern =
+    static ref COMPUTED_PATTERN: TsPattern =
         Pattern::contextual("{computed: $C}", "pair", TypeScript).unwrap();
 }
 
-fn collect_keys_from_option_property(node: TsNode) -> Option<(Vec<&str>, BindingTypes)> {
-    let (keys, tpe) = if let Some(n) = props_pattern.match_node(node.clone()) {
+fn collect_keys_from_option_property(node: TsNode) -> Option<(Vec<Range<usize>>, BindingTypes)> {
+    let (keys, tpe) = if let Some(n) = PROPS_PATTERN.match_node(node.clone()) {
         let keys = get_object_or_array_keys(n.into());
         (keys, BindingTypes::Props)
-    } else if let Some(n) = inject_pattern.match_node(node.clone()) {
+    } else if let Some(n) = INJECT_PATTERN.match_node(node.clone()) {
         let keys = get_object_or_array_keys(n.into());
         (keys, BindingTypes::Options)
-    } else if let Some(n) = method_pattern.match_node(node.clone()) {
+    } else if let Some(n) = METHOD_PATTERN.match_node(node.clone()) {
         let keys = get_object_keys(n.into());
         (keys, BindingTypes::Options)
-    } else if let Some(n) = computed_pattern.match_node(node.clone()) {
+    } else if let Some(n) = COMPUTED_PATTERN.match_node(node.clone()) {
         let keys = get_object_keys(n.into());
         (keys, BindingTypes::Options)
     } else if node.kind() == "method_definition" {
@@ -162,14 +162,14 @@ fn collect_keys_from_option_property(node: TsNode) -> Option<(Vec<&str>, Binding
     Some((keys, tpe))
 }
 
-fn analyze_bindings_from_options(node: TsNode) -> BindingMetadata<'_> {
+fn analyze_bindings_from_options<'a>(node: TsNode, src: &'a str) -> BindingMetadata<'a> {
     let mut map = FxHashMap::default();
     for child in node.children() {
         let Some((keys, tpe)) = collect_keys_from_option_property(child) else {
             continue;
         };
-        for key in keys {
-            map.insert(key, tpe.clone());
+        for key_range in keys {
+            map.insert(&src[key_range], tpe.clone());
         }
     }
     // #3270, #3275
@@ -177,7 +177,7 @@ fn analyze_bindings_from_options(node: TsNode) -> BindingMetadata<'_> {
     BindingMetadata::new_option(map)
 }
 
-fn get_object_or_array_keys(n: TsNode) -> Vec<&str> {
+fn get_object_or_array_keys(n: TsNode) -> Vec<Range<usize>> {
     match &*n.kind() {
         "object" => get_object_keys(n),
         "array" => get_array_keys(n),
@@ -185,7 +185,7 @@ fn get_object_or_array_keys(n: TsNode) -> Vec<&str> {
     }
 }
 
-fn get_object_keys(n: TsNode) -> Vec<&str> {
+fn get_object_keys(n: TsNode) -> Vec<Range<usize>> {
     debug_assert!(n.kind() == "object");
     let mut result = vec![];
     for child in n.children() {
@@ -207,12 +207,12 @@ fn get_object_keys(n: TsNode) -> Vec<&str> {
     result
 }
 
-fn resolve_key(n: TsNode) -> Option<&str> {
+fn resolve_key(n: TsNode) -> Option<Range<usize>> {
     let kind = n.kind();
     if kind == "property_identifier" || kind == "number" {
-        into_str(n.text())
+        Some(n.range())
     } else if kind == "string" {
-        into_str(n.child(0)?.text())
+        Some(n.child(0)?.range())
     } else if kind == "computed_property_name" {
         resolve_key(n.child(0)?)
     } else {
@@ -220,15 +220,7 @@ fn resolve_key(n: TsNode) -> Option<&str> {
     }
 }
 
-use std::borrow::Cow;
-fn into_str(c: Cow<str>) -> Option<&str> {
-    match c {
-        Cow::Borrowed(a) => Some(a),
-        _ => None,
-    }
-}
-
-fn get_array_keys(n: TsNode) -> Vec<&str> {
+fn get_array_keys(n: TsNode) -> Vec<Range<usize>> {
     todo!()
 }
 

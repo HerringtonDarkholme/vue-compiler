@@ -221,7 +221,15 @@ fn resolve_key(n: TsNode) -> Option<Range<usize>> {
 }
 
 fn get_array_keys(n: TsNode) -> Vec<Range<usize>> {
-    todo!()
+    n.children()
+        .filter_map(|n| {
+            if n.kind() == "string" {
+                n.child(0).map(|n| n.range())
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 fn process_setup_scripts<'a>(

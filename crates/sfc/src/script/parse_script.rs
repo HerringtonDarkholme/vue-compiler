@@ -1,7 +1,6 @@
 use ast_grep_core::{AstGrep, Language, language::TSLanguage, Node};
 use tree_sitter_typescript::language_typescript;
 
-pub type TsAst = AstGrep<TypeScript>;
 pub type TsNode<'r> = Node<'r, TypeScript>;
 
 #[derive(Clone)]

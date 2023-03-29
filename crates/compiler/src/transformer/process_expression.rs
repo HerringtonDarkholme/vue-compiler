@@ -9,6 +9,7 @@ use crate::flags::{RuntimeHelper as RH, StaticLevel};
 use crate::ir::JsExpr as Js;
 use crate::util::{is_global_allow_listed, is_simple_identifier, rslint, VStr};
 use crate::{cast, BindingTypes, SFCInfo, SourceLocation};
+use crate::error::NoopErrorHandler;
 
 pub struct ExpressionProcessor<'a, 'b> {
     pub prefix_identifier: bool,
@@ -115,9 +116,14 @@ impl<'a, 'b> ExpressionProcessor<'a, 'b> {
         }
     }
 
-    pub fn process_expression_pub(&self, mut e: Js<'a>) -> Js<'a> {
+    pub fn transform_expr(mut e: Js<'a>, sfc_info: &'b SFCInfo<'a>) -> Js<'a> {
         let mut scope = Scope::default();
-        self.process_expression(&mut e, &mut scope);
+        let proc = Self {
+            prefix_identifier: true,
+            sfc_info,
+            err_handle: std::rc::Rc::new(NoopErrorHandler),
+        };
+        proc.process_expression(&mut e, &mut scope);
         e
     }
 

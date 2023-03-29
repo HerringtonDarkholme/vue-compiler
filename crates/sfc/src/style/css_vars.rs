@@ -1,4 +1,7 @@
-use compiler::BindingMetadata;
+use compiler::SFCInfo;
+use compiler::{ExpressionProcessor, Js};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 pub const CSS_VARS_HELPER: &str = "useCssVars";
 
@@ -7,11 +10,12 @@ pub const CSS_VARS_HELPER: &str = "useCssVars";
  */
 pub fn gen_normal_script_css_vars_code(
     css_vars: &[&str],
-    bindings: &BindingMetadata,
+    sfc_info: &SFCInfo,
     id: &str,
     is_prod: bool,
+    is_ssr: bool,
 ) -> String {
-    let vars_code = gen_css_vars_code(css_vars, bindings, id, is_prod);
+    let vars_code = gen_css_vars_code(css_vars, sfc_info, id, is_prod, is_ssr);
     format!(
         r#"
 import {{ {CSS_VARS_HELPER} as _{CSS_VARS_HELPER} }} from 'vue'
@@ -26,35 +30,60 @@ __default__.setup = __setup__
     )
 }
 
-fn gen_css_vars_code(vars: &[&str], bindings: &BindingMetadata, id: &str, is_prod: bool) -> String {
-    let vars_exp = gen_css_vars_from_list(vars, id, is_prod);
-    todo!()
+fn gen_css_vars_code(
+    vars: &[&str],
+    sfc_info: &SFCInfo,
+    id: &str,
+    is_prod: bool,
+    is_ssr: bool,
+) -> String {
+    let vars_exp = gen_css_vars_from_list(vars, id, is_prod, is_ssr);
+    let exp = Js::simple(&vars_exp[..]);
+    let exp = ExpressionProcessor::transform_expr(exp, sfc_info);
+    let transformed_str = transform_str(exp);
+    format!("_{CSS_VARS_HELPER}(_ctx => ({transformed_str}))")
 }
 
-fn gen_css_vars_from_list(vars: &[&str], id: &str, is_prod: bool) -> String {
-    todo!()
+// TODO: unifiy this with code writer
+fn transform_str(expr: Js) -> String {
+    match expr {
+        Js::Src(s) | Js::Param(s) => s.into(),
+        Js::Num(n) => n.to_string(),
+        Js::StrLit(mut l) => l.be_js_str().into_string(),
+        Js::Simple(e, _) => e.into_string(),
+        Js::Compound(v) => v.into_iter().map(transform_str).collect(),
+        Js::Symbol(_) | Js::Props(_) | Js::Array(_) | Js::Call(_, _) => unreachable!(),
+        Js::FuncSimple { .. } => unreachable!(),
+        Js::FuncCompound { .. } => unreachable!(),
+    }
 }
 
-/*
+fn gen_css_vars_from_list(vars: &[&str], id: &str, is_prod: bool, is_ssr: bool) -> String {
+    let prefix = if is_ssr { "--" } else { "" };
+    let mut var_strings = vec![];
+    for var in vars {
+        let var_name = format!("{prefix}{}", gen_var_name(id, var, is_prod));
+        let var_string = format!("\"{var_name}\": ({var})");
+        var_strings.push(var_string);
+    }
+    format!("{{\n{}\n}}", var_strings.join(",\n  "))
+}
 
-  const varsExp = genCssVarsFromList(vars, id, isProd)
-  const exp = createSimpleExpression(varsExp, false)
-  const context = createTransformContext(createRoot([]), {
-    prefixIdentifiers: true,
-    inline: true,
-    bindingMetadata: bindings.__isScriptSetup === false ? undefined : bindings
-  })
-  const transformed = processExpression(exp, context)
-  const transformedString =
-    transformed.type === NodeTypes.SIMPLE_EXPRESSION
-      ? transformed.content
-      : transformed.children
-          .map(c => {
-            return typeof c === 'string'
-              ? c
-              : (c as SimpleExpressionNode).content
-          })
-          .join('')
-
-  return `_${CSS_VARS_HELPER}(_ctx => (${transformedString}))`
-*/
+fn gen_var_name(id: &str, var: &str, is_prod: bool) -> String {
+    if is_prod {
+        let mut hasher = DefaultHasher::new();
+        (id.to_owned() + var).hash(&mut hasher);
+        hasher.finish().to_string()
+    } else {
+        let escaped = var
+            .chars()
+            .map(|c| match c {
+                ' ' | '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' | '*' | '+' | ','
+                | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '@' | '[' | '\\' | ']'
+                | '^' | '`' | '{' | '|' | '}' | '~' => format!("\\{}", c),
+                _ => c.to_string(),
+            })
+            .collect::<String>();
+        format!("{}-{}", id, escaped)
+    }
+}

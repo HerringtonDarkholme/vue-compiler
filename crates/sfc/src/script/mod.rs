@@ -1,7 +1,7 @@
 mod parse_script;
 
 use smallvec::SmallVec;
-use compiler::{BindingMetadata, BindingTypes};
+use compiler::{BindingMetadata, BindingTypes, SFCInfo};
 use parse_script::{parse_ts, TsNode, TypeScript};
 use ast_grep_core::{Pattern, Matcher};
 use rustc_hash::FxHashMap;
@@ -285,11 +285,19 @@ fn inject_css_vars<'a>(
 ) {
     let content = &script.block.compiled_content;
     let content = rewrite_default(content.to_string(), DEFAULT_VAR);
+    let sfc_info = SFCInfo {
+        inline: true,
+        slotted: true, // TODO
+        binding_metadata: script.bindings.clone().unwrap(),
+        scope_id: None,
+        self_name: "".into(),
+    };
     let css_vars_code = gen_normal_script_css_vars_code(
         css_vars,
-        script.bindings.as_ref().unwrap(),
+        &sfc_info,
         &options.id,
         options.is_prod,
+        /* is_ssr*/ false,
     );
     script.block.compiled_content =
         format!("{content}{css_vars_code}\nexport default {DEFAULT_VAR}");

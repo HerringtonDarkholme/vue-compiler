@@ -13,7 +13,7 @@
     "rusty-vue-compiler": "file:../crates/wasm/pkg/"
   },
   "devDependencies": {
-    "@babel/types": "7.21.3",
+    "@babel/types": "7.21.4",
     "@vitejs/plugin-vue": "4.1.0",
     "typescript": "5.0.2",
     "vite": "4.2.1",

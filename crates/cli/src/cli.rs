@@ -3,10 +3,18 @@ use anyhow::Result;
 use compiler::compiler::{BaseCompiler, TemplateCompiler};
 use dom::get_dom_pass;
 use serde_yaml::to_writer;
+use sfc::parse_sfc;
 use std::io;
 
 pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let (source, option, show) = debug;
+    let sfc = parse_sfc(&source, Default::default());
+    println!("{}", sfc.descriptor.scripts.len());
+    for script in sfc.descriptor.scripts {
+        for key in script.bindings.unwrap().keys() {
+            println!("found meta {}", key);
+        }
+    }
     let sfc_info = Default::default();
     let dest = io::stdout;
     let compiler = BaseCompiler::new(dest, get_dom_pass, option);

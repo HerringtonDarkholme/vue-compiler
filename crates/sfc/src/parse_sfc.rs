@@ -47,8 +47,7 @@ pub struct SfcBlock<'a> {
 }
 impl<'a> SfcBlock<'a> {
     fn new(element: Element<'a>, src: &'a str) -> Self {
-        let loc = element.location;
-        let source = &src[loc.start.offset..loc.end.offset];
+        let source = Self::compute_content(&element, src);
         let attrs = element
             .properties
             .into_iter()
@@ -64,11 +63,27 @@ impl<'a> SfcBlock<'a> {
             source,
             attrs,
             compiled_content: source.into(),
-            loc,
+            loc: element.location,
         }
     }
     pub fn get_attr(&self, name: &'a str) -> Option<&'a str> {
         self.attrs.get(name).copied().flatten()
+    }
+
+    fn compute_content(element: &Element<'a>, src: &'a str) -> &'a str {
+        if element.children.is_empty() {
+            ""
+        } else {
+            let start = element
+                .children
+                .first()
+                .unwrap()
+                .get_location()
+                .start
+                .offset;
+            let end = element.children.last().unwrap().get_location().end.offset;
+            &src[start..end]
+        }
     }
 }
 
@@ -273,7 +288,7 @@ fn assemble_descriptor<'a>(
 }
 
 fn is_empty(elem: &Element) -> bool {
-    elem.children.iter().any(|n| match n {
+    !elem.children.iter().any(|n| match n {
         AstNode::Text(t) => !t.is_all_whitespace(),
         _ => true,
     })
@@ -281,4 +296,20 @@ fn is_empty(elem: &Element) -> bool {
 
 fn has_src(elem: &Element) -> bool {
     prop_finder(elem, "src").attr_only().find().is_some()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_parse_sfc() {
+        let src = "<template>abc</template><script>export default {}</script>";
+        let parsed = parse_sfc(src, Default::default());
+        let descriptor = parsed.descriptor;
+        assert!(descriptor.template.is_some());
+        assert_eq!(descriptor.scripts.len(), 1);
+        let script = &descriptor.scripts[0];
+        assert_eq!(script.block.source, "export default {}");
+    }
 }

@@ -5,7 +5,7 @@
 </template>
 <script>
 export default {
-  option: {
+  props: {
     seen: Boolean,
   }
 }

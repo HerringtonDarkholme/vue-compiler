@@ -18,6 +18,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
         binding_metadata: script.and_then(|s| s.bindings).unwrap_or_default(),
         self_name: "anonymous.vue".into(),
     };
+    let len = sfc_info.binding_metadata.len();
     let dest = io::stdout;
     let compiler = BaseCompiler::new(dest, get_dom_pass, option);
 

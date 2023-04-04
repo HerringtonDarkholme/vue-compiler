@@ -9,19 +9,20 @@ use std::io;
 pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let (source, option, show) = debug;
     let sfc = parse_sfc(&source, Default::default());
-    println!("{}", sfc.descriptor.scripts.len());
-    for script in sfc.descriptor.scripts {
-        for key in script.bindings.unwrap().keys() {
-            println!("found meta {}", key);
-        }
-    }
+
     let sfc_info = Default::default();
     let dest = io::stdout;
     let compiler = BaseCompiler::new(dest, get_dom_pass, option);
 
-    let tokens = compiler.scan(&source);
+    let template = if let Some(temp) = sfc.descriptor.template {
+        temp.block.source
+    } else {
+        &source
+    };
+
+    let tokens = compiler.scan(template);
     if show.dump_scan {
-        let tokens: Vec<_> = compiler.scan(&source).collect();
+        let tokens: Vec<_> = compiler.scan(template).collect();
         println!(r#"============== Tokens ============="#);
         let stdout = io::stdout();
         to_writer(stdout.lock(), &tokens)?;

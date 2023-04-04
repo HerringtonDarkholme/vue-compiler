@@ -1,16 +1,23 @@
 use super::CliInput;
 use anyhow::Result;
 use compiler::compiler::{BaseCompiler, TemplateCompiler};
+use compiler::SFCInfo;
 use dom::get_dom_pass;
 use serde_yaml::to_writer;
-use sfc::parse_sfc;
+use sfc::{parse_sfc, compile_script, SfcScriptCompileOptions};
 use std::io;
 
 pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let (source, option, show) = debug;
     let sfc = parse_sfc(&source, Default::default());
-
-    let sfc_info = Default::default();
+    let script = compile_script(&sfc.descriptor, SfcScriptCompileOptions::new("anonymous"));
+    let sfc_info = SFCInfo {
+        inline: true,
+        slotted: false,
+        scope_id: None,
+        binding_metadata: script.and_then(|s| s.bindings).unwrap_or_default(),
+        self_name: "anonymous.vue".into(),
+    };
     let dest = io::stdout;
     let compiler = BaseCompiler::new(dest, get_dom_pass, option);
 

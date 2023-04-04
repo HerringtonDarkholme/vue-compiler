@@ -13,6 +13,7 @@ use crate::style::css_vars::gen_normal_script_css_vars_code;
 
 use std::ops::Range;
 
+#[derive(Default)]
 pub struct SfcScriptCompileOptions<'a> {
     /// Scope ID for prefixing injected CSS varialbes.
     /// This must be consistent with the `id` passed to `compileStyle`.
@@ -41,16 +42,25 @@ pub struct SfcScriptCompileOptions<'a> {
     pub template_options: Option<SfcTemplateCompileOptions<'a>>,
 }
 
+impl<'a> SfcScriptCompileOptions<'a> {
+    pub fn new(s: &str) -> Self {
+        Self {
+            id: s.into(),
+            ..Default::default()
+        }
+    }
+}
+
 // struct ImportBinding<'a> {
 //     is_type: bool,
 //     imported: &'a str,
 //     source: &'a str,
-//     is_from_wsetup: bool,
+//     is_from_setup: bool,
 //     is_used_in_template: bool,
 // }
 
 pub fn compile_script<'a>(
-    sfc: SfcDescriptor<'a>,
+    sfc: &SfcDescriptor<'a>,
     options: SfcScriptCompileOptions<'a>,
 ) -> Option<SfcScriptBlock<'a>> {
     let mut scripts = sfc.scripts.clone();
@@ -79,7 +89,7 @@ pub fn compile_script<'a>(
 
 fn process_single_script<'a>(
     scripts: &mut SmallVec<[SfcScriptBlock<'a>; 1]>,
-    sfc: SfcDescriptor<'a>,
+    sfc: &SfcDescriptor<'a>,
     options: SfcScriptCompileOptions<'a>,
 ) -> SfcScriptBlock<'a> {
     debug_assert!(scripts.len() == 1);
@@ -234,7 +244,7 @@ fn get_array_keys(n: TsNode) -> Vec<Range<usize>> {
 
 fn process_setup_scripts<'a>(
     scripts: &mut SmallVec<[SfcScriptBlock<'a>; 1]>,
-    sfc: SfcDescriptor<'a>,
+    sfc: &SfcDescriptor<'a>,
     options: SfcScriptCompileOptions<'a>,
 ) -> Option<SfcScriptBlock<'a>> {
     process_normal_script(scripts);

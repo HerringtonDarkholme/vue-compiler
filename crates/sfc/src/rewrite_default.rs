@@ -17,10 +17,12 @@ fn has_any_default_export(input: &str) -> bool {
 }
 fn has_export_default(input: &str) -> bool {
     let _idx = input.find("export ");
-    todo!()
+    // TODO
+    false
 }
 fn has_named_default_export(_input: &str) -> bool {
-    todo!()
+    // TODO
+    false
 }
 
 fn is_start_of_statement(input: &str, pos: usize) -> bool {

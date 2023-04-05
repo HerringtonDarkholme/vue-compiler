@@ -12,6 +12,7 @@ use anyhow::{bail, Result};
 use clap::Parser;
 
 use compiler::compiler::CompileOption;
+use compiler::codegen::ScriptMode;
 use dom::compile_option;
 
 use cli::compile_to_stdout;
@@ -64,6 +65,9 @@ fn process(opts: Opts) -> Result<CliInput> {
     let delimiters = get_delimiters(opts.delimiters)?;
     let option = CompileOption {
         delimiters,
+        mode: ScriptMode::Module {
+            runtime_module_name: "vue".into(),
+        },
         ..compile_option(Rc::new(err_handle))
     };
     let show = ShowOption {

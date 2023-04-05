@@ -12,7 +12,7 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     let sfc = parse_sfc(&source, Default::default());
     let script = compile_script(&sfc.descriptor, SfcScriptCompileOptions::new("anonymous"));
     let sfc_info = SFCInfo {
-        inline: true,
+        inline: false,
         slotted: false,
         scope_id: None,
         binding_metadata: script.and_then(|s| s.bindings).unwrap_or_default(),

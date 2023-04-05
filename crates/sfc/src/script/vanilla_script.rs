@@ -14,17 +14,6 @@ use std::ops::Range;
 
 type TsPattern = Pattern<TypeScript>;
 
-lazy_static! {
-    static ref PROPS_PATTERN: TsPattern =
-        Pattern::contextual("{props: $P}", "pair", TypeScript).unwrap();
-    static ref INJECT_PATTERN: TsPattern =
-        Pattern::contextual("{inject: $I}", "pair", TypeScript).unwrap();
-    static ref METHOD_PATTERN: TsPattern =
-        Pattern::contextual("{methods: $M}", "pair", TypeScript).unwrap();
-    static ref COMPUTED_PATTERN: TsPattern =
-        Pattern::contextual("{computed: $C}", "pair", TypeScript).unwrap();
-}
-
 pub fn process_single_script<'a>(
     scripts: &mut SmallVec<[SfcScriptBlock<'a>; 1]>,
     sfc: &SfcDescriptor<'a>,
@@ -80,18 +69,29 @@ fn analyze_bindings_from_options<'a>(node: TsNode, src: &'a str) -> BindingMetad
     BindingMetadata::new_option(map)
 }
 
+lazy_static! {
+    static ref PROPS_PATTERN: TsPattern =
+        Pattern::contextual("{props: $P}", "pair", TypeScript).unwrap();
+    static ref INJECT_PATTERN: TsPattern =
+        Pattern::contextual("{inject: $I}", "pair", TypeScript).unwrap();
+    static ref METHOD_PATTERN: TsPattern =
+        Pattern::contextual("{methods: $M}", "pair", TypeScript).unwrap();
+    static ref COMPUTED_PATTERN: TsPattern =
+        Pattern::contextual("{computed: $C}", "pair", TypeScript).unwrap();
+}
+
 fn collect_keys_from_option_property(node: TsNode) -> Option<(Vec<Range<usize>>, BindingTypes)> {
     let (keys, tpe) = if let Some(n) = PROPS_PATTERN.match_node(node.clone()) {
-        let keys = get_object_or_array_keys(n.into());
+        let keys = get_object_or_array_keys(n.field("value")?);
         (keys, BindingTypes::Props)
     } else if let Some(n) = INJECT_PATTERN.match_node(node.clone()) {
-        let keys = get_object_or_array_keys(n.into());
+        let keys = get_object_or_array_keys(n.field("value")?);
         (keys, BindingTypes::Options)
     } else if let Some(n) = METHOD_PATTERN.match_node(node.clone()) {
-        let keys = get_object_keys(n.into());
+        let keys = get_object_keys(n.field("value")?);
         (keys, BindingTypes::Options)
     } else if let Some(n) = COMPUTED_PATTERN.match_node(node.clone()) {
-        let keys = get_object_keys(n.into());
+        let keys = get_object_keys(n.field("value")?);
         (keys, BindingTypes::Options)
     } else if node.kind() == "method_definition" {
         let name = node.field("name")?;
@@ -168,4 +168,14 @@ fn get_array_keys(n: TsNode) -> Vec<Range<usize>> {
 }
 
 #[cfg(test)]
-mod test {}
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_binding_metadata() {
+        let src = "export default { props: { msg: String } }";
+        let bindings = analyze_script_bindings(src);
+        assert!(!bindings.is_empty());
+        assert!(bindings.get("msg") == Some(&BindingTypes::Props));
+    }
+}

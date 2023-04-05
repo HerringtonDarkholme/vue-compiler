@@ -1,4 +1,4 @@
-mod parse_script;
+pub mod parse_script;
 mod vanilla_script;
 
 use smallvec::SmallVec;

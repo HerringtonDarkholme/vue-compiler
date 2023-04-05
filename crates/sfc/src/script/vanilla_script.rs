@@ -1,7 +1,7 @@
 use smallvec::SmallVec;
 use super::SfcScriptCompileOptions;
 use compiler::{BindingMetadata, BindingTypes};
-use super::parse_script::{parse_ts, TsNode, TypeScript};
+use super::parse_script::{parse_ts, TsNode, TypeScript, TsPattern};
 use ast_grep_core::{Pattern, Matcher};
 use rustc_hash::FxHashMap;
 use lazy_static::lazy_static;
@@ -11,8 +11,6 @@ use crate::{SfcDescriptor, SfcScriptBlock};
 use super::{inject_css_vars, apply_ref_transform};
 
 use std::ops::Range;
-
-type TsPattern = Pattern<TypeScript>;
 
 pub fn process_single_script<'a>(
     scripts: &mut SmallVec<[SfcScriptBlock<'a>; 1]>,

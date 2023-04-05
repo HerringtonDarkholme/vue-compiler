@@ -1,7 +1,8 @@
-use ast_grep_core::{AstGrep, Language, language::TSLanguage, Node};
+use ast_grep_core::{AstGrep, Language, language::TSLanguage, Node, Pattern};
 use tree_sitter_typescript::language_typescript;
 
 pub type TsNode<'r> = Node<'r, TypeScript>;
+pub type TsPattern = Pattern<TypeScript>;
 
 #[derive(Clone)]
 pub struct TypeScript;

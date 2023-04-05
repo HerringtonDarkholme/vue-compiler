@@ -104,7 +104,11 @@ fn collect_keys_from_option_property(node: TsNode) -> Option<(Vec<Range<usize>>,
         };
         let body = node.field("body")?;
         let return_statement = body.children().find(|s| s.kind() == "return_statement")?;
-        let keys = get_object_keys(return_statement.child(0)?);
+        let child = return_statement.child(1)?;
+        if child.kind() != "object" {
+            return None;
+        }
+        let keys = get_object_keys(return_statement.child(1)?);
         (keys, tpe)
     } else {
         return None;
@@ -156,10 +160,11 @@ fn resolve_key(n: TsNode) -> Option<Range<usize>> {
 }
 
 fn get_array_keys(n: TsNode) -> Vec<Range<usize>> {
+    debug_assert!(n.kind() == "array");
     n.children()
         .filter_map(|n| {
             if n.kind() == "string" {
-                n.child(0).map(|n| n.range())
+                n.child(1).map(|n| n.range())
             } else {
                 None
             }
@@ -172,10 +177,43 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_binding_metadata() {
+    fn test_analyze_props() {
         let src = "export default { props: { msg: String } }";
         let bindings = analyze_script_bindings(src);
         assert!(!bindings.is_empty());
         assert!(bindings.get("msg") == Some(&BindingTypes::Props));
+    }
+
+    #[test]
+    fn test_analyze_computed() {
+        let src = "export default { computed: { msg() {}, test: () => 123 } }";
+        let bindings = analyze_script_bindings(src);
+        assert!(!bindings.is_empty());
+        assert!(bindings.get("msg") == Some(&BindingTypes::Options));
+        assert!(bindings.get("test") == Some(&BindingTypes::Options));
+    }
+
+    #[test]
+    fn test_analyze_data() {
+        let src = "export default { data() { return { msg: 123 } } }";
+        let bindings = analyze_script_bindings(src);
+        assert!(!bindings.is_empty());
+        assert!(bindings.get("msg") == Some(&BindingTypes::Data));
+    }
+
+    #[test]
+    fn test_analyze_setup() {
+        let src = "export default { setup() { return { msg: 123 } } }";
+        let bindings = analyze_script_bindings(src);
+        assert!(!bindings.is_empty());
+        assert!(bindings.get("msg") == Some(&BindingTypes::SetupMaybeRef));
+    }
+
+    #[test]
+    fn test_analyze_inject() {
+        let src = "export default { inject: ['msg'] }";
+        let bindings = analyze_script_bindings(src);
+        assert!(!bindings.is_empty());
+        assert!(bindings.get("msg") == Some(&BindingTypes::Options));
     }
 }

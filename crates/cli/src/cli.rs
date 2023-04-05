@@ -4,7 +4,7 @@ use compiler::compiler::{BaseCompiler, TemplateCompiler};
 use compiler::SFCInfo;
 use dom::get_dom_pass;
 use serde_yaml::to_writer;
-use sfc::{parse_sfc, compile_script, SfcScriptCompileOptions};
+use sfc::{parse_sfc, compile_script, SfcScriptCompileOptions, rewrite_default};
 use std::io;
 
 pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
@@ -18,7 +18,6 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
         binding_metadata: script.and_then(|s| s.bindings).unwrap_or_default(),
         self_name: "anonymous.vue".into(),
     };
-    let len = sfc_info.binding_metadata.len();
     let dest = io::stdout;
     let compiler = BaseCompiler::new(dest, get_dom_pass, option);
 
@@ -27,6 +26,12 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
     } else {
         &source
     };
+    let script = sfc
+        .descriptor
+        .scripts
+        .first()
+        .map(|s| s.block.source)
+        .unwrap_or("");
 
     let tokens = compiler.scan(template);
     if show.dump_scan {
@@ -60,7 +65,14 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
         to_writer(stdout.lock(), &ir)?;
         println!(r#"======== End of Transform ========"#);
     }
-
+    println!("{}", rewrite_default(script.into(), "__sfc__"));
     compiler.generate(ir, &sfc_info)?;
+    print_outro();
     Ok(())
+}
+
+fn print_outro() {
+    println!("__sfc__.render = render");
+    println!("__sfc__.__file = 'anonymous.vue'");
+    println!("export default __sfc__");
 }

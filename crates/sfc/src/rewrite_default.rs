@@ -18,7 +18,7 @@ pub fn rewrite_default(input: String, as_var: &'static str) -> String {
         } else {
             // TODO
             let edit = mt
-                .replace(&*EXPORT_DEFAULT_PATTERN, "const {as_var} = $EXP")
+                .replace(&*EXPORT_DEFAULT_PATTERN, &*format!("const {as_var} = $EXP"))
                 .expect("should have exp");
             root.edit(edit).expect("should work");
             root.generate()

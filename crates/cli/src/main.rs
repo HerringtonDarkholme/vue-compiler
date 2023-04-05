@@ -68,6 +68,7 @@ fn process(opts: Opts) -> Result<CliInput> {
         mode: ScriptMode::Module {
             runtime_module_name: "vue".into(),
         },
+        cache_handlers: true,
         ..compile_option(Rc::new(err_handle))
     };
     let show = ShowOption {

@@ -89,7 +89,7 @@ fn print_intro(sfc: &SFCInfo) {
 }
 
 fn print_outro(sfc: &SFCInfo) {
-    println!("__sfc__.render = render");
+    println!("\n__sfc__.render = render");
     println!("__sfc__.__file = '{}'", sfc.self_name);
     println!("export default __sfc__");
 }

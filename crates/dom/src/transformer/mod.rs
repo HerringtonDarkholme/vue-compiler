@@ -11,7 +11,7 @@ use compiler::transformer::{
     pass::{Scope, SharedInfoPasses},
     process_expression::ExpressionProcessor,
     normalize_props::NormalizeProp,
-    hoist_static::HoistStatic,
+    cache_handlers::CacheHandlers,
 };
 use compiler::converter::BaseConvertInfo;
 use compiler::{SFCInfo, chain};
@@ -25,7 +25,7 @@ pub fn get_dom_pass<'a>(
     let prefix_identifier = opt.transforming().prefix_identifier;
     let shared = chain![
         SlotFlagMarker,
-        HoistStatic::new(opt.cache_handlers),
+        CacheHandlers::new(opt.cache_handlers),
         ExpressionProcessor {
             prefix_identifier,
             sfc_info,

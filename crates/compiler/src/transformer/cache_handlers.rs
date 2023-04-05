@@ -10,12 +10,12 @@ use crate::{
 
 // 1. cache handler
 // 2. hoist static
-pub struct HoistStatic {
+pub struct CacheHandlers {
     in_v_once: bool,
     is_component: bool,
     cache_handlers: bool,
 }
-impl HoistStatic {
+impl CacheHandlers {
     pub fn new(cache_handlers: bool) -> Self {
         Self {
             in_v_once: false,
@@ -25,7 +25,7 @@ impl HoistStatic {
     }
 }
 
-impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for HoistStatic {
+impl<'a> CorePassExt<BaseInfo<'a>, Scope<'a>> for CacheHandlers {
     fn enter_cache(&mut self, cn: &mut BaseCache<'a>, _: &mut Scope<'a>) {
         if matches!(cn.kind, CacheKind::Once) {
             self.in_v_once = true;

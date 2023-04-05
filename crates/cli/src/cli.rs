@@ -2,6 +2,7 @@ use super::CliInput;
 use anyhow::Result;
 use compiler::compiler::{BaseCompiler, TemplateCompiler};
 use compiler::SFCInfo;
+use compiler::BindingTypes;
 use dom::get_dom_pass;
 use serde_yaml::to_writer;
 use sfc::{parse_sfc, compile_script, SfcScriptCompileOptions, rewrite_default};
@@ -65,14 +66,30 @@ pub(super) fn compile_to_stdout(debug: CliInput) -> Result<()> {
         to_writer(stdout.lock(), &ir)?;
         println!(r#"======== End of Transform ========"#);
     }
+    print_intro(&sfc_info);
     println!("{}", rewrite_default(script.into(), "__sfc__"));
     compiler.generate(ir, &sfc_info)?;
-    print_outro();
+    print_outro(&sfc_info);
     Ok(())
 }
 
-fn print_outro() {
+fn print_intro(sfc: &SFCInfo) {
+    println!("/* Analyzed bindings: {{");
+    for (key, tpe) in sfc.binding_metadata.iter() {
+        let tpe = match tpe {
+            BindingTypes::Data => "data",
+            BindingTypes::Props => "props",
+            BindingTypes::Options => "options",
+            BindingTypes::SetupMaybeRef => "setup-maybe-ref",
+            _ => "setup",
+        };
+        println!("  \"{key}\": \"{tpe}\"");
+    }
+    println!("}} */");
+}
+
+fn print_outro(sfc: &SFCInfo) {
     println!("__sfc__.render = render");
-    println!("__sfc__.__file = 'anonymous.vue'");
+    println!("__sfc__.__file = '{}'", sfc.self_name);
     println!("export default __sfc__");
 }

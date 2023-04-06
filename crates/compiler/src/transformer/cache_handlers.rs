@@ -8,8 +8,6 @@ use crate::{
     ir::{JsExpr as Js, CacheKind, HandlerType},
 };
 
-// 1. cache handler
-// 2. hoist static
 pub struct CacheHandlers {
     in_v_once: bool,
     is_component: bool,

@@ -35,7 +35,7 @@ mod v_slot;
 
 use crate::{
     flags::{HelperCollector, RuntimeHelper},
-    ir::{ConvertInfo, IRNode, IRRoot, JsExpr, TextIR},
+    ir::{ConvertInfo, IRNode, IRRoot, JsExpr, TextIR, VNodeIR},
     parser::{SourceNode, TextNode},
     util::{get_core_component, VStr},
     SFCInfo,
@@ -197,6 +197,23 @@ pub struct ImportItem<'a> {
     pub path: &'a str,
 }
 
+/// There are four different kinds of hoisting:
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum Hoist<'a> {
+    /// 1. full element hoist: hoisted vnodes will be created via `h` with patch_flag set to `-1 /*hoisted*/`
+    ///    <div/> => const _hoisted = h('div', ..., -1 /*hoisted*/)
+    FullElement(VNodeIR<BaseConvertInfo<'a>>),
+    /// 2. static props hoist: hoist props when full element is not hoistable
+    ///    <div class="pure">{{test}}</div> => const _hoisted = {class: "pure"}
+    StaticProps(JsExpr<'a>),
+    /// 3. children hoist:
+    ///    <nonHoist><div/><span/></nonHoist> => const hoisted = [h('div'), h('span')]
+    ChildrenArray(Vec<String>),
+    /// 4. dynamic_props hint hoist:
+    ///    <div :props="dynamic"> => const hoisted = ['props']
+    DynamicPropsHint(FxHashSet<VStr<'a>>),
+}
+
 #[derive(Default)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct TopScope<'a> {
@@ -207,7 +224,7 @@ pub struct TopScope<'a> {
     /// directives that requires resolveDirecitve call
     pub directives: FxHashSet<VStr<'a>>,
     /// hoisted vnode/text/js object
-    pub hoists: Vec<BaseIR<'a>>,
+    pub hoists: Vec<Hoist<'a>>,
     /// assets need to be imported for template, e.g. image
     pub imports: Vec<ImportItem<'a>>,
     /// counters for temporary variables created in template

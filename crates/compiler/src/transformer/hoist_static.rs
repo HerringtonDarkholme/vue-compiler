@@ -3,29 +3,12 @@
 use super::{BaseInfo, BaseVNode, BaseRoot, CorePass};
 use crate::converter::BaseIR;
 use crate::ir::IRNode;
-use crate::VStr;
 use crate::flags::{StaticLevel, PatchFlag};
 
-use rustc_hash::FxHashSet;
-
-/// There are four different kinds of hoisting:
-enum Hoist<'a> {
-    /// 1. full element hoist: hoisted vnodes will be created via `h` with patch_flag set to `-1 /*hoisted*/`
-    ///    <div/> => const _hoisted = h('div', ..., -1 /*hoisted*/)
-    FullElement(BaseVNode<'a>),
-    /// 2. static props hoist: hoist props when full element is not hoistable
-    ///    <div class="pure">{{test}}</div> => const _hoisted = {class: "pure"}
-    StaticProps(/*JSExpr*/),
-    /// 3. children hoist:
-    ///    <nonHoist><div/><span/></nonHoist> => const hoisted = [h('div'), h('span')]
-    ChildrenArray(Vec<String>),
-    /// 4. dynamic_props hint hoist:
-    ///    <div :props="dynamic"> => const hoisted = ['props']
-    DynamicPropsHint(FxHashSet<VStr<'a>>),
-}
+use std::marker::PhantomData;
 
 pub struct HoistStatic<'a> {
-    statics: Vec<Hoist<'a>>,
+    lifetime: PhantomData<&'a ()>,
 }
 
 impl<'a> CorePass<BaseInfo<'a>> for HoistStatic<'a> {

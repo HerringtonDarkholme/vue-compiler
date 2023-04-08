@@ -91,6 +91,9 @@ fn find_prop<'a, 'b>(t: &'b BaseIR<'a>) -> Option<&'b Js<'a>> {
         IR::TextCall(_) | IR::For(_) | IR::If(_) | IR::CommentCall(_) => {
             panic!("v-for child must be vnode/renderSlot/slotfn")
         }
+        IR::Hoisted(_) => {
+            panic!("patch flag should be applied before hoisting")
+        }
     }
 }
 

@@ -197,23 +197,6 @@ pub struct ImportItem<'a> {
     pub path: &'a str,
 }
 
-/// There are four different kinds of hoisting:
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum Hoist<'a> {
-    /// 1. full element hoist: hoisted vnodes will be created via `h` with patch_flag set to `-1 /*hoisted*/`
-    ///    <div/> => const _hoisted = h('div', ..., -1 /*hoisted*/)
-    FullElement(VNodeIR<BaseConvertInfo<'a>>),
-    /// 2. static props hoist: hoist props when full element is not hoistable
-    ///    <div class="pure">{{test}}</div> => const _hoisted = {class: "pure"}
-    StaticProps(JsExpr<'a>),
-    /// 3. children hoist:
-    ///    <nonHoist><div/><span/></nonHoist> => const hoisted = [h('div'), h('span')]
-    ChildrenArray(Vec<String>),
-    /// 4. dynamic_props hint hoist:
-    ///    <div :props="dynamic"> => const hoisted = ['props']
-    DynamicPropsHint(FxHashSet<VStr<'a>>),
-}
-
 #[derive(Default)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct TopScope<'a> {
@@ -231,6 +214,23 @@ pub struct TopScope<'a> {
     pub temps: usize,
 }
 
+/// There are four different kinds of hoisting:
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum Hoist<'a> {
+    /// 1. full element hoist: hoisted vnodes will be created via `h` with patch_flag set to `-1 /*hoisted*/`
+    ///    <div/> => const _hoisted = h('div', ..., -1 /*hoisted*/)
+    FullElement(VNodeIR<BaseConvertInfo<'a>>),
+    /// 2. static props hoist: hoist props when full element is not hoistable
+    ///    <div class="pure">{{test}}</div> => const _hoisted = {class: "pure"}
+    StaticProps(JsExpr<'a>),
+    /// 3. children hoist:
+    ///    <nonHoist><div/><span/></nonHoist> => const hoisted = [h('div'), h('span')]
+    ChildrenArray(Vec<String>),
+    /// 4. dynamic_props hint hoist:
+    ///    <div :props="dynamic"> => const hoisted = ['props']
+    DynamicPropsHint(FxHashSet<VStr<'a>>),
+}
+
 impl<'a> ConvertInfo for BaseConvertInfo<'a> {
     type TopType = TopScope<'a>;
     type TextType = SmallVec<[JsExpr<'a>; 1]>;
@@ -238,6 +238,7 @@ impl<'a> ConvertInfo for BaseConvertInfo<'a> {
     type CommentType = &'a str;
     type JsExpression = JsExpr<'a>;
     type StrType = VStr<'a>;
+    type HoistedIndex = usize;
 }
 
 pub type CoreDirConvRet<'a> = DirectiveConvertResult<JsExpr<'a>>;

@@ -77,6 +77,7 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer<P> {
             I::VSlotUse(s) => Self::transform_v_slot(s, ps),
             I::CacheNode(c) => Self::transform_cache(c, ps),
             I::AlterableSlot(a) => Self::transform_slot_fn(a, ps),
+            I::Hoisted(h) => Self::transform_hoisted(h, ps),
         }
     }
     fn transform_children(children: &mut Vec<IRNode<T>>, ps: &mut P) {
@@ -210,6 +211,10 @@ trait CoreTransformer<T: ConvertInfo, P: CorePass<T>>: Transformer<P> {
     fn transform_comment(c: &mut T::CommentType, ps: &mut P) {
         ps.enter_comment(c);
         ps.exit_comment(c);
+    }
+    fn transform_hoisted(c: &mut T::HoistedIndex, ps: &mut P) {
+        ps.enter_hoisted(c);
+        ps.exit_hoisted(c);
     }
 }
 

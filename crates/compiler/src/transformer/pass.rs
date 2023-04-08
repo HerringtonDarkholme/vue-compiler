@@ -18,6 +18,7 @@ macro_rules! impl_enter {
         $impl!(enter_js_expr, JsExpression);
         $impl!(enter_fn_param, JsExpression);
         $impl!(enter_comment, CommentType);
+        $impl!(enter_hoisted, HoistedIndex);
     };
 }
 macro_rules! impl_exit {
@@ -34,6 +35,7 @@ macro_rules! impl_exit {
         $impl!(exit_js_expr, JsExpression);
         $impl!(exit_fn_param, JsExpression);
         $impl!(exit_comment, CommentType);
+        $impl!(exit_hoisted, HoistedIndex);
     };
 }
 macro_rules! noop_pass {

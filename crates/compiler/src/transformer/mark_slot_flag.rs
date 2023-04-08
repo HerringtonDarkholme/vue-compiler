@@ -56,6 +56,7 @@ fn has_forward_one(ir: &BaseIR) -> bool {
         IR::AlterableSlot(s) => has_forward_list(&s.body),
         IR::TextCall(_) => false,
         IR::CommentCall(_) => false,
+        IR::Hoisted(_) => false,
     }
 }
 

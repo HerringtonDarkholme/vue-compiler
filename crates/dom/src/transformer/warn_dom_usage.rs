@@ -95,5 +95,6 @@ fn ir_multilicity(ir: &BaseIR) -> Multiplicity {
             }
         }
         IRNode::AlterableSlot(..) => panic!("impossible"),
+        IRNode::Hoisted(_) => panic!("warn dom usage should happen before hoist static"),
     }
 }

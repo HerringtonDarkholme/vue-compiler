@@ -1,6 +1,6 @@
 /// hoist static element like `<div class="static">static text</div>`
 /// to a top level const. This improves runtime performance by reducing dom diffing.
-use super::{BaseInfo, BaseVNode, BaseRoot, CorePass};
+use super::{BaseInfo, BaseVNode, BaseRoot, CorePass, Js};
 use crate::converter::BaseIR;
 use crate::ir::IRNode;
 use crate::flags::{StaticLevel, PatchFlag};
@@ -12,15 +12,27 @@ pub struct HoistStatic<'a> {
 }
 
 impl<'a> CorePass<BaseInfo<'a>> for HoistStatic<'a> {
-    fn enter_root(&mut self, r: &mut BaseRoot<'a>) {
+    fn exit_root(&mut self, r: &mut BaseRoot<'a>) {
         // Root node is unfortunately non-hoistable due to potential parent
         // fallthrough attributes.
         let bail_out_hoist = is_single_element_root(r);
-        self.walk_chilren(&mut r.body, bail_out_hoist);
+        self.walk_children(&mut r.body, bail_out_hoist);
     }
 }
+
+fn is_plain_element(node: &BaseVNode) -> bool {
+    !node.is_component && matches!(node.tag, Js::StrLit(_))
+}
+
 impl<'a> HoistStatic<'a> {
-    fn walk_chilren(&mut self, children: &mut [BaseIR<'a>], bail_out_hoist: bool) -> usize {
+    fn walk(&mut self, node: &mut BaseVNode<'a>, bail_out_hoist: bool) {
+        let all_children_hoisted = self.walk_children(&mut node.children, bail_out_hoist);
+        if all_children_hoisted && is_plain_element(node) {
+            todo!()
+        }
+    }
+
+    fn walk_children(&mut self, children: &mut [BaseIR<'a>], bail_out_hoist: bool) -> bool {
         let original_count = children.len();
         let mut hoist_count = 0;
         for child in children {
@@ -36,7 +48,7 @@ impl<'a> HoistStatic<'a> {
             //     context.transformHoist(children, context, node)
             // }
         }
-        hoist_count
+        hoist_count > 0 && hoist_count == original_count
     }
 
     fn walk_child(&mut self, child: &mut BaseIR<'a>, bail_out_hoist: bool) -> bool {

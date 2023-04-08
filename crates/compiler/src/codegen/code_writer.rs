@@ -296,6 +296,9 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
         let call = Js::Call(RH::CREATE_COMMENT, vec![comment]);
         self.generate_js_expr(call)
     }
+    fn generate_hoisted(&mut self, h: usize) -> Self::Written {
+        write!(self.writer, "_hoisted_{h}")
+    }
 }
 
 impl<'a, T: ioWrite> CodeWriter<'a, T> {

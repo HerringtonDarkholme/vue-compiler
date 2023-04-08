@@ -18,6 +18,7 @@ pub trait ConvertInfo {
     type CommentType: Serialize;
     type JsExpression: Default + Serialize;
     type StrType: Serialize + Eq + Hash;
+    type HoistedIndex: Serialize;
 }
 #[cfg(not(feature = "serde"))]
 pub trait ConvertInfo {
@@ -28,6 +29,7 @@ pub trait ConvertInfo {
     type CommentType;
     type JsExpression: Default;
     type StrType: Eq + Hash;
+    type HoistedIndex;
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -50,6 +52,8 @@ pub enum IRNode<T: ConvertInfo> {
     CacheNode(CacheIR<T>),
     /// comment
     CommentCall(T::CommentType),
+    /// hoisted
+    Hoisted(T::HoistedIndex),
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -145,6 +149,8 @@ pub struct CacheIR<T: ConvertInfo> {
     pub kind: CacheKind<T>,
     pub child: Box<IRNode<T>>,
 }
+
+pub type HoistedIndex<T: ConvertInfo> = T::HoistedIndex;
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct IRRoot<T: ConvertInfo> {

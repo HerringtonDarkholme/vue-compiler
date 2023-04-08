@@ -225,7 +225,7 @@ pub enum Hoist<'a> {
     StaticProps(JsExpr<'a>),
     /// 3. children hoist:
     ///    <nonHoist><div/><span/></nonHoist> => const hoisted = [h('div'), h('span')]
-    ChildrenArray(Vec<String>),
+    ChildrenArray(Vec<IRNode<BaseConvertInfo<'a>>>),
     /// 4. dynamic_props hint hoist:
     ///    <div :props="dynamic"> => const hoisted = ['props']
     DynamicPropsHint(FxHashSet<VStr<'a>>),

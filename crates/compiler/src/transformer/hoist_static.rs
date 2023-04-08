@@ -1,14 +1,12 @@
 /// hoist static element like `<div class="static">static text</div>`
 /// to a top level const. This improves runtime performance by reducing dom diffing.
 use super::{BaseInfo, BaseVNode, BaseRoot, CorePass, Js};
-use crate::converter::BaseIR;
+use crate::converter::{BaseIR, Hoist};
 use crate::ir::IRNode;
 use crate::flags::{StaticLevel, PatchFlag};
 
-use std::marker::PhantomData;
-
 pub struct HoistStatic<'a> {
-    lifetime: PhantomData<&'a ()>,
+    hoists: Vec<Hoist<'a>>,
 }
 
 impl<'a> CorePass<BaseInfo<'a>> for HoistStatic<'a> {
@@ -28,7 +26,9 @@ impl<'a> HoistStatic<'a> {
     fn walk(&mut self, node: &mut BaseVNode<'a>, bail_out_hoist: bool) {
         let all_children_hoisted = self.walk_children(&mut node.children, bail_out_hoist);
         if all_children_hoisted && is_plain_element(node) {
-            todo!()
+            let children = std::mem::take(&mut node.children);
+            let index = self.hoist(Hoist::ChildrenArray(children));
+            node.hoisted.add_children(index);
         }
     }
 
@@ -62,8 +62,8 @@ impl<'a> HoistStatic<'a> {
             if static_level > StaticLevel::NotStatic {
                 if static_level >= StaticLevel::CanHoist {
                     e.patch_flag = PatchFlag::HOISTED;
-                    let e = std::mem::take(e);
-                    *child = self.hoist(e);
+                    let e = Hoist::FullElement(std::mem::take(e));
+                    *child = IRNode::Hoisted(self.hoist(e));
                     return true;
                 }
             } else {
@@ -96,7 +96,7 @@ impl<'a> HoistStatic<'a> {
         false
     }
 
-    fn hoist(&mut self, _expr: BaseVNode<'a>) -> BaseIR<'a> {
+    fn hoist(&mut self, expr: Hoist<'a>) -> usize {
         todo!()
         // if (isString(exp)) exp = createSimpleExpression(exp)
         // context.hoists.push(exp)

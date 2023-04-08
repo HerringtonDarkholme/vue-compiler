@@ -104,6 +104,52 @@ pub struct RuntimeDir<T: ConvertInfo> {
     pub arg: Option<T::JsExpression>,
     pub mods: Option<T::JsExpression>,
 }
+
+#[cfg_attr(feature = "serde", derive(Serialize))]
+enum HoistedType<T: ConvertInfo> {
+    DynamicProps(T::HoistedIndex),
+    Children(T::HoistedIndex),
+}
+
+#[derive(Default)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct HoistedAssets<T: ConvertInfo> {
+    hoisted: Vec<HoistedType<T>>,
+}
+
+impl<T: ConvertInfo> HoistedAssets<T> {
+    pub fn add_dynamic_props(&mut self, index: T::HoistedIndex) {
+        debug_assert! {
+            !self.hoisted.iter().any(|n| matches!(n, HoistedType::DynamicProps(_)))
+        };
+        self.hoisted.push(HoistedType::DynamicProps(index));
+    }
+    pub fn add_children(&mut self, index: T::HoistedIndex) {
+        debug_assert! {
+            !self.hoisted.iter().any(|n| matches!(n, HoistedType::Children(_)))
+        };
+        self.hoisted.push(HoistedType::Children(index));
+    }
+    pub fn has_children_hoisted(&self) -> Option<&T::HoistedIndex> {
+        self.hoisted.iter().find_map(|h| {
+            if let HoistedType::Children(i) = h {
+                Some(i)
+            } else {
+                None
+            }
+        })
+    }
+    pub fn has_dynamic_props_hoisted(&self) -> Option<&T::HoistedIndex> {
+        self.hoisted.iter().find_map(|h| {
+            if let HoistedType::DynamicProps(i) = h {
+                Some(i)
+            } else {
+                None
+            }
+        })
+    }
+}
+
 #[derive(Default)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct VNodeIR<T: ConvertInfo> {
@@ -116,6 +162,7 @@ pub struct VNodeIR<T: ConvertInfo> {
     pub is_block: bool,
     pub disable_tracking: bool,
     pub is_component: bool,
+    pub hoisted: HoistedAssets<T>,
 }
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Slot<T: ConvertInfo> {
@@ -150,7 +197,7 @@ pub struct CacheIR<T: ConvertInfo> {
     pub child: Box<IRNode<T>>,
 }
 
-pub type HoistedIndex<T: ConvertInfo> = T::HoistedIndex;
+pub type HoistedIndex<T> = <T as ConvertInfo>::HoistedIndex;
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct IRRoot<T: ConvertInfo> {

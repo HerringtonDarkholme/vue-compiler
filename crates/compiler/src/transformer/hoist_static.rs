@@ -33,7 +33,7 @@ fn extract_plain_element<'a, 'b>(ir: &'a mut BaseIR<'b>) -> Option<&'a mut BaseV
 }
 
 impl<'a> HoistStatic<'a> {
-    fn walk(&mut self, node: &mut BaseVNode<'a>, bail_out_hoist: bool) {
+    fn walk_vnode(&mut self, node: &mut BaseVNode<'a>, bail_out_hoist: bool) {
         let all_children_hoisted = self.walk_children(&mut node.children, bail_out_hoist);
         if all_children_hoisted && is_plain_element(node) {
             let children = std::mem::take(&mut node.children);
@@ -97,28 +97,42 @@ impl<'a> HoistStatic<'a> {
 
         // walk further
         match child {
-            IRNode::VNodeCall(_) => {
-                // visit child
+            IRNode::VNodeCall(e) => {
+                if e.is_component {
+                    //context.scopes.vSlot++
+                }
+                self.walk_vnode(e, false);
+                if e.is_component {
+                    //context.scopes.vSlot--
+                }
             }
-            IRNode::For(_) => {}
-            IRNode::If(_) => {}
+            IRNode::For(ir) => {
+                // Do not hoist v-for single child because it has to be a block
+                let bail_out_hoist = match &*ir.child {
+                    IRNode::VNodeCall(e) => e.children.len() == 1,
+                    _ => false,
+                };
+                self.walk_child(&mut ir.child, bail_out_hoist);
+            }
+            IRNode::If(ir) => {
+                for branch in &mut ir.branches {
+                    // Do not hoist v-for single child because it has to be a block
+                    let bail_out_hoist = match &*branch.child {
+                        IRNode::VNodeCall(e) => e.children.len() == 1,
+                        _ => false,
+                    };
+                    self.walk_child(&mut branch.child, bail_out_hoist);
+                }
+            }
             _ => (),
         }
         false
     }
 
     fn hoist(&mut self, expr: Hoist<'a>) -> usize {
-        todo!()
-        // if (isString(exp)) exp = createSimpleExpression(exp)
-        // context.hoists.push(exp)
-        // const identifier = createSimpleExpression(
-        //   `_hoisted_${context.hoists.length}`,
-        //   false,
-        //   exp.loc,
-        //   ConstantTypes.CAN_HOIST
-        // )
-        // identifier.hoisted = exp
-        // return identifier
+        let len = self.hoists.len();
+        self.hoists.push(expr);
+        len
     }
 }
 

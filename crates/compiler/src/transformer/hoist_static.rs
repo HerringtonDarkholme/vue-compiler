@@ -149,17 +149,19 @@ fn get_static_level(node: &BaseIR) -> StaticLevel {
         IRNode::VNodeCall(e) => get_vnode_static_level(e),
         IRNode::TextCall(t) => get_text_call_static_level(t),
         IRNode::CommentCall(_) => StaticLevel::CanHoist,
-        IRNode::If(_) | IRNode::For(_) | IRNode::VSlotUse(_) => StaticLevel::NotStatic,
         IRNode::CacheNode(_) => StaticLevel::NotStatic,
-        IRNode::RenderSlotCall(_) | IRNode::AlterableSlot(_) | IRNode::VSlotUse(_) => {
-            StaticLevel::NotStatic
-        }
+        IRNode::If(_) | IRNode::For(_) | IRNode::VSlotUse(_) => StaticLevel::NotStatic,
+        IRNode::RenderSlotCall(_) | IRNode::AlterableSlot(_) => StaticLevel::NotStatic,
         IRNode::Hoisted(_) => StaticLevel::CanHoist,
     }
 }
 
 fn get_text_call_static_level(t: &BaseText) -> StaticLevel {
-    todo!()
+    t.texts
+        .iter()
+        .map(|t| t.static_level())
+        .min()
+        .unwrap_or(StaticLevel::CanStringify)
 }
 
 fn get_vnode_static_level(node: &BaseVNode) -> StaticLevel {

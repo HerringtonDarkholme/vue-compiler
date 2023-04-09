@@ -15,11 +15,21 @@ impl<'a> CorePass<BaseInfo<'a>> for HoistStatic<'a> {
         // fallthrough attributes.
         let bail_out_hoist = is_single_element_root(r);
         self.walk_children(&mut r.body, bail_out_hoist);
+        std::mem::swap(&mut r.top_scope.hoists, &mut self.hoists);
     }
 }
 
 fn is_plain_element(node: &BaseVNode) -> bool {
     !node.is_component && matches!(node.tag, Js::StrLit(_))
+}
+
+fn extract_plain_element<'a, 'b>(ir: &'a mut BaseIR<'b>) -> Option<&'a mut BaseVNode<'b>> {
+    if let IRNode::VNodeCall(e) = ir {
+        if is_plain_element(e) {
+            return Some(e);
+        }
+    }
+    None
 }
 
 impl<'a> HoistStatic<'a> {
@@ -52,8 +62,7 @@ impl<'a> HoistStatic<'a> {
     }
 
     fn walk_child(&mut self, child: &mut BaseIR<'a>, bail_out_hoist: bool) -> bool {
-        if let IRNode::VNodeCall(e) = child {
-            if e.is_component {}
+        if let Some(e) = extract_plain_element(child) {
             let static_level = if bail_out_hoist {
                 StaticLevel::NotStatic
             } else {
@@ -73,13 +82,15 @@ impl<'a> HoistStatic<'a> {
                     || patch_flag == PatchFlag::TEXT)
                     && get_generated_props_static_level(e) >= StaticLevel::CanHoist
                 {
-                    // if let Some(props) = get_node_props(e) {
-                    //     *child = self.hoist(props);
-                    // }
+                    if let Some(props) = take_node_props(e) {
+                        let i = self.hoist(Hoist::StaticProps(props));
+                        e.hoisted.add_props(i);
+                    }
                 }
                 if !e.dynamic_props.is_empty() {
-                    todo!()
-                    // e.dynamic_props = self.hoist(e.dynamic_props);
+                    let dynamic = std::mem::take(&mut e.dynamic_props);
+                    let index = self.hoist(Hoist::DynamicPropsHint(dynamic));
+                    e.hoisted.add_dynamic_props(index);
                 }
             }
         }
@@ -127,6 +138,6 @@ fn get_generated_props_static_level(_node: &BaseVNode) -> StaticLevel {
     todo!()
 }
 
-fn get_node_props<'a>(_node: &BaseVNode<'a>) -> Option<BaseVNode<'a>> {
+fn take_node_props<'a>(_node: &mut BaseVNode<'a>) -> Option<Js<'a>> {
     todo!()
 }

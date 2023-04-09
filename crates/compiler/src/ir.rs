@@ -109,6 +109,7 @@ pub struct RuntimeDir<T: ConvertInfo> {
 enum HoistedType<T: ConvertInfo> {
     DynamicProps(T::HoistedIndex),
     Children(T::HoistedIndex),
+    Props(T::HoistedIndex),
 }
 
 #[derive(Default)]
@@ -118,6 +119,12 @@ pub struct HoistedAssets<T: ConvertInfo> {
 }
 
 impl<T: ConvertInfo> HoistedAssets<T> {
+    pub fn add_props(&mut self, index: T::HoistedIndex) {
+        debug_assert! {
+            !self.hoisted.iter().any(|n| matches!(n, HoistedType::Props(_)))
+        };
+        self.hoisted.push(HoistedType::Props(index));
+    }
     pub fn add_dynamic_props(&mut self, index: T::HoistedIndex) {
         debug_assert! {
             !self.hoisted.iter().any(|n| matches!(n, HoistedType::DynamicProps(_)))
@@ -142,6 +149,15 @@ impl<T: ConvertInfo> HoistedAssets<T> {
     pub fn has_dynamic_props_hoisted(&self) -> Option<&T::HoistedIndex> {
         self.hoisted.iter().find_map(|h| {
             if let HoistedType::DynamicProps(i) = h {
+                Some(i)
+            } else {
+                None
+            }
+        })
+    }
+    pub fn has_props_hoisted(&self) -> Option<&T::HoistedIndex> {
+        self.hoisted.iter().find_map(|h| {
+            if let HoistedType::Props(i) = h {
                 Some(i)
             } else {
                 None

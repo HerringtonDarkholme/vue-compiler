@@ -1,6 +1,6 @@
 /// hoist static element like `<div class="static">static text</div>`
 /// to a top level const. This improves runtime performance by reducing dom diffing.
-use super::{BaseInfo, BaseVNode, BaseRoot, CorePass, Js};
+use super::{BaseInfo, BaseVNode, BaseRoot, CorePass, Js, BaseText};
 use crate::converter::{BaseIR, Hoist};
 use crate::ir::IRNode;
 use crate::flags::{StaticLevel, PatchFlag};
@@ -66,7 +66,7 @@ impl<'a> HoistStatic<'a> {
             let static_level = if bail_out_hoist {
                 StaticLevel::NotStatic
             } else {
-                get_static_level(e)
+                get_vnode_static_level(e)
             };
             if static_level > StaticLevel::NotStatic {
                 if static_level >= StaticLevel::CanHoist {
@@ -82,7 +82,7 @@ impl<'a> HoistStatic<'a> {
                     || patch_flag == PatchFlag::TEXT)
                     && get_generated_props_static_level(e) >= StaticLevel::CanHoist
                 {
-                    if let Some(props) = take_node_props(e) {
+                    if let Some(props) = e.props.take() {
                         let i = self.hoist(Hoist::StaticProps(props));
                         e.hoisted.add_props(i);
                     }
@@ -144,14 +144,91 @@ fn is_single_element_root(r: &BaseRoot) -> bool {
     matches!(first, IRNode::VNodeCall(a) if !a.is_component)
 }
 
-fn get_static_level(_node: &BaseVNode) -> StaticLevel {
+fn get_static_level(node: &BaseIR) -> StaticLevel {
+    match node {
+        IRNode::VNodeCall(e) => get_vnode_static_level(e),
+        IRNode::TextCall(t) => get_text_call_static_level(t),
+        IRNode::CommentCall(_) => StaticLevel::CanHoist,
+        IRNode::If(_) | IRNode::For(_) | IRNode::VSlotUse(_) => StaticLevel::NotStatic,
+        IRNode::CacheNode(_) => StaticLevel::NotStatic,
+        IRNode::RenderSlotCall(_) | IRNode::AlterableSlot(_) | IRNode::VSlotUse(_) => {
+            StaticLevel::NotStatic
+        }
+        IRNode::Hoisted(_) => StaticLevel::CanHoist,
+    }
+}
+
+fn get_text_call_static_level(t: &BaseText) -> StaticLevel {
     todo!()
 }
 
-fn get_generated_props_static_level(_node: &BaseVNode) -> StaticLevel {
-    todo!()
+fn get_vnode_static_level(node: &BaseVNode) -> StaticLevel {
+    if !is_plain_element(node) {
+        return StaticLevel::NotStatic;
+    }
+    // TODO: add constantCache
+    if node.is_block && !matches!(node.tag, Js::StrLit(v) if &*v == "svg" || &*v == "foreignObject")
+    {
+        return StaticLevel::NotStatic;
+    }
+    if !node.patch_flag.is_empty() {
+        return StaticLevel::NotStatic;
+    }
+    let mut return_type = StaticLevel::CanStringify;
+
+    // Element itself has no patch flag. However we still need to check:
+
+    // 1. Even for a node with no patch flag, it is possible for it to contain
+    // non-hoistable expressions that refers to scope variables, e.g. compiler
+    // injected keys or cached event handlers. Therefore we need to always
+    // check the codegenNode's props to be sure.
+    let generated_props_level = get_generated_props_static_level(node);
+    if generated_props_level == StaticLevel::NotStatic {
+        return StaticLevel::NotStatic;
+    }
+    return_type = return_type.min(generated_props_level);
+    // 2. its children.
+    for child in &node.children {
+        let child_level = get_static_level(child);
+        if child_level == StaticLevel::NotStatic {
+            return StaticLevel::NotStatic;
+        }
+        return_type = return_type.min(child_level);
+    }
+    // 3. if the type is not already CAN_SKIP_PATCH which is the lowest non-0
+    // type, check if any of the props can cause the type to be lowered
+    // we can skip can_patch because it's guaranteed by the absence of a
+    // patchFlag.
+    if return_type > StaticLevel::CanSkipPatch {
+        if let Some(prop) = &node.props {
+            if prop.static_level() == StaticLevel::NotStatic {
+                return StaticLevel::NotStatic;
+            }
+            return_type = return_type.min(prop.static_level());
+        }
+    }
+    // only svg/foreignObject could be block here, however if they are
+    // static then they don't need to be blocks since there will be no
+    // nested updates.
+    if node.is_block {
+        // except set custom directives.
+        if !node.directives.is_empty() {
+            return StaticLevel::NotStatic;
+        }
+        //   context.removeHelper(OPEN_BLOCK)
+        //   context.removeHelper(
+        //     getVNodeBlockHelper(context.inSSR, codegenNode.isComponent)
+        //   )
+        // node.is_block = false;
+        //   context.helper(getVNodeHelper(context.inSSR, codegenNode.isComponent))
+    }
+    return_type
 }
 
-fn take_node_props<'a>(_node: &mut BaseVNode<'a>) -> Option<Js<'a>> {
-    todo!()
+fn get_generated_props_static_level(node: &BaseVNode) -> StaticLevel {
+    if let Some(prop) = &node.props {
+        prop.static_level()
+    } else {
+        StaticLevel::CanStringify
+    }
 }

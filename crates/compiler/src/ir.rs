@@ -306,7 +306,8 @@ impl<'a> JsExpr<'a> {
             Num(_) | StrLit(_) => S::CanStringify,
             Simple(_, level) => *level,
             Symbol(_) | Src(_) | Param(_) => S::CanHoist,
-            Compound(v) | Array(v) | Call(_, v) => vec_static_level(v),
+            Compound(v) | Array(v) => vec_static_level(v),
+            Call(rh, v) => call_static_level(rh, v),
             Props(ps) => ps.iter().map(prop_level).min().unwrap_or(S::CanStringify),
             FuncSimple { lvl, .. } => *lvl,
             FuncCompound { body, .. } => vec_static_level(body),
@@ -325,4 +326,17 @@ fn prop_level(prop: &Prop) -> StaticLevel {
     let key_level = prop.0.static_level();
     let val_level = prop.1.static_level();
     key_level.min(val_level)
+}
+
+fn call_static_level(rh: &RuntimeHelper, v: &[JsExpr]) -> StaticLevel {
+    use RuntimeHelper as RH;
+    let hoistable = rh == &RH::NORMALIZE_CLASS
+        || rh == &RH::NORMALIZE_STYLE
+        || rh == &RH::NORMALIZE_PROPS
+        || rh == &RH::GUARD_REACTIVE_PROPS;
+    if hoistable {
+        vec_static_level(v)
+    } else {
+        StaticLevel::NotStatic
+    }
 }

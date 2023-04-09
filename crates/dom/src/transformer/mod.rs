@@ -12,6 +12,7 @@ use compiler::transformer::{
     process_expression::ExpressionProcessor,
     normalize_props::NormalizeProp,
     cache_handlers::CacheHandlers,
+    hoist_static::HoistStatic,
 };
 use compiler::converter::BaseConvertInfo;
 use compiler::{SFCInfo, chain};
@@ -43,5 +44,6 @@ pub fn get_dom_pass<'a>(
             shared_info: Scope::default(),
             pd: PhantomData,
         },
+        HoistStatic::default(),
     ]
 }

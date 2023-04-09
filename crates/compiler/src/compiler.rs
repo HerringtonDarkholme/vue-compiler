@@ -19,6 +19,7 @@ use super::{
         optimize_text::TextOptimizer,
         pass::{Scope, SharedInfoPasses},
         process_expression::ExpressionProcessor,
+        hoist_static::HoistStatic,
     },
 };
 
@@ -327,5 +328,6 @@ pub fn get_base_passes<'a>(
             shared_info: Scope::default(),
             pd: PhantomData,
         },
+        HoistStatic::default(),
     ]
 }

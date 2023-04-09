@@ -5,6 +5,7 @@ use crate::converter::{BaseIR, Hoist};
 use crate::ir::IRNode;
 use crate::flags::{StaticLevel, PatchFlag};
 
+#[derive(Default)]
 pub struct HoistStatic<'a> {
     hoists: Vec<Hoist<'a>>,
 }

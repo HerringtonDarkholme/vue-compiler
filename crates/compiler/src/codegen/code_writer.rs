@@ -840,18 +840,41 @@ fn gen_vnode_call_args<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, v: BaseVNode
         children,
         patch_flag,
         dynamic_props,
+        hoisted,
         ..
     } = v;
+    let has_props = props.is_some() || hoisted.has_props_hoisted().is_some();
+    let has_children = !children.is_empty() || hoisted.has_children_hoisted().is_some();
+    let has_dynamic_props =
+        !dynamic_props.is_empty() || hoisted.has_dynamic_props_hoisted().is_some();
 
     gen_vnode_args!(
         gen,
         true, { gen.generate_js_expr(tag)?; }
-        props.is_some(), { gen.generate_js_expr(props.unwrap())?; }
-        !children.is_empty(), { gen.generate_children(children)?; }
+        has_props, {
+            if let Some(props) = props {
+                gen.generate_js_expr(props)?;
+            } else if let Some(&index) = hoisted.has_props_hoisted() {
+                gen.generate_hoisted(index)?;
+            }
+        }
+        has_children, {
+            if let Some(&index) = hoisted.has_children_hoisted() {
+                gen.generate_hoisted(index)?;
+            } else {
+                gen.generate_children(children)?;
+            }
+        }
         patch_flag != PatchFlag::empty(), {
             gen.write_patch(patch_flag)?;
         }
-        !dynamic_props.is_empty(), { gen.gen_dynamic_props(dynamic_props)?; }
+        has_dynamic_props, {
+            if let Some(&index) = hoisted.has_dynamic_props_hoisted() {
+                gen.generate_hoisted(index)?;
+            } else {
+                gen.gen_dynamic_props(dynamic_props)?;
+            }
+        }
     );
     Ok(())
 }

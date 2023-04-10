@@ -76,6 +76,12 @@ pub fn compile_script<'a>(
         // TODO: report error
         return None;
     }
+    let lang = scripts[0].get_lang();
+
+    // do not process non-js like language
+    if lang != "ts" && lang != "tsx" && lang != "js" && lang != "jsx" {
+        return scripts.pop();
+    }
     if !scripts.iter().any(|s| s.is_setup()) {
         Some(process_single_script(&mut scripts, sfc, options))
     } else {

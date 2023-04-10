@@ -1,10 +1,10 @@
 pub mod parse_script;
+mod setup_script;
 mod vanilla_script;
 
-use smallvec::SmallVec;
 use compiler::SFCInfo;
-use parse_script::parse_ts;
 use vanilla_script::process_single_script;
+use setup_script::process_setup_scripts;
 use crate::{SfcDescriptor, SfcScriptBlock, SfcTemplateCompileOptions};
 use crate::rewrite_default;
 use crate::style::css_vars::gen_normal_script_css_vars_code;
@@ -79,56 +79,12 @@ pub fn compile_script<'a>(
     if !scripts.iter().any(|s| s.is_setup()) {
         Some(process_single_script(&mut scripts, sfc, options))
     } else {
-        process_setup_scripts(&mut scripts, sfc, options)
+        Some(process_setup_scripts(&mut scripts, sfc, options))
     }
-}
-
-fn process_setup_scripts<'a>(
-    scripts: &mut SmallVec<[SfcScriptBlock<'a>; 1]>,
-    sfc: &SfcDescriptor<'a>,
-    options: SfcScriptCompileOptions<'a>,
-) -> Option<SfcScriptBlock<'a>> {
-    process_normal_script(scripts);
-    parse_script_setup();
-    apply_ref_transform();
-    extract_runtime_code();
-    check_invalid_scope_refs();
-    remove_non_script_content();
-    analyze_binding_metadata();
-    inject_css_vars(&mut scripts[0], &sfc.css_vars, &options);
-    finalize_setup_arg();
-    generate_return_stmt();
-    finalize_default_export();
-    todo!()
-}
-
-fn process_normal_script(scripts: &mut SmallVec<[SfcScriptBlock; 1]>) {
-    debug_assert!(scripts.len() <= 2);
-    let normal = match scripts.iter_mut().find(|s| !s.is_setup()) {
-        Some(script) => script,
-        None => return,
-    };
-    let _content = parse_ts(normal.block.source);
-    // for _item in module.items() {
-    //     // import declration
-    //     // export default
-    //     // export named
-    //     // declaration
-    // }
 }
 
 const DEFAULT_VAR: &str = "__default__";
 
-fn parse_script_setup() {}
-fn apply_ref_transform() {
-    // nothing! ref transform is deprecated!
-}
-// props and emits
-fn extract_runtime_code() {}
-// check useOptions does not refer to setup scipe
-fn check_invalid_scope_refs() {}
-fn remove_non_script_content() {}
-fn analyze_binding_metadata() {}
 fn inject_css_vars<'a>(
     script: &mut SfcScriptBlock<'a>,
     css_vars: &[&'a str],
@@ -153,6 +109,7 @@ fn inject_css_vars<'a>(
     script.block.compiled_content =
         format!("{content}{css_vars_code}\nexport default {DEFAULT_VAR}");
 }
-fn finalize_setup_arg() {}
-fn generate_return_stmt() {}
-fn finalize_default_export() {}
+
+fn apply_ref_transform() {
+    // nothing! ref transform is deprecated!
+}

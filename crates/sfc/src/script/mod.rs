@@ -47,14 +47,6 @@ impl<'a> SfcScriptCompileOptions<'a> {
     }
 }
 
-// struct ImportBinding<'a> {
-//     is_type: bool,
-//     imported: &'a str,
-//     source: &'a str,
-//     is_from_setup: bool,
-//     is_used_in_template: bool,
-// }
-
 pub fn compile_script<'a>(
     sfc: &SfcDescriptor<'a>,
     options: SfcScriptCompileOptions<'a>,
@@ -85,7 +77,7 @@ pub fn compile_script<'a>(
     if !scripts.iter().any(|s| s.is_setup()) {
         Some(process_single_script(&mut scripts, sfc, options))
     } else {
-        Some(process_setup_scripts(&mut scripts, sfc, options))
+        Some(process_setup_scripts(&mut scripts, sfc, &options))
     }
 }
 

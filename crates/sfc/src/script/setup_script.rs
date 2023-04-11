@@ -6,11 +6,12 @@ use crate::{SfcDescriptor, SfcScriptBlock};
 use super::{SfcScriptCompileOptions, inject_css_vars, apply_ref_transform};
 use compiler::{BindingMetadata, BindingTypes};
 
-pub fn process_setup_scripts<'a>(
-    scripts: &mut SmallVec<[SfcScriptBlock<'a>; 1]>,
-    sfc: &SfcDescriptor<'a>,
-    options: SfcScriptCompileOptions<'a>,
+pub fn process_setup_scripts<'a, 'b>(
+    scripts: &'b mut SmallVec<[SfcScriptBlock<'a>; 1]>,
+    sfc: &'b SfcDescriptor<'a>,
+    options: &'b SfcScriptCompileOptions<'a>,
 ) -> SfcScriptBlock<'a> {
+    let context = SetupScriptContext::new(sfc, options);
     let (script, script_setup) = split_script(scripts);
     // 0. parse both <script> and <script setup> blocks
     let script_ast = script.map(|s| parse_ts(s.block.source));
@@ -27,7 +28,7 @@ pub fn process_setup_scripts<'a>(
     check_invalid_scope_refs();
     remove_non_script_content();
     analyze_binding_metadata();
-    inject_css_vars(&mut scripts[0], &sfc.css_vars, &options);
+    inject_css_vars(&mut scripts[0], &sfc.css_vars, options);
     finalize_setup_arg();
     generate_return_stmt();
     finalize_default_export();
@@ -69,8 +70,13 @@ fn finalize_default_export() {}
 
 use std::collections::{HashSet, HashMap};
 
-struct ImportBinding {
-    // define fields for ImportBinding struct
+struct ImportBinding<'a> {
+    is_type: bool,
+    imported: &'a str,
+    source: &'a str,
+    local: &'a str,
+    is_from_setup: bool,
+    is_used_in_template: bool,
 }
 
 enum PropsDeclType {
@@ -89,7 +95,7 @@ struct PropTypeData {
 struct SetupBindings<'a> {
     binding_metadata: BindingMetadata<'a>,
     helper_imports: HashSet<String>,
-    user_imports: HashMap<String, ImportBinding>,
+    user_imports: HashMap<String, ImportBinding<'a>>,
     script_bindings: HashMap<String, BindingTypes>,
     setup_bindings: HashMap<String, BindingTypes>,
 }
@@ -136,9 +142,74 @@ struct EmitRelated<'a> {
 }
 
 #[derive(Default)]
-pub struct SetupScriptData<'a> {
+struct SetupScriptData<'a> {
     bindings: SetupBindings<'a>,
     props: PropRelated<'a>,
     emits: EmitRelated<'a>,
     exports: ExportRelated<'a>,
+}
+
+struct SetupScriptContext<'a, 'b> {
+    data: SetupScriptData<'a>,
+    sfc: &'b SfcDescriptor<'a>,
+    options: &'b SfcScriptCompileOptions<'a>,
+    is_ts: bool,
+}
+
+impl<'a, 'b> SetupScriptContext<'a, 'b> {
+    fn new(sfc: &'b SfcDescriptor<'a>, options: &'b SfcScriptCompileOptions<'a>) -> Self {
+        let lang = sfc.scripts[0].get_lang();
+        let is_ts = lang == "ts" || lang == "tsx";
+        debug_assert! {
+            // either a single script or two scripts have the same lang
+            sfc.scripts.len() == 1 || sfc.scripts[1].get_lang() == lang
+        };
+        Self {
+            data: SetupScriptData::default(),
+            sfc,
+            options,
+            is_ts,
+        }
+    }
+    fn need_check_template(&self) -> bool {
+        // template usage check is only needed in non-inline mode
+        // so we can skip the work if inlineTemplate is true.
+        if self.options.inline_template || !self.is_ts {
+            return false;
+        }
+        let Some(template) = &self.sfc.template else {
+            return false;
+        };
+        let attrs = &template.block.attrs;
+        // only check if the template is inside SFC and is written in html
+        !attrs.contains_key("src")
+            && attrs.get("lang").cloned().flatten().unwrap_or("html") == "html"
+    }
+
+    fn register_user_import(
+        &mut self,
+        source: &'a str,
+        local: &'a str,
+        imported: &'a str,
+        is_type: bool,
+        is_from_setup: bool,
+    ) {
+        let is_used_in_template = self.need_check_template() && is_import_used(local);
+        let user_import = ImportBinding {
+            is_type,
+            imported, // named or default
+            local,
+            source,
+            is_from_setup,
+            is_used_in_template,
+        };
+        self.data
+            .bindings
+            .user_imports
+            .insert(local.to_string(), user_import);
+    }
+}
+
+fn is_import_used(_local: &str) -> bool {
+    todo!()
 }

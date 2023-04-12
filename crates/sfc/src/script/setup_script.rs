@@ -1,17 +1,19 @@
 /// process setup script
 /// If both setup script and normal script blocks exist, we will merge them into one script block.
 use smallvec::SmallVec;
-use super::parse_script::{parse_ts, TsNode};
+use super::parse_script::{parse_ts, TsNode, TsPattern, TypeScript};
 use crate::{SfcDescriptor, SfcScriptBlock};
 use super::{SfcScriptCompileOptions, inject_css_vars, apply_ref_transform};
-use compiler::{BindingMetadata, BindingTypes};
+use super::setup_context::SetupScriptContext;
+use ast_grep_core::{Pattern, matcher::KindMatcher};
+use lazy_static::lazy_static;
 
 pub fn process_setup_scripts<'a, 'b>(
     scripts: &'b mut SmallVec<[SfcScriptBlock<'a>; 1]>,
     sfc: &'b SfcDescriptor<'a>,
     options: &'b SfcScriptCompileOptions<'a>,
 ) -> SfcScriptBlock<'a> {
-    let context = SetupScriptContext::new(sfc, options);
+    let mut context = SetupScriptContext::new(sfc, options);
     let (script, script_setup) = split_script(scripts);
     // 0. parse both <script> and <script setup> blocks
     let script_ast = script.map(|s| parse_ts(s.block.source));
@@ -20,7 +22,7 @@ pub fn process_setup_scripts<'a, 'b>(
         .expect("should always have script setup");
     // 1.1 walk import delcarations of <script>
     if let Some(script_ast) = &script_ast {
-        process_normal_script(script_ast.root());
+        collect_normal_import(&mut context, script_ast.root());
     }
     collect_setup_assets(script_setup_ast.root());
     apply_ref_transform();
@@ -47,14 +49,41 @@ fn split_script<'a, 'b>(
     (normal, setup)
 }
 
-fn process_normal_script(script_ast: TsNode) {
-    // let content = parse_ts(normal.block.source);
-    // for _item in module.items() {
-    //     // import declration
-    //     // export default
-    //     // export named
-    //     // declaration
-    // }
+lazy_static! {
+    static ref DEFAULT_PAT: TsPattern =
+        Pattern::contextual("import $LOCAL from 'a'", "import_clause", TypeScript).unwrap();
+    static ref NAMED_PAT: TsPattern = Pattern::contextual(
+        "import {$IDENT as $LOCAL} from 'a'",
+        "named_imports",
+        TypeScript
+    )
+    .unwrap();
+    static ref NAMESPACE_PAT: TsPattern =
+        Pattern::contextual("import * as $LOCAL from 'a'", "named_imports", TypeScript).unwrap();
+}
+
+fn collect_normal_import(ctx: &mut SetupScriptContext, script_ast: TsNode) {
+    for import in script_ast.find_all(KindMatcher::new("import_statement", TypeScript)) {
+        for default in import.find_all(&*DEFAULT_PAT) {
+            let source = ctx.script_text(&default);
+            let local = ctx.script_text(&default.child(0).unwrap());
+            let is_type = false; // todo
+            ctx.register_user_import(source, local, "default", is_type, false);
+        }
+        for named in import.find_all(&*DEFAULT_PAT) {
+            let source = ctx.script_text(&named);
+            let local = ctx.script_text(&named.field("alias").unwrap());
+            let imported = ctx.script_text(&named.field("name").unwrap());
+            let is_type = false; // todo
+            ctx.register_user_import(source, local, imported, is_type, false);
+        }
+        for ns in import.find_all(&*DEFAULT_PAT) {
+            let source = ctx.script_text(&ns);
+            let local = ctx.script_text(ns.get_env().get_match("LOCAL").unwrap());
+            let is_type = false; // todo
+            ctx.register_user_import(source, local, "*", is_type, false);
+        }
+    }
 }
 
 fn collect_setup_assets(setup_ast: TsNode) {}
@@ -67,149 +96,3 @@ fn analyze_binding_metadata() {}
 fn finalize_setup_arg() {}
 fn generate_return_stmt() {}
 fn finalize_default_export() {}
-
-use std::collections::{HashSet, HashMap};
-
-struct ImportBinding<'a> {
-    is_type: bool,
-    imported: &'a str,
-    source: &'a str,
-    local: &'a str,
-    is_from_setup: bool,
-    is_used_in_template: bool,
-}
-
-enum PropsDeclType {
-    // define variants for PropsDeclType enum
-}
-
-enum EmitsDeclType {
-    // define variants for EmitsDeclType enum
-}
-
-struct PropTypeData {
-    // define fields for PropTypeData struct
-}
-
-#[derive(Default)]
-struct SetupBindings<'a> {
-    binding_metadata: BindingMetadata<'a>,
-    helper_imports: HashSet<String>,
-    user_imports: HashMap<String, ImportBinding<'a>>,
-    script_bindings: HashMap<String, BindingTypes>,
-    setup_bindings: HashMap<String, BindingTypes>,
-}
-
-#[derive(Default)]
-struct ExportRelated<'a> {
-    default_export: Option<TsNode<'a>>,
-    has_default_export_name: bool,
-    has_default_export_render: bool,
-}
-
-type ObjectExpression = ();
-
-#[derive(Default)]
-struct Misc {
-    has_define_expose_call: bool,
-    has_await: bool,
-    has_inlined_ssr_render_fn: bool,
-    declared_types: HashMap<String, Vec<String>>,
-}
-
-#[derive(Default)]
-struct PropRelated<'a> {
-    has_define_props_call: bool,
-    type_declared_props: HashMap<String, PropTypeData>,
-    props_runtime_decl: Option<TsNode<'a>>,
-    props_runtime_defaults: Option<ObjectExpression>,
-    props_destructure_decl: Option<TsNode<'a>>,
-    props_destructure_rest_id: Option<String>,
-    props_type_decl: Option<PropsDeclType>,
-    props_type_decl_raw: Option<TsNode<'a>>,
-    props_identifier: Option<String>,
-    props_destructured_bindings: HashMap<String, HashMap<String, bool>>,
-}
-
-#[derive(Default)]
-struct EmitRelated<'a> {
-    has_define_emit_call: bool,
-    emits_runtime_decl: Option<TsNode<'a>>,
-    emits_type_decl: Option<EmitsDeclType>,
-    emits_type_decl_raw: Option<TsNode<'a>>,
-    emit_identifier: Option<String>,
-    type_declared_emits: HashSet<String>,
-}
-
-#[derive(Default)]
-struct SetupScriptData<'a> {
-    bindings: SetupBindings<'a>,
-    props: PropRelated<'a>,
-    emits: EmitRelated<'a>,
-    exports: ExportRelated<'a>,
-}
-
-struct SetupScriptContext<'a, 'b> {
-    data: SetupScriptData<'a>,
-    sfc: &'b SfcDescriptor<'a>,
-    options: &'b SfcScriptCompileOptions<'a>,
-    is_ts: bool,
-}
-
-impl<'a, 'b> SetupScriptContext<'a, 'b> {
-    fn new(sfc: &'b SfcDescriptor<'a>, options: &'b SfcScriptCompileOptions<'a>) -> Self {
-        let lang = sfc.scripts[0].get_lang();
-        let is_ts = lang == "ts" || lang == "tsx";
-        debug_assert! {
-            // either a single script or two scripts have the same lang
-            sfc.scripts.len() == 1 || sfc.scripts[1].get_lang() == lang
-        };
-        Self {
-            data: SetupScriptData::default(),
-            sfc,
-            options,
-            is_ts,
-        }
-    }
-    fn need_check_template(&self) -> bool {
-        // template usage check is only needed in non-inline mode
-        // so we can skip the work if inlineTemplate is true.
-        if self.options.inline_template || !self.is_ts {
-            return false;
-        }
-        let Some(template) = &self.sfc.template else {
-            return false;
-        };
-        let attrs = &template.block.attrs;
-        // only check if the template is inside SFC and is written in html
-        !attrs.contains_key("src")
-            && attrs.get("lang").cloned().flatten().unwrap_or("html") == "html"
-    }
-
-    fn register_user_import(
-        &mut self,
-        source: &'a str,
-        local: &'a str,
-        imported: &'a str,
-        is_type: bool,
-        is_from_setup: bool,
-    ) {
-        let is_used_in_template = self.need_check_template() && is_import_used(local);
-        let user_import = ImportBinding {
-            is_type,
-            imported, // named or default
-            local,
-            source,
-            is_from_setup,
-            is_used_in_template,
-        };
-        self.data
-            .bindings
-            .user_imports
-            .insert(local.to_string(), user_import);
-    }
-}
-
-fn is_import_used(_local: &str) -> bool {
-    todo!()
-}

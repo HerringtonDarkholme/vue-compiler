@@ -1,4 +1,5 @@
 pub mod parse_script;
+mod setup_context;
 mod setup_script;
 mod vanilla_script;
 

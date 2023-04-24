@@ -30,7 +30,7 @@ fn test_bind_dir() {
         r#"<p :[a.b].stop="tt"/>"#, // bind, [a.b], stop
         r#"<p :[]="tt"/>"#,         // bind, nothing
         r#"<p :[t]err="tt"/>"#,     // bind, nothing,
-        r#"<p v-🖖:🤘.🤙/>"#, // unicode, VUE in hand sign
+        r#"<p v-🖖:🤘.🤙/>"#,       // unicode, VUE in hand sign
     ]];
 }
 

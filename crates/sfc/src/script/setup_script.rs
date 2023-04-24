@@ -52,35 +52,46 @@ fn split_script<'a, 'b>(
 lazy_static! {
     static ref DEFAULT_PAT: TsPattern =
         Pattern::contextual("import $LOCAL from 'a'", "import_clause", TypeScript).unwrap();
-    static ref NAMED_PAT: TsPattern = Pattern::contextual(
-        "import {$IDENT as $LOCAL} from 'a'",
-        "named_imports",
+    static ref NAMESPACE_PAT: TsPattern = Pattern::contextual(
+        "import * as $LOCAL from 'a'",
+        "namespace_imports",
         TypeScript
     )
     .unwrap();
-    static ref NAMESPACE_PAT: TsPattern =
-        Pattern::contextual("import * as $LOCAL from 'a'", "named_imports", TypeScript).unwrap();
 }
 
 fn collect_normal_import(ctx: &mut SetupScriptContext, script_ast: TsNode) {
     for import in script_ast.find_all(KindMatcher::new("import_statement", TypeScript)) {
         for default in import.find_all(&*DEFAULT_PAT) {
             let source = ctx.script_text(&default);
-            let local = ctx.script_text(&default.child(0).unwrap());
-            let is_type = false; // todo
+            let local_node = default.get_env().get_match("LOCAL").unwrap();
+            let local = ctx.script_text(local_node);
+            let is_type = local_node
+                .prev()
+                .map(|n| n.text() == "type")
+                .unwrap_or(false);
             ctx.register_user_import(source, local, "default", is_type, false);
         }
-        for named in import.find_all(&*DEFAULT_PAT) {
+        // import { type A } from 'xxx' or import type {A} from 'xxx'
+        for named in import.find_all(KindMatcher::new("import_specifier", TypeScript)) {
             let source = ctx.script_text(&named);
-            let local = ctx.script_text(&named.field("alias").unwrap());
-            let imported = ctx.script_text(&named.field("name").unwrap());
-            let is_type = false; // todo
+            let imported_node = named.field("name").unwrap();
+            let local = ctx.script_text(&named.field("alias").unwrap_or(imported_node.clone()));
+            let imported = ctx.script_text(&imported_node);
+            let is_type =
+                // { type A } from 'xxx'
+                imported_node.prev().map(|n| n.text() == "type").or_else(|| {
+                    // type { A } from 'xxx'
+                    let named_imports = named.parent()?;
+                    Some(named_imports.prev()?.text() == "type")
+                }).unwrap_or(false);
             ctx.register_user_import(source, local, imported, is_type, false);
         }
-        for ns in import.find_all(&*DEFAULT_PAT) {
+        for ns in import.find_all(&*NAMESPACE_PAT) {
             let source = ctx.script_text(&ns);
             let local = ctx.script_text(ns.get_env().get_match("LOCAL").unwrap());
-            let is_type = false; // todo
+            // TODO: babel does not support `import type * as ns from 'bb'`
+            let is_type = ns.prev().map(|n| n.text() == "type").unwrap_or(false);
             ctx.register_user_import(source, local, "*", is_type, false);
         }
     }
@@ -96,3 +107,8 @@ fn analyze_binding_metadata() {}
 fn finalize_setup_arg() {}
 fn generate_return_stmt() {}
 fn finalize_default_export() {}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+}

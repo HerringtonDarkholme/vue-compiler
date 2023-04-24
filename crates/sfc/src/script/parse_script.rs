@@ -1,7 +1,7 @@
-use ast_grep_core::{AstGrep, Language, language::TSLanguage, Node, Pattern};
+use ast_grep_core::{AstGrep, Language, language::TSLanguage, Node, Pattern, StrDoc};
 use tree_sitter_typescript::language_typescript;
 
-pub type TsNode<'r> = Node<'r, TypeScript>;
+pub type TsNode<'r> = Node<'r, StrDoc<TypeScript>>;
 pub type TsPattern = Pattern<TypeScript>;
 
 #[derive(Clone)]
@@ -13,6 +13,6 @@ impl Language for TypeScript {
     }
 }
 
-pub fn parse_ts(text: &str) -> AstGrep<TypeScript> {
+pub fn parse_ts(text: &str) -> AstGrep<StrDoc<TypeScript>> {
     TypeScript.ast_grep(text)
 }

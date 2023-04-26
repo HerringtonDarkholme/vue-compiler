@@ -1,7 +1,9 @@
 pub mod parse_script;
 mod setup_context;
-mod setup_script;
 mod vanilla_script;
+
+mod analysis;
+mod setup_script;
 
 use compiler::SFCInfo;
 use vanilla_script::process_single_script;

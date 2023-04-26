@@ -16,11 +16,11 @@ pub struct ImportBinding<'a> {
 struct TypeScope;
 
 #[derive(Default)]
-struct Analysis<'a> {
+pub struct Analysis<'a> {
     // import / type analysis
     scope: Option<TypeScope>,
     global_scopes: Option<Vec<TypeScope>>,
-    user_imports: HashMap<String, ImportBinding<'a>>,
+    pub user_imports: HashMap<String, ImportBinding<'a>>,
     // codegen
     binding_metadata: BindingMetadata<'a>,
     helper_imports: HashSet<String>,
@@ -61,7 +61,7 @@ struct Macros<'a> {
 }
 
 pub struct SetupScriptContext<'a, 'b> {
-    analysis: Analysis<'a>,
+    pub analysis: Analysis<'a>,
     macros: Macros<'a>,
     sfc: &'b SfcDescriptor<'a>,
     options: &'b SfcScriptCompileOptions<'a>,

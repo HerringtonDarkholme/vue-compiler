@@ -4,13 +4,13 @@ use super::parse_script::TsNode;
 use crate::SfcDescriptor;
 use super::SfcScriptCompileOptions;
 
-struct ImportBinding<'a> {
-    is_type: bool,
-    imported: &'a str,
-    source: &'a str,
-    local: &'a str,
-    is_from_setup: bool,
-    is_used_in_template: bool,
+pub struct ImportBinding<'a> {
+    pub is_type: bool,
+    pub imported: &'a str,
+    pub source: &'a str,
+    pub local: &'a str,
+    pub is_from_setup: bool,
+    pub is_used_in_template: bool,
 }
 
 enum PropsDeclType {
@@ -83,11 +83,17 @@ struct SetupScriptData<'a> {
     exports: ExportRelated<'a>,
 }
 
+pub enum Issue {
+    Error(String),
+    Warning(String),
+}
+
 pub struct SetupScriptContext<'a, 'b> {
     data: SetupScriptData<'a>,
     sfc: &'b SfcDescriptor<'a>,
     options: &'b SfcScriptCompileOptions<'a>,
     is_ts: bool,
+    issues: Vec<Issue>,
 }
 
 impl<'a, 'b> SetupScriptContext<'a, 'b> {
@@ -103,6 +109,7 @@ impl<'a, 'b> SetupScriptContext<'a, 'b> {
             sfc,
             options,
             is_ts,
+            issues: vec![],
         }
     }
     fn need_check_template(&self) -> bool {
@@ -118,6 +125,10 @@ impl<'a, 'b> SetupScriptContext<'a, 'b> {
         // only check if the template is inside SFC and is written in html
         !attrs.contains_key("src")
             && attrs.get("lang").cloned().flatten().unwrap_or("html") == "html"
+    }
+
+    pub fn get_registered_import(&self, local: &str) -> Option<&ImportBinding> {
+        self.data.bindings.user_imports.get(local)
     }
 
     pub fn register_script_import(
@@ -183,6 +194,14 @@ impl<'a, 'b> SetupScriptContext<'a, 'b> {
         let range = node.range();
         let script = self.sfc.scripts.iter().find(|s| s.is_setup()).unwrap();
         &script.block.source[range]
+    }
+
+    pub fn warn(&mut self, warning: String) {
+        self.issues.push(Issue::Warning(warning))
+    }
+
+    pub fn error(&mut self, error: String) {
+        self.issues.push(Issue::Error(error))
     }
 }
 

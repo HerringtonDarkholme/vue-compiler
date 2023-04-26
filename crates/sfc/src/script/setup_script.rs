@@ -7,6 +7,7 @@ use super::{SfcScriptCompileOptions, inject_css_vars, apply_ref_transform};
 use super::setup_context::SetupScriptContext;
 use ast_grep_core::{Pattern, matcher::KindMatcher};
 use lazy_static::lazy_static;
+use std::borrow::Cow;
 
 pub fn process_setup_scripts<'a, 'b>(
     scripts: &'b mut SmallVec<[SfcScriptBlock<'a>; 1]>,
@@ -157,55 +158,53 @@ fn dedupe_imports() {
     // }
 }
 
-fn warn_macro_import() {
-    //   if (
-    //     source === 'vue' &&
-    //     (imported === DEFINE_PROPS ||
-    //       imported === DEFINE_EMITS ||
-    //       imported === DEFINE_EXPOSE)
-    //   ) {
-    //     warnOnce(
-    //       `\`${imported}\` is a compiler macro and no longer needs to be imported.`
-    //     )
-    //     removeSpecifier(i)
+const DEFINE_PROPS: &str = "defineProps";
+const DEFINE_EMITS: &str = "defineEmits";
+const DEFINE_EXPOSE: &str = "defineExpose";
+
+fn is_macro_import<'a>(source: &TsNode<'a>, imported: &Option<TsNode<'a>>) -> Option<Cow<'a, str>> {
+    let imported = imported.as_ref()?;
+    let source = source.text();
+    let imported = imported.text();
+    if source == "vue"
+        && (imported == DEFINE_PROPS || imported == DEFINE_EMITS || imported == DEFINE_EXPOSE)
+    {
+        Some(imported)
+    } else {
+        None
+    }
 }
 
 fn regitser(ctx: &mut SetupScriptContext, import: TsNode) {
-
-    // for (let i = 0; i < node.specifiers.length; i++) {
-    //   const specifier = node.specifiers[i]
-    //   const local = specifier.local.name
-    //   let imported =
-    //     specifier.type === 'ImportSpecifier' &&
-    //     specifier.imported.type === 'Identifier' &&
-    //     specifier.imported.name
-    //   if (specifier.type === 'ImportNamespaceSpecifier') {
-    //     imported = '*'
-    //   }
-    //   const source = node.source.value
-    //   const existing = userImports[local]
-    //   if (importMacro) {
-    //     // warn
-    //   } else if (existing) {
-    //     if (existing.source === source && existing.imported === imported) {
-    //       // already imported in <script setup>, dedupe
-    //       removeSpecifier(i)
-    //     } else {
-    //       error(`different imports aliased to same local name.`, specifier)
-    //     }
-    //   } else {
-    //     registerUserImport(
-    //       source,
-    //       local,
-    //       imported,
-    //       node.importKind === 'type' ||
-    //         (specifier.type === 'ImportSpecifier' &&
-    //           specifier.importKind === 'type'),
-    //       true,
-    //       !options.inlineTemplate
-    //     )
-    //   }
-    // }
+    for imports in collect_one_import(import) {
+        let ImportNodes {
+            source,
+            local,
+            imported,
+            is_type,
+        } = imports;
+        if let Some(importee) = is_macro_import(&source, &imported) {
+            ctx.warn(format!(
+                "`{importee}`  is a compiler macro and no longer needs to be imported."
+            ));
+            // TODO: remove specifier
+        } else if let Some(existing) = ctx.get_registered_import(&local.text()) {
+            let is_duplicate = existing.source == source.text()
+                && imported
+                    .map(|n| n.text() == existing.imported)
+                    .unwrap_or_else(|| existing.imported == "default");
+            if is_duplicate {
+                // TODO: remove is_duplicate
+            } else {
+                ctx.error(format!(
+                    "different imports aliased to same local name `{}`",
+                    local.text()
+                ));
+            }
+        } else {
+            ctx.register_setup_import(source, local, imported, is_type);
+        }
+    }
 }
 
 fn remove_node_if_dupe() {

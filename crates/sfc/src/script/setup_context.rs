@@ -120,7 +120,37 @@ impl<'a, 'b> SetupScriptContext<'a, 'b> {
             && attrs.get("lang").cloned().flatten().unwrap_or("html") == "html"
     }
 
-    pub fn register_user_import(
+    pub fn register_script_import(
+        &mut self,
+        source: TsNode,
+        local: TsNode,
+        imported: Option<TsNode>,
+        is_type: bool,
+    ) {
+        let source = self.script_text(&source);
+        let local = self.script_text(&local);
+        let imported = imported.map(|n| self.script_text(&n)).unwrap_or("default");
+        self.register_user_import(
+            source, local, imported, is_type, /*is_from_setup*/ false,
+        )
+    }
+
+    pub fn register_setup_import(
+        &mut self,
+        source: TsNode,
+        local: TsNode,
+        imported: Option<TsNode>,
+        is_type: bool,
+    ) {
+        let source = self.setup_text(&source);
+        let local = self.setup_text(&local);
+        let imported = imported.map(|n| self.setup_text(&n)).unwrap_or("default");
+        self.register_user_import(
+            source, local, imported, is_type, /*is_from_setup*/ true,
+        )
+    }
+
+    fn register_user_import(
         &mut self,
         source: &'a str,
         local: &'a str,

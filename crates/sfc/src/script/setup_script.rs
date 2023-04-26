@@ -24,7 +24,8 @@ pub fn process_setup_scripts<'a, 'b>(
     if let Some(script_ast) = &script_ast {
         collect_normal_import(&mut context, script_ast.root());
     }
-    collect_setup_assets(script_setup_ast.root());
+    // 1.2 walk import declarations of <script setup>
+    collect_setup_assets(&mut context, script_setup_ast.root());
     apply_ref_transform();
     extract_runtime_code();
     check_invalid_scope_refs();
@@ -49,9 +50,18 @@ fn split_script<'a, 'b>(
     (normal, setup)
 }
 
+struct ImportNodes<'a> {
+    source: TsNode<'a>,
+    local: TsNode<'a>,
+    imported: Option<TsNode<'a>>,
+    is_type: bool,
+}
+
 lazy_static! {
     static ref DEFAULT_PAT: TsPattern =
         Pattern::contextual("import $LOCAL from 'a'", "import_clause", TypeScript).unwrap();
+    static ref NAMED_PAT: KindMatcher<TypeScript> =
+        KindMatcher::new("import_specifier", TypeScript);
     static ref NAMESPACE_PAT: TsPattern = Pattern::contextual(
         "import * as $LOCAL from 'a'",
         "namespace_imports",
@@ -60,44 +70,158 @@ lazy_static! {
     .unwrap();
 }
 
+fn collect_one_import(import: TsNode) -> impl Iterator<Item = ImportNodes> {
+    let src = import.field("source").unwrap().child(0).unwrap();
+    let source = src.clone();
+    let default_nodes = import.find_all(&*DEFAULT_PAT).flat_map(move |default| {
+        let local = default.get_env().get_match("LOCAL")?.clone();
+        let is_type = local.prev().map(|n| n.text() == "type").unwrap_or(false);
+        Some(ImportNodes {
+            source: source.clone(),
+            local,
+            imported: None, // default
+            is_type,
+        })
+    });
+    let source = src.clone();
+    // import { type A } from 'xxx' or import type {A} from 'xxx'
+    let named_nodes = import.find_all(&*NAMED_PAT).flat_map(move |named| {
+        let imported = named.field("name")?;
+        let local = named.field("alias").unwrap_or_else(|| imported.clone());
+        let is_type =
+            // { type A } from 'xxx'
+            imported.prev().map(|n| n.text() == "type").or_else(|| {
+                // type { A } from 'xxx'
+                let named_imports = named.parent()?;
+                Some(named_imports.prev()?.text() == "type")
+            }).unwrap_or(false);
+        Some(ImportNodes {
+            source: source.clone(),
+            local,
+            imported: Some(imported),
+            is_type,
+        })
+    });
+    let source = src.clone();
+    let namespace_nodes = import.find_all(&*NAMESPACE_PAT).flat_map(move |ns| {
+        let local = ns.get_env().get_match("LOCAL")?.clone();
+        let imported = local.prev()?.prev();
+        // TODO: babel does not support `import type * as ns from 'bb'`
+        let is_type = ns.prev().map(|n| n.text() == "type").unwrap_or(false);
+        Some(ImportNodes {
+            source: source.clone(),
+            local,
+            imported,
+            is_type,
+        })
+    });
+    default_nodes.chain(namespace_nodes).chain(named_nodes)
+}
+
 fn collect_normal_import(ctx: &mut SetupScriptContext, script_ast: TsNode) {
     for import in script_ast.find_all(KindMatcher::new("import_statement", TypeScript)) {
-        for default in import.find_all(&*DEFAULT_PAT) {
-            let source = ctx.script_text(&default);
-            let local_node = default.get_env().get_match("LOCAL").unwrap();
-            let local = ctx.script_text(local_node);
-            let is_type = local_node
-                .prev()
-                .map(|n| n.text() == "type")
-                .unwrap_or(false);
-            ctx.register_user_import(source, local, "default", is_type, false);
-        }
-        // import { type A } from 'xxx' or import type {A} from 'xxx'
-        for named in import.find_all(KindMatcher::new("import_specifier", TypeScript)) {
-            let source = ctx.script_text(&named);
-            let imported_node = named.field("name").unwrap();
-            let local = ctx.script_text(&named.field("alias").unwrap_or(imported_node.clone()));
-            let imported = ctx.script_text(&imported_node);
-            let is_type =
-                // { type A } from 'xxx'
-                imported_node.prev().map(|n| n.text() == "type").or_else(|| {
-                    // type { A } from 'xxx'
-                    let named_imports = named.parent()?;
-                    Some(named_imports.prev()?.text() == "type")
-                }).unwrap_or(false);
-            ctx.register_user_import(source, local, imported, is_type, false);
-        }
-        for ns in import.find_all(&*NAMESPACE_PAT) {
-            let source = ctx.script_text(&ns);
-            let local = ctx.script_text(ns.get_env().get_match("LOCAL").unwrap());
-            // TODO: babel does not support `import type * as ns from 'bb'`
-            let is_type = ns.prev().map(|n| n.text() == "type").unwrap_or(false);
-            ctx.register_user_import(source, local, "*", is_type, false);
+        for imports in collect_one_import(import.into()) {
+            let ImportNodes {
+                source,
+                local,
+                imported,
+                is_type,
+            } = imports;
+            ctx.register_script_import(source, local, imported, is_type);
         }
     }
 }
 
-fn collect_setup_assets(setup_ast: TsNode) {}
+fn hoist_node() {
+    // // import declarations are moved to top
+    // hoistNode(node)
+    // use magic string to move import statement to the top
+    // magic-string has quite strange move method...
+}
+fn dedupe_imports() {
+    // // dedupe imports
+    // let removed = 0
+    // const removeSpecifier = (i: number) => {
+    //   const removeLeft = i > removed
+    //   removed++
+    //   const current = node.specifiers[i]
+    //   const next = node.specifiers[i + 1]
+    //   s.remove(
+    //     removeLeft
+    //       ? node.specifiers[i - 1].end! + startOffset
+    //       : current.start! + startOffset,
+    //     next && !removeLeft
+    //       ? next.start! + startOffset
+    //       : current.end! + startOffset
+    //   )
+    // }
+}
+
+fn warn_macro_import() {
+    //   if (
+    //     source === 'vue' &&
+    //     (imported === DEFINE_PROPS ||
+    //       imported === DEFINE_EMITS ||
+    //       imported === DEFINE_EXPOSE)
+    //   ) {
+    //     warnOnce(
+    //       `\`${imported}\` is a compiler macro and no longer needs to be imported.`
+    //     )
+    //     removeSpecifier(i)
+}
+
+fn regitser(ctx: &mut SetupScriptContext, import: TsNode) {
+
+    // for (let i = 0; i < node.specifiers.length; i++) {
+    //   const specifier = node.specifiers[i]
+    //   const local = specifier.local.name
+    //   let imported =
+    //     specifier.type === 'ImportSpecifier' &&
+    //     specifier.imported.type === 'Identifier' &&
+    //     specifier.imported.name
+    //   if (specifier.type === 'ImportNamespaceSpecifier') {
+    //     imported = '*'
+    //   }
+    //   const source = node.source.value
+    //   const existing = userImports[local]
+    //   if (importMacro) {
+    //     // warn
+    //   } else if (existing) {
+    //     if (existing.source === source && existing.imported === imported) {
+    //       // already imported in <script setup>, dedupe
+    //       removeSpecifier(i)
+    //     } else {
+    //       error(`different imports aliased to same local name.`, specifier)
+    //     }
+    //   } else {
+    //     registerUserImport(
+    //       source,
+    //       local,
+    //       imported,
+    //       node.importKind === 'type' ||
+    //         (specifier.type === 'ImportSpecifier' &&
+    //           specifier.importKind === 'type'),
+    //       true,
+    //       !options.inlineTemplate
+    //     )
+    //   }
+    // }
+}
+
+fn remove_node_if_dupe() {
+    // if (node.specifiers.length && removed === node.specifiers.length) {
+    //   s.remove(node.start! + startOffset, node.end! + startOffset)
+    // }
+}
+
+fn collect_setup_assets(ctx: &mut SetupScriptContext, setup_ast: TsNode) {
+    for import in setup_ast.find_all(KindMatcher::new("import_statement", TypeScript)) {
+        hoist_node();
+        dedupe_imports();
+        regitser(ctx, import.into());
+        remove_node_if_dupe();
+    }
+}
 // props and emits
 fn extract_runtime_code() {}
 // check useOptions does not refer to setup scipe

@@ -1,5 +1,5 @@
 use std::collections::{HashSet, HashMap};
-use compiler::{BindingMetadata, BindingTypes};
+use compiler::BindingMetadata;
 use super::parse_script::TsNode;
 use crate::SfcDescriptor;
 use super::SfcScriptCompileOptions;
@@ -13,74 +13,17 @@ pub struct ImportBinding<'a> {
     pub is_used_in_template: bool,
 }
 
-enum PropsDeclType {
-    // define variants for PropsDeclType enum
-}
-
-enum EmitsDeclType {
-    // define variants for EmitsDeclType enum
-}
-
-struct PropTypeData {
-    // define fields for PropTypeData struct
-}
+struct TypeScope;
 
 #[derive(Default)]
-struct SetupBindings<'a> {
+struct Analysis<'a> {
+    // import / type analysis
+    scope: Option<TypeScope>,
+    global_scopes: Option<Vec<TypeScope>>,
+    user_imports: HashMap<String, ImportBinding<'a>>,
+    // codegen
     binding_metadata: BindingMetadata<'a>,
     helper_imports: HashSet<String>,
-    user_imports: HashMap<String, ImportBinding<'a>>,
-    script_bindings: HashMap<String, BindingTypes>,
-    setup_bindings: HashMap<String, BindingTypes>,
-}
-
-#[derive(Default)]
-struct ExportRelated<'a> {
-    default_export: Option<TsNode<'a>>,
-    has_default_export_name: bool,
-    has_default_export_render: bool,
-}
-
-type ObjectExpression = ();
-
-#[derive(Default)]
-struct Misc {
-    has_define_expose_call: bool,
-    has_await: bool,
-    has_inlined_ssr_render_fn: bool,
-    declared_types: HashMap<String, Vec<String>>,
-}
-
-#[derive(Default)]
-struct PropRelated<'a> {
-    has_define_props_call: bool,
-    type_declared_props: HashMap<String, PropTypeData>,
-    props_runtime_decl: Option<TsNode<'a>>,
-    props_runtime_defaults: Option<ObjectExpression>,
-    props_destructure_decl: Option<TsNode<'a>>,
-    props_destructure_rest_id: Option<String>,
-    props_type_decl: Option<PropsDeclType>,
-    props_type_decl_raw: Option<TsNode<'a>>,
-    props_identifier: Option<String>,
-    props_destructured_bindings: HashMap<String, HashMap<String, bool>>,
-}
-
-#[derive(Default)]
-struct EmitRelated<'a> {
-    has_define_emit_call: bool,
-    emits_runtime_decl: Option<TsNode<'a>>,
-    emits_type_decl: Option<EmitsDeclType>,
-    emits_type_decl_raw: Option<TsNode<'a>>,
-    emit_identifier: Option<String>,
-    type_declared_emits: HashSet<String>,
-}
-
-#[derive(Default)]
-struct SetupScriptData<'a> {
-    bindings: SetupBindings<'a>,
-    props: PropRelated<'a>,
-    emits: EmitRelated<'a>,
-    exports: ExportRelated<'a>,
 }
 
 pub enum Issue {
@@ -88,8 +31,38 @@ pub enum Issue {
     Warning(String),
 }
 
+#[derive(Default)]
+struct Macros<'a> {
+    // macros presence check
+    has_define_props_call: bool,
+    has_define_emit_call: bool,
+    has_define_expose_call: bool,
+    has_default_export_name: bool,
+    has_default_export_render: bool,
+    has_define_options_call: bool,
+    has_define_model_call: bool,
+    has_define_slots_call: bool,
+    // defineProps
+    props_identifier: Option<String>,
+    props_runtime_decl: Option<TsNode<'a>>,
+    props_type_decl: Option<TsNode<'a>>,
+    props_destructure_decl: Option<TsNode<'a>>,
+    props_destructured_bindings: HashMap<String, TsNode<'a>>,
+    props_destructure_rest_id: Option<String>,
+    props_runtime_defaults: Option<TsNode<'a>>,
+    // defineEmits
+    emits_runtime_decl: Option<TsNode<'a>>,
+    emits_type_decl: Option<TsNode<'a>>,
+    emit_identifier: Option<String>,
+    // defineModel
+    model_decls: HashMap<String, String>,
+    // defineOptions
+    options_runtime_decl: Option<TsNode<'a>>,
+}
+
 pub struct SetupScriptContext<'a, 'b> {
-    data: SetupScriptData<'a>,
+    analysis: Analysis<'a>,
+    macros: Macros<'a>,
     sfc: &'b SfcDescriptor<'a>,
     options: &'b SfcScriptCompileOptions<'a>,
     is_ts: bool,
@@ -105,7 +78,8 @@ impl<'a, 'b> SetupScriptContext<'a, 'b> {
             sfc.scripts.len() == 1 || sfc.scripts[1].get_lang() == lang
         };
         Self {
-            data: SetupScriptData::default(),
+            analysis: Analysis::default(),
+            macros: Macros::default(),
             sfc,
             options,
             is_ts,
@@ -128,7 +102,7 @@ impl<'a, 'b> SetupScriptContext<'a, 'b> {
     }
 
     pub fn get_registered_import(&self, local: &str) -> Option<&ImportBinding> {
-        self.data.bindings.user_imports.get(local)
+        self.analysis.user_imports.get(local)
     }
 
     pub fn register_script_import(
@@ -178,8 +152,7 @@ impl<'a, 'b> SetupScriptContext<'a, 'b> {
             is_from_setup,
             is_used_in_template,
         };
-        self.data
-            .bindings
+        self.analysis
             .user_imports
             .insert(local.to_string(), user_import);
     }

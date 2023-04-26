@@ -27,6 +27,12 @@ pub fn process_setup_scripts<'a, 'b>(
     }
     // 1.2 walk import declarations of <script setup>
     collect_setup_assets(&mut context, script_setup_ast.root());
+    // 1.3 resolve possible user import alias of `ref` and `reactive`
+    // const vueImportAliases: Record<string, string> = {}
+    // for (const key in ctx.userImports) {
+    //   const { source, imported, local } = ctx.userImports[key]
+    //   if (source === 'vue') vueImportAliases[imported] = local
+    // }
     apply_ref_transform();
     extract_runtime_code();
     check_invalid_scope_refs();

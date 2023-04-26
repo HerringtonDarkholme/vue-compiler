@@ -4,11 +4,13 @@ use smallvec::SmallVec;
 use super::parse_script::parse_ts;
 use crate::{SfcDescriptor, SfcScriptBlock};
 use super::{SfcScriptCompileOptions, inject_css_vars, apply_ref_transform};
-use super::analysis::{collect_normal_import, collect_setup_assets};
+use super::analysis::{
+    collect_normal_import, collect_setup_assets, process_normal_script, process_setup_script,
+};
 use super::setup_context::SetupScriptContext;
 use rustc_hash::FxHashMap;
 
-pub fn process_setup_scripts<'a, 'b>(
+pub fn compile_setup_scripts<'a, 'b>(
     scripts: &'b mut SmallVec<[SfcScriptBlock<'a>; 1]>,
     sfc: &'b SfcDescriptor<'a>,
     options: &'b SfcScriptCompileOptions<'a>,
@@ -39,6 +41,14 @@ pub fn process_setup_scripts<'a, 'b>(
             }
         })
         .collect();
+
+    // 2.1 process normal <script> body
+    if let Some(script_ast) = &script_ast {
+        process_normal_script(script_ast.root());
+    }
+    // 2.2 process <script setup> body
+    process_setup_script(script_setup_ast.root());
+
     apply_ref_transform();
     extract_runtime_code();
     check_invalid_scope_refs();

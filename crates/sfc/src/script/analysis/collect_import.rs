@@ -128,7 +128,7 @@ fn is_macro_import<'a>(source: &TsNode<'a>, imported: &Option<TsNode<'a>>) -> Op
     }
 }
 
-fn regitser(ctx: &mut SetupScriptContext, import: TsNode) {
+fn register(ctx: &mut SetupScriptContext, import: TsNode) {
     for imports in collect_one_import(import) {
         let ImportNodes {
             source,
@@ -170,7 +170,7 @@ pub fn collect_setup_assets(ctx: &mut SetupScriptContext, setup_ast: TsNode) {
     for import in setup_ast.find_all(KindMatcher::new("import_statement", TypeScript)) {
         hoist_node();
         dedupe_imports();
-        regitser(ctx, import.into());
+        register(ctx, import.into());
         remove_node_if_dupe();
     }
 }

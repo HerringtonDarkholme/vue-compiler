@@ -12,7 +12,7 @@ use super::{inject_css_vars, apply_ref_transform};
 
 use std::ops::Range;
 
-pub fn process_single_script<'a>(
+pub fn compile_single_script<'a>(
     scripts: &mut SmallVec<[SfcScriptBlock<'a>; 1]>,
     sfc: &SfcDescriptor<'a>,
     options: SfcScriptCompileOptions<'a>,

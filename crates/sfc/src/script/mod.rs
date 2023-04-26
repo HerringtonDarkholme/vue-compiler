@@ -6,8 +6,8 @@ mod analysis;
 mod setup_script;
 
 use compiler::SFCInfo;
-use vanilla_script::process_single_script;
-use setup_script::process_setup_scripts;
+use vanilla_script::compile_single_script;
+use setup_script::compile_setup_scripts;
 use crate::{SfcDescriptor, SfcScriptBlock, SfcTemplateCompileOptions};
 use crate::rewrite_default;
 use crate::style::css_vars::gen_normal_script_css_vars_code;
@@ -78,9 +78,9 @@ pub fn compile_script<'a>(
         return scripts.pop();
     }
     if !scripts.iter().any(|s| s.is_setup()) {
-        Some(process_single_script(&mut scripts, sfc, options))
+        Some(compile_single_script(&mut scripts, sfc, options))
     } else {
-        Some(process_setup_scripts(&mut scripts, sfc, &options))
+        Some(compile_setup_scripts(&mut scripts, sfc, &options))
     }
 }
 
@@ -113,4 +113,5 @@ fn inject_css_vars<'a>(
 
 fn apply_ref_transform() {
     // nothing! ref transform is deprecated!
+    // TODO remove in 3.4
 }

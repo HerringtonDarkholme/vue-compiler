@@ -14,12 +14,6 @@ fn move_script_before_setup() {
     // TODO: do we really need this?
 }
 
-lazy_static! {
-    static ref EXPORT_DEFAULT_PATTERN: TsPattern = Pattern::new("export default $EXP", TypeScript);
-    static ref EXPORT_SPECIFIER: KindMatcher<TypeScript> =
-        KindMatcher::new("export_specifier", TypeScript);
-}
-
 // <script> after <script setup>
 // we need to move the block up so that `const __default__` is
 // declared before being used in the actual component definition
@@ -28,19 +22,84 @@ pub fn process_setup_script(ast: TsNode) {}
 fn rewrite_export_or_walk_declaration(ast: TsNode) {
     for node in ast.children() {
         match &*node.kind() {
-            "export_statement" => rewrite_export(),
-            "variable_declaration"
-            | "lexical_declaration"
-            | "function_declaration"
-            | "class_declaration"
-            | "enum_declaration" => walk_declaration(),
-            _ => (),
+            "export_statement" => rewrite_export(node),
+            _ => try_walk_declaration(node),
         }
     }
 }
 
-fn rewrite_export() {
-    //   if (node.type === 'ExportDefaultDeclaration') {
+lazy_static! {
+    static ref EXPORT_DEFAULT_PATTERN: TsPattern = Pattern::new("export default $EXP", TypeScript);
+    static ref EXPORT_NS_PATTERN: TsPattern = Pattern::contextual(
+        "export * as default from 'a'",
+        "namespace_export",
+        TypeScript
+    )
+    .unwrap();
+    static ref EXPORT_SPECIFIER: KindMatcher<TypeScript> =
+        KindMatcher::new("export_specifier", TypeScript);
+}
+
+fn rewrite_export(node: TsNode) {
+    if let Some(nm) = EXPORT_DEFAULT_PATTERN.match_node(node.clone()) {
+        rewrite_default_export(nm.into());
+        return;
+    }
+    if node.find(&*EXPORT_NS_PATTERN).is_some() {
+        // who wrote these weird stuffs???
+        todo!()
+    }
+    let specifiers: Vec<_> = node.find_all(&*EXPORT_SPECIFIER).collect();
+    if let Some(nm) = specifiers.iter().find(|n| {
+        if let Some(name) = n.field("alias").or_else(|| n.field("name")) {
+            name.text() == "default"
+        } else {
+            false
+        }
+    }) {
+        //  defaultExport = node // TODO: add defaultNode
+
+        // 1. remove specifier
+        let edit = if specifiers.len() > 1 {
+            nm.remove()
+        } else {
+            node.remove()
+        };
+        // export { x as default } from './x'
+        // rewrite to `import { x as __default__ } from './x'` and
+        // add to top
+        if let Some(src) = node.field("source") {
+            // ctx.s.prepend(
+            //   `import { ${defaultSpecifier.local.name} as ${normalScriptDefaultVar} } from '${node.source.value}'\n`
+            // )
+        } else {
+            // export { x as default }
+            // rewrite to `const __default__ = x` and move to end
+
+            //    ctx.s.appendLeft(
+            //      scriptEndOffset!,
+            //      `\nconst ${normalScriptDefaultVar} = ${defaultSpecifier.local.name}\n`
+            //    )
+        }
+    }
+
+    if let Some(decl) = node.field("declaration") {
+        try_walk_declaration(decl);
+    }
+    //   if (node.type === 'ExportNamedDeclaration') {
+    //     if (node.declaration) {
+    //       walkDeclaration(
+    //         'script',
+    //         node.declaration,
+    //         scriptBindings,
+    //         vueImportAliases,
+    //         hoistStatic
+    //       )
+    //     }
+    //   }
+}
+
+fn rewrite_default_export(_node: TsNode) {
     //     // export default
     //     defaultExport = node
 
@@ -83,61 +142,17 @@ fn rewrite_export() {
     //     const start = node.start! + scriptStartOffset!
     //     const end = node.declaration.start! + scriptStartOffset!
     //     ctx.s.overwrite(start, end, `const ${normalScriptDefaultVar} = `)
-    //   } else if (node.type === 'ExportNamedDeclaration') {
-    //     const defaultSpecifier = node.specifiers.find(
-    //       s => s.exported.type === 'Identifier' && s.exported.name === 'default'
-    //     ) as ExportSpecifier
-    //     if (defaultSpecifier) {
-    //       defaultExport = node
-    //       // 1. remove specifier
-    //       if (node.specifiers.length > 1) {
-    //         ctx.s.remove(
-    //           defaultSpecifier.start! + scriptStartOffset!,
-    //           defaultSpecifier.end! + scriptStartOffset!
-    //         )
-    //       } else {
-    //         ctx.s.remove(
-    //           node.start! + scriptStartOffset!,
-    //           node.end! + scriptStartOffset!
-    //         )
-    //       }
-    //       if (node.source) {
-    //         // export { x as default } from './x'
-    //         // rewrite to `import { x as __default__ } from './x'` and
-    //         // add to top
-    //         ctx.s.prepend(
-    //           `import { ${defaultSpecifier.local.name} as ${normalScriptDefaultVar} } from '${node.source.value}'\n`
-    //         )
-    //       } else {
-    //         // export { x as default }
-    //         // rewrite to `const __default__ = x` and move to end
-    //         ctx.s.appendLeft(
-    //           scriptEndOffset!,
-    //           `\nconst ${normalScriptDefaultVar} = ${defaultSpecifier.local.name}\n`
-    //         )
-    //       }
-    //     }
-    //     if (node.declaration) {
-    //       walkDeclaration(
-    //         'script',
-    //         node.declaration,
-    //         scriptBindings,
-    //         vueImportAliases,
-    //         hoistStatic
-    //       )
-    //     }
-    //   }
 }
 
 // NOTE: declare xx is ambient_declaration in tree-sitter
-fn walk_declaration() {
-    //   } else if (
-    //     (node.type === 'VariableDeclaration' ||
-    //       node.type === 'FunctionDeclaration' ||
-    //       node.type === 'ClassDeclaration' ||
-    //       node.type === 'TSEnumDeclaration') &&
-    //     !node.declare
-    //   ) {
+fn try_walk_declaration(node: TsNode) {
+    match &*node.kind() {
+        "variable_declaration" | "lexical_declaration" => todo!(),
+        "function_declaration" => todo!(),
+        "class_declaration" => todo!(),
+        "enum_declaration" => todo!(),
+        _ => (), // passs
+    }
     //     walkDeclaration(
     //       'script',
     //       node,

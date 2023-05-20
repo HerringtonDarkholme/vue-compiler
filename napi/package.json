@@ -60,7 +60,7 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "2.15.2",
-    "@types/node": "18.16.9",
+    "@types/node": "18.16.13",
     "ts-node": "10.9.1",
     "@vue/compiler-core": "3.3.2",
     "@vue/compiler-sfc": "3.3.2",

@@ -11,7 +11,7 @@ license = "MIT"
 
 [dependencies]
 smallvec = "1.10.0"
-bitflags = { version = "2.2.1", features = ["serde"] }
+bitflags = { version = "2.3.1", features = ["serde"] }
 rustc-hash = "1.1.0"
 serde = { version = "1.0", features = ["derive"], optional = true }
 rslint_parser = "0.3.1"

@@ -148,9 +148,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.2.1"
+version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24a6904aef64d73cf10ab17ebace7befb918b82164785cb89907993be7f83813"
+checksum = "6776fc96284a0bb647b615056fc496d1fe1644a7ab01829818a6d91cae888b84"
 dependencies = [
  "serde",
 ]
@@ -667,7 +667,7 @@ version = "2.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7f0a2e93526dd9c8c522d72a4d0c88678be8966fabe9fb8f2947fde6339b682"
 dependencies = [
- "bitflags 2.2.1",
+ "bitflags 2.3.1",
  "ctor",
  "napi-derive",
  "napi-sys",
@@ -1318,7 +1318,7 @@ dependencies = [
 name = "vue-compiler-core"
 version = "0.1.0"
 dependencies = [
- "bitflags 2.2.1",
+ "bitflags 2.3.1",
  "insta",
  "lazy_static",
  "phf",

@@ -14,4 +14,4 @@ sfc = { path = "../sfc", package = "vue-compiler-sfc" }
 dom = { path = "../dom", package = "vue-compiler-dom" }
 path-clean = "1.0.1"
 codespan-reporting = "0.11.1"
-serde_yaml = "0.9.22"
+serde_yaml = "0.9.23"

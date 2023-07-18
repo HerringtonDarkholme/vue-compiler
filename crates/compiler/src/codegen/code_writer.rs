@@ -1,13 +1,15 @@
 use super::{CodeGenerateOption, ScriptMode, CoreCodeGenerator};
 use crate::flags::{HelperCollector, PatchFlag, RuntimeHelper as RH, SlotFlag};
 use crate::converter::v_on::get_handler_type;
-use crate::converter::{BaseConvertInfo, BaseIR, BaseRoot, TopScope};
+use crate::converter::{BaseConvertInfo, BaseIR, BaseRoot, TopScope, Hoist};
 use crate::transformer::{
     BaseFor, BaseIf, BaseRenderSlot, BaseSlotFn, BaseText, BaseVNode, BaseVSlot, BaseCache,
 };
 use crate::ir::{self as C, IRNode, JsExpr as Js, RenderSlotIR, RuntimeDir, VNodeIR, HandlerType};
 use crate::util::{get_vnode_call_helper, is_simple_identifier, VStr};
 use crate::SFCInfo;
+
+use rustc_hash::FxHashSet;
 
 use smallvec::SmallVec;
 use std::{
@@ -294,6 +296,9 @@ impl<'a, T: ioWrite> CoreCodeGenerator<BaseConvertInfo<'a>> for CodeWriter<'a, T
         let call = Js::Call(RH::CREATE_COMMENT, vec![comment]);
         self.generate_js_expr(call)
     }
+    fn generate_hoisted(&mut self, h: usize) -> Self::Written {
+        write!(self.writer, "_hoisted_{h}")
+    }
 }
 
 impl<'a, T: ioWrite> CodeWriter<'a, T> {
@@ -348,7 +353,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
                 self.gen_helper_destruct(helper, global_name)?;
             }
         }
-        self.gen_hoist(top)?;
+        self.gen_hoists(top)?;
         self.newline()?;
         self.write_str("return ")
     }
@@ -366,7 +371,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
             self.newline()?;
         }
         self.gen_imports(top)?;
-        self.gen_hoist(top)?;
+        self.gen_hoists(top)?;
         self.newline()?;
         if self.sfc_info.inline {
             self.write_str("export ")
@@ -419,7 +424,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         }
         Ok(())
     }
-    fn gen_hoist(&mut self, top: &mut TopScope<'a>) -> Output {
+    fn gen_hoists(&mut self, top: &mut TopScope<'a>) -> Output {
         if top.hoists.is_empty() {
             return Ok(());
         }
@@ -434,18 +439,16 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
             self.write_str("(),n)")?;
             self.newline()?;
         }
-        // take hoists
-        let mut hoists = vec![];
-        std::mem::swap(&mut hoists, &mut top.hoists);
+        let hoists = std::mem::take(&mut top.hoists);
         for (i, hoist) in hoists.into_iter().enumerate() {
-            let scope_id_wrapper = gen_scope_id && matches!(hoist, IRNode::VNodeCall { .. });
+            let scope_id_wrapper = gen_scope_id && matches!(hoist, Hoist::FullElement(_));
             let wrapper = if scope_id_wrapper {
                 "_withScopeId(() => "
             } else {
                 ""
             };
             write!(self.writer, "const _hoisted_{} = {}", i, wrapper)?;
-            self.generate_ir(hoist)?;
+            self.generate_one_hoist(hoist)?;
             if scope_id_wrapper {
                 self.write_str(")")?;
             }
@@ -453,6 +456,17 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         }
         Ok(())
     }
+
+    fn generate_one_hoist(&mut self, hoist: Hoist<'a>) -> Output {
+        use Hoist as H;
+        match hoist {
+            H::FullElement(e) => self.generate_vnode(e),
+            H::StaticProps(p) => self.generate_js_expr(p),
+            H::ChildrenArray(_) => todo!(),
+            H::DynamicPropsHint(d) => self.gen_dynamic_props(d),
+        }
+    }
+
     /// render() or ssrRender() and their parameters
     fn generate_function_signature(&mut self) -> Output {
         let option = &self.sfc_info;
@@ -591,6 +605,14 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
         self.deindent()?;
         self.write_str("}")
     }
+
+    /// for vnode_call's dynamic props hint
+    fn gen_dynamic_props(&mut self, dynamic_props: FxHashSet<VStr<'a>>) -> Output {
+        let dps = dynamic_props.into_iter().map(Js::StrLit);
+        self.write_str("[")?;
+        self.gen_list(dps)?;
+        self.write_str("]")
+    }
     /// generate a comma separated list
     fn gen_list<I>(&mut self, exprs: I) -> Output
     where
@@ -716,7 +738,7 @@ impl<'a, T: ioWrite> CodeWriter<'a, T> {
     #[inline(always)]
     fn write_patch(&mut self, flag: PatchFlag) -> Output {
         if self.option.is_dev {
-            write!(self.writer, "{} /*{:?}*/", flag.bits(), flag)
+            write!(self.writer, "{} /*{flag}*/", flag.bits())
         } else {
             write!(self.writer, "{}", flag.bits())
         }
@@ -818,25 +840,53 @@ fn gen_vnode_call_args<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, v: BaseVNode
         children,
         patch_flag,
         dynamic_props,
+        hoisted,
         ..
     } = v;
+    let has_props = props.is_some() || hoisted.has_props_hoisted().is_some();
+    let has_children = !children.is_empty() || hoisted.has_children_hoisted().is_some();
+    let has_dynamic_props =
+        !dynamic_props.is_empty() || hoisted.has_dynamic_props_hoisted().is_some();
 
     gen_vnode_args!(
         gen,
         true, { gen.generate_js_expr(tag)?; }
-        props.is_some(), { gen.generate_js_expr(props.unwrap())?; }
-        !children.is_empty(), { gen.generate_children(children)?; }
+        has_props, {
+            if let Some(props) = props {
+                gen.generate_js_expr(props)?;
+            } else if let Some(&index) = hoisted.has_props_hoisted() {
+                gen.generate_hoisted(index)?;
+            }
+        }
+        has_children, {
+            if let Some(&index) = hoisted.has_children_hoisted() {
+                gen.generate_hoisted(index)?;
+            } else {
+                gen.generate_children(children)?;
+            }
+        }
         patch_flag != PatchFlag::empty(), {
             gen.write_patch(patch_flag)?;
         }
-        !dynamic_props.is_empty(), {
-            let dps = dynamic_props.into_iter().map(Js::StrLit);
-            gen.write_str("[")?;
-            gen.gen_list(dps)?;
-            gen.write_str("]")?;
+        has_dynamic_props, {
+            if let Some(&index) = hoisted.has_dynamic_props_hoisted() {
+                gen.generate_hoisted(index)?;
+            } else {
+                gen.gen_dynamic_props(dynamic_props)?;
+            }
         }
     );
     Ok(())
+}
+
+fn gen_dynamic_props<'a, T: ioWrite>(
+    gen: &mut CodeWriter<'a, T>,
+    dynamic_props: FxHashSet<VStr<'a>>,
+) -> Output {
+    let dps = dynamic_props.into_iter().map(Js::StrLit);
+    gen.write_str("[")?;
+    gen.gen_list(dps)?;
+    gen.write_str("]")
 }
 
 fn gen_v_for_args<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, f: BaseFor<'a>) -> Output {
@@ -847,7 +897,7 @@ fn gen_v_for_args<'a, T: ioWrite>(gen: &mut CodeWriter<'a, T>, f: BaseFor<'a>) -
         false, {  }
         true, { gen.generate_render_list(f)?; }
         true, {
-            write!(gen.writer, "{} /*{:?}*/", flag.bits(), flag)?;
+            write!(gen.writer, "{} /*{flag}*/", flag.bits())?;
         }
     );
     Ok(())
@@ -1124,7 +1174,7 @@ mod test {
         let set_size = std::mem::size_of::<std::collections::HashSet<&str>>();
         // TODO: too large
         assert_eq!(ir_size, 184);
-        assert_eq!(vnode_size, 152);
+        assert_eq!(vnode_size, 176);
         assert_eq!(for_size, 176);
         assert_eq!(js_size, 32);
         assert_eq!(set_size, 48);
@@ -1141,7 +1191,7 @@ mod test {
         let mut map = FxHashMap::default();
         map.insert("test", BindingTypes::Props);
         let option = SFCInfo {
-            binding_metadata: BindingMetadata::new(map, false),
+            binding_metadata: BindingMetadata::new_option(map),
             ..Default::default()
         };
         let ir = base_convert("hello world");

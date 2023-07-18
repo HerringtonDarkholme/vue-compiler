@@ -18,6 +18,7 @@ pub trait ConvertInfo {
     type CommentType: Serialize;
     type JsExpression: Default + Serialize;
     type StrType: Serialize + Eq + Hash;
+    type HoistedIndex: Serialize;
 }
 #[cfg(not(feature = "serde"))]
 pub trait ConvertInfo {
@@ -28,6 +29,7 @@ pub trait ConvertInfo {
     type CommentType;
     type JsExpression: Default;
     type StrType: Eq + Hash;
+    type HoistedIndex;
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -50,6 +52,8 @@ pub enum IRNode<T: ConvertInfo> {
     CacheNode(CacheIR<T>),
     /// comment
     CommentCall(T::CommentType),
+    /// hoisted
+    Hoisted(T::HoistedIndex),
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -100,6 +104,68 @@ pub struct RuntimeDir<T: ConvertInfo> {
     pub arg: Option<T::JsExpression>,
     pub mods: Option<T::JsExpression>,
 }
+
+#[cfg_attr(feature = "serde", derive(Serialize))]
+enum HoistedType<T: ConvertInfo> {
+    DynamicProps(T::HoistedIndex),
+    Children(T::HoistedIndex),
+    Props(T::HoistedIndex),
+}
+
+#[derive(Default)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct HoistedAssets<T: ConvertInfo> {
+    hoisted: Vec<HoistedType<T>>,
+}
+
+impl<T: ConvertInfo> HoistedAssets<T> {
+    pub fn add_props(&mut self, index: T::HoistedIndex) {
+        debug_assert! {
+            !self.hoisted.iter().any(|n| matches!(n, HoistedType::Props(_)))
+        };
+        self.hoisted.push(HoistedType::Props(index));
+    }
+    pub fn add_dynamic_props(&mut self, index: T::HoistedIndex) {
+        debug_assert! {
+            !self.hoisted.iter().any(|n| matches!(n, HoistedType::DynamicProps(_)))
+        };
+        self.hoisted.push(HoistedType::DynamicProps(index));
+    }
+    pub fn add_children(&mut self, index: T::HoistedIndex) {
+        debug_assert! {
+            !self.hoisted.iter().any(|n| matches!(n, HoistedType::Children(_)))
+        };
+        self.hoisted.push(HoistedType::Children(index));
+    }
+    pub fn has_children_hoisted(&self) -> Option<&T::HoistedIndex> {
+        self.hoisted.iter().find_map(|h| {
+            if let HoistedType::Children(i) = h {
+                Some(i)
+            } else {
+                None
+            }
+        })
+    }
+    pub fn has_dynamic_props_hoisted(&self) -> Option<&T::HoistedIndex> {
+        self.hoisted.iter().find_map(|h| {
+            if let HoistedType::DynamicProps(i) = h {
+                Some(i)
+            } else {
+                None
+            }
+        })
+    }
+    pub fn has_props_hoisted(&self) -> Option<&T::HoistedIndex> {
+        self.hoisted.iter().find_map(|h| {
+            if let HoistedType::Props(i) = h {
+                Some(i)
+            } else {
+                None
+            }
+        })
+    }
+}
+
 #[derive(Default)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct VNodeIR<T: ConvertInfo> {
@@ -112,6 +178,7 @@ pub struct VNodeIR<T: ConvertInfo> {
     pub is_block: bool,
     pub disable_tracking: bool,
     pub is_component: bool,
+    pub hoisted: HoistedAssets<T>,
 }
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Slot<T: ConvertInfo> {
@@ -145,6 +212,8 @@ pub struct CacheIR<T: ConvertInfo> {
     pub kind: CacheKind<T>,
     pub child: Box<IRNode<T>>,
 }
+
+pub type HoistedIndex<T> = <T as ConvertInfo>::HoistedIndex;
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct IRRoot<T: ConvertInfo> {
@@ -237,7 +306,8 @@ impl<'a> JsExpr<'a> {
             Num(_) | StrLit(_) => S::CanStringify,
             Simple(_, level) => *level,
             Symbol(_) | Src(_) | Param(_) => S::CanHoist,
-            Compound(v) | Array(v) | Call(_, v) => vec_static_level(v),
+            Compound(v) | Array(v) => vec_static_level(v),
+            Call(rh, v) => call_static_level(rh, v),
             Props(ps) => ps.iter().map(prop_level).min().unwrap_or(S::CanStringify),
             FuncSimple { lvl, .. } => *lvl,
             FuncCompound { body, .. } => vec_static_level(body),
@@ -256,4 +326,17 @@ fn prop_level(prop: &Prop) -> StaticLevel {
     let key_level = prop.0.static_level();
     let val_level = prop.1.static_level();
     key_level.min(val_level)
+}
+
+fn call_static_level(rh: &RuntimeHelper, v: &[JsExpr]) -> StaticLevel {
+    use RuntimeHelper as RH;
+    let hoistable = rh == &RH::NORMALIZE_CLASS
+        || rh == &RH::NORMALIZE_STYLE
+        || rh == &RH::NORMALIZE_PROPS
+        || rh == &RH::GUARD_REACTIVE_PROPS;
+    if hoistable {
+        vec_static_level(v)
+    } else {
+        StaticLevel::NotStatic
+    }
 }

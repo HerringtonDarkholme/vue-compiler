@@ -90,6 +90,7 @@ pub trait CoreCodeGenerator<T: ConvertInfo> {
             IR::AlterableSlot(a) => self.generate_alterable_slot(a),
             IR::CacheNode(cache) => self.generate_cache(cache),
             IR::CommentCall(c) => self.generate_comment(c),
+            IR::Hoisted(h) => self.generate_hoisted(h),
         }
     }
     fn generate_prologue(&mut self, t: &mut IRRoot<T>) -> Self::Written;
@@ -104,6 +105,7 @@ pub trait CoreCodeGenerator<T: ConvertInfo> {
     fn generate_cache(&mut self, c: C::CacheIR<T>) -> Self::Written;
     fn generate_js_expr(&mut self, e: T::JsExpression) -> Self::Written;
     fn generate_comment(&mut self, c: T::CommentType) -> Self::Written;
+    fn generate_hoisted(&mut self, h: T::HoistedIndex) -> Self::Written;
 }
 
 pub struct CodeGen<T: ioWrite> {

@@ -220,15 +220,11 @@ pub struct AstRoot<'a> {
     pub location: SourceLocation,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum WhitespaceStrategy {
     Preserve,
+    #[default]
     Condense,
-}
-impl Default for WhitespaceStrategy {
-    fn default() -> Self {
-        WhitespaceStrategy::Condense
-    }
 }
 
 // `is_xxx` methods in ParseOption targets different audience.
@@ -620,7 +616,7 @@ where
             return false;
         }
         if tag_name == "component"
-            || tag_name.starts_with(|c| matches!(c, 'A'..='Z'))
+            || tag_name.starts_with(|c: char| c.is_ascii_uppercase())
             || is_core_component(tag_name)
             || (opt.get_builtin_component)(tag_name).is_some()
             || !(opt.is_native_element)(tag_name)

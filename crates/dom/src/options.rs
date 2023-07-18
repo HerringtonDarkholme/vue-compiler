@@ -117,7 +117,7 @@ pub fn compile_option(error_handler: RcErrHandle) -> CompileOption {
         helper_strs: dom_helper::DOM_HELPER_MAP,
         error_handler,
         mode: ScriptMode::Function {
-            prefix_identifier: false,
+            prefix_identifier: true,
             runtime_global_name: "Vue".into(),
         },
         ..Default::default()

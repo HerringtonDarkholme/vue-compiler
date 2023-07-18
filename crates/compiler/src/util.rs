@@ -205,7 +205,7 @@ pub trait PropMatcher<'a> {
     }
 }
 
-pub fn is_bind_key<'a>(arg: &Option<DirectiveArg<'a>>, name: &str) -> bool {
+pub fn is_bind_key(arg: &Option<DirectiveArg>, name: &str) -> bool {
     get_bind_key(arg).map_or(false, |v| v == name)
 }
 

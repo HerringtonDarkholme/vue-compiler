@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![feature(generic_associated_types, once_cell)]
 //! See README.md
 
 // TODO: reorg pub
@@ -16,11 +15,11 @@ pub mod scanner;
 pub mod transformer;
 
 use flags::StaticLevel;
-use ir::JsExpr as Js;
+pub use ir::JsExpr as Js;
 use rustc_hash::FxHashMap;
 use std::ops::Deref;
 use std::ops::Range;
-pub use transformer::pass::Chain;
+pub use transformer::{pass::Chain, process_expression::ExpressionProcessor};
 use util::VStr;
 
 #[cfg(feature = "serde")]
@@ -89,7 +88,7 @@ pub enum Namespace {
     UserDefined(&'static str),
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum BindingTypes {
     /// returned from data()
     Data,
@@ -125,11 +124,17 @@ impl BindingTypes {
 
 /// stores binding variables exposed by data/prop/setup script.
 /// also stores if the binding is from setup script.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct BindingMetadata<'a>(FxHashMap<&'a str, BindingTypes>, bool);
 impl<'a> BindingMetadata<'a> {
-    pub fn new(map: FxHashMap<&'a str, BindingTypes>, from_setup: bool) -> Self {
+    fn new(map: FxHashMap<&'a str, BindingTypes>, from_setup: bool) -> Self {
         Self(map, from_setup)
+    }
+    pub fn new_option(map: FxHashMap<&'a str, BindingTypes>) -> Self {
+        Self::new(map, false)
+    }
+    pub fn new_setup(map: FxHashMap<&'a str, BindingTypes>) -> Self {
+        Self::new(map, true)
     }
     pub fn is_setup(&self) -> bool {
         self.1

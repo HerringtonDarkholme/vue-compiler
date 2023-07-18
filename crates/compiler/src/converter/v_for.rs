@@ -144,8 +144,7 @@ mod test {
     use super::*;
     use crate::cast;
     fn to_str(e: Js) -> &str {
-        let v = cast!(e, Js::Param);
-        v
+        cast!(e, Js::Param)
     }
     fn check_equal(src: &str, expect: (&str, &str, Option<&str>, Option<&str>)) {
         let (src, ret) = parse_for_expr(VStr::raw(src)).expect("should parse");

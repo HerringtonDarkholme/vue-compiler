@@ -221,7 +221,7 @@ fn parse_param_normalized(text: &str, file_id: usize) -> rl::Parse<ParameterList
         let mut s = sc.borrow_mut();
         s.clear();
         write!(s, "({})", text).unwrap();
-        parse_param_impl(&*s, file_id)
+        parse_param_impl(&s, file_id)
     })
 }
 

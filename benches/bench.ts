@@ -1,11 +1,11 @@
 import fs from 'fs'
 import path from 'path'
 import Benchmark from 'benchmark'
-import glob from 'glob'
+import {globSync} from 'glob'
 import {baseCompile} from '@vue/compiler-core'
 
 let suite = new Benchmark.Suite('Original')
-const vueFiles = glob.sync('./fixtures/*.vue').map(vue => {
+const vueFiles = globSync('./fixtures/*.vue').map(vue => {
     const fileName = path.basename(vue)
     const content = fs.readFileSync(vue, {encoding: 'utf8'})
     return [fileName, content] as const

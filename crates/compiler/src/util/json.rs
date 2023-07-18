@@ -42,7 +42,7 @@ fn write_string_complex<W: Write>(mut w: W, string: &str, mut start: usize) -> R
         if escape != __ {
             w.write_str(&string[start..index])?;
             w.write_char('\\')?;
-            w.write_char(escape as char)?;
+            w.write_char(escape)?;
             start = index + 1;
         }
         if escape == 'u' {

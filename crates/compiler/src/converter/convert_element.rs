@@ -43,6 +43,7 @@ pub fn convert_element<'a>(bc: &BC<'a>, mut e: Element<'a>) -> BaseIR<'a> {
         is_block,
         disable_tracking: false,
         is_component: e.is_component(),
+        hoisted: Default::default(),
     };
     IRNode::VNodeCall(vnode)
 }

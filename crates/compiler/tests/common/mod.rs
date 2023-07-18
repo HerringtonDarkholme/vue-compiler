@@ -58,7 +58,7 @@ pub fn get_errors(source: &str) -> Vec<TestError> {
     let dest = Vec::new;
     let sfc_info = Default::default();
     let compiler = BaseCompiler::new(dest, get_base_passes, option);
-    let ret = compiler.compile(source, &sfc_info).unwrap();
+    let _ = compiler.compile(source, &sfc_info).unwrap();
     let errors = error_handler.errors();
     errors
         .iter()

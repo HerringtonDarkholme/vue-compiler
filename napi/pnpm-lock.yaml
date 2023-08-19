@@ -11,8 +11,8 @@ dependencies:
 
 devDependencies:
   '@napi-rs/cli':
-    specifier: 2.16.2
-    version: 2.16.2
+    specifier: 2.16.3
+    version: 2.16.3
   '@types/node':
     specifier: 18.17.5
     version: 18.17.5
@@ -202,8 +202,8 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.14
     dev: true
 
-  /@napi-rs/cli@2.16.2:
-    resolution: {integrity: sha512-U2aZfnr0s9KkXpZlYC0l5WxWCXL7vJUNpCnWMwq3T9GG9rhYAAUM9CTZsi1Z+0iR2LcHbfq9EfMgoqnuTyUjfg==}
+  /@napi-rs/cli@2.16.3:
+    resolution: {integrity: sha512-3mLNPlbbOhpbIUKicLrJtIearlHXUuXL3UeueYyRRplpVMNkdn8xCyzY6PcYZi3JXR8bmCOiWgkVmLnrSL7DKw==}
     engines: {node: '>= 10'}
     hasBin: true
     dev: true

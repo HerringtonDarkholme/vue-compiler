@@ -19,8 +19,8 @@ devDependencies:
     specifier: 7.23.3
     version: 7.23.3
   '@vitejs/plugin-vue':
-    specifier: 4.3.3
-    version: 4.3.3(vite@4.4.9)(vue@3.3.4)
+    specifier: 4.6.2
+    version: 4.6.2(vite@4.4.9)(vue@3.3.4)
   typescript:
     specifier: 5.1.6
     version: 5.1.6
@@ -257,11 +257,11 @@ packages:
   /@jridgewell/sourcemap-codec@1.4.15:
     resolution: {integrity: sha512-eF2rxCRulEKXHTRiDrDy6erMYWqNw4LPdQ8UQA4huuxaQsVeRPFl2oM8oDGxMFhJUWZf9McpLtJasDDZb/Bpeg==}
 
-  /@vitejs/plugin-vue@4.3.3(vite@4.4.9)(vue@3.3.4):
-    resolution: {integrity: sha512-ssxyhIAZqB0TrpUg6R0cBpCuMk9jTIlO1GNSKKQD6S8VjnXi6JXKfUXjSsxey9IwQiaRGsO1WnW9Rkl1L6AJVw==}
+  /@vitejs/plugin-vue@4.6.2(vite@4.4.9)(vue@3.3.4):
+    resolution: {integrity: sha512-kqf7SGFoG+80aZG6Pf+gsZIVvGSCKE98JbiWqcCV9cThtg91Jav0yvYFC9Zb+jKetNGF6ZKeoaxgZfND21fWKw==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
-      vite: ^4.0.0
+      vite: ^4.0.0 || ^5.0.0
       vue: ^3.2.25
     dependencies:
       vite: 4.4.9

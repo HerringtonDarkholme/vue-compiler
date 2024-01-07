@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue'
-import init, {baseCompile} from 'rusty-vue-compiler'
-await init()
+import { baseCompile } from 'rusty-vue-compiler'
 
 let input = ref('<p>Hello World from wasm!</p>')
 let output = ref('')
@@ -9,14 +8,13 @@ let output = ref('')
 watchEffect(async () => {
   output.value = baseCompile(input.value)
 })
-
 </script>
 
 <template>
-    <div class="playground">
-      <textarea v-model="input"/>
-      <code v-html="output"/>
-    </div>
+  <div class="playground">
+    <textarea v-model="input" />
+    <code v-html="output" />
+  </div>
 </template>
 
 <style scoped>

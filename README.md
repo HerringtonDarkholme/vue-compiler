@@ -2,7 +2,7 @@
 
 <p align="center">
 <a href="https://rustwasm.github.io/wasm-pack/"><img src="https://raw.githubusercontent.com/HerringtonDarkholme/vue-compiler/main/playground/src/assets/wasm-ferris.png" alt="WebAssembly ferris" width="317"></a>
- <a href="https://github.com/vuejs/vue-next"><img src="https://raw.githubusercontent.com/HerringtonDarkholme/vue-compiler/main/playground/src/assets/logo.png" alt="Vue" width="200"></a>
+ <a href="https://github.com/vuejs/core"><img src="https://raw.githubusercontent.com/HerringtonDarkholme/vue-compiler/main/playground/src/assets/logo.png" alt="Vue" width="200"></a>
 </p>
 
 <p align="center"><a href="https://herringtondarkholme.github.io/vue-compiler/">Try it out in the wasm playground!</a></p>
@@ -35,8 +35,8 @@ No support since most features in full build are additional except for browser b
 
 ## Reference
 
-* [vue-next](https://github.com/vuejs/vue-next): ご本家様
+* [vuejs/core](https://github.com/vuejs/core): ご本家様
 * [html spec](https://html.spec.whatwg.org/multipage/parsing.html) is the definitive guide for parsing HTML-like files.
-* [Vue Template Explorer](https://vue-next-template-explorer.netlify.app/) gives instant results for  code generation and error reporting.
+* [Vue Template Explorer](https://template-explorer.vuejs.org/) gives instant results for  code generation and error reporting.
 * [Nu html checker](https://validator.w3.org/nu/#textarea) is the official html validator from W3C. This is the canonical error reporter for html parsing, when there is a discrepancy between the framework and the spec.
 * [AST explorer](https://astexplorer.net/) can inspect AST nodes interactively.

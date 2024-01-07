@@ -740,7 +740,7 @@ impl<'a, 'b> DirectiveParser<'a, 'b> {
         }
         let remain = &prefixed[1..];
         // bind/on/customDir accept arg, mod. slot accepts nothing.
-        // see vuejs/vue-next#1241 special case for v-slot
+        // see vuejs/core#1241 special case for v-slot
         if is_v_slot {
             if prefixed.starts_with(MOD_CHAR) {
                 // only . can end dir_name, e.g. v-slot.error

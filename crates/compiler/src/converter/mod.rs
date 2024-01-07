@@ -3,7 +3,7 @@ IR Converter module takes AST and produces intermediate representation.
 All core template syntax conversion happens here. IR is later used for
 optimizing transformation and code generation. As we decouple codegen
 node from AST, Vue's transformation passes are broken down to two parts.
-Convert module roughly corresponds to following transform in vue-next.
+Convert module roughly corresponds to following transform in vuejs/core.
 
 # IR Convert
 * transformElement

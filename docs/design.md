@@ -1,6 +1,6 @@
 # Architecture
 
-The original design in [vue-next](https://github.com/vuejs/vue-next/blob/master/packages/compiler-core/src/ast.ts) mixes
+The original design in [vuejs/core](https://github.com/vuejs/core/blob/main/packages/compiler-core/src/ast.ts) mixes
 code generation and ast parsing in the same data structure. As we can see, the transform pass will in-place mutate ast nodes,
 leaving the node with both code generation node and ssr code generation node.
 
@@ -33,8 +33,8 @@ The compilation has several phases:
 
 ## Other Design different from the original compiler
 * Directive parsing is implemented manually instead of by regexp.
-* [`nodeTransforms`](https://github.com/vuejs/vue-next/blob/642710ededf51f1e57286496ab0a64a4d27be800/packages/compiler-core/src/options.ts#L174) is not supported. It's too hard for app creator to use and maintain IR invariants. Platform devs can still customize by implementing converter/transformer.
-* [`directiveTransforms`](https://github.com/vuejs/vue-next/blob/642710ededf51f1e57286496ab0a64a4d27be800/packages/compiler-core/src/options.ts#L179) now can returns not only `Props` but also `SimpleExpression`. The extra flexibility makes a more cohesive v-bind/v-on conversion: the logic for processing the directives now resides in one single file without regard to the presence of an argument.
+* [`nodeTransforms`](https://github.com/vuejs/core/blob/642710ededf51f1e57286496ab0a64a4d27be800/packages/compiler-core/src/options.ts#L174) is not supported. It's too hard for app creator to use and maintain IR invariants. Platform devs can still customize by implementing converter/transformer.
+* [`directiveTransforms`](https://github.com/vuejs/core/blob/642710ededf51f1e57286496ab0a64a4d27be800/packages/compiler-core/src/options.ts#L179) now can returns not only `Props` but also `SimpleExpression`. The extra flexibility makes a more cohesive v-bind/v-on conversion: the logic for processing the directives now resides in one single file without regard to the presence of an argument.
 * Runtime helper collection `context.helper/helperString` is moved out from convert and tracked in transform phase, avoiding several methods and reducing HashMap to a bitflag.
 
 

@@ -204,10 +204,10 @@ fn should_use_block<'a>(e: &Element<'a>, tag: &Js<'a>) -> bool {
         }
     }
     // <svg> and <foreignObject> must be forced into blocks so that block
-    // updates inside get proper isSVG flag at runtime. (vue-next/#639, #643)
+    // updates inside get proper isSVG flag at runtime. (vuejs/core/#639, #643)
     // Technically web-specific, but splitting out of core is too complex
     e.tag_name == "svg" || e.tag_name == "foreignObject" ||
-    // vue-next/#938: elements with dynamic keys should be forced into blocks
+    // vuejs/core/#938: elements with dynamic keys should be forced into blocks
     prop_finder(e, "key").dynamic_only().find().is_some()
 }
 

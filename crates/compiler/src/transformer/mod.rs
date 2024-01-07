@@ -1,6 +1,6 @@
 /*!
 Transform IRNode.
-This module contains the canonical transformations from vue-next and
+This module contains the canonical transformations from vuejs/core and
 the original ones for the parity of features not implemented in Convert.
 
 ## Canonical

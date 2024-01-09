@@ -43,7 +43,7 @@ fn analyze_script_bindings(src: &str) -> BindingMetadata {
     let pattern = Pattern::new("export default { $$$ }", TypeScript);
     let mut children = root.children();
     let Some(node_match) = children.find_map(|n| pattern.match_node(n)) else {
-        return BindingMetadata::default()
+        return BindingMetadata::default();
     };
     let object = node_match
         .get_node()

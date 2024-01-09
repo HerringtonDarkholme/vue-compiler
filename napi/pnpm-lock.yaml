@@ -50,8 +50,8 @@ devDependencies:
     specifier: 5.0.0
     version: 5.0.0(eslint-config-prettier@9.0.0)(eslint@8.56.0)(prettier@3.0.2)
   eslint-plugin-sonarjs:
-    specifier: 0.20.0
-    version: 0.20.0(eslint@8.56.0)
+    specifier: 0.23.0
+    version: 0.23.0(eslint@8.56.0)
   npm-run-all:
     specifier: 4.1.5
     version: 4.1.5
@@ -1298,8 +1298,8 @@ packages:
       synckit: 0.8.5
     dev: true
 
-  /eslint-plugin-sonarjs@0.20.0(eslint@8.56.0):
-    resolution: {integrity: sha512-BRhZ7BY/oTr6DDaxvx58ReTg7R+J8T+Y2ZVGgShgpml25IHBTIG7EudUtHuJD1zhtMgUEt59x3VNvUQRo2LV6w==}
+  /eslint-plugin-sonarjs@0.23.0(eslint@8.56.0):
+    resolution: {integrity: sha512-z44T3PBf9W7qQ/aR+NmofOTyg6HLhSEZOPD4zhStqBpLoMp8GYhFksuUBnCxbnf1nfISpKBVkQhiBLFI/F4Wlg==}
     engines: {node: '>=14'}
     peerDependencies:
       eslint: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0

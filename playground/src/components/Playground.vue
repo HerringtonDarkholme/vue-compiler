@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue'
-import { baseCompile } from 'rusty-vue-compiler'
+import init, { baseCompile } from 'rusty-vue-compiler'
+
+await init()
 
 let input = ref('<p>Hello World from wasm!</p>')
 let output = ref('')

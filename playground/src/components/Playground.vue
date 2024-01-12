@@ -15,7 +15,7 @@ watchEffect(async () => {
 <template>
   <div class="playground">
     <textarea v-model="input" />
-    <code v-html="output" />
+    <code>{{output}}</code>
   </div>
 </template>
 

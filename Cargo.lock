@@ -1363,6 +1363,7 @@ name = "vue-compiler-wasm"
 version = "0.1.0"
 dependencies = [
  "vue-compiler-core",
+ "vue-compiler-dom",
  "wasm-bindgen",
  "wee_alloc",
 ]

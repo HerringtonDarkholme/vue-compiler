@@ -26,8 +26,8 @@ dependencies:
 
 devDependencies:
   ts-node:
-    specifier: 10.9.1
-    version: 10.9.1(@types/node@18.15.11)(typescript@5.3.3)
+    specifier: 10.9.2
+    version: 10.9.2(@types/node@18.15.11)(typescript@5.3.3)
   typescript:
     specifier: 5.3.3
     version: 5.3.3
@@ -255,8 +255,8 @@ packages:
     engines: {node: '>=4'}
     dev: false
 
-  /ts-node@10.9.1(@types/node@18.15.11)(typescript@5.3.3):
-    resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
+  /ts-node@10.9.2(@types/node@18.15.11)(typescript@5.3.3):
+    resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==}
     hasBin: true
     peerDependencies:
       '@swc/core': '>=1.2.50'

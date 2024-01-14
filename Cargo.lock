@@ -596,12 +596,12 @@ checksum = "99227334921fae1a979cf0bfdfcc6b3e5ce376ef57e16fb6fb3ea2ed6095f80c"
 
 [[package]]
 name = "libloading"
-version = "0.7.3"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efbc0f03f9a775e9f6aed295c6a1ba2253c5757a9e03d55c6caa46a681abcddd"
+checksum = "c571b676ddfc9a8c12f1f3d3085a7b163966a8fd8098a90640953ce5f6170161"
 dependencies = [
  "cfg-if 1.0.0",
- "winapi",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -666,9 +666,9 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "2.13.3"
+version = "2.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd063c93b900149304e3ba96ce5bf210cd4f81ef5eb80ded0d100df3e85a3ac0"
+checksum = "2fc1cb00cde484640da9f01a124edbb013576a6ae9843b23857c940936b76d91"
 dependencies = [
  "bitflags 2.4.1",
  "ctor",
@@ -714,9 +714,9 @@ dependencies = [
 
 [[package]]
 name = "napi-sys"
-version = "2.2.3"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "166b5ef52a3ab5575047a9fe8d4a030cdd0f63c96f071cd6907674453b07bae3"
+checksum = "2503fa6af34dc83fb74888df8b22afe933b58d37daf7d80424b1c60c68196b8b"
 dependencies = [
  "libloading",
 ]
@@ -763,9 +763,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.17.1"
+version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
+checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 
 [[package]]
 name = "oorandom"

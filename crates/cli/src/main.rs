@@ -85,8 +85,13 @@ fn get_file(input: Option<String>) -> Result<(String, String)> {
         let ab_path = absolute_path(file_name.clone())?;
         Ok((file_name, fs::read_to_string(ab_path)?))
     } else {
+        // If no Vue file is specified, tests / app.vue will be parsed by default
+        let mut config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        config_path.push("tests");
+        config_path.push("App.vue");
+        let mut f = fs::File::open(config_path)?;
         let mut s = String::new();
-        io::stdin().read_to_string(&mut s)?;
+        f.read_to_string(&mut s)?;
         Ok(("App.vue".to_owned(), s))
     }
 }

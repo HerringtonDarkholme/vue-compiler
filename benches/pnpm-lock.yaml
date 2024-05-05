@@ -7,7 +7,7 @@ settings:
 dependencies:
   '@types/benchmark':
     specifier: ^2.1.1
-    version: 2.1.2
+    version: 2.1.5
   '@types/glob':
     specifier: ^8.0.0
     version: 8.1.0
@@ -27,7 +27,7 @@ dependencies:
 devDependencies:
   ts-node:
     specifier: 10.9.2
-    version: 10.9.2(@types/node@18.15.11)(typescript@5.3.3)
+    version: 10.9.2(@types/node@20.12.8)(typescript@5.3.3)
   typescript:
     specifier: 5.3.3
     version: 5.3.3
@@ -100,8 +100,8 @@ packages:
     resolution: {integrity: sha512-yOlFc+7UtL/89t2ZhjPvvB/DeAr3r+Dq58IgzsFkOAvVC6NMJXmCGjbptdXdR9qsX7pKcTL+s87FtYREi2dEEQ==}
     dev: true
 
-  /@types/benchmark@2.1.2:
-    resolution: {integrity: sha512-EDKtLYNMKrig22jEvhXq8TBFyFgVNSPmDF2b9UzJ7+eylPqdZVo17PCUMkn1jP6/1A/0u78VqYC6VrX6b8pDWA==}
+  /@types/benchmark@2.1.5:
+    resolution: {integrity: sha512-cKio2eFB3v7qmKcvIHLUMw/dIx/8bhWPuzpzRT4unCPRTD8VdA9Zb0afxpcxOqR4PixRS7yT42FqGS8BYL8g1w==}
     dev: false
 
   /@types/glob@8.1.0:
@@ -117,6 +117,13 @@ packages:
 
   /@types/node@18.15.11:
     resolution: {integrity: sha512-E5Kwq2n4SbMzQOn6wnmBjuK9ouqlURrcZDVfbo9ftDDTFt3nk7ZKK4GMOzoYgnpQJKcxwQw+lGaBvvlMo0qN/Q==}
+    dev: false
+
+  /@types/node@20.12.8:
+    resolution: {integrity: sha512-NU0rJLJnshZWdE/097cdCBbyW1h4hEg0xpovcoAQYHl8dnEyp/NAOiE45pvc+Bd1Dt+2r94v2eGFpQJ4R7g+2w==}
+    dependencies:
+      undici-types: 5.26.5
+    dev: true
 
   /@vue/compiler-core@3.2.47:
     resolution: {integrity: sha512-p4D7FDnQb7+YJmO2iPEv0SQNeNzcbHdGByJDsT4lynf63AFkOTFN07HsiRSvjGo0QrxR/o3d0hUyNCUnBU2Tig==}
@@ -255,7 +262,7 @@ packages:
     engines: {node: '>=4'}
     dev: false
 
-  /ts-node@10.9.2(@types/node@18.15.11)(typescript@5.3.3):
+  /ts-node@10.9.2(@types/node@20.12.8)(typescript@5.3.3):
     resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==}
     hasBin: true
     peerDependencies:
@@ -274,7 +281,7 @@ packages:
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.3
-      '@types/node': 18.15.11
+      '@types/node': 20.12.8
       acorn: 8.8.2
       acorn-walk: 8.2.0
       arg: 4.1.3
@@ -290,6 +297,10 @@ packages:
     resolution: {integrity: sha512-pXWcraxM0uxAS+tN0AG/BF2TyqmHO014Z070UsJ+pFvYuRSq8KH8DmWpnbXe0pEPDHXZV3FcAbJkijJ5oNEnWw==}
     engines: {node: '>=14.17'}
     hasBin: true
+    dev: true
+
+  /undici-types@5.26.5:
+    resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
     dev: true
 
   /v8-compile-cache-lib@3.0.1:

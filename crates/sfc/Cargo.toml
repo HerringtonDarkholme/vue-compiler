@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 smallvec = "1.12.0"
 rustc-hash = "1.1.0"
-ast-grep-core = "0.5.3"
+ast-grep-core = "0.28.0"
 tree-sitter-typescript = "0.20.3"
 lazy_static = "1.4.0"
 compiler = { path = "../compiler", default-features = false, features = [], package = "vue-compiler-core" }
